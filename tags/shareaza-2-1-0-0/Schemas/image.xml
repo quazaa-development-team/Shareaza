@@ -1,0 +1,352 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+Shareaza Afrikaans Schemas File translated by Johann van der Walt (Thesage)
+Shareaza Arabian Schemas File translated by lazorde
+Shareaza Portuguese Schemas File translated by Lukas Taves (LightHeaven)
+Shareaza Chinese Simplified Schemas File translated by Shareaza Team China
+Shareaza German Schemas File translated by Spooky
+Shareaza Spanish Schemas File translated by Help
+Shareaza French Schemas File translated by Antoine Martin-Lalande (Sensi)
+Shareaza Hungarian Schemas File translated by Yuri
+Shareaza Italian Schemas File translated by ale5000
+Shareaza Lithuanian Schemas File translated by Rolandas Rudomanskis
+Shareaza Dutch Schemas File translated by Jan-Willem Koornwinder (thurstydog)
+Shareaza Norwegian Schemas File translated by Tom Seland
+Shareaza Russian Schemas File translated by dAbserver
+-->
+
+<schemaDescriptor location="http://www.shareaza.com/schemas/image.xsd" xmlns="http://www.shareaza.com/schemas/SchemaDescriptor.xsd">
+       <object type="file" availability="default"/>
+       <titles>
+               <title language="en">Image</title>
+               <title language="af">Prent</title>
+               <title language="ar">&#160;صورة</title>
+               <title language="cn">&#160;图片</title>
+               <title language="de">Bild</title>
+               <title language="es">Imagén</title>
+               <title language="fr">Image</title>
+               <title language="hu">Kép</title>
+               <title language="it">Immagine</title>
+               <title language="lt">Paveikslėlis</title>
+               <title language="nl">Albeelding</title>
+               <title language="no">Bilde</title>
+               <title language="br">Imagem</title>
+               <title language="ru">&#160;Картинка</title>
+       </titles>
+       <members>
+               <member name="title" search="generic">
+                       <display defaultColumn="true" prompt="true"/>
+                       <title language="en">Title</title>
+                       <title language="af">Titel</title>
+                       <title language="ar">&#160;المجموع</title>
+                       <title language="cn">&#160;标题</title>
+                       <title language="de">Titel</title>
+                       <title language="es">Título</title>
+                       <title language="fr">Titre</title>
+                       <title language="hu">Cím</title>
+                       <title language="it">Titolo</title>
+                       <title language="lt">Pavadinimas</title>
+                       <title language="nl">Titel</title>
+                       <title language="no">Tittel</title>
+                       <title language="br">Título</title>
+                       <title language="ru">&#160;Название</title>
+               </member>
+               <member name="author" search="generic">
+                       <title language="en">Author</title>
+                       <title language="af">Outeur</title>
+                       <title language="ar">&#160;الكاتب</title>
+                       <title language="cn">&#160;作者</title>
+                       <title language="de">Autor</title>
+                       <title language="es">Autor</title>
+                       <title language="fr">Auteur</title>
+                       <title language="hu">Szerző</title>
+                       <title language="it">Autore</title>
+                       <title language="lt">Autorius</title>
+                       <title language="nl">Auteur</title>
+                       <title language="no">Forfatter</title>
+                       <title language="br">Autor</title>
+                       <title language="ru">&#160;Автор</title>
+               </member>
+               <member name="subject" search="generic">
+                       <display prompt="true"/>
+                       <title language="en">Subject</title>
+                       <title language="af">Onderwerp</title>
+                       <title language="ar">&#160;الموضوع</title>
+                       <title language="cn">&#160;主题</title>
+                       <title language="de">Thema</title>
+                       <title language="es">Sujeto</title>
+                       <title language="fr">Sujet</title>
+                       <title language="hu">Tárgy</title>
+                       <title language="it">Oggetto</title>
+                       <title language="lt">Tema</title>
+                       <title language="nl">Onderwerp</title>
+                       <title language="no">Tema</title>
+                       <title language="br">Assunto</title>
+                       <title language="ru">&#160;Тема</title>
+               </member>
+               <member name="copyright">
+                       <title language="en">Copyright</title>
+                       <title language="af">Kopiereg</title>
+                       <title language="ar">&#160;حقوق&#160;النسخ</title>
+                       <title language="cn">&#160;版权</title>
+                       <title language="de">Copyright</title>
+                       <title language="es">Copyright</title>
+                       <title language="fr">Copyright</title>
+                       <title language="hu">Copyright</title>
+                       <title language="it">Diritti d'autore</title>
+                       <title language="lt">Autorių teisės</title>
+                       <title language="nl">Copyright</title>
+                       <title language="no">Kopibeskyttelse</title>
+                       <title language="br">Direitos de Cópia</title>
+                       <title language="ru">&#160;Правообладатель</title>
+               </member>
+               <member name="description" search="none">
+                       <display prompt="true"/>
+                       <title language="en">Description</title>
+                       <title language="af">Beskrywing</title>
+                       <title language="ar">&#160;نبذه&#160;تعريفية</title>
+                       <title language="cn">&#160;描述</title>
+                       <title language="de">Beschreibung</title>
+                       <title language="es">Descripción</title>
+                       <title language="fr">Description</title>
+                       <title language="hu">Leírás</title>
+                       <title language="it">Descrizione</title>
+                       <title language="lt">Aprašas</title>
+                       <title language="nl">Omschrijving</title>
+                       <title language="no">Beskrivelse</title>
+                       <title language="br">Descrição</title>
+                       <title language="ru">&#160;Описание</title>
+               </member>
+               <member name="width">
+                       <display columnAlign="center" defaultColumn="true"/>
+                       <title language="en">Width</title>
+                       <title language="af">Breedte</title>
+                       <title language="ar">&#160;العرض</title>
+                       <title language="cn">&#160;宽度</title>
+                       <title language="de">Breite</title>
+                       <title language="es">Ancho</title>
+                       <title language="fr">Largeur</title>
+                       <title language="hu">Szélesség</title>
+                       <title language="it">Larghezza</title>
+                       <title language="lt">Plotis</title>
+                       <title language="nl">Breedte</title>
+                       <title language="no">Bredde</title>
+                       <title language="br">Largura</title>
+                       <title language="ru">&#160;Ширина</title>
+               </member>
+               <member name="height">
+                       <display columnAlign="center" defaultColumn="true"/>
+                       <title language="en">Height</title>
+                       <title language="af">Hoogte</title>
+                       <title language="ar">&#160;الإرتفاع</title>
+                       <title language="cn">&#160;高度</title>
+                       <title language="de">Höhe</title>
+                       <title language="es">Altura</title>
+                       <title language="fr">Hauteur</title>
+                       <title language="hu">Magasság</title>
+                       <title language="it">Altezza</title>
+                       <title language="lt">Aukštis</title>
+                       <title language="nl">Hoogte</title>
+                       <title language="no">Høyde</title>
+                       <title language="br">Altura</title>
+                       <title language="ru">&#160;Высота</title>
+               </member>
+               <member name="colors">
+                       <title language="en">Colors</title>
+                       <title language="af">Kleure</title>
+                       <title language="ar">&#160;الجامع</title>
+                       <title language="cn">&#160;颜色</title>
+                       <title language="de">Farben</title>
+                       <title language="es">Colores</title>
+                       <title language="fr">Couleurs</title>
+                       <title language="hu">Színek</title>
+                       <title language="it">Colori</title>
+                       <title language="lt">Spalvų</title>
+                       <title language="nl">Kleuren</title>
+                       <title language="no">Farger</title>
+                       <title language="br">Cores</title>
+                       <title language="ru">&#160;Цвета</title>
+               </member>
+               <member name="type">
+                       <display defaultColumn="true"/>
+                       <title language="en">Type</title>
+                       <title language="af">Tipe</title>
+                       <title language="ar">&#160;النوع</title>
+                       <title language="cn">&#160;类型</title>
+                       <title language="de">Art</title>
+                       <title language="es">Arte</title>
+                       <title language="fr">Type</title>
+                       <title language="hu">Típus</title>
+                       <title language="it">Tipo</title>
+                       <title language="lt">Tipas</title>
+                       <title language="nl">Type</title>
+                       <title language="no">Type</title>
+                       <title language="br">Tipo</title>
+                       <title language="ru">&#160;Тип</title>
+               </member>
+               <member name="rating">
+                       <title language="en">Rating</title>
+                       <title language="af">Gradering</title>
+                       <title language="ar">&#160;التقدير</title>
+                       <title language="cn">&#160;分级</title>
+                       <title language="de">FSK</title>
+                       <title language="es">Rating</title>
+                       <title language="fr">Estimation</title>
+                       <title language="hu">Jegy</title>
+                       <title language="it">Valutazione</title>
+                       <title language="lt">Vertinimas</title>
+                       <title language="nl">Beoordeling</title>
+                       <title language="no">Vurdering</title>
+                       <title language="br">Classificação</title>
+                       <title language="ru">&#160;Райтинг</title>
+               </member>
+               <member name="distributer">
+                       <title language="en">Distributer</title>
+                       <title language="af">Verspreider</title>
+                       <title language="ar">&#160;الموزّع</title>
+                       <title language="cn">&#160;发行商</title>
+                       <title language="de">Herausgeber</title>
+                       <title language="es">Distribuidor</title>
+                       <title language="fr">Distributeur</title>
+                       <title language="hu">Árusító</title>
+                       <title language="it">Distributore</title>
+                       <title language="lt">Distributorius</title>
+                       <title language="nl">Verspreider</title>
+                       <title language="no">Distributør</title>
+                       <title language="br">Distribuidor</title>
+                       <title language="ru">&#160;Дистрибьютер</title>
+               </member>
+               <member name="DistributerLink">
+                       <title language="en">Distributer Link</title>
+                       <title language="af">Verspreider Skakel</title>
+                       <title language="ar">&#160;رابط&#160;الموزع</title>
+                       <title language="cn">&#160;发行商链接</title>
+                       <title language="de">Link zum Herausgeber</title>
+                       <title language="es">Link del Distribuidor</title>
+                       <title language="fr">Lien du distributeur</title>
+                       <title language="hu">Árusító linkje</title>
+                       <title language="it">Link del distributore</title>
+                       <title language="lt">Distrib. nuoroda</title>
+                       <title language="nl">Link naar Verspreider</title>
+                       <title language="no">Distributør link</title>
+                       <title language="br">Link do Distribuidor</title>
+                       <title language="ru">&#160;Ссылка на дистрибьютера</title>
+               </member>
+               <member name="releasegroup" search="indexed">
+                       <title language="en">Release Group</title>
+                       <title language="af">Uitgewers Groep</title>
+                       <title language="ar">&#160;اصدار&#160;المجموعات</title>
+                       <title language="cn">&#160;发行组织</title>
+                       <title language="de">Release Group</title>
+                       <title language="es">Release Group</title>
+                       <title language="fr">Groupe de release</title>
+                       <title language="hu">Kiadó csapat</title>
+                       <title language="it">Gruppo di rilascio</title>
+                       <title language="lt">Leidimo grupė</title>
+                       <title language="nl">Vrijgave Groep</title>
+                       <title language="no">Release gruppe</title>
+                       <title language="br">Grupo de Lançamento</title>
+                       <title language="ru">&#160;Релиз группа</title>
+               </member>
+               <member name="releasegroupLink">
+                       <title language="en">Release Group Link</title>
+                       <title language="af">Uitgewers Skakel</title>
+                       <title language="ar">&#160;رابط&#160;اصدار&#160;المجموعات</title>
+                       <title language="cn">&#160;发行组织链接</title>
+                       <title language="de">Release Group Link</title>
+                       <title language="es">Release Group Link</title>
+                       <title language="fr">Lien du groupe de release</title>
+                       <title language="hu">Kiadó csapat linkje</title>
+                       <title language="it">Link gruppo di rilascio</title>
+                       <title language="lt">Leid. gr. nuoroda</title>
+                       <title language="nl">Link Vrijgave Groep</title>
+                       <title language="no">Release gruppe link</title>
+                       <title language="br">Link do Grupo</title>
+                       <title language="ru">&#160;Ссылка на релиз группу</title>
+               </member>
+               <member name="keywords" search="generic">
+                       <title language="en">Keywords</title>
+                       <title language="af">Sleutelwoorde</title>
+                       <title language="ar">&#160;كلمات&#160;البحث</title>
+                       <title language="cn">&#160;关键字</title>
+                       <title language="de">Schlüsselwörter</title>
+                       <title language="es">Palabras Clave</title>
+                       <title language="fr">Mots clés</title>
+                       <title language="hu">Kulcsszavak</title>
+                       <title language="it">Parole chiave</title>
+                       <title language="lt">Raktažodžiai</title>
+                       <title language="nl">Sleutelwoorden</title>
+                       <title language="no">Nøkkelord</title>
+                       <title language="br">Palavras-chave</title>
+                       <title language="ru">&#160;Ключевые слова</title>
+               </member>
+               <member name="link" search="none">
+                       <title language="en">Link</title>
+                       <title language="af">Skakel</title>
+                       <title language="ar">&#160;الرابط</title>
+                       <title language="cn">&#160;链接</title>
+                       <title language="de">Link</title>
+                       <title language="es">Link</title>
+                       <title language="fr">Lien</title>
+                       <title language="hu">Link</title>
+                       <title language="it">Link</title>
+                       <title language="lt">Nuoroda</title>
+                       <title language="nl">Link</title>
+                       <title language="no">Link</title>
+                       <title language="br">Link</title>
+                       <title language="ru">&#160;Ссылка</title>
+               </member>
+       </members>
+       <typeFilter>
+               <type extension="ai"/>
+               <type extension="bmp"/>
+               <type extension="bw"/>
+               <type extension="clp"/>
+               <type extension="ct"/>
+               <type extension="cut"/>
+               <type extension="dib"/>
+               <type extension="emf"/>
+               <type extension="eps"/>
+               <type extension="fla"/>
+               <type extension="fpx"/>
+               <type extension="gif"/>
+               <type extension="iff"/>
+               <type extension="img"/>
+               <type extension="lbm"/>
+               <type extension="jif"/>
+               <type extension="jiff"/>
+               <type extension="jpe"/>
+               <type extension="jpeg"/>
+               <type extension="jpg"/>
+               <type extension="jsl"/>
+               <type extension="mac"/>
+               <type extension="msp"/>
+               <type extension="pbm"/>
+               <type extension="pct"/>
+               <type extension="pcx"/>
+               <type extension="pfr"/>
+               <type extension="pgm"/>
+               <type extension="pic"/>
+               <type extension="pict"/>
+               <type extension="png"/>
+               <type extension="ppm"/>
+               <type extension="ps"/>
+               <type extension="psd"/>
+               <type extension="psp"/>
+               <type extension="ras"/>
+               <type extension="raw"/>
+               <type extension="rgb"/>
+               <type extension="rgba"/>
+               <type extension="rle"/>
+               <type extension="sct"/>
+               <type extension="sgi"/>
+               <type extension="swf"/>
+               <type extension="tga"/>
+               <type extension="tif"/>
+               <type extension="tiff"/>
+               <type extension="tub"/>
+               <type extension="wpg"/>
+               <type extension="wmf"/>
+       </typeFilter>
+</schemaDescriptor>

@@ -1,0 +1,95 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+Shareaza Afrikaans Schemas File translated by Johann van der Walt (Thesage)
+Shareaza Arabian Schemas File translated by lazorde
+Shareaza Portuguese Schemas File translated by Lukas Taves (LightHeaven)
+Shareaza Chinese Simplified Schemas File translated by Shareaza Team China
+Shareaza German Schemas File translated by Spooky
+Shareaza Spanish Schemas File translated by Help
+Shareaza French Schemas File translated by Antoine Martin-Lalande (Sensi)
+Shareaza Hungarian Schemas File translated by Yuri
+Shareaza Italian Schemas File translated by ale5000
+Shareaza Lithuanian Schemas File translated by Rolandas Rudomanskis
+Shareaza Dutch Schemas File translated by Jan-Willem Koornwinder (thurstydog)
+Shareaza Norwegian Schemas File translated by Tom Seland
+Shareaza Russian Schemas File translated by dAbserver
+-->
+
+<schemaDescriptor location="http://www.shareaza.com/schemas/imageAll.xsd" xmlns="http://www.shareaza.com/schemas/SchemaDescriptor.xsd">
+
+       <object type="folder" availability="system"/>
+       <titles>
+               <title language="en">Image:All Images</title>
+               <title language="af">Prent:Alle Prente</title>
+               <title language="ar">&#160;صورة&#160;:&#160;جميع&#160;الصور</title>
+               <title language="cn">&#160;影集:&#160;所有图片</title>
+               <title language="de">Bild:Alle Bilder</title>
+               <title language="es">Imagen: Todas las Imágenes</title>
+               <title language="fr">Image:Toutes les images</title>
+               <title language="hu">Kép: minden kép</title>
+               <title language="it">Immagine:Tutte le immagini</title>
+               <title language="lt">Paveikslėlis:Visi paveikslėliai</title>
+               <title language="nl">Afbeelding:Alle Afbeeldingen</title>
+               <title language="no">Bilde: alle bilder</title>
+               <title language="br">Imagem:Todas as Imagens</title>
+               <title language="ru">&#160;Картинка:&#160;Все картинки</title>
+       </titles>
+       <images>
+               <icon path="imageFolder.ico"/>
+       </images>
+       <members>
+               <member name="title" search="none">
+                       <display defaultColumn="true"/>
+                       <title language="en">Title</title>
+                       <title language="af">Titel</title>
+                       <title language="ar">&#160;المجموع</title>
+                       <title language="cn">&#160;标题</title>
+                       <title language="de">Titel</title>
+                       <title language="es">Título</title>
+                       <title language="fr">Titre</title>
+                       <title language="hu">Cím</title>
+                       <title language="it">Titolo</title>
+                       <title language="lt">Pavadinimas</title>
+                       <title language="nl">Titel</title>
+                       <title language="no">Tittel</title>
+                       <title language="br">Título</title>
+                       <title language="ru">&#160;Название</title>
+               </member>
+       </members>
+       <contains>
+               <object type="file" location="http://www.shareaza.com/schemas/image.xsd"/>
+       </contains>
+       <headerContent version="1.0">
+               <title language="en">All Images</title>
+               <title language="af">Alle Prente</title>
+               <title language="ar">&#160;جميع&#160;الصور</title>
+               <title language="cn">&#160;所有图片</title>
+               <title language="de">Alle Bilder</title>
+               <title language="es">Todas las imágenes</title>
+               <title language="fr">Toutes les images</title>
+               <title language="hu">Minden kép</title>
+               <title language="it">Tutte le immagini</title>
+               <title language="lt">Visi paveikslėliai</title>
+               <title language="nl">Alle Afbeeldingen</title>
+               <title language="no">Alle bilder</title>
+               <title language="br">Todas as Imagens</title>
+               <title language="ru">&#160;Все картинки</title>
+               <subtitle language="en">This folder contains every image file in your library.</subtitle>
+               <subtitle language="af">Hierdie gids bevat alle prentlêers in jou biblioteek.</subtitle>
+               <subtitle language="ar">&#160;هذا&#160;المجلد&#160;يحتوي&#160;على&#160;جميع&#160;ملفات&#160;الصور&#160;في&#160;المكتبة.</subtitle>
+               <subtitle language="cn">&#160;这个文件夹包含收藏中所有的图片文件。</subtitle>
+               <subtitle language="de">Dieser Ordner enthält alle Bilder in ihrer Bibliothek.</subtitle>
+               <subtitle language="es">Esta carpeta contiene todas las imágenes de tu librería.</subtitle>
+               <subtitle language="fr">Ce dossier contient toutes les images de votre bibliothèque.</subtitle>
+               <subtitle language="hu">Ez a mappa minden képfájlt tartalmaz a könyvtárban.</subtitle>
+               <subtitle language="it">Questa cartella contiene tutte le immagini della tua libreria.</subtitle>
+               <subtitle language="lt">Šiame kataloge yra visos Jūsų kolekcijos paveikslėlių bylos.</subtitle>
+               <subtitle language="nl">Deze map bevat elke afbeelding uit je bibliotheek.</subtitle>
+               <subtitle language="no">Denne mappen inneholder alle bildene i mine filer</subtitle>
+               <subtitle language="br">Esta pasta contém todas as imagens presentes em sua biblioteca.</subtitle>
+               <subtitle language="ru">&#160;Эта папка отображает каждую картинку в&#160;Вашем хранилище.</subtitle>
+       </headerContent>
+       <viewContent version="1.0" preferredView="CLibraryThumbView"/>
+
+</schemaDescriptor>
