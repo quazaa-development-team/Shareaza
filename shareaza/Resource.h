@@ -654,8 +654,6 @@
 #define IDS_SEARCH_FILTERED             8132
 #define IDS_SEARCH_ACTIVE               8133
 #define IDS_SEARCH_CLEAR_PREVIOUS       8134
-#define IDS_SEARCH                      8143
-#define IDS_SEARCH_PANEL_SEARCHING      8143
 #define IDS_SEARCH_PANEL_START          8144
 #define IDS_SEARCH_PANEL_AGAIN          8145
 #define IDS_SEARCH_PANEL_STOP           8146
@@ -750,7 +748,7 @@
 #define IDS_NETWORK_SECURITY_BLOCKED    16078
 #define IDS_NETWORK_DISCONNECT_CONFIRM  16079
 #define IDS_NETWORK_SEARCH_SENT         16081
-//#define IDS_NETWORK_CHANGE_AGENT        16082
+#define IDS_NETWORK_CHANGE_AGENT        16082
 #define IDS_NETWORK_FORCE_HUB           16083
 #define IDS_NETWORK_DISABLE_G1          16084
 #define IDS_NETWORK_DISABLE_G2          16085
@@ -1376,7 +1374,7 @@
 #define ID_NETWORK_G2                   33080
 #define ID_NETWORK_G1                   33081
 #define ID_NETWORK_ED2K                 33082
-//#define ID_LIBRARY_JIGLE                33083
+#define ID_LIBRARY_JIGLE                33083
 #define ID_HOSTCACHE_PRIORITY           33084
 #define ID_VIEW_BASIC                   33085
 #define ID_LIBRARY_SEARCH_QUICK         33086

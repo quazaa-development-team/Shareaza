@@ -29,7 +29,6 @@
 #include "CtrlHomeSearch.h"
 #include "DlgNewSearch.h"
 #include "Skin.h"
-#include "DlgHelp.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -286,13 +285,7 @@ void CHomeSearchCtrl::OnSearchCreate()
 	pSearch->m_sSearch		= strText;
 	pSearch->m_pSchema		= pSchema;
 	
-	if ( NULL == pSearch->OpenWindow() ) 
-	{								//Invalid search, open help window
-		CHelpDlg::Show( _T("SearchHelp.BadSearch") );
-		delete pSearch;
-	}
-		
-		
+	if ( NULL == pSearch->OpenWindow() ) delete pSearch;
 	
 	m_wndText.SetWindowText( _T("") );
 }

@@ -60,8 +60,6 @@ CManagedSearch::CManagedSearch(CQuerySearch* pSearch, int nPriority)
 	m_nLeaves		= 0;
 	m_nHits			= 0;
 	m_tLastED2K		= 0;
-	m_nQueryCount	= 0;
-
 }
 
 CManagedSearch::~CManagedSearch()
@@ -127,7 +125,6 @@ void CManagedSearch::Start()
 	m_tStarted	= time( NULL );
 	m_tExecute	= 0;
 	m_tLastED2K	= 0;
-	m_nQueryCount=0;
 	
 	m_pNodes.RemoveAll();
 	
@@ -164,7 +161,7 @@ BOOL CManagedSearch::Execute()
 	}
 	else
 	{
-		if ( tTicks - m_tExecute < 180 ) return FALSE;
+		if ( tTicks - m_tExecute < 200 ) return FALSE;
 		m_tExecute = tTicks;
 	}
 	
@@ -183,8 +180,6 @@ BOOL CManagedSearch::Execute()
 			m_tLastED2K = tTicks;
 		}
 	}
-
-	if(bSuccess) m_nQueryCount++;
 	
 	return bSuccess;
 }
@@ -264,7 +259,10 @@ BOOL CManagedSearch::ExecuteNeighbours(DWORD tTicks, DWORD tSecs)
 				nFrequency *= ( m_nPriority + 1 );
 			}
 			else if ( pNeighbour->m_nProtocol == PROTOCOL_ED2K )
-				nFrequency = 86400;
+			{
+				nFrequency = Settings.eDonkey.RequeryDelay;
+				nFrequency *= ( m_nPriority + 1 );
+			}
 			
 			if ( tSecs - nPeriod < nFrequency ) continue;
 		}

@@ -42,7 +42,6 @@ void CSettings::Setup()
 	Add( _T(".Path"), &General.Path, General.Path );
 	Add( _T(".Debug"), &General.Debug, FALSE );
 	Add( _T(".DebugLog"), &General.DebugLog, FALSE );
-	Add( _T(".UpdateCheck"), &General.UpdateCheck, TRUE );
 	Add( _T("Settings.GUIMode"), &General.GUIMode, GUI_BASIC );
 	Add( _T("Settings.CloseMode"), &General.CloseMode, 0 );
 	Add( _T("Settings.TrayMinimise"), &General.TrayMinimise, FALSE );
@@ -179,7 +178,7 @@ void CSettings::Setup()
 	Add( _T("Gnutella.DeflateHub2Hub"), &Gnutella.DeflateHub2Hub, TRUE );
 	Add( _T("Gnutella.DeflateLeaf2Hub"), &Gnutella.DeflateLeaf2Hub, FALSE );
 	Add( _T("Gnutella.DeflateHub2Leaf"), &Gnutella.DeflateHub2Leaf, TRUE );
-	Add( _T("Gnutella.MaxResults"), &Gnutella.MaxResults, 100 );
+	Add( _T("Gnutella.MaxResults"), &Gnutella.MaxResults, 300 );
 	Add( _T("Gnutella.MaxHits"), &Gnutella.MaxHits, 64 );
 	Add( _T("Gnutella.HitsPerPacket"), &Gnutella.HitsPerPacket, 64 );
 	Add( _T("Gnutella.RouteCache"), &Gnutella.RouteCache, 600 );
@@ -230,9 +229,8 @@ void CSettings::Setup()
 	Add( _T("Gnutella2.QueryGlobalThrottle"), &Gnutella2.QueryGlobalThrottle, 120 );
 	Add( _T("Gnutella2.QueryHostThrottle"), &Gnutella2.QueryHostThrottle, 120 );
 	Add( _T("Gnutella2.QueryHostDeadline"), &Gnutella2.QueryHostDeadline, 10*60 );
-	Add( _T("Gnutella2.RequeryDelay"), &Gnutella2.RequeryDelay, 4*60*60 );
+	Add( _T("Gnutella2.RequeryDelay"), &Gnutella2.RequeryDelay, 2*60*60 );
 	Add( _T("Gnutella2.HubHorizonSize"), &Gnutella2.HubHorizonSize, 128 );
-	Add( _T("Gnutella2.QueryLimit"), &Gnutella2.QueryLimit, 2400 );
 	
 	Add( _T("eDonkey.EnableAlways"), &eDonkey.EnableAlways, FALSE );
 	Add( _T("eDonkey.NumServers"), &eDonkey.NumServers, 1 );
@@ -242,7 +240,7 @@ void CSettings::Setup()
 	Add( _T("eDonkey.ServerWalk"), &eDonkey.ServerWalk, TRUE );
 	Add( _T("eDonkey.QueryGlobalThrottle"), &eDonkey.QueryGlobalThrottle, 1000 );
 	Add( _T("eDonkey.QueryServerThrottle"), &eDonkey.QueryServerThrottle, 60 );
-	//Add( _T("eDonkey.RequeryDelay"), &eDonkey.RequeryDelay, 45*60 );
+	Add( _T("eDonkey.RequeryDelay"), &eDonkey.RequeryDelay, 45*60 );
 	Add( _T("eDonkey.LearnNewServers"), &eDonkey.LearnNewServers, TRUE );
 	Add( _T("eDonkey.RequestPipe"), &eDonkey.RequestPipe, 3 );
 	Add( _T("eDonkey.RequestSize"), &eDonkey.RequestSize, 180*1024/2 );
@@ -251,7 +249,6 @@ void CSettings::Setup()
 	Add( _T("eDonkey.DequeueTime"), &eDonkey.DequeueTime, 3610 );
 	Add( _T("eDonkey.TagNames"), &eDonkey.TagNames, TRUE );
 	Add( _T("eDonkey.ExtendedRequest"), &eDonkey.ExtendedRequest, TRUE );
-	Add( _T("eDonkey.MagnetSearch"), &eDonkey.MagnetSearch, FALSE );
 	Add( _T("eDonkey.ServerListURL"), &eDonkey.ServerListURL, _T("http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-good.met") );
 	
 	Add( _T("BitTorrent.DefaultTrackerPeriod"), &BitTorrent.DefaultTrackerPeriod, 5*60000 );
@@ -267,7 +264,6 @@ void CSettings::Setup()
 	
 	Add( _T("Downloads.IncompletePath"), &Downloads.IncompletePath, General.Path + _T("\\Incomplete") );
 	Add( _T("Downloads.CompletePath"), &Downloads.CompletePath, General.Path + _T("\\Downloads") );
-	Add( _T("Downloads.TorrentPath"), &Downloads.TorrentPath, General.Path + _T("\\Torrents") );
 	Add( _T("Downloads.BufferSize"), &Downloads.BufferSize, 81920 );
 	Add( _T("Downloads.SparseThreshold"), &Downloads.SparseThreshold, 8 * 1024 );
 	Add( _T("Downloads.MaxFiles"), &Downloads.MaxFiles, 32 );
@@ -390,7 +386,7 @@ void CSettings::Add(LPCTSTR pszName, CString* pString, LPCTSTR pszDefault)
 //////////////////////////////////////////////////////////////////////
 // CSettings load
 
-#define SMART_VERSION	29
+#define SMART_VERSION	28
 
 void CSettings::Load()
 {
@@ -512,16 +508,6 @@ void CSettings::SmartUpgrade()
 		Connection.Firewalled = TRUE;	// We now assume so until proven otherwise
 		Library.VirtualFiles = TRUE;	// Virtual files (stripping) on
 		BitTorrent.Endgame = TRUE;		// Endgame on
-	}
-
-	if ( nVersion < 29 )
-	{
-		Downloads.MinSources = 1;		// Lower Max value- should reset it in case  
-		Downloads.StarveTimeout = 2700; // Increased due to ed2k queues (Tripping too often)
-		Gnutella.MaxResults = 100;      // No longer includes ed2k max files
-		Gnutella2.RequeryDelay = 4*3600;// Longer delay between sending same search to G2 hub
-		Uploads.QueuePollMin = 20000;	// Lower values for re-ask times- a dynamic multiplier
-		Uploads.QueuePollMax = 60000;	//  is now applied based on Q# (from 1x to 5x)
 	}
 	
 	if ( ( nVersion < SMART_VERSION || Live.FirstRun ) &&

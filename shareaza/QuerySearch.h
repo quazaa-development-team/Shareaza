@@ -95,8 +95,8 @@ public:
 	void		BuildWordList();
 	void		Serialize(CArchive& ar);
 	CSearchWnd*	OpenWindow();
-	BOOL		CheckValid();
 protected:
+	BOOL		CheckValid();
 	void		AddStringToWordList(LPCTSTR pszString);
 
 // Utilities

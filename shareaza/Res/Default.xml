@@ -746,7 +746,7 @@
 		</menu>
 		<menu text="_Web Services">
 			<item id="ID_LIBRARY_BITZI_WEB" text="View _Bitzi Ticket"/>
-			<!--<item id="ID_LIBRARY_JIGLE" text="View _Jigle Lookup"/>-->
+			<item id="ID_LIBRARY_JIGLE" text="View _Jigle Lookup"/>
 			<separator/>
 			<item id="ID_SEARCH_COPY" text="Copy _URI..."/>
 		</menu>
@@ -1901,39 +1901,6 @@
 		<text>The BitTorrent tracker server for this download appears to be
 		down or malfunctioning.  Shareaza is unable to contact it to receive
 		a list of downloader peers.</text>
-	</document>
-	
-	<!-- Search help documents -->
-	
-	<document name="SearchHelp.BadSearch">
-		<text format="b">Please re-phrase the search</text>
-		<newline gap="8"/>
-		<text>This search is poorly formatted, and may not function correctly. 
-		Searches should include several terms where possible, and should specify a schema 
-		(file type). Furthermore, searches must not be limited to numbers or negative
-		terms only, and you should avoid overly general queries.</text>
-		<newline gap="8"/>
-		<text>Most clients on the network will ignore a search for all MP3 files, for 					example, because it is not specific enough and would generate too many results.</text>
-	</document>
-
-	<!-- Share help documents -->
-	
-	<document name="ShareHelp.AlreadyShared">
-		<text format="b">Already Shared</text>
-		<newline gap="8"/>
-		<text>The folder you have selected is already being shared as part of an 					existing share.</text>
-		<newline gap="8"/>
-	</document>
-
-	<document name="ShareHelp.BadShare">
-		<text format="b">This folder should not be shared</text>
-		<newline gap="8"/>
-		<text>This folder is (or contains) a system folder. Sharing this folder is not 					recommended, since most of the files in it are of no use to other people.</text>
-		<newline gap="8"/>
-		<text>Folders such as the Windows directory, Program Files, and similar folders
-		do not usually contain files suitable for sharing. Any files of interest would be in 		sub-folders located </text><text format="i"> inside </text><text> these 				folders. Please share those instead.</text>
-		<newline gap="8"/>
-		<text>The Shareaza 'incomplete' folder should also not be shared through the 					library, since attempting to hash downloads in progress may impact on 				performance.</text>
 	</document>
 	
 </documents>

@@ -38,7 +38,6 @@ public:
 		CString		Path;
 		BOOL		Debug;
 		BOOL		DebugLog;
-		BOOL		UpdateCheck;
 		INT			GUIMode;
 		BOOL		CloseMode;
 		BOOL		TrayMinimise;
@@ -267,7 +266,6 @@ public:
 		DWORD		QueryHostDeadline;
 		DWORD		RequeryDelay;
 		DWORD		HubHorizonSize;
-		DWORD		QueryLimit;
 	} Gnutella2;
 	
 	struct seDonkey
@@ -281,7 +279,7 @@ public:
 		BOOL		ServerWalk;
 		DWORD		QueryGlobalThrottle;
 		DWORD		QueryServerThrottle;
-		//DWORD		RequeryDelay;
+		DWORD		RequeryDelay;
 		BOOL		LearnNewServers;
 		CString		ServerListURL;
 		DWORD		RequestPipe;
@@ -290,7 +288,6 @@ public:
 		DWORD		ReAskTime;
 		DWORD		DequeueTime;
 		BOOL		ExtendedRequest;
-		BOOL		MagnetSearch;
 		BOOL		TagNames;
 	} eDonkey;
 	
@@ -312,7 +309,6 @@ public:
 	{
 		CString		IncompletePath;
 		CString		CompletePath;
-		CString		TorrentPath;
 		DWORD		BufferSize;
 		DWORD		SparseThreshold;
 		INT			MaxFiles;

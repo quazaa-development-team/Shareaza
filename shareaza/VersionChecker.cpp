@@ -60,8 +60,7 @@ CVersionChecker::~CVersionChecker()
 
 BOOL CVersionChecker::NeedToCheck()
 {
-	if(!Settings.General.UpdateCheck)
-		return FALSE;
+	return FALSE;
 	
 	DWORD nNextCheck = theApp.GetProfileInt( _T("VersionCheck"), _T("NextCheck"), 0 );
 	

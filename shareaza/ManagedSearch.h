@@ -54,7 +54,6 @@ public:
 	DWORD			m_nLeaves;
 	DWORD			m_nHits;
 	DWORD			m_tLastED2K;
-	DWORD			m_nQueryCount;
 protected:
 	CMapPtrToPtr	m_pNodes;
 	DWORD			m_tExecute;

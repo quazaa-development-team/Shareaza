@@ -214,7 +214,6 @@ void CDownloadsSettingsPage::OnOK()
 	
 	CreateDirectory( m_sDownloadsPath, NULL );
 	CreateDirectory( m_sIncompletePath, NULL );
-	//CreateDirectory( m_sTorrentPath, NULL );
 	
 	if ( m_bDownloadsChanged )
 	{
