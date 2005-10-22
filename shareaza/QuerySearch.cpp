@@ -59,32 +59,30 @@ CQuerySearch::CQuerySearch(BOOL bGUID)
 {
 	if ( bGUID ) Network.CreateID( m_pGUID );
 	
-	m_pSchema		= NULL;
-	m_pXML			= NULL;
-	m_nMinSize		= 0x0000000000000000;
-	m_nMaxSize		= 0xFFFFFFFFFFFFFFFF;
+	m_pSchema	= NULL;
+	m_pXML		= NULL;
+	m_nMinSize	= 0x0000000000000000;
+	m_nMaxSize	= 0xFFFFFFFFFFFFFFFF;
 	
-	m_bSHA1			= FALSE;
-	m_bTiger		= FALSE;
-	m_bED2K			= FALSE;
-	m_bBTH			= FALSE;
-
-	m_bSimilarSearch= FALSE;
+	m_bSHA1		= FALSE;
+	m_bTiger	= FALSE;
+	m_bED2K		= FALSE;
+	m_bBTH		= FALSE;
 	
-	m_bWantURL		= TRUE;
-	m_bWantDN		= TRUE;
-	m_bWantXML		= TRUE;
-	m_bWantCOM		= TRUE;
-	m_bWantPFS		= TRUE;
-	m_bAndG1		= Settings.Gnutella1.EnableToday;
+	m_bWantURL	= TRUE;
+	m_bWantDN	= TRUE;
+	m_bWantXML	= TRUE;
+	m_bWantCOM	= TRUE;
+	m_bWantPFS	= TRUE;
+	m_bAndG1	= Settings.Gnutella1.EnableToday;
 	
-	m_bUDP			= FALSE;
-	m_nKey			= 0;
-	m_bFirewall		= FALSE;
+	m_bUDP		= FALSE;
+	m_nKey		= 0;
+	m_bFirewall	= FALSE;
 	
-	m_nWords		= 0;
-	m_pWordPtr		= NULL;
-	m_pWordLen		= NULL;
+	m_nWords	= 0;
+	m_pWordPtr	= NULL;
+	m_pWordLen	= NULL;
 }
 
 CQuerySearch::CQuerySearch(CQuerySearch* pCopy)
@@ -105,7 +103,6 @@ CQuerySearch::CQuerySearch(CQuerySearch* pCopy)
 	if ( m_bED2K ) m_pED2K = pCopy->m_pED2K;
 	m_bBTH = pCopy->m_bBTH;
 	if ( m_bBTH ) m_pBTH = pCopy->m_pBTH;
-	m_bSimilarSearch = FALSE;
 	
 	m_bWantURL	= pCopy->m_bWantURL;
 	m_bWantDN	= pCopy->m_bWantDN;
@@ -297,7 +294,7 @@ CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 		if ( m_bWantPFS ) pPacket->WriteString( "PFS" );
 	}
 	
-	//if ( m_bAndG1 ) pPacket->WritePacket( "G1", 0 );
+	if ( m_bAndG1 ) pPacket->WritePacket( "G1", 0 );
 	
 	pPacket->WriteByte( 0 );
 	pPacket->Write( &m_pGUID, sizeof(GGUID) );
@@ -344,7 +341,7 @@ CEDPacket* CQuerySearch::ToEDPacket(BOOL bUDP, DWORD nServerFlags)
 			// For newer servers, send the file size if it's valid (and not over 4GB)
 			if ( ( bGetS2 ) && ( m_nMinSize == m_nMaxSize ) && ( m_nMaxSize < 0xFFFFFFFF ) )
 			{
-				// theApp.Message( MSG_DEBUG, ( _T("Creating multi-hash capable GetSources2 for: ") + CED2K::HashToString( &m_pED2K ) ) );
+				theApp.Message( MSG_ERROR, ( _T("Creating multi-hash capable GetSources2 for: ") + CED2K::HashToString( &m_pED2K ) ) );
 
 				// Newer server, send size as well as hash
 				pPacket = CEDPacket::New( bUDP ? ED2K_C2SG_GETSOURCES2 : ED2K_C2S_GETSOURCES );
@@ -399,20 +396,8 @@ CEDPacket* CQuerySearch::ToEDPacket(BOOL bUDP, DWORD nServerFlags)
 		{	
 			// ed2k search without file type
 			// Name / Key Words
-			pPacket->WriteByte( 1 );	
-			// Check if this is a "search for similar files"
-			if ( ( m_bSimilarSearch ) && ( ! bUDP ) && ( nServerFlags & ED2K_SERVER_TCP_RELATEDSEARCH ) )
-			{
-				// This is a search for similar files
-				CString strSearch;
-				strSearch.Format( _T("related::%s"), (LPCTSTR)CED2K::HashToString( &m_pSimilarED2K ) );
-				pPacket->WriteEDString( strSearch, bUTF8 );
-			}
-			else
-			{
-				// Regular search
-				pPacket->WriteEDString( m_sSearch.GetLength() ? m_sSearch : strWords, bUTF8 );
-			}
+			pPacket->WriteByte( 1 );		
+			pPacket->WriteEDString( m_sSearch.GetLength() ? m_sSearch : strWords, bUTF8 );
 		}
 		else
 		{	
@@ -505,8 +490,7 @@ CQuerySearch* CQuerySearch::FromPacket(CPacket* pPacket, SOCKADDR_IN* pEndpoint)
 	{
 		if ( ((CG2Packet*)pPacket)->IsType( G2_PACKET_QUERY_WRAP ) )
 		{
-			//if ( pSearch->ReadG1Packet( (CG1Packet*)pPacket ) ) return pSearch;
-			theApp.Message( MSG_DEBUG, _T("CQuerySearch::FromPacket dropping obsolete wrapped packet") );
+			if ( pSearch->ReadG1Packet( (CG1Packet*)pPacket ) ) return pSearch;
 		}
 		else
 		{
@@ -936,12 +920,7 @@ BOOL CQuerySearch::Match(LPCTSTR pszFilename, QWORD nSize, LPCTSTR pszSchemaURI,
 			}
 		}
 	}
-
-	// If it's a search for similar files, the text doesn't have to match
-	if ( m_bSimilarSearch )
-		return TRUE;
-	else
-		return m_sSearch.GetLength() && WordMatch( pszFilename, m_sSearch );
+	return m_sSearch.GetLength() && WordMatch( pszFilename, m_sSearch );
 }
 
 TRISTATE CQuerySearch::MatchMetadata(LPCTSTR pszSchemaURI, CXMLElement* pXML)

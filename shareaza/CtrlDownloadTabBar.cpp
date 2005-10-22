@@ -404,9 +404,8 @@ void CDownloadTabBar::OnRButtonUp(UINT nFlags, CPoint point)
 		if ( Select( pItem ) ) NotifySelection();
 		Invalidate();
 		ClientToScreen( &rcItem );
-		CoolMenu.RegisterEdge( theApp.m_bRTL ? rcItem.right : rcItem.left, rcItem.bottom - 1, rcItem.Width() );
-		Skin.TrackPopupMenu( _T("CDownloadTabBar"), CPoint( theApp.m_bRTL ? rcItem.right : rcItem.left, 
-			rcItem.bottom - 1 ), ID_DOWNLOAD_GROUP_PROPERTIES );
+		CoolMenu.RegisterEdge( rcItem.left, rcItem.bottom - 1, rcItem.Width() );
+		Skin.TrackPopupMenu( _T("CDownloadTabBar"), CPoint( rcItem.left, rcItem.bottom - 1 ), ID_DOWNLOAD_GROUP_PROPERTIES );
 		m_bMenuGray = FALSE;
 		Invalidate();
 		return;
@@ -505,7 +504,7 @@ void CDownloadTabBar::GetSelectedDownloads(CPtrList* pDownloads)
 void CDownloadTabBar::NotifySelection()
 {
 	Invalidate();
-	GetOwner()->PostMessage( WM_TIMER, 2 );
+	GetOwner()->PostMessage( WM_TIMER, 3 );
 }
 
 
@@ -642,7 +641,6 @@ void CDownloadTabBar::TabItem::Paint(CDownloadTabBar* pBar, CDC* pDC, CRect* pRe
 	rc.left += 20;
 	
 	CString strText = m_sCaption;
-	if ( theApp.m_bRTL ) strText = _T("\x202A") + strText;
 	
 	if ( pDC->GetTextExtent( strText ).cx > rc.Width() )
 	{

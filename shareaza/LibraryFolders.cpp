@@ -21,7 +21,6 @@
 
 #include "StdAfx.h"
 #include "Shareaza.h"
-#include "Settings.h"
 #include "Library.h"
 #include "LibraryMaps.h"
 #include "LibraryFolders.h"
@@ -34,7 +33,6 @@
 #include "XML.h"
 #include "Schema.h"
 #include "SchemaCache.h"
-#include <shlobj.h>
 
 IMPLEMENT_DYNAMIC(CLibraryFolders, CComObject)
 
@@ -117,7 +115,6 @@ CLibraryFolder* CLibraryFolders::AddFolder(LPCTSTR pszPath)
 		strPath = strPath.Left( 2 );
 	
 	if ( IsFolderShared( strPath ) ) return NULL;
-	if ( IsSubFolderShared( strPath ) ) return NULL;
 
 	CLibraryFolder* pFolder;
 	{
@@ -184,7 +181,7 @@ BOOL CLibraryFolders::RemoveFolder(CLibraryFolder* pFolder)
 }
 
 //////////////////////////////////////////////////////////////////////
-// CLibraryFolders check if a physical folder is part of the library
+// CLibraryFolders check if a physical folder is shared
 
 CLibraryFolder* CLibraryFolders::IsFolderShared(LPCTSTR pszPath)
 {
@@ -204,8 +201,15 @@ CLibraryFolder* CLibraryFolders::IsFolderShared(LPCTSTR pszPath)
 		{
 			int nLength = strOldLC.GetLength();
 			if ( strPathLC.Left( nLength ) == strOldLC && 
-				 strPathLC.GetAt( nLength ) == _T('\\') ) 
+				 strPathLC.GetAt( nLength + 1 ) == '\\' ) 
 				return pFolder;
+		}
+		else if ( strPathLC.GetLength() < strOldLC.GetLength() )
+		{
+			int nLength = strPathLC.GetLength();
+			if ( strOldLC.Left( nLength ) == strPathLC && 
+				 strOldLC.GetAt( nLength + 1 ) == '\\' ) 
+				 return pFolder;
 		}
 		else
 		{
@@ -214,98 +218,6 @@ CLibraryFolder* CLibraryFolders::IsFolderShared(LPCTSTR pszPath)
 	}
 	
 	return NULL;
-}
-
-//////////////////////////////////////////////////////////////////////
-// CLibraryFolders check if a subfolder of a physical folder is part of the library
-
-CLibraryFolder* CLibraryFolders::IsSubFolderShared(LPCTSTR pszPath)
-{
-	CString strPathLC( pszPath );
-	CharLower( strPathLC.GetBuffer() );
-	strPathLC.ReleaseBuffer();
-	
-	for ( POSITION pos = GetFolderIterator() ; pos ; )
-	{
-		CLibraryFolder* pFolder = GetNextFolder( pos );
-		
-		CString strOldLC( pFolder->m_sPath );
-		CharLower( strOldLC.GetBuffer() );
-		strOldLC.ReleaseBuffer();
-		
-		if ( strPathLC.GetLength() < strOldLC.GetLength() )
-		{
-			int nLength = strPathLC.GetLength();
-			if ( strOldLC.Left( nLength ) == strPathLC && 
-				 strOldLC.GetAt( nLength ) == _T('\\') ) 
-				 return pFolder;
-		}
-	}
-	
-	return NULL;
-}
-
-//////////////////////////////////////////////////////////////////////
-// CLibraryFolders check if folder is not a system directory, incomplete folder etc...
-
-BOOL CLibraryFolders::IsShareable(LPCTSTR pszPath)
-{
-	CString strPathLC( pszPath );
-	CharLower( strPathLC.GetBuffer() );
-	strPathLC.ReleaseBuffer();
-
-	//Get system paths (to compare)
-	CString strWindowsLC, strProgramsLC;
-	PTSTR pszWindowsPath, pszProgramsPath;
-
-	pszWindowsPath = strWindowsLC.GetBuffer( MAX_PATH + 1 );
-	pszProgramsPath = strProgramsLC.GetBuffer( MAX_PATH + 1 );
-
-	if ( HINSTANCE hShell = LoadLibrary( _T("shfolder.dll") ) )
-	{
-		HRESULT (WINAPI *pfnSHGetFolderPath)(HWND, int, HANDLE, DWORD, LPWSTR);
-		(FARPROC&)pfnSHGetFolderPath = GetProcAddress( hShell, "SHGetFolderPathW" );
-		if ( pfnSHGetFolderPath != NULL )
-		{
-			(*pfnSHGetFolderPath)(NULL, CSIDL_WINDOWS, NULL, NULL, pszWindowsPath);
-			(*pfnSHGetFolderPath)(NULL, CSIDL_PROGRAM_FILES, NULL, NULL, pszProgramsPath);
-		}
-		FreeLibrary( hShell );
-	}
-	CharLower( pszWindowsPath );
-	CharLower( pszProgramsPath );
-
-	strWindowsLC.ReleaseBuffer();
-	strProgramsLC.ReleaseBuffer();
-
-	if ( strWindowsLC.IsEmpty() ) strWindowsLC = _T("c:\\windows");
-	if ( strProgramsLC.IsEmpty() ) strProgramsLC = _T("c:\\program files");
-
-
-	//Get various shareaza paths (to compare)
-	CString strIncompletePathLC = Settings.Downloads.IncompletePath;
-	CharLower( strIncompletePathLC.GetBuffer() );
-	strIncompletePathLC.ReleaseBuffer();
-
-	CString strGeneralPathLC = Settings.General.Path;
-	CharLower( strGeneralPathLC.GetBuffer() );
-	strGeneralPathLC.ReleaseBuffer();
-
-	CString strUserPathLC = Settings.General.UserPath;
-	CharLower( strUserPathLC.GetBuffer() );
-	strUserPathLC.ReleaseBuffer();
-
-	BOOL bTest = pszPath == strWindowsLC;
-
-	return !( strPathLC == _T( "" ) ||
-		 strPathLC == strWindowsLC.Left( 3 ) ||
-		 strPathLC == strProgramsLC ||
-		 strPathLC == strWindowsLC ||
-		 strPathLC == strGeneralPathLC ||
-		 strPathLC == strGeneralPathLC + _T("\\data") ||
-		 strPathLC == strUserPathLC ||
-		 strPathLC == strUserPathLC + _T("\\data") ||
-		 strPathLC == strIncompletePathLC );
 }
 
 //////////////////////////////////////////////////////////////////////

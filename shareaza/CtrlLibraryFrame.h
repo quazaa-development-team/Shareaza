@@ -81,6 +81,7 @@ protected:
 	int					m_nTreeTypesHeight;
 protected:
 	BOOL				m_bUpdating;
+	BOOL				m_bMouseWheel;
 	DWORD				m_nLibraryCookie;
 	DWORD				m_nFolderCookie;
 	CLibraryTreeItem*	m_pFolderSelection;

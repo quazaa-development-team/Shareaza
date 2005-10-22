@@ -52,8 +52,6 @@ protected:
 	DWORD				m_tExecute;					// Time the Execute() function was last run
 	BOOL				m_bFirstTime;
 
-	DWORD				m_tMetQueried;				// Time a MET was last queried
-
 // Operations
 public:
 	POSITION			GetIterator() const;
@@ -64,17 +62,15 @@ public:
 	CDiscoveryService*	Add(CDiscoveryService* pService);
 	void				Remove(CDiscoveryService* pService, BOOL bCheck = TRUE);
 	BOOL				CheckWebCacheValid(LPCTSTR pszAddress);
-	BOOL				CheckMinimumServices();
-	BOOL				QueryForHosts(PROTOCOLID nProtocol);
-	DWORD				MetQueried() const;
 	CDiscoveryService*	GetByAddress(LPCTSTR pszAddress) const;
 	void				Clear();
-
+	BOOL				CheckMinimumServices();
 public:
 	BOOL				Load();
 	BOOL				Save();
 	BOOL				Update();
 	BOOL				Execute(BOOL bSecondary = FALSE);
+	BOOL				ExecuteDonkey();
 	void				Stop();
 	void				OnGnutellaAdded(IN_ADDR* pAddress, int nCount);
 	void				OnGnutellaFailed(IN_ADDR* pAddress);

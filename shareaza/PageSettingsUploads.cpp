@@ -30,7 +30,6 @@
 #include "CoolInterface.h"
 #include "LiveList.h"
 #include "Skin.h"
-#include "DlgHelp.h"
 
 #include "LibraryDictionary.h"
 
@@ -144,20 +143,6 @@ BOOL CUploadsSettingsPage::OnInitDialog()
 	m_wndQueueDelete.EnableWindow( m_wndQueues.GetSelectedCount() > 0 );
 
 	m_bQueuesChanged = FALSE;
-
-	// Update value in limit combo box
-	if ( Settings.Bandwidth.Uploads )
-	{
-		m_sBandwidthLimit = Settings.SmartVolume( Settings.Bandwidth.Uploads * 8, FALSE, TRUE );
-	}
-	else
-	{
-		m_sBandwidthLimit	= Settings.SmartVolume( 0, FALSE, TRUE );
-		int nSpace			= m_sBandwidthLimit.Find( ' ' );
-		m_sBandwidthLimit	= _T("MAX") + m_sBandwidthLimit.Mid( nSpace );
-	}
-
-	UpdateData( FALSE );
 	
 	return TRUE;
 }
@@ -348,7 +333,8 @@ BOOL CUploadsSettingsPage::OnKillActive()
 {
 	UpdateData();
 	
-	if ( ( ! IsNotLimited( m_sBandwidthLimit ) ) && Settings.ParseVolume( m_sBandwidthLimit, TRUE ) == 0 )
+	if ( m_sBandwidthLimit.GetLength() > 0 && m_sBandwidthLimit.Find( _T("MAX") ) < 0 &&
+		 Settings.ParseVolume( m_sBandwidthLimit, TRUE ) == 0 )
 	{
 		CString strMessage;
 		LoadString( strMessage, IDS_SETTINGS_NEED_BANDWIDTH );
@@ -363,8 +349,6 @@ BOOL CUploadsSettingsPage::OnKillActive()
 void CUploadsSettingsPage::OnOK()
 {
 	UpdateData();
-
-	DWORD nOldLimit = Settings.Bandwidth.Uploads;
 	
 	Settings.Uploads.MaxPerHost			= m_nMaxPerHost;
 	Settings.Uploads.SharePartials		= m_bSharePartials;
@@ -372,29 +356,7 @@ void CUploadsSettingsPage::OnOK()
 	Settings.Uploads.HubUnshare			= m_bHubUnshare;
 	Settings.Bandwidth.Uploads			= (DWORD)Settings.ParseVolume( m_sBandwidthLimit, TRUE ) / 8;
 	Settings.Uploads.ThrottleMode		= m_bThrottleMode;
-
-	/*
-	// Upload limit cannot exceed upload capacity
-	if ( Settings.Bandwidth.Uploads )
-	{
-		Settings.Bandwidth.Uploads = min ( Settings.Bandwidth.Uploads, ( ( Settings.Connection.OutSpeed / 8 ) * 1024 ) );
-	}
-	*/
-
-	// Warn the user about the effects of upload limiting
-	if ( ( ! Settings.Live.UploadLimitWarning ) && ( Settings.Bandwidth.Uploads > 0 ) && ( Settings.Bandwidth.Uploads != nOldLimit ) )
-	{
-		DWORD nDownload = max( Settings.Bandwidth.Downloads, ( ( Settings.Connection.InSpeed  / 8 ) * 1024 ) );
-		DWORD nUpload	= min( Settings.Bandwidth.Uploads,   ( ( Settings.Connection.OutSpeed / 8 ) * 1024 ) );
-		
-		if ( ( nUpload * 16 ) < ( nDownload ) )
-		{
-			CHelpDlg::Show( _T("GeneralHelp.UploadWarning") );
-			Settings.Live.UploadLimitWarning = TRUE;
-		}
-	}
 	
-	// Set blocked user agents/strings
 	Settings.Uploads.BlockAgents.Empty();
 	
 	for ( int nItem = 0 ; nItem < m_wndAgentList.GetCount() ; nItem++ )
@@ -411,14 +373,10 @@ void CUploadsSettingsPage::OnOK()
 		}
 	}
 	
-	// Create/Validate queues
 	if ( UploadQueues.GetCount() == 0 )
-	{
 		UploadQueues.CreateDefault();
-		m_bQueuesChanged = TRUE;
-	}
-
-	UploadQueues.Validate();
+	else
+		UploadQueues.Validate();
 
 	if ( m_bQueuesChanged )
 	{
@@ -426,8 +384,6 @@ void CUploadsSettingsPage::OnOK()
 		LibraryDictionary.RebuildHashTable(); 
 		// ED2k file list will automatically update on next server connection
 	}
-
-	UpdateQueues();
 }
 
 
@@ -436,6 +392,18 @@ void CUploadsSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
 	CSettingsPage::OnShowWindow(bShow, nStatus);
 	if ( bShow )
 	{
+		// Update speed units
+		if ( Settings.Bandwidth.Uploads )
+		{
+			m_sBandwidthLimit = Settings.SmartVolume( Settings.Bandwidth.Uploads * 8, FALSE, TRUE );
+		}
+		else
+		{
+			m_sBandwidthLimit	= Settings.SmartVolume( 0, FALSE, TRUE );
+			int nSpace		= m_sBandwidthLimit.Find( ' ' );
+			m_sBandwidthLimit	= _T("MAX") + m_sBandwidthLimit.Mid( nSpace );
+		}
+
 		// Update the bandwidth limit combo values
 
 		// Remove any existing strings
@@ -448,18 +416,5 @@ void CUploadsSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
 		m_wndBandwidthLimit.AddString( _T("MAX") );
 
 		UpdateData( FALSE );
-
-		// Update queue window to show current limit
-		UpdateQueues();
 	}
-}
-
-BOOL CUploadsSettingsPage::IsNotLimited(LPCTSTR pText)
-{
-	if ( ( _tcslen( pText ) == 0 ) ||
-		 ( _tcsistr( pText, _T("MAX") ) != NULL ) || 
-		 ( _tcsistr( pText, _T("NONE") ) != NULL ) )
-		return TRUE;
-	else
-		return FALSE;
 }

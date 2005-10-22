@@ -217,9 +217,8 @@ void CRichElement::PrePaintBitmap(CDC* pDC)
 	else
 	{
 		CString strFile = Settings.General.Path + '\\' + m_sText;
-		HBITMAP hBitmap = (HBITMAP)LoadImage( AfxGetResourceHandle(),
+		m_hImage = (DWORD)LoadImage( AfxGetResourceHandle(),
 			strFile, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE );
-		m_hImage = theApp.m_bRTL ? (DWORD)CreateMirroredBitmap( hBitmap ) : (DWORD)hBitmap;
 	}
 }
 
@@ -230,14 +229,12 @@ void CRichElement::PrePaintIcon(CDC* pDC)
 	UINT nID, nWidth = 16, nHeight = 16;
 	_stscanf( m_sText, _T("%lu.%i.%i"), &nID, &nWidth, &nHeight );
 
-	HICON hIcon = CoolInterface.ExtractIcon( nID );
-	m_hImage = theApp.m_bRTL ? (DWORD)CreateMirroredIcon( hIcon ) : (DWORD)hIcon;
+	m_hImage = (DWORD)CoolInterface.ExtractIcon( nID );
 
 	if ( m_hImage == NULL )
 	{
-		hIcon = (HICON)LoadImage( AfxGetResourceHandle(),
+		m_hImage = (DWORD)LoadImage( AfxGetResourceHandle(),
 			MAKEINTRESOURCE( nID ), IMAGE_ICON, nWidth, nHeight, 0 );
-		m_hImage = theApp.m_bRTL ? (DWORD)CreateMirroredIcon( hIcon ) : (DWORD)hIcon;
 	}
 }
 

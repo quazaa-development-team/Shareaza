@@ -68,10 +68,9 @@ static char THIS_FILE[]=__FILE__;
 
 CUploadTransferHTTP::CUploadTransferHTTP() : CUploadTransfer( PROTOCOL_HTTP )
 {
-	m_bKeepAlive		= TRUE;
-	m_nGnutella			= 0;
-	m_nReaskMultiplier	= 1;
-	m_bNotShareaza		= FALSE;
+	m_bKeepAlive	= TRUE;
+	m_nGnutella		= 0;
+	m_nReaskMultiplier=1;
 }
 
 CUploadTransferHTTP::~CUploadTransferHTTP()
@@ -162,7 +161,6 @@ BOOL CUploadTransferHTTP::ReadRequest()
 	m_bBackwards	= FALSE;
 	m_bRange		= FALSE;
 	m_bQueueMe		= FALSE;
-	m_bNotShareaza	= FALSE;
 	
 	m_bMetadata		= FALSE;
 	m_bTigerTree	= FALSE;
@@ -261,19 +259,11 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		}
 		m_nGnutella |= 1;
 	}
-	else if ( strHeader.CompareNoCase( _T("X-NAlt") ) == 0 )
-	{
-		// Dead alt-sources
-	}
-	else if ( strHeader.CompareNoCase( _T("X-Node") ) == 0 )
-	{
-		m_bNotShareaza = TRUE; // Shareaza doesn't send this header
-	}
 	else if ( strHeader.CompareNoCase( _T("X-Queue") ) == 0 )
 	{
 		m_bQueueMe = TRUE;
+		if ( strValue == _T("1.0") ) m_bQueueMe = (BOOL)2;
 		m_nGnutella |= 1;
-		if ( strValue == _T("1.0") ) m_bNotShareaza = TRUE;			// Shareaza doesn't send this value
 	}
 	else if (	strHeader.CompareNoCase( _T("X-Nick") ) == 0 ||
 				strHeader.CompareNoCase( _T("X-Name") ) == 0 ||
@@ -288,7 +278,7 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		if ( _tcsistr( strValue, _T("gnutella2/") ) != NULL ) m_nGnutella |= 2;
 		if ( m_nGnutella == 0 ) m_nGnutella = 1;
 	}
-
+	
 	return CUploadTransfer::OnHeaderLine( strHeader, strValue );
 }
 
@@ -303,18 +293,8 @@ BOOL CUploadTransferHTTP::OnHeadersComplete()
 	{
 		// Assume certain capabilitites for various Shareaza versions
 		m_nGnutella |= 3;
+		if ( m_bQueueMe == (BOOL)2 ) m_nGnutella = 1;	// GTK
 		if ( m_sUserAgent == _T("Shareaza 1.4.0.0") ) m_bQueueMe = TRUE;
-
-		// Check for non-shareaza clients spoofing a Shareaza user agent
-		if ( m_bNotShareaza ) 
-		{
-			SendResponse( IDR_HTML_FILENOTFOUND );
-			theApp.Message( MSG_ERROR, _T("Client %s has a spoofed user agent, banning"), (LPCTSTR)m_sAddress );
-					
-			Security.Ban( &m_pHost.sin_addr, banWeek, FALSE );
-			Remove( FALSE );
-			return FALSE;
-		}
 	}
 	else if ( _tcsistr( m_sUserAgent, _T("trustyfiles") ) != NULL ||
 			  _tcsistr( m_sUserAgent, _T("gnucdna") ) != NULL ||
@@ -322,27 +302,6 @@ BOOL CUploadTransferHTTP::OnHeadersComplete()
 	{
 		// Assume Gnutella2 capability for certain user-agents
 		m_nGnutella |= 3;
-	}
-	else if ( m_nGnutella & 2 )
-	{
-		// Check for clients spoofing a G2 header
-		if ( _tcsistr( m_sUserAgent, _T("phex") ) != NULL )
-		{
-			// This is actually a G1-only client sending a fake header, so they can download 
-			// from (but not upload to) clients that are only connected to G2. 
-			m_nGnutella = 1;
-			
-			if ( ! Settings.Gnutella1.EnableToday )
-			{
-				// Terminate the connection and do not try to download from them.
-				SendResponse( IDR_HTML_FILENOTFOUND );
-				theApp.Message( MSG_ERROR, _T("Client %s has a fake G2 header, banning"), (LPCTSTR)m_sAddress );
-
-				Security.Ban( &m_pHost.sin_addr, banWeek, FALSE );
-				Remove( FALSE );
-				return FALSE;
-			}
-		}
 	}
 	
 	if ( m_sRequest == _T("/") || StartsWith( m_sRequest, _T("/gnutella/browse/v1") ) )
@@ -386,45 +345,16 @@ BOOL CUploadTransferHTTP::OnHeadersComplete()
 		if ( m_sFileName.IsEmpty() ) m_sFileName = _T("file");
 		SendResponse( IDR_HTML_BROWSER );
 		theApp.Message( MSG_ERROR, IDS_UPLOAD_BROWSER, (LPCTSTR)m_sAddress, (LPCTSTR)m_sFileName );
-		Security.Ban( &m_pHost.sin_addr, ban5Mins, FALSE ); // Anti-hammer protection if client doesn't understand 403 (Don't bother re-sending HTML every 5 seconds)
+		Security.TempBlock( &m_pHost.sin_addr ); //Anti-hammer protection if client doesn't understand 403 (Don't bother re-sending HTML every 5 seconds)
 		if ( m_sUserAgent.Find( _T("Mozilla") ) >= 0 ) return TRUE;
 		Remove( FALSE );
 		return FALSE;
 	}
 	else if ( IsNetworkDisabled() )
 	{
-		// Network isn't active- Check if we should send 404 or 403
-
-		if ( StartsWith( m_sRequest, _T("/uri-res/N2R?urn:") ) )
-		{
-			LPCTSTR pszURN = (LPCTSTR)m_sRequest + 13;
-		
-			CSingleLock oLock( &Library.m_pSection );
-
-			if ( oLock.Lock( 50 ) )
-			{
-				if ( CLibraryFile* pFile = LibraryMaps.LookupFileByURN( pszURN, TRUE, TRUE ) )
-				{
-					if ( UploadQueues.CanUpload( PROTOCOL_HTTP, pFile, TRUE ) )
-					{
-						// Have the file, but the network is disabled.
-						SendResponse( IDR_HTML_DISABLED );
-						theApp.Message( MSG_ERROR, IDS_UPLOAD_DISABLED, (LPCTSTR)m_sAddress, (LPCTSTR)m_sUserAgent );
-						Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE ); // Anti-hammer protection if client doesn't understand 403
-						Remove( FALSE );
-						return FALSE;
-					}
-				}
-			}
-			// Network is disabled, but we don't have the file anyway.
-			SendResponse( IDR_HTML_FILENOTFOUND );
-		}
-		else
-		{
-			SendResponse( IDR_HTML_DISABLED );
-		}
+		SendResponse( IDR_HTML_DISABLED );
 		theApp.Message( MSG_ERROR, IDS_UPLOAD_DISABLED, (LPCTSTR)m_sAddress, (LPCTSTR)m_sUserAgent );
-		Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE ); // Anti-hammer protection if client doesn't understand 403
+		Security.TempBlock( &m_pHost.sin_addr ); //Anti-hammer protection if client doesn't understand 403
 		Remove( FALSE );
 		return FALSE;
 	}
@@ -590,7 +520,6 @@ BOOL CUploadTransferHTTP::OnHeadersComplete()
 	if ( m_sFileName.IsEmpty() )
 	{
 		if ( m_bSHA1 ) m_sFileName = CSHA::HashToString( &m_pSHA1, TRUE );
-		else m_sFileName = m_sRequest;
 	}
 	
 	SendResponse( IDR_HTML_FILENOTFOUND );
@@ -638,11 +567,6 @@ BOOL CUploadTransferHTTP::RequestSharedFile(CLibraryFile* pFile, CSingleLock& oL
 	if ( ! UploadQueues.CanUpload( PROTOCOL_HTTP, pFile ) )
 	{
 		// File is not uploadable. (No queue, is a ghost, etc)
-		if ( m_sFileName.IsEmpty() )
-		{
-			if ( m_bSHA1 ) m_sFileName = CSHA::HashToString( &m_pSHA1, TRUE );
-		}
-
 		oLibraryLock.Unlock();
 		SendResponse( IDR_HTML_FILENOTFOUND );
 		theApp.Message( MSG_ERROR, IDS_UPLOAD_FILENOTFOUND, (LPCTSTR)m_sAddress, (LPCTSTR)m_sFileName );
@@ -665,7 +589,7 @@ BOOL CUploadTransferHTTP::RequestSharedFile(CLibraryFile* pFile, CSingleLock& oL
 	}
 	
 	CString strLocations;
-	if ( Settings.Library.SourceMesh ) strLocations = pFile->GetAlternateSources( &m_pSourcesSent, 15, PROTOCOL_HTTP );
+	if ( Settings.Library.SourceMesh ) strLocations = pFile->GetAlternateSources( &m_pSourcesSent, 15, TRUE );
 	if ( m_sLocations.GetLength() ) pFile->AddAlternateSources( m_sLocations );
 	m_sLocations = strLocations;
 	
@@ -695,14 +619,7 @@ BOOL CUploadTransferHTTP::RequestPartialFile(CDownload* pDownload)
 	m_bMetadata		= ( pDownload->m_pXML != NULL );
 	
 	if ( m_sLocations.GetLength() ) pDownload->AddSourceURLs( m_sLocations, TRUE );
-	// if ( Settings.Library.SourceMesh ) m_sLocations = pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_HTTP, NULL );
-	if ( Settings.Library.SourceMesh ) 
-	{
-		if ( m_nGnutella == 1 )
-			m_sLocations = pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_G1, NULL );
-		else
-			m_sLocations = pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_HTTP, NULL );
-	}
+	if ( Settings.Library.SourceMesh ) m_sLocations = pDownload->GetSourceURLs( &m_pSourcesSent, 15, TRUE, NULL );
 	
 	m_sRanges = pDownload->GetAvailableRanges();
 	
@@ -758,8 +675,6 @@ BOOL CUploadTransferHTTP::RequestPartialFile(CDownload* pDownload)
 
 BOOL CUploadTransferHTTP::QueueRequest()
 {
-	SHA1* pSHA1 = NULL;
-
 	if ( m_bHead ) return OpenFileSendHeaders();
 	
 	AllocateBaseFile();
@@ -777,13 +692,8 @@ BOOL CUploadTransferHTTP::QueueRequest()
 		if ( pQueue ) pQueue->Dequeue( this );
 	}
 
-	if ( m_bSHA1 )
-	{
-		pSHA1 = &m_pSHA1;
-	}
 
-	
-	if ( Uploads.CanUploadFileTo( &m_pHost.sin_addr, pSHA1 ) )	//if ( Uploads.AllowMoreTo( &m_pHost.sin_addr ) )
+	if ( Uploads.AllowMoreTo( &m_pHost.sin_addr ) )
 	{
 		if ( ( nPosition = UploadQueues.GetPosition( this, TRUE ) ) >= 0 )
 		{
@@ -905,7 +815,7 @@ BOOL CUploadTransferHTTP::QueueRequest()
 
 void CUploadTransferHTTP::SendDefaultHeaders()
 {
-	CString strLine = Settings.SmartAgent();
+	CString strLine = Settings.SmartAgent( Settings.General.UserAgent );
 	
 	if ( strLine.GetLength() )
 	{
@@ -988,7 +898,6 @@ void CUploadTransferHTTP::SendFileHeaders()
 			+ _T("&depth=9&ed2k=0;") 
 			+ CTigerNode::HashToString( &m_pTiger, FALSE )
 			+ _T("\r\n");
-		m_pOutput->Print( strHeader );
 	}
 	
 	if ( m_bMetadata )
@@ -1021,7 +930,6 @@ BOOL CUploadTransferHTTP::OpenFileSendHeaders()
 	
 	m_pDiskFile = TransferFiles.Open( m_sFilePath, FALSE, FALSE );
 	
-	// If there's an error reading the file from disk
 	if ( m_pDiskFile == NULL )
 	{
 		SendResponse( IDR_HTML_FILENOTFOUND );

@@ -59,8 +59,7 @@ BEGIN_MESSAGE_MAP(CLibraryThumbView, CLibraryFileView)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
-#define THUMB_ICON			48
-#define THUMB_STORE_SIZE	128
+#define THUMB_ICON	48
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -846,9 +845,9 @@ CImageList* CLibraryThumbView::CreateDragImage(const CPoint& ptMouse)
 
 void CLibraryThumbView::StartThread()
 {
-	CSingleLock pLock( &m_pSection, TRUE );
-
 	if ( m_hThread != NULL && m_bThread ) return;
+
+	CSingleLock pLock( &m_pSection, TRUE );
 
 	CLibraryThumbItem** pList = m_pList;
 	int nCount = 0;
@@ -858,20 +857,7 @@ void CLibraryThumbView::StartThread()
 		if ( (*pList)->m_nThumb == CLibraryThumbItem::thumbWaiting ) nCount++;
 	}
 
-	if ( nCount == 0 ) // all thumbnails extracted
-		return;
-	else if ( m_hThread != NULL && m_bThread )
-	{
-		// Thread is extracting but folder changed
-		// won't be executed?
-		StopThread();
-	}
-	else if ( m_hThread != NULL ) // finished extraction
-	{
-		DWORD nCode;
-		if ( GetExitCodeThread( m_hThread, &nCode ) ) Sleep( 100 );
-		ASSERT( m_bThread == FALSE );
-	}
+	if ( nCount == 0 ) return;
 
 	m_bThread	= TRUE;
 	CWinThread* pThread = AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_IDLE );
@@ -880,10 +866,7 @@ void CLibraryThumbView::StartThread()
 
 void CLibraryThumbView::StopThread()
 {
-	// If m_bThread == FALSE it means it has finished its work and will die by itself
-	// No need to stop it.
-	CSingleLock pLock( &m_pSection, TRUE );
-	if ( m_hThread == NULL || ! m_bThread ) return;
+	if ( m_hThread == NULL ) return;
 
 	m_bThread = FALSE;
 
@@ -955,46 +938,16 @@ void CLibraryThumbView::OnRun()
 
 		CImageFile pFile( &pServices );
 		BOOL bSuccess = FALSE;
-		CSize Size( THUMB_STORE_SIZE, THUMB_STORE_SIZE );
 
-		if ( pCache.Load( strPath, &Size, nIndex, &pFile ) )
+		if ( pCache.Load( strPath, &m_szThumb, nIndex, &pFile ) )
 		{
-			int nSize = m_szThumb.cy * pFile.m_nWidth / pFile.m_nHeight;
-
-			if ( nSize > m_szThumb.cx )
-			{
-				nSize = m_szThumb.cx * pFile.m_nHeight / pFile.m_nWidth;
-				pFile.Resample( m_szThumb.cx, nSize );
-			}
-			else
-			{
-				pFile.Resample( nSize, m_szThumb.cy );
-			}
-
 			bSuccess = TRUE;
 		}
 		else if ( pFile.LoadFromFile( strPath, FALSE, TRUE ) && pFile.EnsureRGB() )
 		{
-			int nSize = THUMB_STORE_SIZE * pFile.m_nWidth / pFile.m_nHeight;
+			int nSize = m_szThumb.cy * pFile.m_nWidth / pFile.m_nHeight;
 
 			if ( ! m_bThread ) break;
-
-			if ( nSize > THUMB_STORE_SIZE )
-			{
-				nSize = THUMB_STORE_SIZE * pFile.m_nHeight / pFile.m_nWidth;
-				pFile.Resample( THUMB_STORE_SIZE, nSize );
-			}
-			else
-			{
-				pFile.Resample( nSize, THUMB_STORE_SIZE );
-			}
-
-			if ( ! m_bThread ) break;
-
-			pCache.Store( strPath, &Size, nIndex, &pFile );
-
-			// Resample now to display dimensions
-			nSize = m_szThumb.cy * pFile.m_nWidth / pFile.m_nHeight;
 
 			if ( nSize > m_szThumb.cx )
 			{
@@ -1005,6 +958,10 @@ void CLibraryThumbView::OnRun()
 			{
 				pFile.Resample( nSize, m_szThumb.cy );
 			}
+
+			if ( ! m_bThread ) break;
+
+			pCache.Store( strPath, &m_szThumb, nIndex, &pFile );
 
 			bSuccess = TRUE;
 		}
@@ -1053,18 +1010,20 @@ void CLibraryThumbView::OnRun()
 
 		if ( ! m_bRush )
 		{
-			//DWORD tDelay = GetTickCount() - tNow;
-			//if ( tDelay > 400 ) tDelay = 400;
-			//if ( tDelay < 20 ) tDelay = 20;
+			DWORD tDelay = GetTickCount() - tNow;
+			if ( tDelay > 400 ) tDelay = 400;
+			if ( tDelay < 20 ) tDelay = 20;
 
-			//while ( tDelay && m_bThread )
-			//{
-			//	DWORD tNow = min( tDelay, DWORD(50) );
-			//	tDelay -= tNow;
-			//	Sleep( tNow );
-			//}
+			while ( tDelay && m_bThread )
+			{
+				DWORD tNow = min( tDelay, DWORD(50) );
+				tDelay -= tNow;
+				Sleep( tNow );
+			}
 		}
 	}
+
+	pServices.Cleanup();
 	m_bThread = FALSE;
 }
 

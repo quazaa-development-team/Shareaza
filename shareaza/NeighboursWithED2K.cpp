@@ -108,8 +108,7 @@ BOOL CNeighboursWithED2K::PushDonkey(DWORD nClientID, IN_ADDR* pServerAddress, W
 
 	CEDNeighbour* pNeighbour = (CEDNeighbour*)Get( pServerAddress );
 
-	if ( ( pNeighbour != NULL ) && ( pNeighbour->m_nProtocol == PROTOCOL_ED2K ) && 
-		 ( ! CEDPacket::IsLowID( pNeighbour->m_nClientID ) ) )
+	if ( pNeighbour != NULL && pNeighbour->m_nProtocol == PROTOCOL_ED2K )
 	{
 		CEDPacket* pPacket = CEDPacket::New( ED2K_C2S_CALLBACKREQUEST );
 		pPacket->WriteLongLE( nClientID );

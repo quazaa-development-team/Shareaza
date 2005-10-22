@@ -21,14 +21,12 @@
 
 #include "StdAfx.h"
 #include "Shareaza.h"
-#include "Settings.h"
 #include "Library.h"
 #include "LibraryFolders.h"
 #include "SharedFolder.h"
 #include "DownloadGroup.h"
 #include "DownloadGroups.h"
 #include "DlgDownloadGroup.h"
-#include "DlgHelp.h"
 
 #include "Schema.h"
 #include "SchemaCache.h"
@@ -203,46 +201,18 @@ void CDownloadGroupDlg::OnOK()
 		LoadString( strFormat, IDS_LIBRARY_DOWNLOADS_ADD );
 		strMessage.Format( strFormat, (LPCTSTR)m_sFolder );
 
-		BOOL bAdd = ( AfxMessageBox( strMessage, MB_ICONQUESTION|MB_YESNO ) == IDYES );
-		if ( bAdd )
+		if ( AfxMessageBox( strMessage, MB_ICONQUESTION|MB_YESNO ) == IDYES )
 		{
-			if ( LibraryFolders.IsSubFolderShared( m_sFolder ) )
+			if ( CLibraryFolder* pFolder = LibraryFolders.AddFolder( m_sFolder ) )
 			{
-				CString strFormat, strMessage;
-				LoadString( strFormat, IDS_LIBRARY_SUBFOLDER_IN_LIBRARY );
-				strMessage.Format( strFormat, (LPCTSTR)m_sFolder );
+				LoadString( strMessage, IDS_LIBRARY_DOWNLOADS_SHARE );
 
-				bAdd = ( AfxMessageBox( strMessage, MB_ICONQUESTION|MB_YESNO ) == IDYES );
-				if ( bAdd )
-				{
-					CLibraryFolder* pFolder;
-					while ( ( pFolder = LibraryFolders.IsSubFolderShared( m_sFolder ) ) != NULL )
-					{
-						LibraryFolders.RemoveFolder( pFolder );
-					}
-				}
-			}
-			if ( bAdd )
-			{
-				if ( !LibraryFolders.IsShareable( m_sFolder ) )
-				{
-					CHelpDlg::Show( _T("ShareHelp.BadShare") );
-					bAdd = FALSE;
-				}
-			}
-			if ( bAdd )
-			{
-				if ( CLibraryFolder* pFolder = LibraryFolders.AddFolder( m_sFolder ) )
-				{
-					LoadString( strMessage, IDS_LIBRARY_DOWNLOADS_SHARE );
+				BOOL bShare = AfxMessageBox( strMessage, MB_ICONQUESTION|MB_YESNO ) == IDYES;
 
-					BOOL bShare = AfxMessageBox( strMessage, MB_ICONQUESTION|MB_YESNO ) == IDYES;
-
-					CQuickLock oLock( Library.m_pSection );
-					if ( LibraryFolders.CheckFolder( pFolder, TRUE ) )
-						pFolder->m_bShared = bShare ? TS_TRUE : TS_FALSE;
-					Library.Update();
-				}
+				CQuickLock oLock( Library.m_pSection );
+				if ( LibraryFolders.CheckFolder( pFolder, TRUE ) )
+					pFolder->m_bShared = bShare ? TS_TRUE : TS_FALSE;
+				Library.Update();
 			}
 		}
 	}
@@ -271,25 +241,6 @@ void CDownloadGroupDlg::OnBrowse()
 	SHGetMalloc( &pMalloc );
 	pMalloc->Free( pPath );
 	pMalloc->Release();
-
-
-	// Make sure download/incomplete folders aren't the same
-	if ( _tcsicmp( szPath, Settings.Downloads.IncompletePath ) == 0 )
-	{
-		CString strMessage;
-		LoadString( strMessage, IDS_SETTINGS_FILEPATH_NOT_SAME );
-		AfxMessageBox( strMessage, MB_ICONEXCLAMATION );
-		return;
-	}
-
-	// If the group folder and download folders are the same, use the default download folder
-	if ( _tcsicmp( szPath, Settings.Downloads.CompletePath ) == 0 )
-	{
-		UpdateData( TRUE );
-		m_sFolder.Empty();
-		UpdateData( FALSE );
-		return;
-	}
 
 	UpdateData( TRUE );
 	m_sFolder = szPath;

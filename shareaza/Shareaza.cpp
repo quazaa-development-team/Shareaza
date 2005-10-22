@@ -98,9 +98,7 @@ BOOL CShareazaApp::InitInstance()
 		return FALSE;
 	}
 
-	// **********************
-
-
+	// ***********
 	// Beta expiry. Remember to re-compile to update the time, and remove this 
 	// section for final releases and public betas.
 	COleDateTime tCompileTime; 
@@ -115,13 +113,12 @@ BOOL CShareazaApp::InitInstance()
 		//return FALSE;
 	}
 
-
 /*
-	// Alpha warning nag message. Remember to remove this section for final releases and public betas.
+	// Alpha warning. Remember to remove this section for final releases and public betas.
 	if ( AfxMessageBox( _T("WARNING: This is an ALPHA TEST version of Shareaza.\n\nIt it NOT FOR GENERAL USE, and is only for testing specific features in a controlled environment. It will frequently stop running, or display debug information to assist testing.\n\nIf you wish to actually use this software, you should download the current stable release from www.shareaza.com\nIf you continue past this point, you may experience system instability, lose downloads, or corrupt system files. Corrupted downloads/files may not be recoverable. Do you wish to continue?"), MB_SYSTEMMODAL|MB_ICONEXCLAMATION|MB_YESNO ) == IDNO )
 		return FALSE;
 */
-	// **********************
+	// ***********
 
 
 
@@ -316,24 +313,13 @@ void CShareazaApp::InitResources()
 	m_dwWindowsVersionMinor = pVersion.dwMinorVersion; 
 
 	m_bLimitedConnections = FALSE;
-	VER_PLATFORM_WIN32s;
-	VER_PLATFORM_WIN32_WINDOWS;
-	VER_PLATFORM_WIN32_NT;
-
 	if ( m_dwWindowsVersion == 5 && m_dwWindowsVersionMinor == 1 )
 	{	//Windows XP - Test for SP2
-		TCHAR* sp = _tcsstr( pVersion.szCSDVersion, _T("Service Pack ") );
-		if( sp && sp[ 13 ] >= '2' )
+		if( _tcsstr( pVersion.szCSDVersion, _T("Service Pack 2") ) )
 		{	//XP SP2 - Limit the networking.
 			//AfxMessageBox(_T("Warning - Windows XP Service Pack 2 detected. Performance may be reduced."), MB_OK );
 			m_bLimitedConnections = TRUE;
 		}
-	}
-	else if ( m_dwWindowsVersion == 5 && m_dwWindowsVersionMinor == 2
-		&& _tcsstr( pVersion.szCSDVersion, _T("Service Pack") ) )
-	{
-		// Windows 2003 or Win XP x64
-		m_bLimitedConnections = TRUE;
 	}
 
 	//Get the amount of installed memory.
@@ -383,11 +369,6 @@ void CShareazaApp::InitResources()
 		m_pfnMonitorFromWindow = NULL;
 	}
 
-	if ( m_hGDI32 = LoadLibrary( _T("gdi32.dll") ) )
-		(FARPROC&)m_pfnSetLayout = GetProcAddress( m_hGDI32, "SetLayout" );
-	else
-		m_pfnSetLayout = NULL;
-
 	// Get the fonts from the registry
 	theApp.m_sDefaultFont		= theApp.GetProfileString( _T("Fonts"), _T("DefaultFont"), _T("Tahoma") );
 	theApp.m_sPacketDumpFont	= theApp.GetProfileString( _T("Fonts"), _T("PacketDumpFont"), _T("Lucida Console") );
@@ -406,8 +387,6 @@ void CShareazaApp::InitResources()
 	m_gdiFontLine.CreateFont( -theApp.m_nDefaultFontSize, 0, 0, 0, FW_NORMAL, FALSE, TRUE, FALSE,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		DEFAULT_PITCH|FF_DONTCARE, theApp.m_sDefaultFont );
-
-	theApp.m_bRTL = theApp.GetProfileInt( _T("Settings"), _T("LanguageRTL"), 0 );
 
 	srand( GetTickCount() );
 }
@@ -492,15 +471,10 @@ void CShareazaApp::LogMessage(LPCTSTR pszLog)
 	
 	if ( pFile.Open( _T("\\Shareaza.log"), CFile::modeReadWrite ) )
 	{
-		if ( ( Settings.General.MaxDebugLogSize ) &&					// If log rotation is on 
+		if ( ( Settings.General.MaxDebugLogSize ) &&					// If file rotation is on 
 			( pFile.GetLength() > Settings.General.MaxDebugLogSize ) )	// and file is too long...
 		{	
-			// Close the file
-			pFile.Close();				
-			// Rotate the logs 
-			DeleteFile(  _T("\\Shareaza.old.log") );
-			MoveFile( _T("\\Shareaza.log"), _T("\\Shareaza.old.log") );
-			// Start a new log
+			pFile.Close();				// Close the file and start a new one
 			if ( ! pFile.Open( _T("\\Shareaza.log"), CFile::modeWrite|CFile::modeCreate ) ) return;
 			// Unicode marker
 			WORD nByteOrder = 0xFEFF;
@@ -1008,111 +982,4 @@ void RecalcDropWidth(CComboBox* pWnd)
 
     dc.RestoreDC( nSave );
     pWnd->SetDroppedWidth( nWidth );
-}
-
-HICON CreateMirroredIcon(HICON hIconOrig)
-{
-	HDC hdcScreen, hdcBitmap, hdcMask = NULL;
-	HBITMAP hbm, hbmMask, hbmOld,hbmOldMask;
-	BITMAP bm;
-	ICONINFO ii;
-	HICON hIcon = NULL;
-	hdcBitmap = CreateCompatibleDC( NULL );
-	if ( hdcBitmap )
-	{
-		hdcMask = CreateCompatibleDC( NULL );
-		if( hdcMask )
-		{
-			theApp.m_pfnSetLayout( hdcBitmap, LAYOUT_RTL );
-			theApp.m_pfnSetLayout( hdcMask, LAYOUT_RTL );
-		}
-		else
-		{
-			DeleteDC( hdcBitmap );
-			hdcBitmap = NULL;
-		}
-	}
-	hdcScreen = GetDC( NULL );
-	if ( hdcScreen )
-	{
-		if ( hdcBitmap && hdcMask )
-		{
-			if ( hIconOrig )
-			{
-				if ( GetIconInfo( hIconOrig, &ii ) && GetObject( ii.hbmColor, sizeof(BITMAP), &bm ) )
-				{
-					// Do the cleanup for the bitmaps.
-					DeleteObject( ii.hbmMask );
-					DeleteObject( ii.hbmColor );
-					ii.hbmMask = ii.hbmColor = NULL;
-					hbm = CreateCompatibleBitmap( hdcScreen, bm.bmWidth, bm.bmHeight );
-					hbmMask = CreateBitmap( bm.bmWidth, bm.bmHeight, 1, 1, NULL );
-					hbmOld = (HBITMAP)SelectObject( hdcBitmap, hbm );
-					hbmOldMask = (HBITMAP)SelectObject( hdcMask,hbmMask );
-					DrawIconEx( hdcBitmap, 0, 0, hIconOrig, bm.bmWidth, bm.bmHeight, 0, NULL, DI_IMAGE );
-					DrawIconEx( hdcMask, 0, 0, hIconOrig, bm.bmWidth, bm.bmHeight, 0, NULL, DI_MASK );
-					SelectObject( hdcBitmap, hbmOld );
-					SelectObject( hdcMask, hbmOldMask );
-					// Create the new mirrored icon and delete bitmaps
-
-					ii.hbmMask = hbmMask;
-					ii.hbmColor = hbm;
-					hIcon = CreateIconIndirect( &ii );
-					DeleteObject( hbm );
-					DeleteObject( hbmMask );
-				}
-			}
-		}
-	}
-	ReleaseDC( NULL, hdcScreen );
-
-	if ( hdcBitmap ) DeleteDC( hdcBitmap );
-	if ( hdcMask ) DeleteDC( hdcMask );
-	return hIcon;
-}
-
-HBITMAP CreateMirroredBitmap(HBITMAP hbmOrig)
-{
-	HDC hdc, hdcMem1, hdcMem2;
-	HBITMAP hbm = NULL, hOld_bm1, hOld_bm2;
-	BITMAP bm;
-	if ( !hbmOrig ) return NULL;
-	if ( !GetObject( hbmOrig, sizeof(BITMAP), &bm ) ) return NULL;
-
-	hdc = GetDC( NULL );
-	if ( hdc )
-	{
-		hdcMem1 = CreateCompatibleDC( hdc );
-		if ( !hdcMem1 )
-		{
-			ReleaseDC( NULL, hdc );
-			return NULL;
-		}
-		hdcMem2 = CreateCompatibleDC( hdc );
-		if ( !hdcMem2 )
-		{
-			DeleteDC( hdcMem1 );
-			ReleaseDC( NULL, hdc );
-			return NULL;
-		}
-		hbm = CreateCompatibleBitmap( hdc, bm.bmWidth, bm.bmHeight );
-		if (!hbm)
-		{
-			ReleaseDC( NULL, hdc );
-			DeleteDC( hdcMem1 );
-			DeleteDC( hdcMem2 );
-			return NULL;
-		}
-		// Flip the bitmap.
-		hOld_bm1 = (HBITMAP)SelectObject( hdcMem1, hbmOrig );
-		hOld_bm2 = (HBITMAP)SelectObject( hdcMem2, hbm );
-		theApp.m_pfnSetLayout( hdcMem2, LAYOUT_RTL );
-		BitBlt( hdcMem2, 0, 0, bm.bmWidth, bm.bmHeight, hdcMem1, 0, 0, SRCCOPY );
-		SelectObject( hdcMem1, hOld_bm1 );
-		SelectObject( hdcMem1, hOld_bm2 );
-		DeleteDC( hdcMem1 );
-		DeleteDC( hdcMem2 );
-		ReleaseDC( NULL, hdc );
-	}
-	return hbm;
 }

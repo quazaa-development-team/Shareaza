@@ -1213,10 +1213,8 @@ void CLibraryTreeItem::Paint(CDC& dc, CRect& rc, BOOL bTarget, COLORREF crBack) 
 	dc.SetBkMode( OPAQUE );
 
 	rc.left += 32;
-	CString strName = m_sText;
-	if ( theApp.m_bRTL ) strName = _T("\x202A") + strName;
 	dc.ExtTextOut( rc.left + 3, rc.top + 1, ETO_OPAQUE|ETO_CLIPPED, &rc,
-		strName, NULL );
+		m_sText, NULL );
 	rc.left -= 32;
 }
 

@@ -34,7 +34,6 @@
 #include "ShellIcons.h"
 #include "Skin.h"
 #include "SHA.h"
-#include "ED2K.h"
 #include "XML.h"
 
 #include "WndSearch.h"
@@ -350,13 +349,7 @@ BOOL CSearchWnd::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 					rcClient.right,
 					rcClient.bottom - TOOLBAR_HEIGHT - m_nDetails );
 		
-		if ( m_bPanel ) 
-		{
-			if ( theApp.m_bRTL )
-				rc.right -= PANEL_WIDTH;
-			else
-				rc.left += PANEL_WIDTH;
-		}
+		if ( m_bPanel ) rc.left += PANEL_WIDTH;
 		
 		if ( rc.PtInRect( point ) )
 		{
@@ -750,12 +743,10 @@ void CSearchWnd::UpdateMessages(BOOL bActive, CManagedSearch* pManaged)
 	
 	CString strCaption;
 	Skin.LoadString( strCaption, IDR_SEARCHFRAME );
-	if ( theApp.m_bRTL ) strCaption = _T("\x200F") + strCaption + _T("\x202E");
-
+	
 	if ( pSearch != NULL )
 	{
 		strCaption += _T(" : ");
-		if ( theApp.m_bRTL ) strCaption += _T("\x202B");
 
 		if ( pSearch->m_sSearch.GetLength() )
 		{
@@ -769,10 +760,6 @@ void CSearchWnd::UpdateMessages(BOOL bActive, CManagedSearch* pManaged)
 		{
 			strCaption += CSHA::HashToString( &pSearch->m_pSHA1, TRUE );
 		}
-		else if ( pSearch->m_bED2K )
-		{
-			strCaption += CED2K::HashToString( &pSearch->m_pED2K, TRUE );
-		}
 		
 		if ( pSearch->m_pSchema )
 		{
@@ -783,7 +770,6 @@ void CSearchWnd::UpdateMessages(BOOL bActive, CManagedSearch* pManaged)
 		{
 			CString strStats;
 			strStats.Format( _T(" [%lu/%lu]"), m_pMatches->m_nFilteredFiles, m_pMatches->m_nFilteredHits );
-			if ( theApp.m_bRTL ) strStats = _T("\x200F") + strStats;
 			strCaption += strStats;
 			pManaged->m_nHits = m_pMatches->m_nFilteredHits;
 		}
@@ -920,7 +906,7 @@ void CSearchWnd::OnTimer(UINT nIDEvent)
 	}
 
 
-	if ( ( IsPartiallyVisible() ) && ( nIDEvent == 1 ) )
+	if ( nIDEvent == 1 )
 	{
 		if ( m_bSetFocus )
 		{

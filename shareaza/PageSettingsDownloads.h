@@ -73,7 +73,6 @@ public:
 
 // Implementation
 protected:
-	BOOL IsNotLimited(LPCTSTR pText);
 	//{{AFX_MSG(CDownloadsSettingsPage)
 	virtual BOOL OnInitDialog();
 	afx_msg void OnDownloadsBrowse();

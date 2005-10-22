@@ -22,10 +22,10 @@
 #include "StdAfx.h"
 #include "Shareaza.h"
 #include "Settings.h"
-#include "WndMain.h"
 //#include "Library.h"
 //#include "LibraryHistory.h"
 #include "PageSettingsBitTorrent.h"
+#include ".\pagesettingsbittorrent.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -56,7 +56,6 @@ CBitTorrentSettingsPage::CBitTorrentSettingsPage() : CSettingsPage(CBitTorrentSe
 	m_nDownloads		= 0;
 	m_bAutoClear		= FALSE;
 	m_nClearPercentage	= 0;
-	m_bPrefBTSources	= TRUE;
 	m_sTracker			= _T("");
 	m_sTorrentPath		= _T("");
 	m_sMakerPath		= _T("");
@@ -81,7 +80,6 @@ void CBitTorrentSettingsPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_TORRENT_CLEAR_PERCENTAGE, m_wndClearPercentage);
 	DDX_Control(pDX, IDC_TORRENT_CLEAR_SPIN, m_wndClearPercentageSpin);
 	DDX_Text(pDX, IDC_TORRENT_CLEAR_PERCENTAGE, m_nClearPercentage);
-	DDX_Check(pDX, IDC_TORRENT_PREFERENCE, m_bPrefBTSources);
 	DDX_Text(pDX, IDC_TORRENT_DEFAULTTRACKER, m_sTracker);
 	DDX_Control(pDX, IDC_TORRENTS_BROWSE, m_wndTorrentPath);
 	DDX_Text(pDX, IDC_TORRENTS_FOLDER, m_sTorrentPath);
@@ -105,7 +103,6 @@ BOOL CBitTorrentSettingsPage::OnInitDialog()
 	m_sMakerPath		= Settings.BitTorrent.TorrentCreatorPath;
 	m_bAutoClear		= Settings.BitTorrent.AutoClear;
 	m_nClearPercentage	= Settings.BitTorrent.ClearRatio;
-	m_bPrefBTSources	= Settings.BitTorrent.PreferenceBTSources;
 
 	m_wndTorrentPath.SetIcon( IDI_BROWSE );
 	m_wndMakerPath.SetIcon( IDI_BROWSE );
@@ -185,20 +182,11 @@ void CBitTorrentSettingsPage::OnMakerBrowse()
 
 void CBitTorrentSettingsPage::OnOK() 
 {
-	BOOL bRedraw = FALSE;
 	UpdateData( TRUE );
 
 	m_nClearPercentage = min (m_nClearPercentage, 999);
 	m_nClearPercentage = max (m_nClearPercentage, 100);
 
-	if ( ! theApp.m_bNT )
-	{
-		// Win9x is unable to handle high numbers of connections
-		m_nLinks = min ( m_nLinks, 80 );
-	}
-	else
-	{
-		// For other systems we can guestimate a good value based on available bandwidth
 	if ( Settings.GetOutgoingBandwidth() < 16 )
 		m_nLinks = min ( m_nLinks, 200 );
 	else if ( Settings.GetOutgoingBandwidth() < 32 )
@@ -207,13 +195,10 @@ void CBitTorrentSettingsPage::OnOK()
 		m_nLinks = min ( m_nLinks, 500 );
 	else
 		m_nLinks = min ( m_nLinks, 800 );
-	}
 
 	m_nDownloads = min( m_nDownloads, (int)( ( Settings.GetOutgoingBandwidth() / 2 ) + 2 ) );
 
 	UpdateData( FALSE );
-
-	if ( Settings.BitTorrent.AdvancedInterface != m_bTorrentInterface ) bRedraw = TRUE;
 
 	Settings.BitTorrent.AdvancedInterface	= m_bTorrentInterface;
 	Settings.BitTorrent.Endgame				= m_bEndGame;
@@ -221,19 +206,9 @@ void CBitTorrentSettingsPage::OnOK()
 	Settings.BitTorrent.DownloadTorrents	= m_nDownloads;
 	Settings.BitTorrent.AutoClear			= m_bAutoClear;
 	Settings.BitTorrent.ClearRatio			= m_nClearPercentage;
-	Settings.BitTorrent.PreferenceBTSources	= m_bPrefBTSources;
 	Settings.BitTorrent.DefaultTracker		= m_sTracker;
 	Settings.Downloads.TorrentPath			= m_sTorrentPath;
 	Settings.BitTorrent.TorrentCreatorPath	= m_sMakerPath;
-
-	/*
-	// Redraw the GUI to make torrents box show/hide if we need to
-	if ( bRedraw ) 
-	{
-		CMainWnd* pMainWnd = (CMainWnd*)AfxGetMainWnd();
-		pMainWnd->SetGUIMode( Settings.General.GUIMode, FALSE );
-	}
-	*/
 
 	CSettingsPage::OnOK();
 }

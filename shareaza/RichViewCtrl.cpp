@@ -47,7 +47,6 @@ BEGIN_MESSAGE_MAP(CRichViewCtrl, CWnd)
 	ON_WM_VSCROLL()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_TIMER()
-	ON_WM_MOUSEWHEEL()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -65,12 +64,6 @@ CRichViewCtrl::CRichViewCtrl()
 	m_nLength		= 0;
 	m_pHover		= NULL;
 	m_bSelecting	= FALSE;
-
-	// Try to get the number of lines to scroll when the mouse wheel is rotated
-	if( !SystemParametersInfo ( SPI_GETWHEELSCROLLLINES, 0, &m_nScrollWheelLines, 0) )
-	{
-		m_nScrollWheelLines = 3;
-	}
 }
 
 CRichViewCtrl::~CRichViewCtrl()
@@ -170,7 +163,6 @@ int CRichViewCtrl::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_hcText = theApp.LoadStandardCursor( IDC_IBEAM );
 
 	SetScrollRange( SB_VERT, 0, 0 );
-	if ( theApp.m_bRTL ) ModifyStyleEx( 0, WS_EX_LAYOUTRTL, 0 );
 
 	return 0;
 }
@@ -373,10 +365,8 @@ void CRichViewCtrl::OnLButtonUp(UINT nFlags, CPoint point)
 
 			if ( m_bDefaultLink && pFrag->m_pElement->m_sLink.Find( _T("http://") ) == 0 )
 			{
-				// CShareazaApp::InternalURI intercepts it
-
-				//ShellExecute( GetSafeHwnd(), _T("open"), pFrag->m_pElement->m_sLink,
-				//	NULL, NULL, SW_SHOWNORMAL );
+				ShellExecute( GetSafeHwnd(), _T("open"), pFrag->m_pElement->m_sLink,
+					NULL, NULL, SW_SHOWNORMAL );
 			}
 
 			if ( m_pHover == pFrag->m_pElement && m_pHover->m_nType == retLink )
@@ -467,12 +457,6 @@ void CRichViewCtrl::OnTimer(UINT nIDEvent)
 		m_pHover = NULL;
 		Invalidate();
 	}
-}
-
-BOOL CRichViewCtrl::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
-{
-	OnVScroll( SB_THUMBPOSITION, (int)( GetScrollPos( SB_VERT ) - zDelta / WHEEL_DELTA * m_nScrollWheelLines * 16 ), NULL );
-	return TRUE;
 }
 
 /////////////////////////////////////////////////////////////////////////////

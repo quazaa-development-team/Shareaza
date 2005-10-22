@@ -33,7 +33,7 @@
 
 CHttpRequest::CHttpRequest()
 {
-	m_sUserAgent	= Settings.SmartAgent();
+	m_sUserAgent	= Settings.SmartAgent( Settings.General.UserAgent );
 	m_hThread		= NULL;
 	m_hInternet		= NULL;
 	m_nLimit		= 0;

@@ -1071,9 +1071,9 @@ BOOL CQueryHit::ReadEDPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_n
 		}
 		else if ( pTag.m_nKey == ED2K_FT_COMPLETESOURCES )
 		{
-			if ( ! pTag.m_nValue ) // If there are no complete sources
+			if ( ! pTag.m_nValue ) //If there are no complete sources
 			{
-				// Assume this file is 50% complete. (we can't tell yet, but at least this will warn the user)
+				//Assume this file is 50% complete. (we can't tell yet, but at least this will warn the user)
 				m_nPartial = (DWORD)m_nSize >> 2;
 				//theApp.Message( MSG_SYSTEM, _T("ED2K_FT_COMPLETESOURCES tag reports no complete sources.") );				
 			}
@@ -1083,45 +1083,20 @@ BOOL CQueryHit::ReadEDPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_n
 			}
 		}
 		else if ( pTag.m_nKey == ED2K_FT_LENGTH )
-		{	// Length- new style (DWORD)
+		{	//Length- new style (DWORD)
 			nLength = pTag.m_nValue;	
 		}
-		else if ( pTag.m_nKey == ED2K_FT_BITRATE )
-		{	// Bitrate- new style
+		else if ( ( pTag.m_nKey == ED2K_FT_BITRATE ) )
+		{	//Bitrate- new style
 			strBitrate.Format( _T("%lu"), pTag.m_nValue );
 		}
-		else if  ( pTag.m_nKey == ED2K_FT_CODEC )
-		{	// Codec - new style
+		else if  ( ( pTag.m_nKey == ED2K_FT_CODEC ) )
+		{	//Codec - new style
 			strCodec = pTag.m_sValue;
 		}
-		else if  ( pTag.m_nKey == ED2K_FT_FILERATING )
-		{	// File Rating
-
-			// The server returns rating as a full range (1-255).
-			// If the majority of ratings are "very good", take it up to "excellent"
-
-			m_nRating = ( pTag.m_nValue & 0xFF );
-
-			if ( m_nRating >= 250 )			// Excellent
-				m_nRating = 6;			 
-			else if ( m_nRating >= 220 )	// Very good
-				m_nRating = 5;	
-			else if ( m_nRating >= 180 )	// Good
-				m_nRating = 4;	
-			else if ( m_nRating >= 120 )	// Average
-				m_nRating = 3;	
-			else if ( m_nRating >= 80 )		// Poor
-				m_nRating = 2;
-			else							// Fake
-				m_nRating = 1;
-
-			// the percentage of clients that have given ratings is:
-			// = ( pTag.m_nValue >> 8 ) & 0xFF;
-			// We could use this in the future to weight the rating...
-		}
-		// Note: Maybe ignore these keys? They seem to have a lot of bad values....
+		//Note: Maybe ignore these keys? They seem to have a lot of bad values....
 		else if ( ( pTag.m_nKey == 0 ) && ( pTag.m_nType == ED2K_TAG_STRING ) && ( pTag.m_sKey == _T("length") )  )
-		{	// Length- old style (As a string- x:x:x, x:x or x)
+		{	//Length- old style (As a string- x:x:x, x:x or x)
 			DWORD nSecs = 0, nMins = 0, nHours = 0;
 
 			if ( pTag.m_sValue.GetLength() < 3 )
@@ -1140,11 +1115,11 @@ BOOL CQueryHit::ReadEDPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_n
 			nLength = (nHours * 60 * 60) + (nMins * 60) + (nSecs);
 		}
 		else if ( ( pTag.m_nKey == 0 ) && ( pTag.m_nType == ED2K_TAG_INT ) && ( pTag.m_sKey == _T("bitrate") ) )
-		{	// Bitrate- old style			
+		{	//Bitrate- old style			
 			strBitrate.Format( _T("%lu"), pTag.m_nValue );
 		}
 		else if ( ( pTag.m_nKey == 0 ) && ( pTag.m_nType == ED2K_TAG_STRING ) && ( pTag.m_sKey == _T("codec") ) )
-		{	// Codec - old style
+		{	//Codec - old style
 			strCodec = pTag.m_sValue;
 		}
 		else

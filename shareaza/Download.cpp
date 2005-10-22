@@ -65,8 +65,6 @@ CDownload::CDownload()
 	m_tCompleted	= 0;
 	m_tSaved		= 0;
 	m_tBegan		= 0;
-
-	m_bDownloading	= FALSE;
 	
 	DownloadGroups.Link( this );
 }
@@ -123,11 +121,10 @@ void CDownload::Resume()
 		}
 	}
 	
-	m_bPaused				= FALSE;
-	m_bDiskFull				= FALSE;
-	m_tReceived				= GetTickCount();
-	m_bTorrentTrackerError	= FALSE;
-	m_nTorrentTrackerErrors = 0;
+	m_bPaused	= FALSE;
+	m_bDiskFull	= FALSE;
+	m_tReceived	= GetTickCount();
+	m_bTorrentTrackerError = FALSE;
 
 	if( m_bBTH )
 	{
@@ -216,8 +213,7 @@ BOOL CDownload::Rename(LPCTSTR pszName)
 void CDownload::StopTrying()
 {
 	if ( m_bComplete ) return;
-	m_tBegan		= 0;
-	m_bDownloading	= FALSE;
+	m_tBegan = 0;
 
 	if ( m_bBTH ) CloseTorrent();
 	CloseTransfers();
@@ -258,7 +254,7 @@ BOOL CDownload::IsPaused() const
 
 BOOL CDownload::IsDownloading() const
 {
-	return m_bDownloading;
+	return ( GetTransferCount() > 0 );
 }
 
 BOOL CDownload::IsMoving() const
@@ -292,7 +288,6 @@ BOOL CDownload::IsShared() const
 void CDownload::OnRun()
 {
 	DWORD tNow = GetTickCount();
-	BOOL bDownloading = FALSE;
 
 	if ( ! m_bPaused )
 	{
@@ -328,7 +323,6 @@ void CDownload::OnRun()
 				}
 			}	//End of 'dead download' check
 
-			// Run the download
 			if ( RunTorrent( tNow ) )
 			{
 				RunSearch( tNow );
@@ -355,10 +349,6 @@ void CDownload::OnRun()
 					OnDownloaded();
 				}
 			}
-
-			// Calculate the currently downloading state
-			if( GetTransferCount() > 0 ) bDownloading = TRUE;
-
 		}
 		else if ( ! m_bComplete )
 		{	//If this download isn't trying to download, see if it can try
@@ -375,11 +365,8 @@ void CDownload::OnRun()
 			}
 		}
 	}
-
-	// Set the currently downloading state (Used to optimise display in Ctrl/Wnd functions)
-	m_bDownloading = bDownloading;
 	
-	// Don't save Downloads with many sources too often, since it's slow
+	// Don't save Downloads with many sources too often since it's slow
 	if ( tNow - m_tSaved >=
 		( m_nSourceCount > 20 ? 5 * Settings.Downloads.SaveInterval : Settings.Downloads.SaveInterval ) )
 	{
@@ -405,7 +392,6 @@ void CDownload::OnDownloaded()
 	
 	theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_COMPLETED, (LPCTSTR)GetDisplayName() );
 	m_tCompleted = GetTickCount();
-	m_bDownloading = FALSE;
 	
 	CloseTransfers();
 	
@@ -488,7 +474,7 @@ void CDownload::OnMoved(CDownloadTask* pTask)
 	if ( m_bSHA1 || m_bED2K )
 	{
 		LibraryHistory.Add( m_sLocalName, m_bSHA1 ? &m_pSHA1 : NULL,
-			m_bED2K ? &m_pED2K : NULL, GetSourceURLs( NULL, 0, PROTOCOL_NULL, NULL ) );
+			m_bED2K ? &m_pED2K : NULL, GetSourceURLs( NULL, 0, FALSE, NULL ) );
 	}
 	else
 	{

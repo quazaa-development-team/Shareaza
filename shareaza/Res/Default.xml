@@ -28,7 +28,6 @@
 		<button id="ID_NETWORK_CONNECT" text="Connect"/>
 		<button id="ID_NETWORK_DISCONNECT"/>
 		<separator/>
-		<button id="ID_TAB_HOME"/>
 		<button id="ID_VIEW_SYSTEM"/>
 		<button id="ID_VIEW_NEIGHBOURS"/>
 		<button id="ID_VIEW_DOWNLOADS"/>
@@ -1473,6 +1472,12 @@
 			<newline gap="18" indent="0"/>
 		</group>
 		
+		<icon res="254" width="32" height="32"/><gap size="8"/>
+		<heading align="middle" colour="6060FF">L I S T E N &#160; T O &#160; N E W &#160; M U S I C</heading>
+		<newline gap="8" indent="42"/>
+		<bitmap res="res:255.PNG" target="raza:command:ID_TOOLS_MERCORA"/>
+		<newline gap="18" indent="0"/>
+		
 		<icon res="236" width="32" height="32"/><gap size="8"/>
 		<heading align="middle">C U S T O M I S E &#160; S H A R E A Z A</heading>
 		<newline gap="12" indent="42"/>
@@ -1844,11 +1849,9 @@
 			<link target="raza:command:ID_SEARCH_CHAT" align="middle">Chat to User</link>
 		</group>
 		
-		<group id="3">
-			<newline gap="16" indent="0"/>
-			<text format="b">Favourite Web Links</text>
-			<newline gap="4" indent="8" id="Bookmarks"/>
-		</group>
+		<newline gap="16" indent="0"/>
+		<text format="b">Favourite Web Links</text>
+		<newline gap="4" indent="8" id="Bookmarks"/>
 		
 		<newline gap="16" indent="0"/>
 		
@@ -1883,8 +1886,8 @@
 	<document name="DownloadHelp.Paused">
 		<text format="b">This Download is Paused</text>
 		<newline gap="8"/>
-		<text>You have paused this download. If you want it to resume downloading, you
-		can click the '</text><text format="b">Resume Download</text><text>' command.</text>
+		<text>You have paused this download.  If you want it to resume downloading, you
+		can click the </text><text format="b">Resume Download </text><text>command.</text>
 	</document>
 	
 	<document name="DownloadHelp.DiskFull">
@@ -1909,10 +1912,10 @@
 		<text format="b">This Download is Active!</text>
 		<newline gap="8"/>
 		<text>This download is currently in progress.  If it is downloading too slowly,
-		you could try searching the network for more sources with the '</text>
-		<text format="b">Find More Sources</text><text>' command. If the speed does not 
-		improve it may be due to limited upload speeds of the users you are downloading 
-		from. Download speed usually increases over time.</text>
+		you could try searching the network for more sources with the </text>
+		<text format="b">Find More Sources </text><text>command.  If the speed does not
+		improve it may be due to limited upload speeds of the users you are downloading
+		from.  Download speed usually increases over time.</text>
 	</document>
 	
 	<document name="DownloadHelp.Pending">
@@ -1973,7 +1976,7 @@
 		<newline gap="8"/>
 		<text>This is where queues and uploads are displayed. You can expand each queue
 		with the small + on the left, and filter what is displayed with the button on the
-		right of the window's toolbar.</text>
+		right on the window toolbar.</text>
 	</document>
 
 	<!-- General help documents -->
@@ -2010,14 +2013,14 @@
 	</document>
 	
 	<document name="GeneralHelp.XPsp2">
-		<text format="b">Half open connection limit detected</text>
+		<text format="b">Windows XP Service Pack 2 detected</text>
 		<newline gap="8"/>
-		<text>Shareaza has detected Windows XP Service Pack 2 (or a similar environment). This 
-		restricts the number of connections that applications can attempt at once.</text>
+		<text>Shareaza has detected Windows XP Service Pack 2. This restricts the number of
+		connections that applications can attempt at once.</text>
 		<newline gap="8"/>
 		<text>Shareaza has limited network connections and set appropriate default values to 
-		ensure proper operation, however performance may be slightly reduced. Please visit the 
-		Shareaza forums for further information, and up to date news.</text>
+		ensure proper operation, however performance may be reduced. Please visit the Shareaza 
+		forums for further information, and up to date news.</text>
 	</document>
 	
 	<document name="GeneralHelp.AdultFilter">
@@ -2027,7 +2030,7 @@
 		screening content. It is designed simply to filter out excess unwanted results, rather than 
 		as a 100% safe block.</text>
 		<newline gap="8"/>
-		<text>Children's Internet use (including P2P file sharing) should always be under parental 				supervision.</text>
+		<text>Children's Internet use (including P2P file sharing) should always be under parental 			supervision.</text>
 	</document>
 
 	<document name="GeneralHelp.BadTorrentEncoding">
@@ -2040,8 +2043,7 @@
 		<text>Most torrent creation programs should allow you to repair this torrent, which
 		will ensure it works properly in all BitTorrent applications.</text>
 		<newline gap="8"/>
-		<link target="http://www.shareaza.com/help/?torrentencoding">Click here for additional
-		help</link>
+		<link target="http://www.shareaza.com/help/?torrentencoding">Click here for additional help</link>
 		<text>, or to download software to repair the torrent.</text>
 	</document>
 
@@ -2052,22 +2054,7 @@
 		up to date server list (met file) to connect to ED2K.</text>
 		<newline gap="8"/>
 		<text>You can download a server list from the ed2k setting page, or the discovery
-		services window. (Press F9 to open the discovery services window)</text> 
-	</document>
-
-	<document name="GeneralHelp.UploadWarning">
-		<text format="b">Limiting uploads may slow downloads</text>
-		<newline gap="8"/>
-		<text>Several networks Shareaza connects to enforce ratios, limit uploads to
-		clients that do not share, or simply preference uploading to known sharers.</text>
-		<newline/>
-		<text>Fortunately, broadband DSL connections are like a two-lane highway: you have
-		separate allocations for upload and download. If your client is properly configured, 
-		you should be able to upload at a good rate while retaining full download capacity.</text>
-		<newline gap="8"/>
-		<text>By default, your upload limit is set to about 85% of available upstream bandwidth,
-		while downloads are unlimited. That configuration should give you the fastest possible 
-		downloads that are available.</text>
+		services window.</text> 
 	</document>
 
 	<!-- Search help documents -->
@@ -2127,8 +2114,7 @@
 	<document name="ShareHelp.AlreadyShared">
 		<text format="b">Already Shared</text>
 		<newline gap="8"/>
-		<text>The folder you have selected is already being shared as part of an existing 
-		share.</text>
+		<text>The folder you have selected is already being shared as part of an 					existing share.</text>
 		<newline gap="8"/>
 		<text> %s </text>
 	</document>

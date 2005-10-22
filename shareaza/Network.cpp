@@ -36,7 +36,6 @@
 #include "Downloads.h"
 #include "Statistics.h"
 #include "DiscoveryServices.h"
-#include "HttpRequest.h"
 
 #include "CrawlSession.h"
 #include "SearchManager.h"
@@ -67,16 +66,15 @@ CNetwork Network;
 
 CNetwork::CNetwork()
 {
-	NodeRoute				= new CRouteCache();
-	QueryRoute				= new CRouteCache();
-	QueryKeys				= new CQueryKeys();
+	NodeRoute		= new CRouteCache();
+	QueryRoute		= new CRouteCache();
+	QueryKeys		= new CQueryKeys();
 	
-	m_bEnabled				= FALSE;
-	m_bAutoConnect			= FALSE;
-	m_nSequence				= 0;
-	m_hThread				= NULL;
-	m_tLastConnect			= 0;
-	m_tStartedConnecting	= 0;
+	m_bEnabled		= FALSE;
+	m_bAutoConnect	= FALSE;
+	m_nSequence		= 0;
+	m_hThread		= NULL;
+	m_tLastConnect  = 0;
 }
 
 CNetwork::~CNetwork()
@@ -139,23 +137,6 @@ BOOL CNetwork::IsConnectedTo(IN_ADDR* pAddress)
 	return FALSE;
 }
 
-BOOL CNetwork::ReadyToTransfer(DWORD tNow) const
-{
-	// If a connection isn't needed for transfers, we can start any time
-	if ( ! Settings.Connection.RequireForTransfers )
-		return TRUE;
-
-	// If we have not started connecting, we're not ready to transfer.
-	if ( m_tStartedConnecting == 0 )
-		return FALSE;
-
-	// We should wait a short time after starting the connection sequence before starting downloads
-	if ( Settings.Connection.SlowConnect )
-		return ( ( tNow - m_tStartedConnecting ) > 8000 );		// 8 seconds for XPsp2 users
-	else
-		return ( ( tNow - m_tStartedConnecting ) > 4000 );		// 4 seconds for others
-}
-
 //////////////////////////////////////////////////////////////////////
 // CNetwork connection
 
@@ -163,38 +144,20 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 {
 	CSingleLock pLock( &m_pSection, TRUE );
 	
+	if ( bAutoConnect ) m_bAutoConnect = TRUE;
 	Settings.Live.AutoClose = FALSE;
-	if ( bAutoConnect ) 
-	{
-		m_bAutoConnect = TRUE;
-		// Remove really old G1 hosts before trying to connect to G1
-		if ( Settings.Gnutella1.EnableToday ) HostCache.Gnutella1.PruneOldHosts();
-	}
 	
-	// If we are already connected, see if we need to query discovery services and exit.
 	if ( m_bEnabled )
 	{
 		if ( bAutoConnect ) DiscoveryServices.Execute();
 		return TRUE;
 	}
 	
-	// Begin network startup
 	theApp.Message( MSG_SYSTEM, IDS_NETWORK_STARTUP );
-
-	// Make sure WinINet is connected (IE is not in offline mode)
-	if ( Settings.Connection.ForceConnectedState )
-	{
-		INTERNET_CONNECTED_INFO ici = { 0 };
-		HINTERNET hInternet = InternetOpen( Settings.SmartAgent(), INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0 );
-
-		ici.dwConnectedState = INTERNET_STATE_CONNECTED;
-		InternetSetOption( hInternet, INTERNET_OPTION_CONNECTED_STATE, &ici, sizeof(ici) );
-		InternetCloseHandle( hInternet );
-	}
-
+	
 	Resolve( Settings.Connection.InHost, Settings.Connection.InPort, &m_pHost );
 	
-	if ( Settings.Connection.FirewallStatus == CONNECTION_FIREWALLED )
+	if ( Settings.Connection.Firewalled )
 		theApp.Message( MSG_DEFAULT, IDS_NETWORK_FIREWALLED );
 	
 	SOCKADDR_IN pOutgoing;
@@ -218,9 +181,10 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 	NodeRoute->SetDuration( Settings.Gnutella.RouteCache );
 	QueryRoute->SetDuration( Settings.Gnutella.RouteCache );
 	
-	m_bEnabled				= TRUE;
-	m_tStartedConnecting	= GetTickCount();
-	m_hThread				= AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_NORMAL )->m_hThread;
+	m_bEnabled	= TRUE;
+	m_hThread	= AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_NORMAL )->m_hThread;
+
+
 	
 	// if ( m_bAutoConnect && bAutoConnect ) DiscoveryServices.Execute();
 	
@@ -239,9 +203,8 @@ void CNetwork::Disconnect()
 	theApp.Message( MSG_DEFAULT, _T("") );
 	theApp.Message( MSG_SYSTEM, IDS_NETWORK_DISCONNECTING );
 	
-	m_bEnabled				= FALSE;
-	m_bAutoConnect			= FALSE;
-	m_tStartedConnecting	= 0;
+	m_bEnabled		= FALSE;
+	m_bAutoConnect	= FALSE;
 	
 	Neighbours.Close();
 	
@@ -340,7 +303,7 @@ void CNetwork::AcquireLocalAddress(LPCTSTR pszHeader)
 	
 	m_pHost.sin_addr = pAddress;
 
-	//Security.Ban( &pAddress, banSession, 0 );		// Ban self
+	//Security.SessionBan( &pAddress, 0 );		// Ban self
 }
 
 //////////////////////////////////////////////////////////////////////

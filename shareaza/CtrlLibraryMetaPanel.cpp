@@ -32,7 +32,6 @@
 #include "CoolInterface.h"
 #include "ShellIcons.h"
 #include "Skin.h"
-#include "ThumbCache.h"
 #include "ImageServices.h"
 #include "CtrlLibraryFrame.h"
 #include "CtrlLibraryMetaPanel.h"
@@ -56,12 +55,9 @@ BEGIN_MESSAGE_MAP(CLibraryMetaPanel, CLibraryPanel)
 	ON_WM_DESTROY()
 	ON_WM_SETCURSOR()
 	ON_WM_LBUTTONUP()
-	ON_WM_LBUTTONDOWN()
-	ON_WM_MOUSEWHEEL()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
-#define THUMB_STORE_SIZE	128
 
 /////////////////////////////////////////////////////////////////////////////
 // CLibraryMetaPanel construction
@@ -71,12 +67,6 @@ CLibraryMetaPanel::CLibraryMetaPanel()
 	m_nThumbSize	= 96;
 	m_crLight		=	CCoolInterface::CalculateColour(
 						CoolInterface.m_crTipBack, RGB( 255, 255, 255 ), 128 );
-
-	// Try to get the number of lines to scroll when the mouse wheel is rotated
-	if( !SystemParametersInfo ( SPI_GETWHEELSCROLLLINES, 0, &m_nScrollWheelLines, 0) )
-	{
-		m_nScrollWheelLines = 3;
-	}
 }
 
 CLibraryMetaPanel::~CLibraryMetaPanel()
@@ -197,7 +187,6 @@ void CLibraryMetaPanel::Update()
 	m_pMetadata.Clean( 4096 );
 	
 	CClientDC dc( this );
-	if ( theApp.m_bRTL ) theApp.m_pfnSetLayout( dc.m_hDC, LAYOUT_BITMAPORIENTATIONPRESERVED );
 	SCROLLINFO pInfo;
 	CRect rc;
 	
@@ -289,8 +278,7 @@ void CLibraryMetaPanel::OnPaint()
 	CPaintDC dc( this );
 	CRect rcClient;
 	CString str;
-	DWORD dwFlags = ( theApp.m_bRTL ? ETO_RTLREADING : 0 );
-
+	
 	GetClientRect( &rcClient );
 	
 	CFont* pOldFont = dc.GetCurrentFont();
@@ -305,7 +293,7 @@ void CLibraryMetaPanel::OnPaint()
 		CSize sz = dc.GetTextExtent( str );
 		CPoint pt = rcClient.CenterPoint();
 		pt.x -= sz.cx / 2; pt.y -= sz.cy / 2;
-		dc.ExtTextOut( pt.x, pt.y, ETO_OPAQUE|dwFlags, &rcClient, str, NULL );
+		dc.ExtTextOut( pt.x, pt.y, ETO_OPAQUE, &rcClient, str, NULL );
 		dc.SelectObject( pOldFont );
 		return;
 	}
@@ -358,10 +346,7 @@ void CLibraryMetaPanel::OnPaint()
 	
 	dc.SelectObject( &CoolInterface.m_fntBold );
 	LoadString( str, IDS_TIP_LOCATION );
-	if ( theApp.m_bRTL )
-		DrawText( &dc, rcWork.left, rcWork.top, ':' + str );
-	else
-		DrawText( &dc, rcWork.left, rcWork.top, str + ':' );
+	DrawText( &dc, rcWork.left, rcWork.top, str + ':' );
 	LoadString( str, IDS_TIP_SIZE );
 	DrawText( &dc, rcWork.right - 125, rcWork.top, str + ':' );
 	dc.SelectObject( &CoolInterface.m_fntNormal );
@@ -378,7 +363,6 @@ void CLibraryMetaPanel::OnPaint()
 		{
 			while ( nTextLength > nLimit )
 			{
-				if ( str.IsEmpty() ) break;
 				str = str.Left( str.GetLength() - 1 );
 				nTextLength = dc.GetTextExtent( str + _T('\x2026') ).cx;
 			}
@@ -402,11 +386,10 @@ void CLibraryMetaPanel::OnPaint()
 
 void CLibraryMetaPanel::DrawText(CDC* pDC, int nX, int nY, LPCTSTR pszText, RECT* pRect)
 {
-	DWORD dwFlags = ( theApp.m_bRTL ? ETO_RTLREADING : 0 );
 	CSize sz = pDC->GetTextExtent( pszText, _tcslen( pszText ) );
 	CRect rc( nX - 2, nY - 2, nX + sz.cx + 2, nY + sz.cy + 2 );
 	
-	pDC->ExtTextOut( nX, nY, ETO_CLIPPED|ETO_OPAQUE|dwFlags, &rc, pszText, _tcslen( pszText ), NULL );
+	pDC->ExtTextOut( nX, nY, ETO_CLIPPED|ETO_OPAQUE, &rc, pszText, _tcslen( pszText ), NULL );
 	pDC->ExcludeClipRect( &rc );
 	
 	if ( pRect != NULL ) CopyMemory( pRect, &rc, sizeof(RECT) );
@@ -515,7 +498,7 @@ void CLibraryMetaPanel::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBa
 		break;
 	case SB_THUMBPOSITION:
 	case SB_THUMBTRACK:
-		pScroll.nPos = nPos;
+		pScroll.nPos = pScroll.nTrackPos;
 		break;
 	}
 	
@@ -599,17 +582,6 @@ void CLibraryMetaPanel::OnLButtonUp(UINT nFlags, CPoint point)
 	CLibraryPanel::OnLButtonUp( nFlags, point );
 }
 
-void CLibraryMetaPanel::OnLButtonDown(UINT nFlags, CPoint point)
-{
-	SetFocus();
-}
-
-BOOL CLibraryMetaPanel::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
-{
-	OnVScroll( SB_THUMBPOSITION, (int)( GetScrollPos( SB_VERT ) - zDelta / WHEEL_DELTA * m_nScrollWheelLines * 8 ), NULL );
-	return TRUE;
-}
-
 /////////////////////////////////////////////////////////////////////////////
 // CLibraryMetaPanel thread run
 
@@ -634,34 +606,9 @@ void CLibraryMetaPanel::OnRun()
 		m_pSection.Unlock();
 
 		CImageFile pFile( &pServices );
-		CThumbCache pCache;
-		CSize Size( THUMB_STORE_SIZE, THUMB_STORE_SIZE );
-		BOOL bSuccess = FALSE;
 
-		if ( !pCache.Load( strPath, &Size, m_nIndex, &pFile ) )
+		if ( pFile.LoadFromFile( strPath, FALSE, TRUE ) && pFile.EnsureRGB() )
 		{
-			bSuccess = pFile.LoadFromFile( strPath, FALSE, TRUE ) && pFile.EnsureRGB();
-			if ( bSuccess ) 
-			{
-				int nSize = THUMB_STORE_SIZE * pFile.m_nWidth / pFile.m_nHeight;
-				
-				if ( nSize > THUMB_STORE_SIZE )
-				{
-					nSize = THUMB_STORE_SIZE * pFile.m_nHeight / pFile.m_nWidth;
-					pFile.Resample( THUMB_STORE_SIZE, nSize );
-				}
-				else
-				{
-					pFile.Resample( nSize, THUMB_STORE_SIZE );
-				}
-				pCache.Store( strPath, &Size, m_nIndex, &pFile );
-			}
-		}
-		else bSuccess = TRUE;
-
-		if ( bSuccess )
-		{
-
 			int nSize = m_nThumbSize * pFile.m_nWidth / pFile.m_nHeight;
 			
 			if ( nSize > m_nThumbSize )

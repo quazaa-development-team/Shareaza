@@ -79,7 +79,7 @@ CEDClient::CEDClient()
 	m_bEmSecureID	= FALSE;		// Not supported
 	m_bEmSources	= FALSE;
 	m_bEmRequest	= FALSE;
-	m_bEmComments	= FALSE;
+	m_bEmComments	= FALSE;		// Not over ed2k
 	m_bEmPeerCache	= FALSE;		// Not supported
 	m_bEmBrowse		= FALSE;		// Not over ed2k
 	m_bEmMultiPacket= FALSE;		// Not supported
@@ -174,7 +174,7 @@ BOOL CEDClient::Connect()
 		// If we're really overloaded, we may have to drop some queued downloads
 		if ( EDClients.IsOverloaded() ) 
 		{
-			theApp.Message( MSG_ERROR, _T("ED2K Queued download was dropped due to connection overloading") );
+			theApp.Message( MSG_ERROR, _T("**** ED2K Queued download was dropped due to connection overloading") );
 			return FALSE;
 		}
 	}
@@ -236,47 +236,7 @@ void CEDClient::Merge(CEDClient* pClient)
 		pClient->m_pUpload = NULL;
 	}
 
-	// Make sure connection stuff is copied over
-	if ( ( pClient->m_mInput.pLimit = &Downloads.m_nLimitDonkey ) ||
-		 ( m_mInput.pLimit = &Downloads.m_nLimitDonkey ) )
-	{
-		m_mInput.pLimit = &Downloads.m_nLimitDonkey;
-	}
-	else
-	{
-		m_mInput.pLimit = &Settings.Bandwidth.Request;
-	}
-
-	if ( ( pClient->m_mOutput.pLimit != &Settings.Bandwidth.Request ) &&
-		 ( pClient->m_mOutput.pLimit != NULL ) )
-	{
-		m_mOutput.pLimit = pClient->m_mOutput.pLimit;
-	}
-	else if ( m_mOutput.pLimit == NULL )
-	{
-		m_mOutput.pLimit = &Settings.Bandwidth.Request;
-	}
-
-	// Make sure chat/comments values are carried over
-	if ( ! m_bOpenChat )		m_bOpenChat = pClient->m_bOpenChat;
-	if ( ! m_bCommentSent )		m_bCommentSent = pClient->m_bCommentSent;
-
-	// Copy client capabilities. (This should not be necessary)
-	if ( ! m_nEmVersion )		m_nEmVersion = pClient->m_nEmVersion;
-	if ( ! m_nEmCompatible )	m_nEmCompatible = pClient->m_nEmCompatible;
-	if ( ! m_nSoftwareVersion )	m_nSoftwareVersion = pClient->m_nSoftwareVersion;
-	if ( ! m_bEmAICH )			m_bEmAICH = pClient->m_bEmAICH;
-	if ( ! m_bEmUnicode )		m_bEmUnicode = pClient->m_bEmUnicode;
-	if ( ! m_bEmUDPVersion )	m_bEmUDPVersion = pClient->m_bEmUDPVersion;
-	if ( ! m_bEmDeflate )		m_bEmDeflate = pClient->m_bEmDeflate;
-	if ( ! m_bEmSecureID )		m_bEmSecureID = pClient->m_bEmSecureID;	
-	if ( ! m_bEmSources )		m_bEmSources = pClient->m_bEmSources;
-	if ( ! m_bEmRequest )		m_bEmRequest = pClient->m_bEmRequest;	
-	if ( ! m_bEmComments )		m_bEmComments = pClient->m_bEmComments;
-	if ( ! m_bEmPeerCache )		m_bEmPeerCache = pClient->m_bEmPeerCache;
-	if ( ! m_bEmBrowse )		m_bEmBrowse = pClient->m_bEmBrowse;
-	if ( ! m_bEmMultiPacket )	m_bEmMultiPacket = pClient->m_bEmMultiPacket;	
-	if ( ! m_bEmPreview )		m_bEmPreview = pClient->m_bEmPreview;
+	m_bOpenChat = pClient->m_bOpenChat;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -322,12 +282,6 @@ void CEDClient::Close()
 	ASSERT( this != NULL );
 	CTransfer::Close();
 	m_bConnected = m_bLogin = FALSE;
-
-	if ( ( m_pDownload ) && ( m_pDownload->m_nState == dtsDownloading ) )
-	{
-		theApp.Message( MSG_ERROR, _T("Warning: CEDClient::Close() called for downloading client %s"), m_sAddress );
-		m_pDownload->SetState( dtsNull );
-	}
 	// if ( ! m_bGUID ) Remove();
 }
 
@@ -429,9 +383,6 @@ BOOL CEDClient::OnRun()
 		else if ( tNow - m_mInput.tLast > Settings.Connection.TimeoutTraffic &&
 			 tNow - m_mOutput.tLast > Settings.Connection.TimeoutTraffic )
 		{
-			// Don't time out downloading clients.
-			if ( ( m_pDownload ) && ( m_pDownload->m_nState == dtsDownloading ) )
-				return TRUE;
 			// Connection closed (Inactive)
 			theApp.Message( MSG_DEFAULT, IDS_ED2K_CLIENT_CLOSED, (LPCTSTR)m_sAddress );
 			Close();
@@ -743,7 +694,7 @@ void CEDClient::SendHello(BYTE nType)
 	DWORD nVersion =  ( ( ( ED2K_COMPATIBLECLIENT_ID & 0xFF ) << 24 ) | 
 							( ( theApp.m_nVersion[0] & 0x7F ) << 17 ) | 
 							( ( theApp.m_nVersion[1] & 0x7F ) << 10 ) |
-							( ( theApp.m_nVersion[2] & 0x07 ) << 7  ) |
+							( ( theApp.m_nVersion[2] & 0x03 ) << 7  ) |
 							( ( theApp.m_nVersion[3] & 0x7F )       ) );
 
 	CEDTag( ED2K_CT_SOFTWAREVERSION, nVersion ).Write( pPacket );
@@ -907,8 +858,8 @@ BOOL CEDClient::OnHello(CEDPacket* pPacket)
 	m_pServer.sin_addr.S_un.S_addr = pPacket->ReadLongLE();
 	m_pServer.sin_port = htons( pPacket->ReadShortLE() );
 
-	// If we are learning new servers from clients
-	if ( Settings.eDonkey.LearnNewServersClient && ! Network.IsFirewalledAddress( &m_pServer.sin_addr ) )
+	// If we are learning new servers
+	if ( Settings.eDonkey.LearnNewServers && ! Network.IsFirewalledAddress( &m_pServer.sin_addr ) )
 	{	// Add their server
 		HostCache.eDonkey.Add( &m_pServer.sin_addr, htons( m_pServer.sin_port ) );
 	}
@@ -1069,34 +1020,34 @@ void CEDClient::DeriveSoftwareVersion()
 		case 0:
 			m_sUserAgent.Format( _T("eMule %i.%i%c"), 
 				( ( m_nSoftwareVersion >> 17 ) & 0x7F ), ( ( m_nSoftwareVersion >> 10 ) & 0x7F ), 
-				( ( m_nSoftwareVersion >>  7 ) & 0x07 ) + 'a' );
+				( ( m_nSoftwareVersion >>  7 ) & 0x03 ) + 'a' );
 /*
 			//This code displays the eMule build number- not currently used
 			m_sUserAgent.Format( _T("eMule %i.%i%c (%i)"), 
 				( ( m_nSoftwareVersion >> 17 ) & 0x7F ), ( ( m_nSoftwareVersion >> 10 ) & 0x7F ), 
-				( ( m_nSoftwareVersion >>  7 ) & 0x07 ) + 'a', ( ( m_nSoftwareVersion ) & 0x7F ) );
+				( ( m_nSoftwareVersion >>  7 ) & 0x03 ) + 'a', ( ( m_nSoftwareVersion ) & 0x7F ) );
 */
 			break;
 		case 1:
 			m_sUserAgent.Format( _T("cDonkey %i.%i%c"), 
 				( ( m_nSoftwareVersion >> 17 ) & 0x7F ), ( ( m_nSoftwareVersion >> 10 ) & 0x7F ), 
-				( ( m_nSoftwareVersion >>  7 ) & 0x07 ) + 'a' );
+				( ( m_nSoftwareVersion >>  7 ) & 0x03 ) + 'a' );
 			break;
 		case 2:
 			m_sUserAgent.Format( _T("xMule %i.%i%c"), 
 				( ( m_nSoftwareVersion >> 17 ) & 0x7F ), ( ( m_nSoftwareVersion >> 10 ) & 0x7F ), 
-				( ( m_nSoftwareVersion >>  7 ) & 0x07 ) + 'a' );
+				( ( m_nSoftwareVersion >>  7 ) & 0x03 ) + 'a' );
 			break;
 		case 3:
 			m_sUserAgent.Format( _T("aMule %i.%i%c"), 
 				( ( m_nSoftwareVersion >> 17 ) & 0x7F ), ( ( m_nSoftwareVersion >> 10 ) & 0x7F ), 
-				( ( m_nSoftwareVersion >>  7 ) & 0x07 ) + 'a' );
+				( ( m_nSoftwareVersion >>  7 ) & 0x03 ) + 'a' );
 			break;
 		case 4:
 			//Note- 2nd last number (Beta build #) may be truncated, since it's only 3 bits.
 			m_sUserAgent.Format( _T("Shareaza %i.%i.%i.%i"), 
 				( ( m_nSoftwareVersion >> 17 ) &0x7F ), ( ( m_nSoftwareVersion >> 10 ) &0x7F ), 
-				( ( m_nSoftwareVersion >>  7 ) &0x07 ), ( ( m_nSoftwareVersion ) &0x7F ) );
+				( ( m_nSoftwareVersion >>  7 ) &0x03 ), ( ( m_nSoftwareVersion ) &0x7F ) );
 			
 			//Client allows G2 browse, etc
 			if ( m_pUpload ) m_pUpload->m_bClientExtended = TRUE;
@@ -1105,7 +1056,7 @@ void CEDClient::DeriveSoftwareVersion()
 		case 5:
 			m_sUserAgent.Format( _T("ePlus %i.%i%c"), 
 				( ( m_nSoftwareVersion >> 17 ) & 0x7F ), ( ( m_nSoftwareVersion >> 10 ) & 0x7F ), 
-				( ( m_nSoftwareVersion >>  7 ) & 0x07 ) + 'a' );
+				( ( m_nSoftwareVersion >>  7 ) & 0x03 ) + 'a' );
 			break;
 		case 10:
 			m_sUserAgent.Format( _T("MlDonkey") );
@@ -1113,22 +1064,12 @@ void CEDClient::DeriveSoftwareVersion()
 		case 20:
 			m_sUserAgent.Format( _T("Lphant %i.%i%c"), 
 				( ( m_nSoftwareVersion >> 17 ) & 0x7F ), ( ( m_nSoftwareVersion >> 10 ) & 0x7F ), 
-				( ( m_nSoftwareVersion >>  7 ) & 0x07 ) + 'a' );
-			break;
-		case 40:
-			//Note- 2nd last number (Beta build #) may be truncated, since it's only 3 bits.
-			m_sUserAgent.Format( _T("Shareaza %i.%i.%i.%i"), 
-				( ( m_nSoftwareVersion >> 17 ) &0x7F ), ( ( m_nSoftwareVersion >> 10 ) &0x7F ), 
-				( ( m_nSoftwareVersion >>  7 ) &0x07 ), ( ( m_nSoftwareVersion ) &0x7F ) );
-			
-			//Client allows G2 browse, etc
-			if ( m_pUpload ) m_pUpload->m_bClientExtended = TRUE;
-			if ( m_pDownload && m_pDownload->m_pSource ) m_pDownload->m_pSource->m_bClientExtended = TRUE;
+				( ( m_nSoftwareVersion >>  7 ) & 0x03 ) + 'a' );
 			break;
 		default:
 			m_sUserAgent.Format( _T("eMule/c(%i) %i.%i%c"), m_nEmCompatible,
 				( ( m_nSoftwareVersion >> 17 ) & 0x7F ), ( ( m_nSoftwareVersion >> 10 ) & 0x7F ), 
-				( ( m_nSoftwareVersion >>  7 ) & 0x07 ) + 'a' );
+				( ( m_nSoftwareVersion >>  7 ) & 0x03 ) + 'a' );
 			break;
 		}
 	}
@@ -1193,11 +1134,6 @@ void CEDClient::DeriveVersion()
 		case 20:
 			m_sUserAgent.Format( _T("Lphant v0.%i%i"), m_nEmVersion >> 4, m_nEmVersion & 15 );
 			break;
-		case 40:
-			m_sUserAgent.Format( _T("Shareaza") );
-			if ( m_pUpload ) m_pUpload->m_bClientExtended = TRUE;
-			if ( m_pDownload && m_pDownload->m_pSource ) m_pDownload->m_pSource->m_bClientExtended = TRUE;
-			break;
 		case ED2K_CLIENT_MOD:	// (Did not send a compatible client ID, but did send a MOD tag)
 			m_sUserAgent.Format( _T("eMule mod %i"), m_nEmVersion );
 			break;
@@ -1232,17 +1168,6 @@ BOOL CEDClient::OnFileRequest(CEDPacket* pPacket)
 	
 	pPacket->Read( &m_pUpMD4, sizeof(MD4) );
 	pReply->Write( &m_pUpMD4, sizeof(MD4) );
-
-
-	// Extra security check (Shouldn't be needed, but there have been reports of glitches)
-	if ( Security.IsDenied( &m_pHost.sin_addr ) )
-	{
-		pReply->m_nType = ED2K_C2C_FILENOTFOUND;
-		Send( pReply );
-		theApp.Message( MSG_ERROR, _T("ED2K upload to %s blocked by security rules."), m_sAddress);
-		return TRUE;
-	}
-
 	m_bUpMD4 = TRUE;
 	
 	CSingleLock oLock( &Library.m_pSection,TRUE );
@@ -1319,8 +1244,7 @@ BOOL CEDClient::OnFileStatusRequest(CEDPacket* pPacket)
 		WritePartStatus( pReply, pDownload );
 		m_nUpSize = pDownload->m_nSize;
 		
-		if ( ! pDownload->IsMoving() )
-			pDownload->AddSourceED2K( m_nClientID, htons( m_pHost.sin_port ), 
+		pDownload->AddSourceED2K( m_nClientID, htons( m_pHost.sin_port ),
 			m_pServer.sin_addr.S_un.S_addr, htons( m_pServer.sin_port ), &m_pGUID );
 		
 		Send( pReply );
@@ -1462,7 +1386,7 @@ BOOL CEDClient::OnMessage(CEDPacket* pPacket)
 	if ( MessageFilter.IsED2KSpam( sMessage ) ) 	
 	{
 		// Block L33cher mods
-		if ( m_pDownload == NULL ) Security.Ban( &m_pHost.sin_addr, banSession, FALSE );
+		if ( m_pDownload == NULL ) Security.SessionBan( &m_pHost.sin_addr, FALSE );
 		// Don't display message
 		return TRUE;
 	}

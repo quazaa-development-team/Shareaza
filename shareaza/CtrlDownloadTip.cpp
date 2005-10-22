@@ -236,45 +236,29 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownload* pDownload)
 
 	if ( m_sSHA1.GetLength() )
 	{
-		// If verbose mode is enabled, untrusted hashes are in italics
-		if ( ( ! Settings.General.VerboseMode ) || ( pDownload->m_bSHA1Trusted ) )
-			pDC->SelectObject( &CoolInterface.m_fntNormal );
-		else 
-			pDC->SelectObject( &CoolInterface.m_fntItalic );
-
+		if( pDownload->m_bSHA1Trusted ) pDC->SelectObject( &CoolInterface.m_fntNormal );
+		else pDC->SelectObject( &CoolInterface.m_fntItalic );
 		DrawText( pDC, &pt, m_sSHA1 );
 		pt.y += TIP_TEXTHEIGHT;
 	}
 	if ( m_sTiger.GetLength() )
 	{
-		// If verbose mode is enabled, untrusted hashes are in italics
-		if ( ( ! Settings.General.VerboseMode ) || ( pDownload->m_bTigerTrusted ) )
-			pDC->SelectObject( &CoolInterface.m_fntNormal );
-		else 
-			pDC->SelectObject( &CoolInterface.m_fntItalic );
-
+		if( pDownload->m_bTigerTrusted ) pDC->SelectObject( &CoolInterface.m_fntNormal );
+		else pDC->SelectObject( &CoolInterface.m_fntItalic );
 		DrawText( pDC, &pt, m_sTiger );
 		pt.y += TIP_TEXTHEIGHT;
 	}
 	if ( m_sED2K.GetLength() )
 	{
-		// If verbose mode is enabled, untrusted hashes are in italics
-		if ( ( ! Settings.General.VerboseMode ) || ( pDownload->m_bED2KTrusted ) )
-			pDC->SelectObject( &CoolInterface.m_fntNormal );
-		else 
-			pDC->SelectObject( &CoolInterface.m_fntItalic );
-
+		if( pDownload->m_bED2KTrusted ) pDC->SelectObject( &CoolInterface.m_fntNormal );
+		else pDC->SelectObject( &CoolInterface.m_fntItalic );
 		DrawText( pDC, &pt, m_sED2K );
 		pt.y += TIP_TEXTHEIGHT;
 	}
 	if ( m_sBTH.GetLength() )
 	{
-		// If verbose mode is enabled, untrusted hashes are in italics
-		if ( ( ! Settings.General.VerboseMode ) || ( pDownload->m_bBTHTrusted ) )
-			pDC->SelectObject( &CoolInterface.m_fntNormal );
-		else 
-			pDC->SelectObject( &CoolInterface.m_fntItalic );
-
+		if( pDownload->m_bBTHTrusted ) pDC->SelectObject( &CoolInterface.m_fntNormal );
+		else pDC->SelectObject( &CoolInterface.m_fntItalic );
 		DrawText( pDC, &pt, m_sBTH );
 		pt.y += TIP_TEXTHEIGHT;
 	}
@@ -327,12 +311,7 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownload* pDownload)
 
 		if ( nTime != 0xFFFFFFFF )
 		{
-			if ( nTime > 86400 )
-			{
-				LoadString( strFormat, IDS_DLM_TIME_DAH );
-				strETA.Format( strFormat, nTime / 86400, ( nTime / 3600 ) % 24 );
-			}
-			else if ( nTime > 3600 )
+			if ( nTime > 3600 )
 			{
 				LoadString( strFormat, IDS_DLM_TIME_HAM );
 				strETA.Format( strFormat, nTime / 3600, ( nTime % 3600 ) / 60 );
@@ -352,7 +331,6 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownload* pDownload)
 		strSpeed = Settings.SmartVolume( pDownload->GetAverageSpeed() * 8, FALSE, TRUE );
 
 		strSources.Format( _T("%i %s %i"), nTransferCount, strOf, nSourceCount );
-		if ( theApp.m_bRTL ) strSources = _T("\x202B") + strSources;
 	}
 	else if ( nSourceCount )
 	{
@@ -369,20 +347,10 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownload* pDownload)
 
 	if ( pDownload->IsStarted() )
 	{
-		if ( theApp.m_bRTL )
-		{
-			strVolume.Format( _T("(%.2f%%) %s %s %s"),
-				pDownload->GetProgress() * 100.0,
-				(LPCTSTR)Settings.SmartVolume( pDownload->m_nSize, FALSE ), strOf,
-				(LPCTSTR)Settings.SmartVolume( pDownload->GetVolumeComplete(), FALSE ) );
-		}
-		else
-		{
-			strVolume.Format( _T("%s %s %s (%.2f%%)"),
-				(LPCTSTR)Settings.SmartVolume( pDownload->GetVolumeComplete(), FALSE ),
-				strOf, (LPCTSTR)Settings.SmartVolume( pDownload->m_nSize, FALSE ),
-				pDownload->GetProgress() * 100.0 );
-		}
+		strVolume.Format( _T("%s %s %s (%.2f%%)"),
+			(LPCTSTR)Settings.SmartVolume( pDownload->GetVolumeComplete(), FALSE ),
+			strOf, (LPCTSTR)Settings.SmartVolume( pDownload->m_nSize, FALSE ),
+			pDownload->GetProgress() * 100.0 );
 	}
 	else
 	{
@@ -391,35 +359,16 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownload* pDownload)
 
 	if ( pDownload->m_nTorrentUploaded )
 	{
-		if ( theApp.m_bRTL )
-		{
-			strTorrentUpload.Format( _T("(%.2f%%) %s %s %s"),
-				pDownload->GetRatio() * 100.0,
-				(LPCTSTR)Settings.SmartVolume( pDownload->m_nTorrentDownloaded, FALSE ),
-				strOf,
-				(LPCTSTR)Settings.SmartVolume( pDownload->m_nTorrentUploaded, FALSE ) );
-		}
-		else
-		{
-			strTorrentUpload.Format( _T("%s %s %s (%.2f%%)"),
-				(LPCTSTR)Settings.SmartVolume( pDownload->m_nTorrentUploaded, FALSE ),
-				strOf,
-				(LPCTSTR)Settings.SmartVolume( pDownload->m_nTorrentDownloaded, FALSE ),
-				pDownload->GetRatio() * 100.0 );
-		}
+		strTorrentUpload.Format( _T("%s %s %s (%.2f%%)"),
+			(LPCTSTR)Settings.SmartVolume( pDownload->m_nTorrentUploaded, FALSE ),
+			strOf,
+			(LPCTSTR)Settings.SmartVolume( pDownload->m_nTorrentDownloaded, FALSE ),
+			pDownload->GetRatio() * 100.0 );
 	}
 	else
 	{
-		if ( theApp.m_bRTL )
-		{
-			strTorrentUpload.Format( _T("(%.2f%%) %s %s %s"), 0.0, 
-				(LPCTSTR)Settings.SmartVolume( pDownload->m_nTorrentDownloaded, FALSE ), strOf, _T("0") );
-		}
-		else
-		{
-			strTorrentUpload.Format( _T("%s %s %s (%.2f%%)"), _T("0"), strOf,
-				(LPCTSTR)Settings.SmartVolume( pDownload->m_nTorrentDownloaded, FALSE ), 0.0 );
-		}
+		strTorrentUpload.Format( _T("%s %s %s (%.2f%%)"), _T("0"), strOf,
+			(LPCTSTR)Settings.SmartVolume( pDownload->m_nTorrentDownloaded, FALSE ), 0.0 );
 	}
 
 	//Draw the pop-up box
@@ -504,37 +453,22 @@ void CDownloadTipCtrl::PrepareFileInfo(CDownload* pDownload)
 	m_sBTH.Empty();
 	m_sURL.Empty();
 
-	// Include hashes if we aren't in basic mode
-	if ( Settings.General.GUIMode != GUI_BASIC )
+	if ( pDownload->m_bSHA1 && Settings.General.GUIMode != GUI_BASIC)
 	{
-		// We also report on if we have a hashset if verbose mode is enabled
-		CString strNoHashset;
-		LoadString( strNoHashset, IDS_TIP_NOHASHSET );
-
-		if ( pDownload->m_bSHA1 )
-		{
-			m_sSHA1 = _T("sha1:") + CSHA::HashToString( &pDownload->m_pSHA1 );
-		}
-		if ( pDownload->m_bTiger )
-		{
-			m_sTiger = _T("tree:tiger/:") + CTigerNode::HashToString( &pDownload->m_pTiger );
-			if ( ( Settings.General.VerboseMode ) && ( ! pDownload->m_pTigerBlock ) ) 
-				m_sTiger += strNoHashset;
-		}
-		if ( pDownload->m_bED2K )
-		{
-			m_sED2K = _T("ed2k:") + CED2K::HashToString( &pDownload->m_pED2K );
-			if ( ( Settings.General.VerboseMode ) && ( ! pDownload->m_pHashsetBlock ) ) 
-				m_sED2K += strNoHashset;
-		}
-		if ( pDownload->m_bBTH )
-		{
-			m_sBTH = _T("btih:") + CSHA::HashToString( &pDownload->m_pBTH );
-			if ( ( Settings.General.VerboseMode ) && ( ! pDownload->m_pTorrentBlock ) ) 
-				m_sBTH += strNoHashset;
-
-			m_sURL = pDownload->m_pTorrent.m_sTracker;
-		}
+		m_sSHA1 = _T("sha1:") + CSHA::HashToString( &pDownload->m_pSHA1 );
+	}
+	if ( pDownload->m_bTiger && Settings.General.GUIMode != GUI_BASIC)
+	{
+		m_sTiger = _T("tree:tiger/:") + CTigerNode::HashToString( &pDownload->m_pTiger );
+	}
+	if ( pDownload->m_bED2K && Settings.General.GUIMode != GUI_BASIC)
+	{
+		m_sED2K = _T("ed2k:") + CED2K::HashToString( &pDownload->m_pED2K );
+	}
+	if ( pDownload->m_bBTH && Settings.General.GUIMode != GUI_BASIC)
+	{
+		m_sBTH = _T("btih:") + CSHA::HashToString( &pDownload->m_pBTH );
+		m_sURL = pDownload->m_pTorrent.m_sTracker;
 	}
 
 	int nPeriod = m_sName.ReverseFind( '.' );

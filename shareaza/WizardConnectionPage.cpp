@@ -28,8 +28,6 @@
 #include "UploadQueues.h"
 #include "Skin.h"
 #include "DlgHelp.h"
-#include "HostCache.h"
-#include "DiscoveryServices.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -88,28 +86,24 @@ BOOL CWizardConnectionPage::OnInitDialog()
 	m_wndGroup.SetCurSel( 0 );
 	
 	m_wndType.SetItemData( 0, 0 );
-	m_wndType.SetItemData( 1, 56 );		// Dial up Modem;
-	m_wndType.SetItemData( 2, 128 );	// ISDN
-	m_wndType.SetItemData( 3, 256);		// ADSL (256K)
-	m_wndType.SetItemData( 4, 512);		// ADSL (512K)
-	m_wndType.SetItemData( 5, 768);		// ADSL (768K)
-	m_wndType.SetItemData( 6, 1536 );	// ADSL (1.5M)
-	m_wndType.SetItemData( 7, 4096 );	// ADSL (4.0M)
-	m_wndType.SetItemData( 8, 8192 );	// ADSL2 (8.0M)
-	m_wndType.SetItemData( 9, 12288 );	// ADSL2 (12.0M)
-	m_wndType.SetItemData(10, 24576 );	// ADSL2+ (24.0M)
-	m_wndType.SetItemData(11, 1550 );	// Cable Modem/SDSL
-	m_wndType.SetItemData(12, 1544 );	// T1
-	m_wndType.SetItemData(13, 45000 );	// T3
-	m_wndType.SetItemData(14, 100000 );	// LAN
-	m_wndType.SetItemData(15, 155000 );	// OC3
-	//; Dial up Modem; ISDN; ADSL (256K); ADSL (512K); ADSL (768K); ADSL (1.5M); ADSL (4.0M); ADSL2 (8.0M); ADSL2 (12.0M); ADSL2+ (24.0M); Cable Modem/SDSL; T1; T3; LAN; OC3;
+	m_wndType.SetItemData( 1, 56 );
+	m_wndType.SetItemData( 2, 128 );
+	m_wndType.SetItemData( 3, 256);
+	m_wndType.SetItemData( 4, 512);
+	m_wndType.SetItemData( 5, 768);
+	m_wndType.SetItemData( 6, 1536 );
+	m_wndType.SetItemData( 7, 1544 );
+	m_wndType.SetItemData( 8, 1544 );
+	m_wndType.SetItemData( 9, 45000 );
+	m_wndType.SetItemData(10, 100000 );
+	m_wndType.SetItemData(11, 155000 );
+	//; Dial up Modem; ISDN; ADSL (256K); ADSL (512K); ADSL (768K); ADSL (1.5M); Cable Modem/SDSL; T1; T3; LAN; OC3;
 	
 	CString strSpeed;
 	strSpeed.Format( _T(" %lu.0 kbps"), Settings.Connection.InSpeed );
 	m_wndSpeed.SetWindowText( strSpeed );
 
-	//; 28.8 kbps; 33.6 kbps; 56.6 kbps; 64.0 kbps; 128 kbps; 256 kbps; 384 kbps; 512 kbps; 1024 kbps; 1536 kbps; 2048 kbps; 3072 kbps; 4096 kbps; 5120 kbps; 8192 kbps; 12288 kbps;
+	//; 28.8 kbps; 33.6 kbps; 56.6 kbps; 64.0 kbps; 128 kbps; 256 kbps; 384 kbps; 512 kbps; 1024 kbps; 1536 kbps; 2048 kbps; 3072 kbps; 4096 kbps; 5120 kbps;
 	
 	return TRUE;
 }
@@ -179,24 +173,24 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 		switch ( m_wndHomeSelect.GetCurSel() )
 		{
 		case 0:
-			Settings.Connection.FirewallStatus	= CONNECTION_OPEN;
-			if ( Settings.Connection.InPort	== 6346 )
+			Settings.Connection.Firewalled	= FALSE;
+			if ( Settings.Connection.InPort == 6346 )
 				Settings.Connection.InPort	= Network.RandomPort();
 			break;
 		case 1:
-			Settings.Connection.FirewallStatus	= CONNECTION_OPEN;
+			Settings.Connection.Firewalled	= FALSE;
 			// Settings.Connection.InPort		= 6346;
 			LoadString( strFormat, IDS_WIZARD_PORT_FORWARD );
 			strMessage.Format( strFormat, Settings.Connection.InPort );
 			AfxMessageBox( strMessage, MB_ICONINFORMATION );
 			break;
 		case 2:
-			Settings.Connection.FirewallStatus	= CONNECTION_FIREWALLED;
-			Settings.Connection.InPort			= 6346;
+			Settings.Connection.Firewalled	= TRUE;
+			Settings.Connection.InPort		= 6346;
 			break;
 		case 3:
-			Settings.Connection.FirewallStatus	= CONNECTION_AUTO;
-			Settings.Connection.InPort			= 6346;
+			Settings.Connection.Firewalled	= TRUE;
+			Settings.Connection.InPort		= 6346;
 			break;
 		}
 	}
@@ -205,17 +199,17 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 		switch ( m_wndLanSelect.GetCurSel() )
 		{
 		case 0:
-			Settings.Connection.FirewallStatus	= CONNECTION_OPEN;
+			Settings.Connection.Firewalled	= FALSE;
 			if ( Settings.Connection.InPort == 6346 )
 				Settings.Connection.InPort	= Network.RandomPort();
 			break;
 		case 1:
-			Settings.Connection.FirewallStatus	= CONNECTION_FIREWALLED;
-			Settings.Connection.InPort			= 6346;
+			Settings.Connection.Firewalled	= TRUE;
+			Settings.Connection.InPort		= 6346;
 			break;
 		case 2:
-			Settings.Connection.FirewallStatus	= CONNECTION_AUTO;
-			Settings.Connection.InPort			= 6346;
+			Settings.Connection.Firewalled	= TRUE;
+			Settings.Connection.InPort		= 6346;
 			break;
 		}
 	}
@@ -242,30 +236,22 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 	
 	Settings.Connection.InSpeed		= nSpeed;
 
-	if( nSpeed <= 56 )								// Dial up modem
-		Settings.Connection.OutSpeed = 32;
-	else if( nSpeed <= 128 )						// ISDN
-		Settings.Connection.OutSpeed = nSpeed;
-	else if( nSpeed == 384 )						// 384/128 DSL (Europe)
-		Settings.Connection.OutSpeed = 128;
-	else if( nSpeed <= 700 )						// ADSL (4:1)
-		Settings.Connection.OutSpeed = nSpeed / 4;
-	else if( nSpeed <  1544 )						// ADSL (6:1)
-		Settings.Connection.OutSpeed = nSpeed / 6;
-	else if( nSpeed == 1544 )						// T1 (1:1)
-		Settings.Connection.OutSpeed = nSpeed;
-	else if( nSpeed <= 4000 )						// Cable (2:1)
-		Settings.Connection.OutSpeed = nSpeed / 2;
-	else if( nSpeed <= 8192 )						// ADSL2 (8:1)
-		Settings.Connection.OutSpeed = nSpeed / 8;
-	else if( nSpeed <= 12288 )						// ADSL2 (10:1)
-		Settings.Connection.OutSpeed = nSpeed / 10;
-	else if( nSpeed <= 24576 )						// ADSL2+ (12:1)
-		Settings.Connection.OutSpeed = nSpeed / 12;
-	else											// High capacity lines. (LAN, etc)
-		Settings.Connection.OutSpeed = nSpeed;
+	if( nSpeed <= 56 )
+		Settings.Connection.OutSpeed = 32;			// Dial up modem
+	else if( nSpeed <= 128 )
+		Settings.Connection.OutSpeed = nSpeed;		// ISDN
+	else if( nSpeed == 384 )
+		Settings.Connection.OutSpeed = 128;			// 384/128 DSL (Europe)
+	else if( nSpeed <= 700 )
+		Settings.Connection.OutSpeed = nSpeed / 4;	// ADSL (4:1)
+	else if( nSpeed <= 1536 )
+		Settings.Connection.OutSpeed = nSpeed / 6;	// ADSL (6:1)
+	else if( nSpeed <= 4096 )
+		Settings.Connection.OutSpeed = nSpeed / 4;	// ADSL2 (4:1)
+	else
+		Settings.Connection.OutSpeed = nSpeed;		// Cable, SDSL, and the big boys.
 
-	// Set upload limit to 90% of capacity, trimmed down to the nearest KB. (Usually works out at ~85% total)
+	//Set upload limit to 90% of capacity, trimmed to the nearest KB.
 	Settings.Bandwidth.Uploads = (DWORD)( Settings.Connection.OutSpeed * 0.9 );
 	Settings.Bandwidth.Uploads >>= 3;
 	Settings.Bandwidth.Uploads *= 1024;
@@ -277,21 +263,19 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 	
 	Settings.eDonkey.MaxLinks = ( nSpeed < 100 || ! theApp.m_bNT ) ? 35 : 250;
 	
-	if ( nSpeed > 2500 && theApp.m_bNT && ( !theApp.m_bLimitedConnections || Settings.General.IgnoreXPsp2 ) )
+	if ( nSpeed > 2500 && theApp.m_bNT && !theApp.m_bLimitedConnections )
 	{	// Very high capacity connection
 		Settings.Downloads.MaxFiles				= 32;
-		Settings.Downloads.MaxTransfers			= 200;
-		Settings.Downloads.MaxFileTransfers		= 32;
+		Settings.Downloads.MaxTransfers			= 128;
+		Settings.Downloads.MaxFileTransfers		= 16;
 		Settings.Downloads.MaxConnectingSources	= 32;
 		Settings.Downloads.MaxFileSearches		= 3;
-
 		Settings.Gnutella2.NumLeafs				= 400; //Can probably support more leaves
-		Settings.BitTorrent.DownloadTorrents	= 4;	// Should be able to handle several torrents
 	}
 	else if ( nSpeed > 768 && theApp.m_bNT )
 	{	// Fast broadband
 		Settings.Downloads.MaxFiles				= 26;
-		Settings.Downloads.MaxTransfers			= 100;
+		Settings.Downloads.MaxTransfers			= 96;
 		Settings.Downloads.MaxFileTransfers		= 10;
 		Settings.Downloads.MaxConnectingSources	= 28;
 		Settings.Downloads.MaxFileSearches		= 2;
@@ -312,7 +296,7 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 		Settings.Downloads.MaxFileTransfers		= 6;
 		Settings.Downloads.MaxConnectingSources	= 20;
 		Settings.Downloads.MaxFileSearches		= 0;
-		Settings.Search.GeneralThrottle			= 250;	// Slow searches a little so we don't get flooded
+		Settings.Search.GeneralThrottle			= 250;
 	}
 	else
 	{	// Modem users / Win9x
@@ -321,10 +305,8 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 		Settings.Downloads.MaxFileTransfers		= 4;
 		Settings.Downloads.MaxConnectingSources	= 16;
 		Settings.Downloads.MaxFileSearches		= 0;
-		Settings.Downloads.SourcesWanted		= 200;	// Don't bother requesting so many sources
-		Settings.Search.GeneralThrottle			= 300;	// Slow searches a little so we don't get flooded
-
-		Settings.BitTorrent.DownloadTorrents	= 1;	// Best not to try too many torrents
+		Settings.Downloads.SourcesWanted		= 200; // Don't bother requesting so many sources
+		Settings.Search.GeneralThrottle			= 300;
 	}
 	
 	UploadQueues.CreateDefault();
@@ -339,19 +321,12 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 		Settings.Gnutella1.EnableAlways			= FALSE;
 		Settings.Gnutella1.EnableToday			= FALSE;
 		Settings.Downloads.MaxConnectingSources	= 8;
-		Settings.Connection.RequireForTransfers	= TRUE;
-		Settings.Connection.SlowConnect			= TRUE;
 		//Settings.Connection.TimeoutConnect	= 30000;
 		//Settings.Connection.TimeoutHandshake	= 60000;
+		Settings.Connection.RequireForTransfers	= TRUE;
 
 		CHelpDlg::Show( _T("GeneralHelp.XPsp2") );
 	}
-
-	// Update the G2 host cache (if necessary)
-	if ( HostCache.Gnutella2.CountHosts() < 25 ) DiscoveryServices.QueryForHosts( PROTOCOL_G2 );
-
-	// Load default ed2k server list (if necessary)
-	if ( HostCache.eDonkey.CountHosts() < 8 ) HostCache.eDonkey.LoadDefaultED2KServers();
 	
 	return 0;
 }

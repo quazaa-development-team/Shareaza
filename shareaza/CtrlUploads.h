@@ -50,7 +50,6 @@ protected:
 	BOOL		GetAt(int nSelect, CUploadQueue** ppQueue, CUploadFile** ppFile);
 	void		PaintQueue(CDC& dc, const CRect& rcRow, CUploadQueue* pQueue, BOOL bFocus);
 	void		PaintFile(CDC& dc, const CRect& rcRow, CUploadQueue* pQueue, CUploadFile* pFile, int nPosition, BOOL bFocus);
-	int			GetExpandableColumnX() const;
 
 	friend class CUploadsWnd;
 
@@ -61,7 +60,6 @@ protected:
 	CImageList			m_pProtocols;
 	int					m_nFocus;
 	CUploadFile*		m_pDeselect;
-	int					m_nScrollWheelLines;
 
 // Queue/File Abstractation Layer
 public:

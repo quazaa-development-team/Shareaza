@@ -207,7 +207,6 @@ BOOL CCoolInterface::DrawWatermark(CDC* pDC, CRect* pRect, CBitmap* pMark, int n
 		return FALSE;
 	
 	dcMark.CreateCompatibleDC( pDC );
-	if ( theApp.m_bRTL ) theApp.m_pfnSetLayout( dcMark.m_hDC, LAYOUT_BITMAPORIENTATIONPRESERVED );
 	pOldMark = (CBitmap*)dcMark.SelectObject( pMark );
 	pMark->GetBitmap( &pWatermark );
 	
@@ -242,7 +241,6 @@ void CCoolInterface::CreateFonts(LPCTSTR pszFace, int nSize)
 	if ( m_fntUnder.m_hObject ) m_fntUnder.DeleteObject();
 	if ( m_fntCaption.m_hObject ) m_fntCaption.DeleteObject();
 	if ( m_fntItalic.m_hObject ) m_fntItalic.DeleteObject();
-	if ( m_fntBoldItalic.m_hObject ) m_fntBoldItalic.DeleteObject();
 	
 	m_fntNormal.CreateFont( -nSize, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
@@ -261,10 +259,6 @@ void CCoolInterface::CreateFonts(LPCTSTR pszFace, int nSize)
 		DEFAULT_PITCH|FF_DONTCARE, pszFace );
 
 	m_fntItalic.CreateFont( -nSize, 0, 0, 0, FW_NORMAL, TRUE, FALSE, FALSE,
-		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
-		DEFAULT_PITCH|FF_DONTCARE, pszFace );
-
-	m_fntBoldItalic.CreateFont( -nSize, 0, 0, 0, FW_BOLD, TRUE, FALSE, FALSE,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		DEFAULT_PITCH|FF_DONTCARE, pszFace );
 }

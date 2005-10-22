@@ -105,7 +105,7 @@ CBENode* CBENode::Add(const LPBYTE pKey, int nKey)
 		break;
 	}
 	
-	CBENode* pNew = new CBENode();					// Possible memory leak while running
+	CBENode* pNew = new CBENode();
 	
 	if ( m_nType == beList )
 	{
@@ -130,7 +130,7 @@ CBENode* CBENode::Add(const LPBYTE pKey, int nKey)
 			delete [] (CBENode**)m_pValue;
 		}
 		
-		BYTE* pxKey = new BYTE[ nKey + 1 ];					// Possible memory leak while running
+		BYTE* pxKey = new BYTE[ nKey + 1 ];
 		CopyMemory( pxKey, pKey, nKey );
 		pxKey[ nKey ] = 0;
 		

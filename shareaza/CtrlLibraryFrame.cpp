@@ -61,6 +61,7 @@ BEGIN_MESSAGE_MAP(CLibraryFrame, CWnd)
 	ON_WM_PAINT()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_SETCURSOR()
+	ON_WM_MOUSEWHEEL()
 	ON_WM_MOUSEMOVE()
 	ON_WM_LBUTTONUP()
 	ON_WM_RBUTTONDOWN()
@@ -113,6 +114,7 @@ CLibraryFrame::CLibraryFrame()
 	m_bPanelShow	= Settings.Library.ShowPanel;
 	m_nHeaderSize	= 0;
 	m_bUpdating		= FALSE;
+	m_bMouseWheel	= FALSE;
 
 	m_pDragList		= NULL;
 	m_pDragImage	= NULL;
@@ -404,6 +406,21 @@ void CLibraryFrame::OnPaint()
 	}
 }
 
+BOOL CLibraryFrame::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
+{
+	CWnd* pWnd = ChildWindowFromPoint( pt );
+
+	if ( pWnd && pWnd != this && ! m_bMouseWheel )
+	{
+		m_bMouseWheel = TRUE;
+		pWnd->SendMessage( WM_MOUSEWHEEL,
+			MAKELONG( nFlags, zDelta ), MAKELONG( pt.x, pt.y ) );
+		m_bMouseWheel = FALSE;
+	}
+
+	return TRUE;
+}
+
 void CLibraryFrame::OnContextMenu(CWnd* pWnd, CPoint point)
 {
 	if ( m_pView ) m_pView->SendMessage( (WPARAM)pWnd->GetSafeHwnd(), MAKELONG( point.x, point.y ) );
@@ -446,10 +463,8 @@ BOOL CLibraryFrame::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 	ClientToScreen( &rcClient );
 
 
-	rc.SetRect(	theApp.m_bRTL ? rcClient.right - m_nTreeSize - SPLIT_SIZE :
-				rcClient.left + m_nTreeSize,
+	rc.SetRect(	rcClient.left + m_nTreeSize,
 				rcClient.top,
-				theApp.m_bRTL ? rcClient.right - m_nTreeSize :
 				rcClient.left + m_nTreeSize + SPLIT_SIZE,
 				rcClient.bottom );
 
@@ -461,10 +476,9 @@ BOOL CLibraryFrame::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 
 	if ( m_pPanel != NULL )
 	{
-		rc.SetRect(	theApp.m_bRTL ? rcClient.left :
-					rcClient.left + m_nTreeSize + SPLIT_SIZE,
+		rc.SetRect(	rcClient.left + m_nTreeSize + SPLIT_SIZE,
 					rcClient.bottom - BAR_HEIGHT - m_nPanelSize - SPLIT_SIZE,
-					theApp.m_bRTL ? rcClient.right - m_nTreeSize : rcClient.right,
+					rcClient.right,
 					rcClient.bottom - BAR_HEIGHT - m_nPanelSize );
 
 		if ( rc.PtInRect( point ) )

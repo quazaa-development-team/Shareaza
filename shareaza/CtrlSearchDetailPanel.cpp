@@ -57,8 +57,6 @@ BEGIN_MESSAGE_MAP(CSearchDetailPanel, CWnd)
 	ON_WM_PAINT()
 	ON_WM_SETCURSOR()
 	ON_WM_LBUTTONUP()
-	ON_WM_LBUTTONDOWN()
-	ON_WM_MOUSEWHEEL()
 	ON_WM_ERASEBKGND()
 	ON_NOTIFY(RVN_CLICK, IDC_REVIEW_VIEW, OnClickReview)
 	//}}AFX_MSG_MAP
@@ -80,12 +78,6 @@ CSearchDetailPanel::CSearchDetailPanel()
 	m_crLight	=	CCoolInterface::CalculateColour(
 					CoolInterface.m_crTipBack, RGB( 255, 255, 255 ), 128 );
 	m_nThumbSize = 0;
-
-	// Try to get the number of lines to scroll when the mouse wheel is rotated
-	if( !SystemParametersInfo ( SPI_GETWHEELSCROLLLINES, 0, &m_nScrollWheelLines, 0) )
-	{
-		m_nScrollWheelLines = 3;
-	}
 }
 
 CSearchDetailPanel::~CSearchDetailPanel()
@@ -361,7 +353,7 @@ void CSearchDetailPanel::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollB
 		break;
 	case SB_THUMBPOSITION:
 	case SB_THUMBTRACK:
-		pScroll.nPos = nPos;
+		pScroll.nPos = pScroll.nTrackPos;
 		break;
 	}
 	
@@ -377,17 +369,6 @@ void CSearchDetailPanel::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollB
 	}
 	
 	Invalidate();
-}
-
-void CSearchDetailPanel::OnLButtonDown(UINT nFlags, CPoint point)
-{
-	SetFocus();
-}
-
-BOOL CSearchDetailPanel::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
-{
-	OnVScroll( SB_THUMBPOSITION, (int)( GetScrollPos( SB_VERT ) - zDelta / WHEEL_DELTA * m_nScrollWheelLines * 8 ), NULL );
-	return TRUE;
 }
 
 BOOL CSearchDetailPanel::OnEraseBkgnd(CDC* pDC) 

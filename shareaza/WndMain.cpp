@@ -1,10 +1,6 @@
 //
 // WndMain.cpp
 //
-//	Date:			"$Date: 2005/09/01 18:00:14 $"
-//	Revision:		"$Revision: 1.42 $"
-//  Last change by:	"$Author: rolandas $"
-//
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
@@ -220,6 +216,7 @@ BEGIN_MESSAGE_MAP(CMainWnd, CMDIFrameWnd)
 	ON_COMMAND(ID_NETWORK_BROWSE_TO, OnNetworkBrowseTo)
 	ON_COMMAND(ID_TOOLS_SKIN, OnToolsSkin)
 	ON_COMMAND(ID_TOOLS_LANGUAGE, OnToolsLanguage)
+	ON_COMMAND(ID_TOOLS_MERCORA, OnToolsMercora)
 	ON_COMMAND(ID_TOOLS_SEEDTORRENT, OnToolsSeedTorrent)
 	ON_COMMAND(ID_TOOLS_RESEEDTORRENT, OnToolsReseedTorrent)
 	ON_COMMAND(ID_HELP_DISKSPACE, OnDiskSpace)
@@ -312,12 +309,6 @@ BOOL CMainWnd::PreCreateWindow(CREATESTRUCT& cs)
 
 int CMainWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
-	if ( theApp.m_bRTL )
-	{
-		lpCreateStruct->dwExStyle |= WS_EX_LAYOUTRTL;
-		SetWindowLong( GetSafeHwnd(), GWL_EXSTYLE, lpCreateStruct->dwExStyle );
-	}
-
 	if ( CMDIFrameWnd::OnCreate( lpCreateStruct ) == -1 ) return -1;
 	
 	// Icon
@@ -425,10 +416,11 @@ int CMainWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	SetGUIMode( Settings.General.GUIMode, FALSE );
 	
 	// Boot
-
-	if ( theApp.GetProfileInt( _T("Windows"), _T("RunWizard"), FALSE ) == FALSE )
+	
+	if ( theApp.GetProfileInt( _T("Windows"), _T("RunLanguage"), FALSE ) == FALSE )
 	{
-		PostMessage( WM_COMMAND, ID_TOOLS_WIZARD );
+		ShowControlBar( &m_wndMonitorBar, FALSE, TRUE );
+		PostMessage( WM_COMMAND, ID_TOOLS_LANGUAGE );
 	}
 	else if ( theApp.GetProfileInt( _T("Windows"), _T("RunWarnings"), FALSE ) == FALSE )
 	{
@@ -716,7 +708,7 @@ void CMainWnd::OnTimer(UINT nIDEvent)
 	for ( POSITION pos = m_pWindows.GetIterator() ; pos ; )
 	{
 		CChildWnd* pChild = m_pWindows.GetNext( pos );
-		pChild->PostMessage( WM_TIMER, 1, 0 );
+		if ( pChild->IsPartiallyVisible() )	pChild->PostMessage( WM_TIMER, 1, 0 );
 	}
 	
 	m_bTimer = FALSE;
@@ -736,9 +728,6 @@ void CMainWnd::OnTimer(UINT nIDEvent)
 	
 	if ( bNeedTrayIcon && ! m_bTrayIcon )
 	{
-		// Delete existing tray icon (if any), windows can't create a new icon with same uID
-		Shell_NotifyIcon( NIM_DELETE, &m_pTray );
-
 		m_pTray.cbSize				= sizeof(m_pTray);
 		m_pTray.hWnd				= GetSafeHwnd();
 		m_pTray.uID					= 0;
@@ -751,7 +740,7 @@ void CMainWnd::OnTimer(UINT nIDEvent)
 			m_pTray.hIcon = AfxGetApp()->LoadIcon( IDI_ICON );
 		
 		_tcscpy( m_pTray.szTip, _T("Shareaza") );
-		m_bTrayIcon = Shell_NotifyIcon( NIM_ADD, &m_pTray );
+		m_bTrayIcon = ( Shell_NotifyIcon( NIM_ADD, &m_pTray ) != 0 );
 	}
 	else if ( m_bTrayIcon && ! bNeedTrayIcon )
 	{
@@ -1312,19 +1301,6 @@ void CMainWnd::LocalSystemChecks()
 		tLastCheck = tTicks;
 
 		// Check disk space
-		if ( Settings.Live.DiskSpaceStop == FALSE )
-		{
-			if ( ! Downloads.IsSpaceAvailable( (QWORD)Settings.General.DiskSpaceStop * 1024 * 1024 ) )
-			{
-				CSingleLock pLock( &Transfers.m_pSection );
-				if ( pLock.Lock( 250 ) )
-				{
-					Settings.Live.DiskSpaceStop = TRUE;
-					Downloads.PauseAll();
-				}
-
-			}
-		}
 		if ( Settings.Live.DiskSpaceWarning == FALSE )
 		{
 			if ( ! Downloads.IsSpaceAvailable( (QWORD)Settings.General.DiskSpaceWarning * 1024 * 1024 ) )
@@ -1410,7 +1386,7 @@ void CMainWnd::LocalSystemChecks()
 		// Check we have donkey servers
 		if ( ( Settings.Live.DonkeyServerWarning == FALSE ) && ( Settings.eDonkey.EnableToday ) )
 		{
-			if ( ( ! Settings.eDonkey.MetAutoQuery ) && ( HostCache.eDonkey.CountHosts() < 1 ) )
+			if ( ( Settings.eDonkey.MetQueryTime ) && ( HostCache.eDonkey.CountHosts() < 1 ) )
 			{
 				Settings.Live.DonkeyServerWarning = TRUE;
 				PostMessage( WM_COMMAND, ID_HELP_DONKEYSERVERS );
@@ -1540,7 +1516,6 @@ void CMainWnd::OnNetworkG2()
 void CMainWnd::OnUpdateNetworkG1(CCmdUI* pCmdUI) 
 {
 	pCmdUI->SetCheck( Settings.Gnutella1.EnableToday );
-	pCmdUI->Enable( Settings.GetOutgoingBandwidth() >= 2 );
 }
 
 void CMainWnd::OnNetworkG1() 
@@ -1570,7 +1545,7 @@ void CMainWnd::OnNetworkED2K()
 	}
 	else
 	{
-		Settings.eDonkey.EnableToday = TRUE;
+		Settings.eDonkey.EnableToday = Settings.GetOutgoingBandwidth() >= 2;
 		Network.Connect( TRUE );
 	}
 }
@@ -1949,7 +1924,6 @@ void CMainWnd::OnUpdateTabMedia(CCmdUI* pCmdUI)
 void CMainWnd::OnTabMedia() 
 {
 	m_pWindows.Open( RUNTIME_CLASS(CMediaWnd) );
-	theApp.m_bMenuWasVisible = FALSE;
 	OpenFromTray();
 }
 
@@ -2073,6 +2047,38 @@ void CMainWnd::OnToolsLanguage()
 		OnSkinChanged( 0, 0 );
 		SetGUIMode( Settings.General.GUIMode );
 	}
+	
+	if ( theApp.GetProfileInt( _T("Windows"), _T("RunWizard"), FALSE ) == FALSE )
+	{
+		PostMessage( WM_COMMAND, ID_TOOLS_WIZARD );
+	}
+}
+
+void CMainWnd::OnToolsMercora()
+{
+	if ( CWnd* pWnd = FindWindow( _T("MercoraClient"), NULL ) )
+	{
+		pWnd->ShowWindow( SW_SHOWNORMAL );
+		pWnd->BringWindowToTop();
+		pWnd->SetForegroundWindow();
+		return;
+	}
+	
+	HKEY hKey = NULL;
+	RegOpenKeyEx( HKEY_LOCAL_MACHINE, _T("Software\\Mercora\\MercoraClient"), 0, KEY_READ, &hKey );
+	
+	if ( hKey != NULL )
+	{
+		DWORD nType = REG_SZ, nEXE = sizeof(TCHAR) * MAX_PATH;
+		TCHAR szEXE[MAX_PATH+1];
+		RegQueryValueEx( hKey, _T("EXE"), NULL, &nType, (PBYTE)szEXE, &nEXE );
+		szEXE[ nEXE ] = 0;
+		RegCloseKey( hKey );
+		int nResult = (int)ShellExecute( GetSafeHwnd(), NULL, szEXE, NULL, NULL, SW_SHOWNORMAL );
+		if ( nResult > 32 ) return;
+	}
+	
+	ShellExecute( GetSafeHwnd(), NULL, _T("http://www.mercora.com/"), NULL, NULL, SW_SHOWNORMAL );
 }
 
 
@@ -2083,13 +2089,13 @@ void CMainWnd::OnToolsSeedTorrent()
 	
 	if ( dlgFile.DoModal() != IDOK ) return;
 	
-	CTorrentSeedDlg dlgSeed( dlgFile.GetPathName(), TRUE );
+	CTorrentSeedDlg dlgSeed( dlgFile.GetPathName() );
 	dlgSeed.DoModal();
 }
 
 void CMainWnd::OnToolsReseedTorrent()
 {
-	CTorrentSeedDlg dlgSeed( LibraryHistory.LastSeededTorrent.m_sPath, TRUE );
+	CTorrentSeedDlg dlgSeed( LibraryHistory.LastSeededTorrent.m_sPath );
 	dlgSeed.DoModal();
 }
 

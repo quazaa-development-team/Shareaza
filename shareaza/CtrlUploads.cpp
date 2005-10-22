@@ -78,11 +78,6 @@ END_MESSAGE_MAP()
 
 CUploadsCtrl::CUploadsCtrl()
 {
-	// Try to get the number of lines to scroll when the mouse wheel is rotated
-	if( !SystemParametersInfo ( SPI_GETWHEELSCROLLLINES, 0, &m_nScrollWheelLines, 0) )
-	{
-		m_nScrollWheelLines = 3;
-	}
 }
 
 CUploadsCtrl::~CUploadsCtrl()
@@ -130,8 +125,6 @@ int CUploadsCtrl::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	
 	CBitmap bmImages;
 	bmImages.LoadBitmap( IDB_PROTOCOLS );
-	if ( theApp.m_bRTL ) 
-		bmImages.m_hObject = CreateMirroredBitmap( (HBITMAP)bmImages.m_hObject );
 	m_pProtocols.Create( 16, 16, ILC_COLOR16|ILC_MASK, 7, 1 );
 	m_pProtocols.Add( &bmImages, RGB( 0, 255, 0 ) );
 	
@@ -591,8 +584,7 @@ CUploadFile* CUploadsCtrl::GetNextFile(CUploadQueue* pQueue, POSITION& pos, int*
 			CUploadTransfer* pTransfer = pFile->GetActive();
 			if ( pTransfer != NULL )
 			{
-				//if ( pTransfer->m_nProtocol == PROTOCOL_BT && pTransfer->m_nState != upsNull ) continue;
-				if ( pTransfer->m_nState != upsNull ) continue;
+				if ( pTransfer->m_nProtocol == PROTOCOL_BT && pTransfer->m_nState != upsNull ) continue;
 				if ( pTransfer->m_pQueue != NULL ) continue;
 			}
 			pos = posThis;
@@ -707,8 +699,7 @@ void CUploadsCtrl::OnPaint()
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
 	CRect rcClient, rcItem;
 	CPaintDC dc( this );
-	if ( theApp.m_bRTL ) dc.SetTextAlign( TA_RTLREADING );
-
+	
 	GetClientRect( &rcClient );
 	rcClient.top += HEADER_HEIGHT;
 	
@@ -1154,7 +1145,7 @@ void CUploadsCtrl::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 
 BOOL CUploadsCtrl::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
-	OnVScroll( SB_THUMBPOSITION, (int)( GetScrollPos( SB_VERT ) - zDelta / WHEEL_DELTA * m_nScrollWheelLines ), NULL );
+	OnVScroll( SB_THUMBPOSITION, (int)( GetScrollPos( SB_VERT ) - zDelta / WHEEL_DELTA ), NULL * 3 );
 	return TRUE;
 }
 
@@ -1234,8 +1225,7 @@ void CUploadsCtrl::OnLButtonDown(UINT nFlags, CPoint point)
 	
 	if ( HitTest( point, &pQueue, &pFile, &nIndex, &rcItem ) )
 	{
-		int nTitleStarts = GetExpandableColumnX();
-		if ( point.x > nTitleStarts && point.x <= nTitleStarts + rcItem.left + 16 )
+		if ( point.x <= rcItem.left + 16 )
 		{
 			if ( pQueue != NULL )
 			{
@@ -1301,8 +1291,7 @@ void CUploadsCtrl::OnLButtonDblClk(UINT nFlags, CPoint point)
 	
 	if ( HitTest( point, &pQueue, &pFile, NULL, &rcItem ) )
 	{
-		int nTitleStarts = GetExpandableColumnX();
-		if ( pQueue != NULL && point.x > nTitleStarts && point.x <= nTitleStarts + rcItem.left + 16 )
+		if ( pQueue != NULL && point.x <= rcItem.left + 16 )
 		{
 			pQueue->m_bExpanded = ! pQueue->m_bExpanded;
 			
@@ -1392,20 +1381,4 @@ void CUploadsCtrl::OnKillFocus(CWnd* pNewWnd)
 {
 	CWnd::OnKillFocus( pNewWnd );
 	Invalidate();
-}
-
-int CUploadsCtrl::GetExpandableColumnX() const
-{
-	HDITEM pColumn;
-	int nTitleStarts = 0;
-	
-	ZeroMemory( &pColumn, sizeof(pColumn) );
-	pColumn.mask = HDI_LPARAM | HDI_WIDTH;
-
-	for ( int nColumn = 0 ; m_wndHeader.GetItem( m_wndHeader.OrderToIndex( nColumn ), &pColumn ) ; nColumn++ )
-	{
-		if ( pColumn.lParam == UPLOAD_COLUMN_TITLE ) break;
-		else nTitleStarts += pColumn.cxy;
-	}
-	return nTitleStarts;
 }

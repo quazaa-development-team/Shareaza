@@ -222,15 +222,6 @@ void CNetworksSettingsPage::OnG1Enable()
 {
 	UpdateData();
 
-	if ( m_bG1Enable && ( Settings.GetOutgoingBandwidth() < 2 ) )
-	{
-		CString strMessage;
-		LoadString( strMessage, IDS_NETWORK_BANDWIDTH_LOW );
-		AfxMessageBox( strMessage, MB_OK );
-		m_bG1Enable = FALSE;
-		UpdateData( FALSE );
-	}
-
 	CGnutellaSettingsPage* ppGnutella =
 		(CGnutellaSettingsPage*)GetPage( RUNTIME_CLASS(CGnutellaSettingsPage) );
 

@@ -295,8 +295,7 @@ BOOL CEDClients::IsOverloaded()
 void CEDClients::OnRun()
 {
 
-	// Delay to limit the rate of ed2k packets being sent.
-	// keep ed2k transfers under 10 KB/s per source
+	// Delay to keep ed2k transfers under 10 KB/s per source
 	DWORD tNow = GetTickCount();
 	if ( tNow - m_tLastRun < Settings.eDonkey.PacketThrottle ) return;
 	m_tLastRun = tNow;
@@ -336,13 +335,14 @@ BOOL CEDClients::OnAccept(CConnection* pConnection)
 		// Even if we're full, we still need to accept connections from clients we have queued, etc
 		if ( ( GetByIP( &pConnection->m_pHost.sin_addr ) == NULL ) || ( IsOverloaded() ) )
 		{
-			theApp.Message( MSG_DEBUG, _T("Rejecting ed2k connection from %s, max client connections reached."),
+			//*********** Debug stuff- test this
+			theApp.Message( MSG_ERROR, _T("**** Rejecting ed2k connection from %s, max client connections reached."),
 				(LPCTSTR)pConnection->m_sAddress );
 			return FALSE;
 		}
 		else 
 		{
-			theApp.Message( MSG_DEBUG, _T("Accepting ed2k connection from %s despite client connection limit."),
+			theApp.Message( MSG_ERROR, _T("**** Accepting ed2k connection from %s despite client connection limit."),
 				(LPCTSTR)pConnection->m_sAddress );
 
 		}

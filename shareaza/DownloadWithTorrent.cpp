@@ -60,7 +60,6 @@ CDownloadWithTorrent::CDownloadWithTorrent()
 	m_nTorrentDownloaded	= 0;
 	m_bTorrentEndgame		= FALSE;
 	m_bTorrentTrackerError	= FALSE;
-	m_nTorrentTrackerErrors = 0;
 	
 	m_pTorrentBlock			= NULL;
 	m_nTorrentBlock			= 0;
@@ -151,13 +150,7 @@ BOOL CDownloadWithTorrent::SetTorrent(CBTInfo* pTorrent)
 	CreateDirectory( Settings.Downloads.TorrentPath, NULL );//Create/set up torrents folder
 	LibraryFolders.AddFolder( Settings.Downloads.TorrentPath, FALSE );
 	pTorrent->SaveTorrentFile( Settings.Downloads.TorrentPath );
-
-	if ( ! Settings.BitTorrent.AdvancedInterfaceSet )
-	{
-		// If this is the first time the user has downloaded a torrent, turn the extra interface on.
-		Settings.BitTorrent.AdvancedInterfaceSet	= TRUE;
-		Settings.BitTorrent.AdvancedInterface		= TRUE;
-	}
+	Settings.BitTorrent.AdvancedInterface = TRUE;
 	
 	return TRUE;
 }
@@ -191,26 +184,17 @@ BOOL CDownloadWithTorrent::RunTorrent(DWORD tNow)
 	{
 		if ( ! m_bTorrentRequested || tNow > m_tTorrentTracker )
 		{
-			theApp.Message( MSG_DEFAULT, _T("Sending initial announce for %s"), m_pTorrent.m_sName );
-
 			GenerateTorrentDownloadID();
 
-			m_bTorrentRequested		= TRUE;
-			m_bTorrentStarted		= FALSE;
-			m_tTorrentTracker		= tNow + Settings.BitTorrent.DefaultTrackerPeriod;
-			m_nTorrentUploaded		= 0;
-			m_nTorrentDownloaded	= 0;
+			m_bTorrentRequested	= TRUE;
+			m_bTorrentStarted	= FALSE;
+			m_tTorrentTracker	= tNow + Settings.BitTorrent.DefaultTrackerPeriod;
 			
-			if ( GetSourceCount(TRUE, TRUE) < Settings.BitTorrent.DownloadConnections + 10 )
-				CBTTrackerRequest::SendStarted( this, Settings.BitTorrent.DownloadConnections + 10 );
-			else
-				CBTTrackerRequest::SendStarted( this );
+			CBTTrackerRequest::SendStarted( this );
 		}
 	}
 	else if ( ! bLive && m_bTorrentRequested )
 	{
-		theApp.Message( MSG_DEFAULT, _T("Sending final announce for %s"), m_pTorrent.m_sName );
-
 		CBTTrackerRequest::SendStopped( this );
 		
 		m_bTorrentRequested = m_bTorrentStarted = FALSE;
@@ -221,8 +205,6 @@ BOOL CDownloadWithTorrent::RunTorrent(DWORD tNow)
 	if ( m_bTorrentStarted && tNow > m_tTorrentTracker )
 	{
 		// Regular tracker update
-		theApp.Message( MSG_DEFAULT, _T("Performing tracker update for %s"), m_pTorrent.m_sName );
-
 		int nSources = GetBTSourceCount();
 		int nSourcesWanted = (int)( Settings.BitTorrent.DownloadConnections * 1.5 );
 		nSourcesWanted = max( nSourcesWanted, Settings.Downloads.SourcesWanted / 10 );
@@ -230,7 +212,7 @@ BOOL CDownloadWithTorrent::RunTorrent(DWORD tNow)
 		if ( IsMoving() )
 		{	// We are seeding or completed, base requests on BT uploads
 			// If we're still moving the file, not firewalled, have enough sources or have maxxed out uploads
-			if ( ( ! IsCompleted() ) || ( Settings.Connection.FirewallStatus == CONNECTION_OPEN ) ||  ( nSources > (nSourcesWanted / 2) ) || ( Uploads.GetTorrentUploadCount() >= Settings.BitTorrent.UploadCount ) )
+			if ( ( ! IsCompleted() ) || ( ! Settings.Connection.Firewalled ) ||  ( nSources > (nSourcesWanted / 2) ) || ( Uploads.GetTorrentUploadCount() >= Settings.BitTorrent.UploadCount ) )
 				CBTTrackerRequest::SendUpdate( this, 0 );	// We don't need to request peers.
 			else
 				CBTTrackerRequest::SendUpdate( this, 10 );	// We might need more peers to 'push seed' to.
@@ -274,38 +256,32 @@ BOOL CDownloadWithTorrent::GenerateTorrentDownloadID()
 		}
 	}
 
-	// Client ID
-	if ( Settings.BitTorrent.StandardPeerID )
-	{
-		// Use the new (but not official) peer ID style.
-		m_pPeerID.n[ 0 ] = '-';
-		m_pPeerID.n[ 1 ] = BT_ID1;
-		m_pPeerID.n[ 2 ] = BT_ID2;
-		m_pPeerID.n[ 3 ] = (BYTE)theApp.m_nVersion[0] + '0';
-		m_pPeerID.n[ 4 ] = (BYTE)theApp.m_nVersion[1] + '0';
-		m_pPeerID.n[ 5 ] = (BYTE)theApp.m_nVersion[2] + '0';
-		m_pPeerID.n[ 6 ] = (BYTE)theApp.m_nVersion[3] + '0';
-		m_pPeerID.n[ 7 ] = '-';
+	//Client ID
+	m_pPeerID.n[ 0 ] = '-';
+	m_pPeerID.n[ 1 ] = 'S';
+	m_pPeerID.n[ 2 ] = 'Z';
+	m_pPeerID.n[ 3 ] = (BYTE)theApp.m_nVersion[0] + '0';
+	m_pPeerID.n[ 4 ] = (BYTE)theApp.m_nVersion[1] + '0';
+	m_pPeerID.n[ 5 ] = (BYTE)theApp.m_nVersion[2] + '0';
+	m_pPeerID.n[ 6 ] = (BYTE)theApp.m_nVersion[3] + '0';
+	//m_pPeerID.n[ 3 ] = (BYTE)theApp.m_nVersion[0] + ( ( theApp.m_nVersion[0] < 9 ) ? '0' :  ( 'A' - 10 ) );
+	//m_pPeerID.n[ 4 ] = (BYTE)theApp.m_nVersion[1] + ( ( theApp.m_nVersion[1] < 9 ) ? '0' :  ( 'A' - 10 ) );
+	//m_pPeerID.n[ 5 ] = (BYTE)theApp.m_nVersion[2] + ( ( theApp.m_nVersion[2] < 9 ) ? '0' :  ( 'A' - 10 ) );
+	//m_pPeerID.n[ 6 ] = (BYTE)theApp.m_nVersion[3] + ( ( theApp.m_nVersion[3] < 9 ) ? '0' :  ( 'A' - 10 ) );
+	m_pPeerID.n[ 7 ] = '-';
 
-		// Random characters for ID
-		srand( GetTickCount() );
-		for ( nByte = 8 ; nByte < 16 ; nByte++ ) 
-		{
-			m_pPeerID.n[ nByte ] += rand();
-		}
-		for ( nByte = 16 ; nByte < 20 ; nByte++ )
-		{
-			m_pPeerID.n[ nByte ]	= m_pPeerID.n[ nByte % 16 ]
-									^ m_pPeerID.n[ 15 - ( nByte % 16 ) ];
-		}
-	}
-	else
+	//Random characters for ID
+	srand( GetTickCount() );
+	for ( nByte = 8 ; nByte < 16 ; nByte++ ) 
 	{
-		// Old style ID 
-		for ( nByte = 0 ; nByte < 20 ; nByte++ )
-		{
-			m_pPeerID.n[ nByte ] += rand();
-		}
+		m_pPeerID.n[ nByte ] += rand();
+	}
+
+	//Old style ID (retain for at least one version)
+	for ( nByte = 16 ; nByte < 20 ; nByte++ )
+	{
+		m_pPeerID.n[ nByte ]	= m_pPeerID.n[ nByte % 16 ]
+								^ m_pPeerID.n[ 15 - ( nByte % 16 ) ];
 	}
 
 	return TRUE;
@@ -316,59 +292,16 @@ BOOL CDownloadWithTorrent::GenerateTorrentDownloadID()
 
 void CDownloadWithTorrent::OnTrackerEvent(BOOL bSuccess, LPCTSTR pszReason)
 {
-	if ( bSuccess )
+	m_bTorrentTrackerError = ! bSuccess;
+	m_sTorrentTrackerError.Empty();
+	
+	if ( pszReason != NULL )
 	{
-		// Success! Reset and error conditions and continue
-		m_bTorrentTrackerError = FALSE;
-		m_sTorrentTrackerError.Empty();
-		m_nTorrentTrackerErrors = 0;
+		m_sTorrentTrackerError = pszReason;
 	}
-	else
+	else if ( m_bTorrentTrackerError )
 	{
-		// There was a problem with the tracker
-
-		m_bTorrentTrackerError = TRUE;
-		m_sTorrentTrackerError.Empty();
-		m_nTorrentTrackerErrors ++;
-		
-		if ( pszReason != NULL )
-		{
-			// If the tracker responded with an error, accept it and continue
-			m_sTorrentTrackerError = pszReason;
-			m_tTorrentTracker = GetTickCount() + 60 * 60 * 1000;
-		}
-		else if ( m_bTorrentTrackerError )
-		{
-			// ToDo: Multitracker: switch trackers here
-
-
-			// If we couldn't contact the tracker, check if we should re-try
-			if ( m_nTorrentTrackerErrors <= Settings.BitTorrent.MaxTrackerRetry )
-			{
-				// Tracker or connection may have just glitched. Re-try in 10-30 seconds.
-				DWORD tRetryTime;
-				if ( m_nTorrentTrackerErrors <= 3 )
-					tRetryTime = m_nTorrentTrackerErrors * 10 * 1000;		// nErrors * 10 seconds
-				else if ( m_nTorrentTrackerErrors <= 6 )
-					tRetryTime = m_nTorrentTrackerErrors * 1 * 60 * 1000;	// nErrors * 1 minute
-				else if ( m_nTorrentTrackerErrors <= 15 )
-					tRetryTime = m_nTorrentTrackerErrors * 2 * 60 * 1000;	// nErrors * 2 minutes
-				else
-					tRetryTime = 30 * 60 * 1000;							// 30 minutes
-				m_tTorrentTracker = GetTickCount() + tRetryTime;
-
-				// Load the error message string
-				CString strErrorMessage;
-				LoadString( strErrorMessage, IDS_BT_TRACKER_RETRY );
-				m_sTorrentTrackerError.Format( strErrorMessage, m_nTorrentTrackerErrors, Settings.BitTorrent.MaxTrackerRetry );
-			}
-			else
-			{
-				// This tracker is probably down. Don't hammer it.
-				m_tTorrentTracker = GetTickCount() + 30 * 60 * 1000;
-				LoadString( m_sTorrentTrackerError, IDS_BT_TRACKER_DOWN );
-			}
-		}
+		m_sTorrentTrackerError = _T("Unable to communicate with tracker");
 	}
 }
 
@@ -488,10 +421,10 @@ void CDownloadWithTorrent::ChokeTorrent(DWORD tNow)
 	m_tTorrentChoke = tNow;
 
 	// Check if a firewalled seeding client needs to start some new connections
-	if ( ( IsCompleted() ) && ( Settings.Connection.FirewallStatus == CONNECTION_FIREWALLED ) )
+	if ( ( IsCompleted() ) && ( Settings.Connection.Firewalled ) )
 	{
 		// We might need to 'push' a connection if we don't have enough upload connections
-		if ( m_pTorrentUploads.GetCount() < max( Settings.BitTorrent.UploadCount * 2, 5 ) )
+		if ( Uploads.GetTorrentTransferCount() < max( Settings.BitTorrent.UploadCount * 2, 8 ) )
 		{
 			if ( CanStartTransfers( tNow ) )
 			{
@@ -618,7 +551,7 @@ BOOL CDownloadWithTorrent::FindMoreSources()
 		{
 			m_tTorrentTracker = GetTickCount() + Settings.BitTorrent.DefaultTrackerPeriod;
 			m_tTorrentSources = GetTickCount();
-			CBTTrackerRequest::SendUpdate( this, min ( ( Settings.BitTorrent.DownloadConnections * 2 ), 100 ) );
+			CBTTrackerRequest::SendUpdate( this, 100 );
 			return TRUE;
 		}
 	}
@@ -662,13 +595,11 @@ BOOL CDownloadWithTorrent::SeedTorrent(LPCTSTR pszTarget)
 	m_sLocalName = pszTarget;
 	SetModified();
 	
-	m_tTorrentTracker		= GetTickCount() + ( 60 * 1000 );
-	m_bTorrentRequested		= TRUE;
-	m_bTorrentStarted		= FALSE;
-	m_nTorrentUploaded		= 0;
-	m_nTorrentDownloaded	= 0;
+	m_tTorrentTracker	= GetTickCount() + ( 30 * 1000 ); // Give tracker 30 seconds to respond before re-trying
+	m_bTorrentRequested	= TRUE;
+	m_bTorrentStarted	= FALSE;
 
-	if ( ( Settings.Connection.FirewallStatus == CONNECTION_FIREWALLED ) && ( GetSourceCount() < 40 ) )
+	if ( ( Settings.Connection.Firewalled ) && ( GetSourceCount() < 40 ) )
 		CBTTrackerRequest::SendStarted( this );
 	else
 		CBTTrackerRequest::SendStarted( this, 0 );	
@@ -685,7 +616,7 @@ void CDownloadWithTorrent::CloseTorrent()
 	m_bTorrentRequested		= FALSE;
 	m_bTorrentStarted		= FALSE;
 	CloseTorrentUploads();
-	//ZeroMemory(m_pPeerID.n, 20);
+	ZeroMemory(m_pPeerID.n, 20);
 }
 
 
@@ -713,36 +644,5 @@ BOOL CDownloadWithTorrent::CheckTorrentRatio() const
 		if ( GetVolumeComplete() < 5 * 1024 * 1024 ) return TRUE;		//Always get at least 5 MB so you have something to upload	
 	}
 
-	return FALSE;
-}
-
-//////////////////////////////////////////////////////////////////////
-// CDownloadWithTorrent check if upload exists
-
-BOOL CDownloadWithTorrent::UploadExists(in_addr* pIP) const
-{
-	for ( POSITION pos = m_pTorrentUploads.GetHeadPosition() ; pos ; )
-	{
-		CUploadTransferBT* pTransfer = (CUploadTransferBT*)m_pTorrentUploads.GetNext( pos );
-
-		if ( ( pTransfer->m_nProtocol == PROTOCOL_BT ) &&
-			 ( pTransfer->m_nState != upsNull ) &&
-			 ( pTransfer->m_pHost.sin_addr.S_un.S_addr == pIP->S_un.S_addr ) )
-			return TRUE;
-	}
-	return FALSE;
-}
-
-BOOL CDownloadWithTorrent::UploadExists(SHA1* pGUID) const
-{
-	for ( POSITION pos = m_pTorrentUploads.GetHeadPosition() ; pos ; )
-	{
-		CUploadTransferBT* pTransfer = (CUploadTransferBT*)m_pTorrentUploads.GetNext( pos );
-
-		if ( ( pTransfer->m_nProtocol == PROTOCOL_BT ) &&
-			 ( pTransfer->m_nState != upsNull ) &&
-			 ( memcmp( pGUID, &pTransfer->m_pClient->m_pGUID, 16 ) == 0 ) )
-			return TRUE;
-	}
 	return FALSE;
 }

@@ -47,12 +47,10 @@ CNeighboursWithConnect::CNeighboursWithConnect()
 {
 	ZeroMemory( m_tPresent, sizeof(m_tPresent) );
 
-	m_bG2Leaf			= FALSE;
-	m_bG2Hub			= FALSE;
-	m_bG1Leaf			= FALSE;
-	m_bG1Ultrapeer		= FALSE;
-
-	m_tHubG2Promotion	= 0;
+	m_bG2Leaf		= FALSE;
+	m_bG2Hub		= FALSE;
+	m_bG1Leaf		= FALSE;
+	m_bG1Ultrapeer	= FALSE;
 }
 
 CNeighboursWithConnect::~CNeighboursWithConnect()
@@ -107,11 +105,7 @@ CNeighbour* CNeighboursWithConnect::ConnectTo(IN_ADDR* pAddress, WORD nPort, PRO
 	if ( nProtocol == PROTOCOL_ED2K )
 	{
 		CEDNeighbour* pNeighbour = new CEDNeighbour();
-		if ( pNeighbour->ConnectTo( pAddress, nPort, bAutomatic ) ) 
-		{
-			// Started connecting to an ed2k neighbour
-			return pNeighbour;
-		}
+		if ( pNeighbour->ConnectTo( pAddress, nPort, bAutomatic ) ) return pNeighbour;
 		delete pNeighbour;
 	}
 	else
@@ -119,17 +113,16 @@ CNeighbour* CNeighboursWithConnect::ConnectTo(IN_ADDR* pAddress, WORD nPort, PRO
 		CShakeNeighbour* pNeighbour = new CShakeNeighbour();
 		if ( pNeighbour->ConnectTo( pAddress, nPort, bAutomatic, bNoUltraPeer ) ) 
 		{
-			// Started connecting to a G1/G2 neighbour
-
+		/*
 			// If we only want G1 connections now, specify that to begin with.
-			if ( ( Settings.Gnutella.SpecifyProtocol ) && ( nProtocol == PROTOCOL_G1 ) && ( ! Neighbours.NeedMoreHubs( PROTOCOL_G2 ) ) )
+			if ( ( nProtocol == PROTOCOL_G1 ) && ( ! Neighbours.NeedMoreHubs( PROTOCOL_G2 ) ) )
 				pNeighbour->m_nProtocol = PROTOCOL_G1;
+		*/
 			return pNeighbour;
 		}
 		delete pNeighbour;
 	}
 	
-	// Wasn't able to connect
 	return NULL;
 }
 
@@ -309,33 +302,15 @@ DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bDebug)
 		//
 
 		// Confirm how long the node has been running.
-		if ( Settings.Gnutella2.HubVerified )
+		if ( Network.GetStableTime() < 7200 )
 		{
-			// Systems that have been good hubs before can promote in 2 hours
-			if ( Network.GetStableTime() < 7200 )
-			{
-				if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: not stable for 2 hours") );
-				return FALSE;
-			}
-			else
-			{
-				if ( bDebug ) theApp.Message( MSG_DEBUG, _T("OK: stable for 2 hours") );
-			}
+			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: not stable for 2 hours") );
+			return FALSE;
 		}
 		else
 		{
-			// Untested hubs need 3 hours uptime to be considered
-			if ( Network.GetStableTime() < 10800 )
-			{
-				if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: not stable for 3 hours") );
-				return FALSE;
-			}
-			else
-			{
-				if ( bDebug ) theApp.Message( MSG_DEBUG, _T("OK: stable for 3 hours") );
-			}
+			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("OK: stable for 2 hours") );
 		}
-
 		if ( ! Datagrams.IsStable() )
 		{
 			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: datagram not stable") );
@@ -394,7 +369,7 @@ DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bDebug)
 		nRating++;	// Not running ed2k improves hub performance
 		if ( bDebug ) theApp.Message( MSG_DEBUG, _T("eDonkey not enabled") );
 	}
-	if ( ! Settings.BitTorrent.AdvancedInterfaceSet )
+	if ( ! Settings.BitTorrent.AdvancedInterface )
 	{
 		nRating++;	// This user hasn't ever used BitTorrent, so probably won't be using bandwidth for that
 		if ( bDebug ) theApp.Message( MSG_DEBUG, _T("BT is not in use") );
@@ -827,10 +802,6 @@ void CNeighboursWithConnect::Maintain()
 	ZeroMemory( nLimit, sizeof(int) * 4 * 3 );
 	
 	// Determine our node status
-	m_bG2Leaf		= FALSE;
-	m_bG2Hub		= FALSE;
-	m_bG1Leaf		= FALSE;
-	m_bG1Ultrapeer	= FALSE;
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CNeighbour* pNeighbour = GetNext( pos );
@@ -886,27 +857,6 @@ void CNeighboursWithConnect::Maintain()
 			nCount[ pNeighbour->m_nProtocol ][ 0 ] ++;
 		}
 	}
-
-	// Set our "promoted to hub" timer
-	if ( m_bG2Hub == FALSE )
-		m_tHubG2Promotion = 0;			// If we're not a hub, time promoted is 0
-	else if ( m_tHubG2Promotion == 0 ) 
-		m_tHubG2Promotion = tNow;		// If we've just been promoted, set the timer
-
-	// Check if we have verified if we make a good G2 hub
-	if ( ( Settings.Gnutella2.HubVerified == FALSE ) && ( m_tHubG2Promotion > 0 ) && ( Network.m_bEnabled ) )
-	{
-		// If we have been a hub for at least 8 hours
-		if ( ( tNow - m_tHubG2Promotion ) > ( 8 * 60 * 60 ) )
-		{
-			// And we're loaded ( 75% capacity )
-			if ( ( nCount[ PROTOCOL_G2 ][ ntHub ] ) > ( Settings.Gnutella2.NumLeafs * 3 / 4 ) )
-			{
-				// Then we probably make a pretty good hub
-				Settings.Gnutella2.HubVerified = TRUE;
-			}
-		}
-	}
 	
 	// Set numbers of neighbours (G1)
 	if ( Settings.Gnutella1.EnableToday == FALSE )
@@ -959,36 +909,18 @@ void CNeighboursWithConnect::Maintain()
 		if ( nCount[ nProtocol ][ ntHub ] < nLimit[ nProtocol ][ ntHub ] )
 		{	// We don't have enough hubs
 
-			// Don't try to connect to G1 right away- wait a few seconds to reduce the number of connections
-			if ( ( nProtocol == PROTOCOL_G1 ) && ( Settings.Gnutella2.EnableToday == TRUE ) )
+			// If connections are limited (XP sp2), then don't try to connect to G1 until G2 is ok.
+			if ( ( nProtocol == PROTOCOL_G1 ) && ( Settings.Gnutella2.EnableToday == TRUE )
+											  && ( Settings.Downloads.MaxConnectingSources < 10 ) )
 			{
-				// Wait 4 seconds before trying G1
-				if ( ! Network.ReadyToTransfer( tTimer ) ) return;
-
-				// If connections are limited (XP sp2), then wait until we're stable
-				// if ( ( Settings.Connection.SlowConnect ) && ( Network.GetStableTime() < 15 ) ) return;
-		
+				if ( (nCount[ PROTOCOL_G2 ][ ntHub ] == 0) || ( Network.GetStableTime() < 15 ) )
+					return;
 			}
 
 			CHostCacheList* pCache = HostCache.ForProtocol( nProtocol );
 			
-			int nAttempt;
-			if ( nProtocol != PROTOCOL_ED2K )
-			{
-				// For G1 and G2 we try connecting to free slots * ConnectFactor
-				nAttempt = ( nLimit[ nProtocol ][ ntHub ] - nCount[ nProtocol ][ ntHub ] );
-				nAttempt *=  Settings.Gnutella.ConnectFactor;
-			}
-			else
-			{
-				// For ed2k we try one attempt at a time to begin with, but we can step up to 
-				// 2 at a time after a few seconds if the FastConnect option is selected. 
-				if ( ( Settings.eDonkey.FastConnect ) && ( Network.ReadyToTransfer( tTimer ) ) )
-					nAttempt = 2;
-				else
-					nAttempt = 1;
-			}
-
+			int nAttempt = ( nLimit[ nProtocol ][ ntHub ] - nCount[ nProtocol ][ ntHub ] );
+			nAttempt *= ( nProtocol != PROTOCOL_ED2K ) ? Settings.Gnutella.ConnectFactor : Settings.eDonkey.FastConnect + 1;
 			// Prevent XP sp2 from maxing out half open connections
 			nAttempt = min(nAttempt, ( Settings.Downloads.MaxConnectingSources - 2 ) ); 
 			

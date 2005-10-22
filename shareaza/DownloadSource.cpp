@@ -376,16 +376,25 @@ CDownloadTransfer* CDownloadSource::CreateTransfer()
 {
 	ASSERT( m_pTransfer == NULL );
 	
-	switch ( m_nProtocol )
+	if ( m_nProtocol == PROTOCOL_HTTP )
 	{
-	case PROTOCOL_G1:	return ( m_pTransfer = new CDownloadTransferHTTP( this ) );
-	case PROTOCOL_G2:	return ( m_pTransfer = new CDownloadTransferHTTP( this ) );
-	case PROTOCOL_ED2K:	return ( m_pTransfer = new CDownloadTransferED2K( this ) );
-	case PROTOCOL_HTTP:	return ( m_pTransfer = new CDownloadTransferHTTP( this ) );
-	case PROTOCOL_FTP:	return ( m_pTransfer = new CDownloadTransferFTP( this ) );
-	case PROTOCOL_BT:	return ( m_pTransfer = new CDownloadTransferBT( this, NULL ) );
-	default:			theApp.Message( MSG_ERROR, _T("Invalid protocol in CDownloadSource::CreateTransfer()") );
-						return ( NULL );
+		return ( m_pTransfer = new CDownloadTransferHTTP( this ) );
+	}
+	if ( m_nProtocol == PROTOCOL_FTP )
+	{
+		return ( m_pTransfer = new CDownloadTransferFTP( this ) );
+	}
+	else if ( m_nProtocol == PROTOCOL_ED2K )
+	{
+		return ( m_pTransfer = new CDownloadTransferED2K( this ) );
+	}
+	else if ( m_nProtocol == PROTOCOL_BT )
+	{
+		return ( m_pTransfer = new CDownloadTransferBT( this, NULL ) );
+	}
+	else
+	{
+		return NULL;
 	}
 }
 
@@ -656,11 +665,9 @@ void CDownloadSource::SetAvailableRanges(LPCTSTR pszRanges)
         // ??????????????? nLast == nFirst has special meaning ?
 		if ( _stscanf( strRange, _T("%I64i-%I64i"), &nFirst, &nLast ) == 2 && nLast > nFirst )
 		{
-            if( nFirst < m_oAvailable.limit() ) // Sanity check
+            if( nLast < m_oAvailable.limit() ) // Sanity check
             {
-				// perhaps the file size we expect is incorrect or the source is erronous
-				// in either case we make sure the range fits - so we chop off the end if necessary
-                m_oAvailable.insert( FF::SimpleFragment( nFirst, min( nLast + 1, m_oAvailable.limit() ) ) );
+                m_oAvailable.insert( FF::SimpleFragment( nFirst, nLast + 1 ) );
             }
 		}
 	}

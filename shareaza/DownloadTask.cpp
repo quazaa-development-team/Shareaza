@@ -1,10 +1,6 @@
 //
 // DownloadTask.cpp
 //
-//	Date:			"$Date: 2005/07/20 19:06:38 $"
-//	Revision:		"$Revision: 1.20 $"
-//  Last change by:	"$Author: spooky23 $"
-//
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
@@ -475,23 +471,14 @@ CString CDownloadTask::SafeFilename(LPCTSTR pszName)
 		strName.SetAt( nChar, '_' );
 	}
 	
-	LPCTSTR pszExt = _tcsrchr( strName, '.' );
-	if ( pszExt )
+	if ( LPCTSTR pszExt = _tcsrchr( strName, '.' ) )
 	{
 		if ( _tcsicmp( pszExt, _T(".sd") ) == 0 )
 			strName += _T("x");
 	}
 	
-	// Maximum filepath length is
-	// <Windows limit = 256 - 1> - <length of path to download directory> - <length of hash = 39(tiger)> -<space = 1> - <length of ".sd.sav" = 7>
-	int nMaxFilenameLength = 256 - 1 - Settings.Downloads.IncompletePath.GetLength() - 47;	
-	if ( strName.GetLength() > nMaxFilenameLength )
-	{
-		int nExtLen;
-		if ( pszExt ) nExtLen = _tcslen( pszExt );
-		else nExtLen = 0;
-		strName = strName.Left( nMaxFilenameLength - nExtLen ) + strName.Right( nExtLen );
-	}
+	if ( strName.GetLength() > 210 )
+		strName = strName.Left( 200 ) + strName.Right( 4 );
 	
 	return strName;
 }

@@ -55,7 +55,8 @@ public:
 	void			Remove(CSecureRule* pRule);
 	void			MoveUp(CSecureRule* pRule);
 	void			MoveDown(CSecureRule* pRule);
-	void			Ban(IN_ADDR* pAddress, int nBanLength, BOOL bMessage = TRUE);
+	void			SessionBan(IN_ADDR* pAddress, BOOL bMessage = TRUE);
+	void			TempBlock(IN_ADDR* pAddress);
 public:
 	void			Clear();
 	BOOL			IsDenied(IN_ADDR* pAddress, LPCTSTR pszContent = NULL);
@@ -72,10 +73,6 @@ protected:
 
 };
 
-enum
-{
-	banSession, ban5Mins, ban30Mins, ban2Hours, banWeek, banForever 
-};
 
 class CSecureRule
 {
@@ -137,8 +134,7 @@ private:
 // Operations
 public:
 	void		Load();
-	BOOL		IsHitAdult( LPCTSTR );		// Does this search result have adult content?
-	BOOL		IsSearchFiltered( LPCTSTR );// Check if search is filtered
+	BOOL		IsSearchFiltered( LPCTSTR );// Check filter for search
 	BOOL		IsChatFiltered( LPCTSTR );	// Check filter for chat
 	BOOL		Censor( TCHAR* );			// Censor (remove) bad words from a string
 private:

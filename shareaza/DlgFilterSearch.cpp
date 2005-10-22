@@ -1,10 +1,6 @@
 //
 // DlgFilterSearch.cpp
 //
-//	Date:			"$Date: 2005/06/19 10:00:18 $"
-//	Revision:		"$Revision: 1.6 $"
-//  Last change by:	"$Author: spooky23 $"
-//
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
@@ -42,7 +38,7 @@ BEGIN_MESSAGE_MAP(CFilterSearchDlg, CSkinDialog)
 	//}}AFX_MSG_MAP
 	ON_BN_CLICKED(IDC_SAVE_FILTER, OnBnClickedSaveFilter)
 	ON_WM_DESTROY()
-	ON_CBN_SELCHANGE(IDC_FILTERS, OnCbnSelChangeFilters)
+	ON_CBN_SELCHANGE(IDC_FILTERS, OnCbnSelchangeFilters)
 	ON_BN_CLICKED(IDC_DELETE_FILTER, OnBnClickedDeleteFilter)
 	ON_BN_CLICKED(IDC_SET_DEFAULT_FILTER, OnBnClickedSetDefaultFilter)
 END_MESSAGE_MAP()
@@ -98,15 +94,12 @@ BOOL CFilterSearchDlg::OnInitDialog()
 
 	SkinMe( _T("CFilterSearchDlg"), IDR_SEARCHFRAME );
 
-	if ( m_pMatches != NULL ) 
-	{
-		m_pResultFilters = m_pMatches->m_pResultFilters;
-		m_pResultFilters->Load();
-		UpdateList();
-		UpdateFields();
-	}
+	//Load saved filters
+	m_pResultFilters = new CResultFilters;
+	m_pResultFilters->Load();
+	UpdateList();
 
-	ASSERT( m_pResultFilters != NULL );
+	if ( m_pMatches != NULL ) UpdateFields();
 
 	m_wndSources.SetRange( 0, 256 );
 
@@ -139,20 +132,11 @@ void CFilterSearchDlg::OnOK()
 
 void CFilterSearchDlg::OnBnClickedSaveFilter()
 {
-	CSaveFilterAsDlg dlg( this );
+	CSaveFilterAsDlg dlg;
 
-	if ( dlg.DoModal() == IDOK )
+	if (dlg.DoModal() == IDOK)
 	{
-		int nExistingFilter = m_pResultFilters->Search( dlg.m_sName );
-		CFilterOptions *pOptions;
-		if ( nExistingFilter >= 0 )
-		{
-			pOptions = m_pResultFilters->m_pFilters[nExistingFilter];
-		}
-		else
-		{
-			pOptions = new CFilterOptions;
-		}
+		CFilterOptions *pOptions = new CFilterOptions;
 
 		UpdateData(TRUE);
 
@@ -168,19 +152,22 @@ void CFilterSearchDlg::OnBnClickedSaveFilter()
 		pOptions->m_nFilterMaxSize	= Settings.ParseVolume( m_sMaxSize, FALSE );
 		pOptions->m_nFilterSources	= m_nSources;
 
-		if ( nExistingFilter < 0 )
-		{
-			m_pResultFilters->Add( pOptions );
-		}
-		m_pResultFilters->Save();
+		m_pResultFilters->Add(pOptions);
 
 		UpdateList();
 
-		m_Filters.SetCurSel( m_pResultFilters->m_nFilters - 1 ); // select the last item added
-		OnCbnSelChangeFilters();
+		m_Filters.SetCurSel(m_pResultFilters->m_nFilters - 1); //select the last item added
 	}
 }
 
+void CFilterSearchDlg::OnDestroy()
+{
+	CSkinDialog::OnDestroy();
+
+	m_pResultFilters->Save();
+
+	delete m_pResultFilters;
+}
 //Update the filter fields with current data
 void CFilterSearchDlg::UpdateFields()
 {
@@ -205,8 +192,8 @@ void CFilterSearchDlg::UpdateFields()
 
 	DWORD sel = m_Filters.GetCurSel();
 
-	if ( sel != CB_ERR )
-		m_bDefault = ( sel == m_pResultFilters->m_nDefault );
+	if (sel != CB_ERR)
+		m_bDefault = (sel == m_pResultFilters->m_nDefault);
 
 	UpdateData(FALSE);
 }
@@ -215,50 +202,38 @@ void CFilterSearchDlg::UpdateList()
 {
 	m_Filters.ResetContent();
 
-	for ( DWORD i = 0; i < m_pResultFilters->m_nFilters; i++ )
+	for (DWORD i = 0; i < m_pResultFilters->m_nFilters; i++)
 	{
-		if ( i == m_pResultFilters->m_nDefault )
-			m_Filters.AddString( m_pResultFilters->m_pFilters[i]->m_sName + " *" );
-		else
-			m_Filters.AddString( m_pResultFilters->m_pFilters[i]->m_sName );
-
-//		m_Filters.SetItemDataPtr( i, m_pResultFilters->m_pFilters[i] ); //save a pointer to the item
+		m_Filters.AddString(m_pResultFilters->m_pFilters[i]->m_sName);
+//		m_Filters.SetItemDataPtr(i, m_pResultFilters->m_pFilters[i]); //save a pointer to the item
 	}
 
-	GetDlgItem( IDC_SET_DEFAULT_FILTER )->EnableWindow( m_pResultFilters->m_nFilters > 0 );
+	GetDlgItem(IDC_SET_DEFAULT_FILTER)->EnableWindow(m_pResultFilters->m_nFilters > 0);
 }
 
-void CFilterSearchDlg::OnCbnSelChangeFilters()
+void CFilterSearchDlg::OnCbnSelchangeFilters()
 {
+	UpdateData(TRUE);
+
 	DWORD sel = m_Filters.GetCurSel();
 
-	if ( sel != CB_ERR )
+	if (sel != CB_ERR)
 	{
 //		CFilterOptions *pOptions = (CFilterOptions *) m_Filters.GetItemDataPtr(sel);
 		CFilterOptions *pOptions = m_pResultFilters->m_pFilters[sel];
 
-		m_sFilter			= pOptions->m_sFilter;
-		m_bHideBusy			= pOptions->m_bFilterBusy;
-		m_bHidePush			= pOptions->m_bFilterPush;
-		m_bHideUnstable		= pOptions->m_bFilterUnstable;
-		m_bHideLocal		= pOptions->m_bFilterLocal;
-		m_bHideReject		= pOptions->m_bFilterReject;
-		m_bHideBogus		= pOptions->m_bFilterBogus;
-		m_nSources			= pOptions->m_nFilterSources;
+		m_pMatches->m_sFilter			= pOptions->m_sFilter;
+		m_pMatches->m_bFilterBusy		= pOptions->m_bFilterBusy;
+		m_pMatches->m_bFilterPush		= pOptions->m_bFilterPush;
+		m_pMatches->m_bFilterUnstable	= pOptions->m_bFilterUnstable;
+		m_pMatches->m_bFilterLocal		= pOptions->m_bFilterLocal;
+		m_pMatches->m_bFilterReject		= pOptions->m_bFilterReject;
+		m_pMatches->m_bFilterBogus		= pOptions->m_bFilterBogus;
+		m_pMatches->m_nFilterMinSize	= pOptions->m_nFilterMinSize;
+		m_pMatches->m_nFilterMaxSize	= pOptions->m_nFilterMaxSize;
+		m_pMatches->m_nFilterSources	= pOptions->m_nFilterSources;
 
-		if ( pOptions->m_nFilterMinSize > 0 )
-			m_sMinSize	= Settings.SmartVolume( pOptions->m_nFilterMinSize, FALSE );
-		else
-			m_sMinSize.Empty();
-
-		if ( pOptions->m_nFilterMaxSize > 0 )
-			m_sMaxSize	= Settings.SmartVolume( pOptions->m_nFilterMaxSize, FALSE );
-		else
-			m_sMaxSize.Empty();
-
-		m_bDefault = ( sel == m_pResultFilters->m_nDefault );
-
-		UpdateData(FALSE);
+		UpdateFields();
 	}
 }
 
@@ -268,38 +243,28 @@ void CFilterSearchDlg::OnBnClickedDeleteFilter()
 
 	DWORD sel = m_Filters.GetCurSel();
 
-	if ( sel != CB_ERR )
+	if (sel != CB_ERR)
 	{
-		CString strMessage;
-		LoadString( strMessage, IDS_FILTER_DELETE_CONFIRM );
-		if ( AfxMessageBox( strMessage, MB_ICONQUESTION | MB_YESNO ) == IDYES )
+		if (AfxMessageBox(IDS_FILTER_DELETE_CONFIRM, MB_ICONQUESTION | MB_YESNO) == IDYES)
 		{
-			m_pResultFilters->Remove( sel );
-			m_pResultFilters->Save();
+			m_pResultFilters->Remove(sel);
+
 			UpdateList();
-			m_Filters.SetCurSel( min( sel, m_pResultFilters->m_nFilters - 1 ) );
-			m_bDefault = FALSE;
-			OnCbnSelChangeFilters();
-			UpdateData(FALSE);
+
+			m_Filters.SetCurSel(min(sel, m_pResultFilters->m_nFilters - 1));
 		}
 	}
 }
 
 void CFilterSearchDlg::OnBnClickedSetDefaultFilter()
 {
-	UpdateData( TRUE );
+	UpdateData(TRUE);
 
-	DWORD sel = m_Filters.GetCurSel();
-	if ( m_bDefault )
+	if (m_bDefault)
 	{
-		if ( sel != CB_ERR )
+		DWORD sel = m_Filters.GetCurSel();
+
+		if (sel != CB_ERR)
 			m_pResultFilters->m_nDefault = sel;
 	}
-	else
-	{
-		m_pResultFilters->m_nDefault = NONE;
-	}
-	UpdateList();
-	m_Filters.SetCurSel( sel );
-	m_pResultFilters->Save();
 }

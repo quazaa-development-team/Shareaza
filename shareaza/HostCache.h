@@ -59,13 +59,11 @@ public:
 	void			Remove(CHostCacheHost* pHost);
 	void			OnFailure(IN_ADDR* pAddress, WORD nPort);
 	DWORD			CountHosts() const;
-	void			PruneByQueryAck();			// For G2
-	void			PruneOldHosts();			// For G1
+	void			PruneByQueryAck();
 	void			Clear();
 	void			Serialize(CArchive& ar, int nVersion);
 	int				Import(LPCTSTR pszFile);
 	int				ImportMET(CFile* pFile);
-	int				LoadDefaultED2KServers();
 protected:
 	CHostCacheHost*	AddInternal(IN_ADDR* pAddress, WORD nPort, DWORD tSeen, LPCTSTR pszVendor);
 	void			RemoveOldest();
@@ -136,9 +134,9 @@ public:
 	CNeighbour*	ConnectTo(BOOL bAutomatic = FALSE);
 	CG1Packet*	ToG1Ping(int nTTL = 0, GGUID* pGUID = NULL);
 	CString		ToString() const;
-	BOOL		CanConnect(DWORD tNow = 0) const;	// Can we connect to this host now?
-	BOOL		CanQuote(DWORD tNow = 0) const;		// Is this a recently seen host?
-	BOOL		CanQuery(DWORD tNow = 0) const;		// Can we UDP query this host? (G2/ed2k)
+	BOOL		CanConnect(DWORD tNow = 0) const;
+	BOOL		CanQuote(DWORD tNow = 0) const;
+	BOOL		CanQuery(DWORD tNow = 0) const;
 	void		SetKey(DWORD nKey, IN_ADDR* pHost = NULL);
 protected:
 	void		Serialize(CArchive& ar, int nVersion);

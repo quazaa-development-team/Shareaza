@@ -59,7 +59,6 @@ protected:
 protected:
 	int				m_nMoreSourcesLimiter;
 	DWORD			m_tMoreSourcesTimer;
-	DWORD			m_tLastUpdate;
 protected:
 	DWORD			m_tSel;
 	BOOL			m_bSelAny;
@@ -87,8 +86,6 @@ protected:
 	BOOL			m_bSelSourceAcceptConnections;
 	BOOL			m_bSelSourceExtended;
 	BOOL			m_bSelHasReviews;
-
-	BOOL			m_bConnectOkay;
 
 // Overrides
 public:

@@ -142,88 +142,7 @@ void CSecurity::Clear()
 
 	m_pRules.RemoveAll();
 }
-//////////////////////////////////////////////////////////////////////
-// CSecurity ban
 
-void CSecurity::Ban(IN_ADDR* pAddress, int nBanLength, BOOL bMessage)
-{
-	CSingleLock pLock( &Network.m_pSection );
-	if ( ! pLock.Lock( 250 ) ) return;
-
-	DWORD tNow = time( NULL );
-	CString strAddress = inet_ntoa( *pAddress );
-
-	for ( POSITION pos = GetIterator() ; pos ; )
-	{
-		CSecureRule* pRule = GetNext( pos );
-
-		if ( pRule->Match( pAddress ) )
-		{
-			if ( pRule->m_nAction == CSecureRule::srDeny )
-			{
-				if ( ( nBanLength == banWeek ) && ( pRule->m_nExpire < tNow + 604000 ) )
-				{
-					pRule->m_nExpire = time( NULL ) + 604800;
-				}
-				else if ( ( nBanLength == banForever ) && ( pRule->m_nExpire != CSecureRule::srIndefinite ) )
-				{
-					pRule->m_nExpire = CSecureRule::srIndefinite;
-				}
-				else if ( bMessage )
-				{
-					theApp.Message( MSG_SYSTEM, IDS_NETWORK_SECURITY_ALREADY_BLOCKED,
-						(LPCTSTR)strAddress );
-				}
-
-				return;
-			}
-		}
-	}
-
-	CSecureRule* pRule	= new CSecureRule();
-	pRule->m_nAction	= CSecureRule::srDeny;
-
-	switch ( nBanLength )
-	{
-	case banSession:
-		pRule->m_nExpire	= CSecureRule::srSession;
-		pRule->m_sComment	= _T("Quick Ban");
-		break;
-	case ban5Mins:
-		pRule->m_nExpire	= time( NULL ) + 300;
-		pRule->m_sComment	= _T("Temp Ignore");
-		break;
-	case ban30Mins:
-		pRule->m_nExpire	= time( NULL ) + 1800;
-		pRule->m_sComment	= _T("Temp Ignore");
-		break;
-	case ban2Hours:
-		pRule->m_nExpire	= time( NULL ) + 7200;
-		pRule->m_sComment	= _T("Temp Ignore");
-		break;
-	case banWeek:
-		pRule->m_nExpire	= time( NULL ) + 604800;
-		pRule->m_sComment	= _T("Client Block");
-		break;		
-	case banForever:
-		pRule->m_nExpire	= CSecureRule::srIndefinite;
-		pRule->m_sComment	= _T("Ban");
-		break;
-	default:
-		pRule->m_nExpire	= CSecureRule::srSession;
-		pRule->m_sComment	= _T("Quick Ban");
-	}
-
-	CopyMemory( pRule->m_nIP, pAddress, 4 );
-	Add( pRule );
-
-	if ( bMessage )
-	{
-		theApp.Message( MSG_SYSTEM, IDS_NETWORK_SECURITY_BLOCKED,
-			(LPCTSTR)strAddress );
-	}
-}
-/*
 //////////////////////////////////////////////////////////////////////
 // CSecurity session ban
 
@@ -297,7 +216,7 @@ void CSecurity::TempBlock(IN_ADDR* pAddress)
 	CopyMemory( pRule->m_nIP, pAddress, 4 );
 	Add( pRule );
 }
-*/
+
 //////////////////////////////////////////////////////////////////////
 // CSecurity access check
 
@@ -1152,9 +1071,9 @@ void CAdultFilter::Load()
 
 	// Insert some defaults if the load failed
 	if ( strBlockedWords.IsEmpty() )
-		strBlockedWords = _T("xxx porn fuck cock cunt vagina pussy nude naked hentai lesbian whore shit rape preteen hardcore lolita playboy penthouse dildo upskirt beastiality bestiality pedofil necrofil");
+		strBlockedWords = _T("xxx porn fuck cock cunt vagina pussy nude naked hentai lesbian whore shit rape preteen hardcore lolita playboy penthouse dick dildo upskirt beastiality pedofil necrofil");
 	if ( strDubiousWords.IsEmpty() )
-		strDubiousWords = _T("ass sex anal gay teen thong babe bikini viagra dick");
+		strDubiousWords = _T("ass sex anal gay teen thong babe bikini viagra");
 
 	// Load the blocked words into the Adult Filter
 	if ( strBlockedWords.GetLength() > 3 )
@@ -1245,15 +1164,6 @@ void CAdultFilter::Load()
 
 }
 
-BOOL CAdultFilter::IsHitAdult( LPCTSTR pszText )
-{
-	if ( pszText )
-	{
-		return IsFiltered( pszText );
-	}
-	return FALSE;
-}
-
 BOOL CAdultFilter::IsSearchFiltered( LPCTSTR pszText )
 {
 	if ( Settings.Search.AdultFilter && pszText )
@@ -1308,7 +1218,7 @@ BOOL CAdultFilter::Censor( TCHAR* pszText )
 
 BOOL CAdultFilter::IsFiltered( LPCTSTR pszText )
 {
-	if ( pszText )
+	if ( Settings.Search.AdultFilter && pszText )
 	{
 		LPCTSTR pszWord;
 

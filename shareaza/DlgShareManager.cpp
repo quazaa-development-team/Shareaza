@@ -31,6 +31,7 @@
 #include "LiveList.h"
 #include "Skin.h"
 #include "DlgHelp.h"
+#include <shlobj.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -72,7 +73,7 @@ void CShareManagerDlg::DoDataExchange(CDataExchange* pDX)
 
 BOOL CShareManagerDlg::OnInitDialog()
 {
-	CSkinDialog::OnInitDialog();
+	CDialog::OnInitDialog();
 
 	SkinMe( NULL, IDR_LIBRARYFRAME );
 
@@ -134,18 +135,67 @@ void CShareManagerDlg::OnShareAdd()
 	CharLower( strPathLC.GetBuffer() );
 	strPathLC.ReleaseBuffer();
 
+
+	//Get system paths (to compare)
+	CString strWindowsLC, strProgramsLC;
+	PTSTR pszWindowsPath, pszProgramsPath;
+
+	pszWindowsPath = strWindowsLC.GetBuffer( MAX_PATH + 1 );
+	pszProgramsPath = strProgramsLC.GetBuffer( MAX_PATH + 1 );
+
+	if ( HINSTANCE hShell = LoadLibrary( _T("shfolder.dll") ) )
+	{
+		HRESULT (WINAPI *pfnSHGetFolderPath)(HWND, int, HANDLE, DWORD, LPWSTR);
+		(FARPROC&)pfnSHGetFolderPath = GetProcAddress( hShell, "SHGetFolderPathW" );
+		if ( pfnSHGetFolderPath != NULL )
+		{
+			(*pfnSHGetFolderPath)(NULL, CSIDL_WINDOWS, NULL, NULL, pszWindowsPath);
+			(*pfnSHGetFolderPath)(NULL, CSIDL_PROGRAM_FILES, NULL, NULL, pszProgramsPath);
+		}
+		FreeLibrary( hShell );
+	}
+	CharLower( pszWindowsPath );
+	CharLower( pszProgramsPath );
+
+	strWindowsLC.ReleaseBuffer();
+	strProgramsLC.ReleaseBuffer();
+
+	if ( strWindowsLC.IsEmpty() ) strWindowsLC = _T("c:\\windows");
+	if ( strProgramsLC.IsEmpty() ) strProgramsLC = _T("c:\\program files");
+
+
+	//Get various shareaza paths (to compare)
+	CString strIncompletePathLC = Settings.Downloads.IncompletePath;
+	CharLower( strIncompletePathLC.GetBuffer() );
+	strIncompletePathLC.ReleaseBuffer();
+
+	CString strGeneralPathLC = Settings.General.Path;
+	CharLower( strGeneralPathLC.GetBuffer() );
+	strGeneralPathLC.ReleaseBuffer();
+
+	CString strUserPathLC = Settings.General.UserPath;
+	CharLower( strUserPathLC.GetBuffer() );
+	strUserPathLC.ReleaseBuffer();
+
+
 	//Check shared path isn't invalid
-	if ( !LibraryFolders.IsShareable( strPathLC ) )
+	if ( strPathLC == _T( "" ) ||
+		 strPathLC == strWindowsLC.Left( 3 ) ||
+		 strPathLC == strProgramsLC ||
+		 strPathLC == strWindowsLC ||
+		 strPathLC == strGeneralPathLC ||
+		 strPathLC == strGeneralPathLC + _T("\\data") ||
+		 strPathLC == strUserPathLC ||
+		 strPathLC == strUserPathLC + _T("\\data") ||
+		 strPathLC == strIncompletePathLC )
 	{
 		CHelpDlg::Show( _T("ShareHelp.BadShare") );
 		return;
 	}
 
-	BOOL bForceAdd = FALSE;
 	//Check shared path isn't already shared
 	for ( int nItem = 0 ; nItem < m_wndList.GetItemCount() ; nItem++ )
 	{
-		BOOL bSubFolder = FALSE;
 		CString strOldLC( m_wndList.GetItemText( nItem, 0 ) );
 		CharLower( strOldLC.GetBuffer() );
 		strOldLC.ReleaseBuffer();
@@ -161,7 +211,6 @@ void CShareManagerDlg::OnShareAdd()
 		}
 		else if ( strPathLC.GetLength() < strOldLC.GetLength() )
 		{
-			bSubFolder = TRUE;
 			if ( strOldLC.Left( strPathLC.GetLength() + 1 ) != strPathLC + '\\' )
 				continue;
 		}
@@ -170,34 +219,12 @@ void CShareManagerDlg::OnShareAdd()
 			continue;
 		}
 
-		if ( bSubFolder )
-		{
-			CString strFormat, strMessage;
-			LoadString( strFormat, IDS_LIBRARY_SUBFOLDER_IN_LIBRARY );
-			strMessage.Format( strFormat, (LPCTSTR)szPath );
-
-			if ( bForceAdd || AfxMessageBox( strMessage, MB_ICONQUESTION|MB_YESNO ) == IDYES )
-			{
-				// Don't bother asking again- remove all sub-folders
-				bForceAdd = TRUE;
-				// Remove the sub-folder
-				m_wndList.DeleteItem( nItem );
-				nItem--;
-			}
-			else
-			{
-				return;
-			}
-		}
-		else
-		{
-			CString strFormat, strMessage;
-			Skin.LoadString( strFormat, IDS_WIZARD_SHARE_ALREADY );
-			strMessage.Format( strFormat, (LPCTSTR)strOldLC );
-			AfxMessageBox( strMessage, MB_ICONINFORMATION );
-			//CHelpDlg::Show(  _T( "ShareHelp.AlreadyShared" ) );
-			return;
-		}
+		CString strFormat, strMessage;
+		Skin.LoadString( strFormat, IDS_WIZARD_SHARE_ALREADY );
+		strMessage.Format( strFormat, (LPCTSTR)strOldLC );
+		AfxMessageBox( strMessage, MB_ICONINFORMATION );
+		//CHelpDlg::Show(  _T( "ShareHelp.AlreadyShared" ) );
+		return;
 	}
 
 	//Add path to shared list

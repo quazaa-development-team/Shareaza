@@ -126,7 +126,6 @@ void CCoolMenu::SetWatermark(HBITMAP hBitmap)
 	{
 		CDC dc;
 		dc.Attach( GetDC( 0 ) );
-		if ( theApp.m_bRTL ) theApp.m_pfnSetLayout( dc.m_hDC, LAYOUT_BITMAPORIENTATIONPRESERVED );
 		m_dcWatermark.CreateCompatibleDC( &dc );
 		ReleaseDC( 0, dc.Detach() );
 
@@ -325,7 +324,6 @@ void CCoolMenu::OnDrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 
 void CCoolMenu::DrawMenuText(CDC* pDC, CRect* pRect, const CString& strText)
 {
-	theApp.m_bMenuWasVisible = TRUE;
 	int nPos = strText.Find( '\t' );
 
 	if ( nPos >= 0 )

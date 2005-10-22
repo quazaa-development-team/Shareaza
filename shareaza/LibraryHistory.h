@@ -40,18 +40,13 @@ protected:
 	CPtrList	m_pList;
 
 public:
-	struct sTorrentDetails
+	struct sLastSeededTorrent
 	{
+		DWORD			m_tLastSeeded;
 		CString			m_sName;
 		CString			m_sPath;
 		SHA1			m_pBTH;
-		DWORD			m_tLastSeeded;
-		QWORD			m_nUploaded;
-		QWORD			m_nDownloaded;
-	};
-	
-	sTorrentDetails	LastSeededTorrent;			// Most recently seeded torrent (for home page button)
-	sTorrentDetails	LastCompletedTorrent;		// Most recently completed torrent that didn't reach 100% ratio
+	} LastSeededTorrent;
 
 
 // Operations

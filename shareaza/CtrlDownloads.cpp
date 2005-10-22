@@ -1,9 +1,9 @@
 //
 // CtrlDownloads.cpp
 //
-//	Date:			"$Date: 2005/10/03 20:44:33 $"
-//	Revision:		"$Revision: 1.39 $"
-//  Last change by:	"$Author: spooky23 $"
+//	Date:			"$Date: 2005/05/08 11:46:46 $"
+//	Revision:		"$Revision: 1.32 $"
+//  Last change by:	"$Author: mogthecat $"
 //
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
@@ -82,11 +82,6 @@ END_MESSAGE_MAP()
 
 CDownloadsCtrl::CDownloadsCtrl()
 {
-	// Try to get the number of lines to scroll when the mouse wheel is rotated
-	if( !SystemParametersInfo ( SPI_GETWHEELSCROLLLINES, 0, &m_nScrollWheelLines, 0) )
-	{
-		m_nScrollWheelLines = 3;
-	}
 }
 
 CDownloadsCtrl::~CDownloadsCtrl()
@@ -146,8 +141,6 @@ int CDownloadsCtrl::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	
 	CBitmap bmImages;
 	bmImages.LoadBitmap( IDB_PROTOCOLS );
-	if ( theApp.m_bRTL ) 
-		bmImages.m_hObject = CreateMirroredBitmap( (HBITMAP)bmImages.m_hObject );
 	m_pProtocols.Create( 16, 16, ILC_COLOR16|ILC_MASK, 7, 1 );
 	m_pProtocols.Add( &bmImages, RGB( 0, 255, 0 ) );
 	
@@ -820,7 +813,6 @@ void CDownloadsCtrl::OnPaint()
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
 	CRect rcClient, rcItem;
 	CPaintDC dc( this );
-	if ( theApp.m_bRTL ) dc.SetTextAlign( TA_RTLREADING );
 	
 	GetClientRect( &rcClient );
 	rcClient.top += HEADER_HEIGHT;
@@ -931,13 +923,6 @@ void CDownloadsCtrl::PaintDownload(CDC& dc, const CRect& rcRow, CDownload* pDown
 	
 	int nTransfers		= pDownload->GetTransferCount();
 	int nSources		= pDownload->GetSourceCount();
-	int nRating			= pDownload->GetReviewAverage();
-
-	if ( ( nRating == 0 ) && ( pDownload->GetReviewCount() > 0 ) )
-	{
-		// There are reviews but no ratings- give it an "average" rating
-		nRating = 3;
-	}
 	
 	for ( int nColumn = 0 ; m_wndHeader.GetItem( nColumn, &pColumn ) ; nColumn++ )
 	{
@@ -945,7 +930,6 @@ void CDownloadsCtrl::PaintDownload(CDC& dc, const CRect& rcRow, CDownload* pDown
 		CRect rcCell;
 		CString strSource;
 		BOOL bDisplayText	= TRUE;
-		UINT nIconStyle;
 		
 		m_wndHeader.GetItemRect( nColumn, &rcCell );
 		rcCell.left		+= rcRow.left;
@@ -965,28 +949,8 @@ void CDownloadsCtrl::PaintDownload(CDC& dc, const CRect& rcRow, CDownload* pDown
 			else
 				dc.FillSolidRect( rcCell.left, rcCell.top, 16, 16, crNatural );
 			rcCell.left += 16;
-			nIconStyle = pDownload->m_bSelected ? ILD_SELECTED : ILD_NORMAL;
-
-			// Add rating overlay
-			switch ( nRating )
-			{
-			case 0:		// No reviews or no reviews with ratings
-				break;
-			case 1:		// Ratings suggest fake file
-				nIconStyle |= INDEXTOOVERLAYMASK( SHI_O_RATING_FAKE );
-				break;
-			case 2:	
-			case 3:	
-			case 4:	// Ratings suggest average file
-				nIconStyle |= INDEXTOOVERLAYMASK( SHI_O_RATING_AVERAGE );
-				break;
-			default:	// Ratings suggest good file
-				nIconStyle |= INDEXTOOVERLAYMASK( SHI_O_RATING_GOOD );
-				break;
-			}
-
 			ImageList_DrawEx( ShellIcons.GetHandle( 16 ), ShellIcons.Get( pDownload->m_sRemoteName, 16 ), dc.GetSafeHdc(),
-					rcCell.left, rcCell.top, 16, 16, crNatural, CLR_DEFAULT, nIconStyle );
+					rcCell.left, rcCell.top, 16, 16, crNatural, CLR_DEFAULT, pDownload->m_bSelected ? ILD_SELECTED : ILD_NORMAL );
 			rcCell.left += 16;
 			dc.FillSolidRect( rcCell.left, rcCell.top, 1, rcCell.Height(), crNatural );
 			rcCell.left += 1;
@@ -1393,7 +1357,7 @@ void CDownloadsCtrl::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 
 BOOL CDownloadsCtrl::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
-	OnVScroll( SB_THUMBPOSITION, (int)( GetScrollPos( SB_VERT ) - zDelta / WHEEL_DELTA * m_nScrollWheelLines ), NULL );
+	OnVScroll( SB_THUMBPOSITION, (int)( GetScrollPos( SB_VERT ) - zDelta / WHEEL_DELTA * 3 ), NULL );
 	return TRUE;
 }
 
@@ -1668,17 +1632,6 @@ void CDownloadsCtrl::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 		if ( GetAsyncKeyState( VK_CONTROL ) & 0x8000 )
 			SelectAll();
 		return;
-	case 'E':
-		if ( GetAsyncKeyState( VK_CONTROL ) & 0x8000 )
-		{
-			GetOwner()->PostMessage( WM_TIMER, 5 );
-			GetOwner()->PostMessage( WM_COMMAND, ID_DOWNLOADS_ENQUEUE );	// Add the current file to playlist
-		}
-		return;
-	case 'R':
-		if ( GetAsyncKeyState( VK_CONTROL ) & 0x8000 )
-			GetOwner()->PostMessage( WM_COMMAND, ID_DOWNLOADS_VIEW_REVIEWS );
-		return;
 	case VK_DELETE:
 		GetOwner()->PostMessage( WM_COMMAND, ID_DOWNLOADS_CLEAR );
 		return;
@@ -1698,10 +1651,15 @@ void CDownloadsCtrl::OnEnterKey()
 		GetAt( m_nFocus, &pDownload, &pSource );								// Get the data for the current focus
 		if ( pDownload != NULL )												// If the selected object is a download...
 		{
-			if ( GetAsyncKeyState( VK_SHIFT ) & 0x8000 )						// And the control key is pressed...
+			if ( GetAsyncKeyState( VK_CONTROL ) & 0x8000 )						// And the control key is pressed...
 			{
 				GetOwner()->PostMessage( WM_TIMER, 5 );
 				GetOwner()->PostMessage( WM_COMMAND, ID_DOWNLOADS_LAUNCH );		// Launch the current file
+			}
+			else if ( GetAsyncKeyState( VK_SHIFT ) & 0x8000 )					// Or the shift key is pressed...
+			{
+				GetOwner()->PostMessage( WM_TIMER, 5 );
+				GetOwner()->PostMessage( WM_COMMAND, ID_DOWNLOADS_ENQUEUE );	// Add the current file to playlist
 			}
 		}
 		else if ( pSource != NULL )												// If the selected object is a download source...
@@ -1721,11 +1679,10 @@ void CDownloadsCtrl::OnLButtonDown(UINT nFlags, CPoint point)
 	
 	SetFocus();
 	m_wndTip.Hide();
-
+	
 	if ( HitTest( point, &pDownload, &pSource, &nIndex, &rcItem ) )
 	{
-		int nTitleStarts = GetExpandableColumnX();
-		if ( point.x > nTitleStarts && point.x <= nTitleStarts + rcItem.left + 16 )
+		if ( point.x <= rcItem.left + 16 )
 		{
 			if ( pDownload != NULL && IsExpandable( pDownload ) )
 			{
@@ -1795,8 +1752,7 @@ void CDownloadsCtrl::OnLButtonDblClk(UINT nFlags, CPoint point)
 	
 	if ( HitTest( point, &pDownload, &pSource, NULL, &rcItem ) )
 	{
-		int nTitleStarts = GetExpandableColumnX();
-		if ( pDownload != NULL && point.x > nTitleStarts && point.x <= nTitleStarts + rcItem.left + 16 )
+		if ( pDownload != NULL && point.x <= rcItem.left + 16 )
 		{
 			if ( IsExpandable( pDownload ) )
 			{
@@ -2039,20 +1995,4 @@ CImageList* CDownloadsCtrl::CreateDragImage(CPtrList* pSel, const CPoint& ptMous
 	pAll->BeginDrag( 0, ptMouse - rcAll.TopLeft() );
 	
 	return pAll;
-}
-
-int CDownloadsCtrl::GetExpandableColumnX() const
-{
-	HDITEM pColumn;
-	int nTitleStarts = 0;
-	
-	ZeroMemory( &pColumn, sizeof(pColumn) );
-	pColumn.mask = HDI_LPARAM | HDI_WIDTH;
-
-	for ( int nColumn = 0 ; m_wndHeader.GetItem( m_wndHeader.OrderToIndex( nColumn ), &pColumn ) ; nColumn++ )
-	{
-		if ( pColumn.lParam == DOWNLOAD_COLUMN_TITLE ) break;
-		else nTitleStarts += pColumn.cxy;
-	}
-	return nTitleStarts;
 }

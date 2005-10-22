@@ -69,7 +69,6 @@ public:
 
 // Implementation
 protected:
-	BOOL IsNotLimited(LPCTSTR pText);
 	DECLARE_MESSAGE_MAP()
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSelChangeAgentList();

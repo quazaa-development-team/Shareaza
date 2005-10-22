@@ -26,7 +26,6 @@
 #include "StdAfx.h"
 #include "Shareaza.h"
 #include "Settings.h"
-#include "Security.h"
 #include "Network.h"
 #include "Buffer.h"
 #include "HostCache.h"
@@ -303,7 +302,7 @@ BOOL CShakeNeighbour::OnRun()
 void CShakeNeighbour::SendMinimalHeaders()
 {
 	// Say what program we are with a line like "User-Agent: Shareaza 1.2.3.4\r\n"
-	CString strHeader = Settings.SmartAgent();
+	CString strHeader = Settings.SmartAgent( Settings.General.UserAgent );
 	if ( strHeader.GetLength() )
 	{
 		strHeader = _T("User-Agent: ") + strHeader + _T("\r\n");
@@ -332,7 +331,7 @@ void CShakeNeighbour::SendMinimalHeaders()
 void CShakeNeighbour::SendPublicHeaders()
 {
 	// Tell the remote we are running Shareza with a header like "User-Agent: Shareaza 2.1.0.97"
-	CString strHeader = Settings.SmartAgent();
+	CString strHeader = Settings.SmartAgent( Settings.General.UserAgent ); // UserAgent is just "."
 	if ( strHeader.GetLength() )
 	{
 		strHeader = _T("User-Agent: ") + strHeader + _T("\r\n");
@@ -625,43 +624,17 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 		{
 			// Record that the remote computer is running Shareaza
 			m_bShareaza = TRUE;
-		} 
 
-		// Check if it's an old version of Shareaza
-		if ( IsClientObsolete() )
-		{
-			m_bObsoleteClient = TRUE;
-		}
-
-		// If the remote computer is running a client that is breaking GPL, causing problems, etc.
-		// We don't actually ban these clients, but we don't accept them as a leaf. Can still upload, though.
-		if ( IsClientBad() )
-		{
-			// Remember this is a bad client.
-			m_bBadClient = TRUE;
-		}
-
-		// Actual leechers and hostile clients. (We do ban these)
-		if ( IsClientBanned() )
-		{
-			// Reject the handshake
-			theApp.Message( MSG_ERROR, IDS_HANDSHAKE_REJECTED, (LPCTSTR)m_sAddress, (LPCTSTR)m_sUserAgent );
-			m_nState = nrsRejected;
-			// Ban them and ignore anything else in the headers
-			theApp.Message( MSG_ERROR, _T("Banning hostile client %s"), (LPCTSTR)m_sUserAgent );
-			Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
-			m_bBadClient = TRUE;
-			return TRUE;
-		}
-		
-		// If the remote computer is running a client the user has blocked
-		if ( IsAgentBlocked() )
+		} // Otherwise, if the remote computer is running a program we don't want to talk to
+		else if ( IsAgentBlocked() )
 		{
 			// Record that we're rejecting this handshake, and set the state to rejected
 			theApp.Message( MSG_ERROR, IDS_HANDSHAKE_REJECTED, (LPCTSTR)m_sAddress, (LPCTSTR)m_sUserAgent );
 			m_nState = nrsRejected;
-			return TRUE;
 		}
+
+		// Check if it's an old version of Shareaza
+		m_bObsoleteClient = IsClientObsolete();
 
 	} // The remote computer is telling us our IP address
 	else if ( strHeader.CompareNoCase( _T("Remote-IP") ) == 0 )
@@ -672,7 +645,6 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 	} // The remote computer is telling us its IP address
 	else if (	strHeader.CompareNoCase( _T("X-My-Address") ) == 0 ||
 				strHeader.CompareNoCase( _T("Listen-IP") ) == 0 ||
-				strHeader.CompareNoCase( _T("X-Node") ) == 0 ||
 				strHeader.CompareNoCase( _T("Node") ) == 0 )
 	{
 		// Find the index of the first colon in the text
@@ -771,41 +743,39 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 	else if (	strHeader.CompareNoCase( _T("X-Try-Ultrapeers") ) == 0 ||
 				strHeader.CompareNoCase( _T("X-Try-Hubs") ) == 0 )
 	{
-		// Some clients send bad data here- ignore it.
-		if ( ! m_bBadClient )
+		// Count how many hosts we add to the cache
+		int nCount = 0;
+
+		// Append a comma onto the end of the value text once, and then loop forever
+		for ( strValue += ',' ; ; ) // for (;;) is the same thing as forever
 		{
-			int nCount = 0;
-			// Append a comma onto the end of the value text once, and then loop forever
-			for ( strValue += ',' ; ; ) // for (;;) is the same thing as forever
+			// Get the port number we are listening on from settings, 6346 by default
+			int nPort = Settings.Connection.InPort; // Not used (do)
+
+			// Find the first comma in the value text
+			int nPos = strValue.Find( ',' ); // Set nPos to the distance in characters from the start to the comma
+			if ( nPos < 0 ) break;           // If no comma was found, leave the loop
+
+			// Move the text before the comma from the value string to a new string for the host
+			CString strHost = strValue.Left( nPos ); // Copy the text up to the comma into strHost
+			strValue = strValue.Mid( nPos + 1 );     // Clip that text and the comma off the start of strValue
+
+			// The remote computer accepts Gnutella2 packets, is sending them, or is Shareaza
+			if ( m_bG2Accept || m_bG2Send || m_bShareaza )
 			{
-				// Get the port number we are listening on from settings, 6346 by default
-				int nPort = Settings.Connection.InPort; // Not used (do)
+				// Add the host to the Gnutella2 host cache, sending the text "RAZA" along if the remote computer is Shareaza
+				if ( HostCache.Gnutella2.Add( strHost, 0, m_bShareaza ? SHAREAZA_VENDOR_T : NULL ) ) nCount++; // Count it
 
-				// Find the first comma in the value text
-				int nPos = strValue.Find( ',' ); // Set nPos to the distance in characters from the start to the comma
-				if ( nPos < 0 ) break;           // If no comma was found, leave the loop
-
-				// Move the text before the comma from the value string to a new string for the host
-				CString strHost = strValue.Left( nPos ); // Copy the text up to the comma into strHost
-				strValue = strValue.Mid( nPos + 1 );     // Clip that text and the comma off the start of strValue
-
-				// The remote computer accepts Gnutella2 packets, is sending them, or is Shareaza
-				if ( m_bG2Accept || m_bG2Send || m_bShareaza )
-				{
-					// Add the host to the Gnutella2 host cache, sending the text "RAZA" along if the remote computer is Shareaza
-					if ( HostCache.Gnutella2.Add( strHost, 0, m_bShareaza ? SHAREAZA_VENDOR_T : NULL ) ) nCount++; // Count it
-
-				} // This is a Gnutella connection, not Gnutella2
-				else
-				{
-					// Add the host to the Gnutella2 host cache, sending the text "RAZA" along if the remote computer is Shareaza
-					if ( HostCache.Gnutella1.Add( strHost, 0, m_bShareaza ? SHAREAZA_VENDOR_T : NULL ) ) nCount++; // Count it
-				}
+			} // This is a Gnutella connection, not Gnutella2
+			else
+			{
+				// Add the host to the Gnutella2 host cache, sending the text "RAZA" along if the remote computer is Shareaza
+				if ( HostCache.Gnutella1.Add( strHost, 0, m_bShareaza ? SHAREAZA_VENDOR_T : NULL ) ) nCount++; // Count it
 			}
-
-			// Tell discovery services the remote computer's IP address, and how many hosts it just told us about
-			DiscoveryServices.OnGnutellaAdded( &m_pHost.sin_addr, nCount );
 		}
+
+		// Tell discovery services the remote computer's IP address, and how many hosts it just told us about
+		DiscoveryServices.OnGnutellaAdded( &m_pHost.sin_addr, nCount );
 	}
 
 	// Report success
@@ -988,47 +958,16 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 			m_nNodeType = ntHub;
 		}
 
-		// If it's a leaf, check version, etc
-		if ( m_nNodeType == ntLeaf ) 
+		// If it's a leaf and an old version
+		if ( ( m_nNodeType == ntLeaf ) && ( m_bObsoleteClient ) )
 		{
-			if ( m_bBadClient ) 
+			// Check our loading. (Old clients consume more resources)
+			if ( Neighbours.GetCount(PROTOCOL_G2, nrsConnected ,ntLeaf ) > ( Settings.Gnutella2.NumLeafs / 2 ) )
 			{
-				// We don't allow these to act as a leaf. (resource use, etc)
-				if ( m_bObsoleteClient ) 
-				{
-					theApp.Message( MSG_ERROR, _T("Rejecting obsolete leaf client %s") , (LPCTSTR)m_sUserAgent );
-					m_pOutput->Print( "GNUTELLA/0.6 503 Update your client. www.shareaza.com\r\n" );
-				}
-				else 
-				{
-					theApp.Message( MSG_ERROR, _T("Rejecting bad leaf client %s") , (LPCTSTR)m_sUserAgent );
-					m_pOutput->Print( "GNUTELLA/0.6 503 Refused\r\n" );
-				}
-				SendMinimalHeaders();  
+				theApp.Message( MSG_ERROR, _T("Rejecting obsolete leaf %s (We are too full)") , (LPCTSTR)m_sUserAgent );
+				SendHostHeaders( _T("GNUTELLA/0.6 503 Old client version, please update. www.shareaza.com") );
 				DelayClose( IDS_HANDSHAKE_SURPLUS );
-				return FALSE; 
-			}
-			else if ( m_bObsoleteClient ) 
-			{
-				// Check our loading. Old clients consume more resources, so we might not be able to accept it
-				if ( Neighbours.GetCount(PROTOCOL_G2, nrsConnected ,ntLeaf ) > ( Settings.Gnutella2.NumLeafs / 2 ) )
-				{
-					theApp.Message( MSG_ERROR, _T("Rejecting obsolete leaf %s (We are too full)") , (LPCTSTR)m_sUserAgent );
-					m_pOutput->Print( "GNUTELLA/0.6 503 Old client version, please update. www.shareaza.com\r\n" );
-					SendMinimalHeaders();  
-					DelayClose( IDS_HANDSHAKE_SURPLUS );
-					return FALSE;
-				}
-			}
-			else if ( ! m_bShareaza )
-			{
-				// Check to see if we have enough free leaf slots.
-				if ( Neighbours.GetCount(PROTOCOL_G2, nrsConnected ,ntLeaf ) > ( Settings.Gnutella2.NumLeafs - 5 ) )
-				{
-					SendHostHeaders( _T("GNUTELLA/0.6 503 Maximum connections reached") );
-					DelayClose( IDS_HANDSHAKE_SURPLUS );
-					return FALSE;
-				}
+				return FALSE;
 			}
 		}
 
@@ -1038,6 +977,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 				m_nNodeType == ntLeaf                        // This connection is to a leaf below us
 				&& ! Neighbours.NeedMoreHubs( PROTOCOL_G2 )  // And the neighbours object says we don't need more Gnutella2 hubs or leaves
 				&& ! Neighbours.NeedMoreLeafs( PROTOCOL_G2 )
+
 			) || (
 
 				// Or, if the remote computer is a hub and we don't need any more
@@ -1280,10 +1220,9 @@ BOOL CShakeNeighbour::OnHeadersCompleteG1()
 		}
 
 		// If we don't need this connection
-		if ( ( m_nNodeType == ntLeaf && ! Neighbours.NeedMoreHubs( PROTOCOL_G1 ) &&		// This connection is to a leaf below us, and we don't need more hubs/leaves
-			 ! Neighbours.NeedMoreLeafs( PROTOCOL_G1 ) ) ||
-			 ( m_nNodeType != ntLeaf && ! Neighbours.NeedMoreHubs( PROTOCOL_G1 ) ) ||	// This connection is to a hub and we don't need more hubs
-			 ( ( m_nNodeType != ntHub ) && ( m_bObsoleteClient || m_bBadClient ) ) )	// This is an obsolete version of Shareaza
+		if ( ( m_nNodeType == ntLeaf && ! Neighbours.NeedMoreHubs( PROTOCOL_G1 ) &&  // This connection is to a leaf below us, and we don't need more hubs
+			 ! Neighbours.NeedMoreLeafs( PROTOCOL_G1 ) ) ||                          // And we don't need more leaves
+			 ( m_nNodeType != ntLeaf && ! Neighbours.NeedMoreHubs( PROTOCOL_G1 ) ) ) // All that, or this connection is to a hub and we don't need more hubs
 		{
 			// Tell the remote computer we can't connect because we already have too many connections
 			SendHostHeaders( _T("GNUTELLA/0.6 503 Maximum connections reached") );
@@ -1454,101 +1393,21 @@ void CShakeNeighbour::OnHandshakeComplete()
 // Checks the user agent to see if it's an outdated client. (An old Shareaza beta, or something)
 BOOL CShakeNeighbour::IsClientObsolete()
 {
-	if ( m_sUserAgent.IsEmpty() ) return TRUE;
-
-	if ( _tcsistr( m_sUserAgent, _T("Shareaza") ) )
-	{
-		// Shareaza client
-
-		// Check for fakes / version hacks.
-		if (( _tcsistr( m_sUserAgent, _T("Shareaza 3.0"  ) ) ) ||	// Fakes
-			( _tcsistr( m_sUserAgent, _T("Shareaza 6."   ) ) ) ||
-			( _tcsistr( m_sUserAgent, _T("Shareaza 7."   ) ) ) )
-			return TRUE;
-
-		// Check for old version and betas
-		if (( _tcsistr( m_sUserAgent, _T("Shareaza 1."   ) ) ) ||	// Old versions
-			( _tcsistr( m_sUserAgent, _T("Shareaza 2.0." ) ) ) )
-			return TRUE;
-
-		// Assumed to be reasonably current
-		return FALSE;
-	}
-	else if ( _tcsistr( m_sUserAgent, _T("gnucdna") ) )
-	{
-		// DNA based client
-
-		// Assumed to be reasonably current
-		return FALSE;
-	}
-	else if ( _tcsistr( m_sUserAgent, _T("trustyfiles") ) )
-	{
-		// TrustyFiles- assume up to date
-		return FALSE;
-	}
-	else if ( _tcsistr( m_sUserAgent, _T("adagio") ) )
-	{
-		// Adagio- assume up to date
-		return FALSE;
-	}
-	else if ( _tcsistr( m_sUserAgent, _T("eTomi") ) )
-	{
-		// GPL violating rip- Uses outdated code
-		return TRUE;
-	}
-
-	return FALSE;
-}
-
-//////////////////////////////////////////////////////////////////////
-// CShakeNeighbour IsClientBad
-
-// Checks the user agent to see if it's a GPL breaker, or other trouble-maker
-BOOL CShakeNeighbour::IsClientBad()
-{
-	// No user agent- assume OK
 	if ( m_sUserAgent.IsEmpty() ) return FALSE;
 
-	// Known good clients
-	if ( _tcsistr( m_sUserAgent, _T("gnucdna") ) )		return FALSE;
-
-	if ( _tcsistr( m_sUserAgent, _T("adagio") ) )		return FALSE;
-
-	if ( _tcsistr( m_sUserAgent, _T("shareaza") ) )		return FALSE;
-	
-	if ( _tcsistr( m_sUserAgent, _T("trustyfiles") ) )	return FALSE;
-
-	// GPL breakers- Clients violating the GPL
-	// See http://www.gnu.org/copyleft/gpl.html
-	if ( _tcsistr( m_sUserAgent, _T("K-Lite") ) )		return TRUE;
-
-	if ( _tcsistr( m_sUserAgent, _T("SlingerX") ) )		return TRUE;
-
-	if ( _tcsistr( m_sUserAgent, _T("C -3.0.1") ) )		return TRUE;
-
-	if ( _tcsistr( m_sUserAgent, _T("vagaa") ) )		return TRUE;
-
-	if ( _tcsistr( m_sUserAgent, _T("mxie") ) )			return TRUE;
-
-	// Clients that over-query or otherwise cause problems
-	//if ( _tcsistr( m_sUserAgent, _T("") ) )			return TRUE;
+	if ( ( _tcsistr( m_sUserAgent, _T("Shareaza 1."   ) ) ) ||
+		 ( _tcsistr( m_sUserAgent, _T("Shareaza 2.0." ) ) ) ||
+		 ( _tcsistr( m_sUserAgent, _T("Shareaza 6."   ) ) ) ||
+		 ( _tcsistr( m_sUserAgent, _T("Shareaza 7.0." ) ) ) ||
+		 ( _tcsistr( m_sUserAgent, _T("K-Lite 2.1"	  ) ) ) ||
+		 ( _tcsistr( m_sUserAgent, _T("SlingerX 2."   ) ) ) ||
+		 ( _tcsistr( m_sUserAgent, _T("eTomi 2.0."    ) ) ) ||
+		 ( _tcsistr( m_sUserAgent, _T("eTomi 2.1."    ) ) ) ||
+		 ( _tcsistr( m_sUserAgent, _T("360Share"      ) ) ) )
 
 
-	// Unknown- Assume OK
-	return FALSE;
-}
+		 return TRUE;
 
-
-//////////////////////////////////////////////////////////////////////
-// CShakeNeighbour IsClientBanned
-
-// Checks the user agent to see if it's a leecher client, or other banned client
-BOOL CShakeNeighbour::IsClientBanned()
-{
-	// No user agent- assume OK
-	if ( m_sUserAgent.IsEmpty() ) return FALSE;
-
-	// Unknown- Assume OK
 	return FALSE;
 }
 

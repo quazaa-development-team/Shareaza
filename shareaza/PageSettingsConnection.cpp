@@ -23,7 +23,6 @@
 #include "Shareaza.h"
 #include "Settings.h"
 #include "PageSettingsConnection.h"
-#include "DlgHelp.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -57,6 +56,7 @@ CConnectionSettingsPage::CConnectionSettingsPage() : CSettingsPage(CConnectionSe
 	m_sOutHost = _T("");
 	m_nTimeoutConnection = 0;
 	m_nTimeoutHandshake = 0;
+	m_bCanAccept = FALSE;
 	m_sOutSpeed = _T("");
 	m_sInSpeed = _T("");
 	m_bInRandom = FALSE;
@@ -85,7 +85,7 @@ void CConnectionSettingsPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBString(pDX, IDC_OUTBOUND_HOST, m_sOutHost);
 	DDX_Text(pDX, IDC_TIMEOUT_CONNECTION, m_nTimeoutConnection);
 	DDX_Text(pDX, IDC_TIMEOUT_HANDSHAKE, m_nTimeoutHandshake);
-	DDX_Control(pDX, IDC_CAN_ACCEPT, m_wndCanAccept);
+	DDX_Check(pDX, IDC_CAN_ACCEPT, m_bCanAccept);
 	DDX_CBString(pDX, IDC_OUTBOUND_SPEED, m_sOutSpeed);
 	DDX_CBString(pDX, IDC_INBOUND_SPEED, m_sInSpeed);
 	DDX_Check(pDX, IDC_INBOUND_RANDOM, m_bInRandom);
@@ -108,18 +108,7 @@ BOOL CConnectionSettingsPage::OnInitDialog()
 	pOutHost->DeleteString( 0 );
 	pOutHost->AddString( strAutomatic );
 
-	// Firewall status
-	CString str;
-	LoadString( str, IDS_GENERAL_NO );
-	m_wndCanAccept.AddString( str );
-	LoadString( str, IDS_GENERAL_YES );
-	m_wndCanAccept.AddString( str );
-	LoadString( str, IDS_GENERAL_AUTO );
-	m_wndCanAccept.AddString( str );
-
-	m_wndCanAccept.SetCurSel( Settings.Connection.FirewallStatus );
-
-	//m_bCanAccept			= Settings.Connection.FirewallStatus == CONNECTION_OPEN;
+	m_bCanAccept			= ! Settings.Connection.Firewalled;
 	m_sInHost				= Settings.Connection.InHost;
 	m_nInPort				= Settings.Connection.InPort;
 	m_bInBind				= Settings.Connection.InBind;
@@ -226,7 +215,7 @@ void CConnectionSettingsPage::OnOK()
 	if ( m_sOutHost.CompareNoCase( strAutomatic ) == 0 )
 		m_sOutHost.Empty();
 
-	Settings.Connection.FirewallStatus		= m_wndCanAccept.GetCurSel();
+	Settings.Connection.Firewalled			= ! m_bCanAccept;
 	Settings.Connection.InHost				= m_sInHost;
 	Settings.Connection.InPort				= m_nInPort;
 	Settings.Connection.InBind				= m_bInBind;
@@ -237,31 +226,7 @@ void CConnectionSettingsPage::OnOK()
 	Settings.Connection.TimeoutConnect		= m_nTimeoutConnection * 1000;
 	Settings.Connection.TimeoutHandshake	= m_nTimeoutHandshake  * 1000;
 
-	/*
-	// Correct the upload limit (if required)
-	if ( Settings.Bandwidth.Uploads )
-	{
-		Settings.Bandwidth.Uploads = min ( Settings.Bandwidth.Uploads, ( ( Settings.Connection.OutSpeed / 8 ) * 1024 ) );
-	}
-	*/
-
-
 	UpdateData();
-
-	// Warn the user about upload limiting and ed2k/BT downloads
-	if ( ( ! Settings.Live.UploadLimitWarning ) &&
-		 ( Settings.eDonkey.EnableToday || Settings.eDonkey.EnableAlways || Settings.BitTorrent.AdvancedInterface || Settings.BitTorrent.AdvancedInterfaceSet ) ) 
-	{
-		DWORD nDownload = max( Settings.Bandwidth.Downloads, ( ( Settings.Connection.InSpeed  / 8 ) * 1024 ) );
-		DWORD nUpload = ( ( Settings.Connection.OutSpeed / 8 ) * 1024 );
-		if ( Settings.Bandwidth.Uploads > 0 ) nUpload =  min( Settings.Bandwidth.Uploads, nUpload );
-		
-		if ( ( nUpload * 16 ) < ( nDownload ) )
-		{
-			CHelpDlg::Show( _T("GeneralHelp.UploadWarning") );
-			Settings.Live.UploadLimitWarning = TRUE;
-		}
-	}
 	CSettingsPage::OnOK();
 }
 

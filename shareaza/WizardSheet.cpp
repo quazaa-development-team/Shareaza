@@ -76,7 +76,6 @@ BOOL CWizardSheet::RunWizard(CWnd* pParent)
 		CWizardConnectionPage	pConnection;
 		CWizardSharePage		pShare;
 		CWizardProfilePage		pProfile;
-		CWizardInterfacePage	pInterface;
 		CWizardNetworksPage		pNetworks;
 		CWizardFinishedPage		pFinished;
 
@@ -84,7 +83,6 @@ BOOL CWizardSheet::RunWizard(CWnd* pParent)
 		pSheet.AddPage( &pConnection );
 		pSheet.AddPage( &pShare );
 		pSheet.AddPage( &pProfile );
-		pSheet.AddPage( &pInterface );
 		pSheet.AddPage( &pNetworks );
 		pSheet.AddPage( &pFinished );
 

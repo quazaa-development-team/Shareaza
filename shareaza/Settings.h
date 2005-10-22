@@ -41,7 +41,6 @@ public:
 		DWORD		MaxDebugLogSize;			// Max size of the log file
 		BOOL		UpdateCheck;				// Does Shareaza check for new versions?
 		DWORD		DiskSpaceWarning;			// Value at which to warn the user about low disk space
-		DWORD		DiskSpaceStop;				// Value at which to pause all downloads due to low disk space
 		DWORD		MinTransfersRest;			// For how long at least to suspend Transfers each round
 		INT			GUIMode;
 		BOOL		CloseMode;
@@ -53,6 +52,7 @@ public:
 		BOOL		RatesInBytes;
 		DWORD		RatesUnit;
 		BOOL		AlwaysOpenURLs;
+		CString		UserAgent;
 		CString		Language;
 		BOOL		IgnoreXPsp2;				// Ignore the presence of Windows XPsp2 limits
 	} General;
@@ -93,6 +93,7 @@ public:
 		CString		SafeExecute;
 		CString		PrivateTypes;
 		DWORD		ThumbSize;
+		CString		BitziAgent;
 		CString		BitziWebView;
 		CString		BitziWebSubmit;
 		CString		BitziXML;
@@ -161,7 +162,7 @@ public:
 	struct sConnection
 	{
 		BOOL		AutoConnect;
-		int			FirewallStatus;
+		BOOL		Firewalled;
 		CString		OutHost;
 		CString		InHost;
 		DWORD		InPort;
@@ -179,8 +180,6 @@ public:
 		DWORD		ConnectThrottle;			// Delay between connection attempts. (Neighbour connections)
 		BOOL		DetectConnectionLoss;		// Detect loss of internet connection
 		BOOL		DetectConnectionReset;		// Detect regaining of internet connection
-		BOOL		ForceConnectedState;		// Force WinINet into a connected state on startup. (Put IE into online mode)
-		BOOL		SlowConnect;				// Connect to one network at a time. Don't download while connecting. (XPsp2)
 	} Connection;
 
 	struct sBandwidth
@@ -234,10 +233,10 @@ public:
 		DWORD		HitsPerPacket;
 		DWORD		RouteCache;
 		DWORD		HostCacheSize;
+		DWORD		HostCacheExpire;
 		DWORD		HostCacheView;
 		DWORD		ConnectThrottle;
 		BOOL		BlockBlankClients;			// Block Ultrapeers with no user agent
-		BOOL		SpecifyProtocol;			// Specify G1 or G2 when initiating a connection
 	} Gnutella;
 	
 	struct sGnutella1
@@ -261,7 +260,6 @@ public:
 		BOOL		VendorMsg;
 		DWORD		QueryThrottle;
 		DWORD		RequeryDelay;
-		DWORD		HostExpire;
 		DWORD		PingFlood;
 		DWORD		PingRate;
 		DWORD		PongCache;
@@ -274,7 +272,6 @@ public:
 	struct sGnutella2
 	{
 		DWORD		ClientMode;					// Desired mode of operation: MODE_AUTO, MODE_LEAF, MODE_HUB
-		BOOL		HubVerified;
 		BOOL		EnableToday;
 		BOOL		EnableAlways;
 		int			NumHubs;					// Number of hubs a leaf has
@@ -292,8 +289,6 @@ public:
 		DWORD		KHLPeriod;
 		DWORD		KHLHubCount;
 		DWORD		HAWPeriod;
-		DWORD		HostCurrent;
-		DWORD		HostExpire;
 		DWORD		QueryGlobalThrottle;		// Max G2 query rate (Cannot exceed 8/sec)
 		DWORD		QueryHostThrottle;
 		DWORD		QueryHostDeadline;
@@ -320,10 +315,8 @@ public:
 		DWORD		GetSourcesThrottle;			// Max rate a general GetSources can done
 		DWORD		QueueRankThrottle;			// How frequently queue ranks are sent
 		DWORD		PacketThrottle;				// ED2K packet rate limiter
-		DWORD		SourceThrottle;				// ED2K source rate limiter
-		DWORD		MetAutoQuery;				// Auto query for a new server list
-		BOOL		LearnNewServers;			// Get new servers from servers
-		BOOL		LearnNewServersClient;		// Get new servers from clients
+		DWORD		MetQueryTime;				// Time we queried for a new server list
+		BOOL		LearnNewServers;
 		CString		ServerListURL;
 		DWORD		RequestPipe;
 		DWORD		RequestSize;
@@ -341,11 +334,9 @@ public:
 	struct sBitTorrent
 	{
 		BOOL		AdvancedInterface;			// Display BT 'extras' (Seed Torrent box, etc)
-		BOOL		AdvancedInterfaceSet;		// Has Shareaza auto-set the above value (first time a user downloads a torrent)
 		CString		TorrentCreatorPath;			// Location of the program used to create .torrent files
 		CString		DefaultTracker;
 		DWORD		DefaultTrackerPeriod;		// Delay between tracker contact attempts if one is not specified by tracker
-		int			MaxTrackerRetry;			// Number of times to retry a tracker if it doesn't respond
 		int			TorrentCodePage;			// The code page to assume for a .torrent file if it isn't UTF-8
 		int			TorrentExtraKeys;			// Check for '.utf8' keys if there is an encoding error
 		BOOL		TorrentIgnoreErrors;		// Ignore encoding errors in torrents
@@ -362,11 +353,8 @@ public:
 		BOOL		Endgame;					// Allow endgame mode when completing torrents. (Download same chunk from multiple sources)
 		BOOL		AutoClear;					// Clear completed torrents when they meet the required share ratio
 		DWORD		ClearRatio;					// Share ratio a torrent must reach to be cleared. (Minimum 100%)
-		BOOL		AutoSeed;					// Automatically re-seed most recently completed torrent on start-up
 		DWORD		BandwidthPercentage;		// Percentage of bandwidth to use when BT active.
 		BOOL		TrackerKey;					// Send a key (random value) to trackers
-		BOOL		StandardPeerID;				// Use the newer (non-official) standard for making Peer-IDs
-		BOOL		PreferenceBTSources;		// Preference downloading from BT sources where appropriate
 	} BitTorrent;
 
 	struct sDownloads
@@ -469,8 +457,6 @@ public:
 		BOOL		AdultWarning;				// Has the user been warned about the adult filter?
 		BOOL		QueueLimitWarning;			// Has the user been warned about limiting the max Q position accepted?
 		BOOL		DonkeyServerWarning;		// Has the user been warned about having an empty server list?
-		BOOL		UploadLimitWarning;			// Has the user been warned about the ed2k/BT ratio?
-		BOOL		DiskSpaceStop;				// Has Shareaza paused all downloads due to critical disk space?
 		DWORD		BandwidthScale;				// Monitor slider settings
 		BOOL		LoadWindowState;
 		BOOL		AutoClose;
@@ -505,7 +491,7 @@ public:
 	void	SaveWindow(LPCTSTR pszName, CWnd* pWindow);
 	BOOL	LoadList(LPCTSTR pszName, CListCtrl* pCtrl, int nSort = 0);
 	void	SaveList(LPCTSTR pszName, CListCtrl* pCtrl);
-	CString	SmartAgent();
+	CString	SmartAgent(LPCTSTR pszAgent);
 	CString	SmartVolume(QWORD nVolume, BOOL bInKB, BOOL bRateInBits = FALSE, BOOL bTruncate = FALSE );
 	QWORD	ParseVolume(LPCTSTR psz, BOOL bSpeedInBits);
 	DWORD	GetOutgoingBandwidth();						//Returns available outgoing bandwidth in KB/s
@@ -530,11 +516,6 @@ enum
 enum
 {
 	MODE_AUTO, MODE_LEAF, MODE_HUB, MODE_ULTRAPEER = MODE_HUB
-};
-
-enum
-{
-	CONNECTION_FIREWALLED, CONNECTION_OPEN, CONNECTION_AUTO
 };
 
 #define GNUTELLA_DEFAULT_PORT	6346

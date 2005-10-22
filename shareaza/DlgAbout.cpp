@@ -37,7 +37,6 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CSkinDialog)
 	ON_WM_SETCURSOR()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_RBUTTONDOWN()
-	ON_WM_CREATE()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -163,11 +162,4 @@ void CAboutDlg::OnRButtonDown(UINT nFlags, CPoint point)
 		DWORD* pNullPtr = (DWORD*)NULL;
 		*pNullPtr = 0xFFFFFFFF;
 	}
-}
-
-int CAboutDlg::OnCreate(LPCREATESTRUCT lpCreateStruct)
-{
-	if (CDialog::OnCreate(lpCreateStruct) == -1)
-		return -1;
-	return 0;
 }

@@ -83,9 +83,10 @@ BOOL CThumbCache::Prepare(LPCTSTR pszPath, CSize* pszThumb, BOOL bCreate)
 		CHAR szID[8];
 		m_pFile.Read( szID, 8 );
 
-		if ( memcmp( szID, THUMB_SIGNATURE, 8 ) != 0 )
+		if ( memcmp( szID, THUMB_SIGNATURE, 8 ) )
 		{
 			m_pFile.Close();
+			if ( memcmp( szID, THUMB_SIGNATURE, 7 ) ) return FALSE;
 			return DeleteFile( strPath ) && Prepare( pszPath, pszThumb, bCreate );
 		}
 
@@ -279,7 +280,6 @@ BOOL CThumbCache::Store(LPCTSTR pszPath, CSize* pszThumb, DWORD nIndex, CImageFi
 	{
 		CArchive ar( &m_pFile, CArchive::store );
 		pImage->Serialize( ar );
-		ar.Flush();
 	}
 	catch ( CException* pException )
 	{

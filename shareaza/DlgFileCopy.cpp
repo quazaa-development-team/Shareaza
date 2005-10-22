@@ -111,11 +111,6 @@ BOOL CFileCopyDlg::OnInitDialog()
 		}
 	}
 
-	if ( theApp.m_bRTL ) 
-	{
-		m_wndProgress.ModifyStyleEx( WS_EX_LAYOUTRTL, 0, 0 );
-		m_wndFileProg.ModifyStyleEx( WS_EX_LAYOUTRTL, 0, 0 );
-	}
 	m_wndFileProg.SetRange( 0, 400 );
 
 	m_hThread = NULL;
@@ -290,38 +285,10 @@ void CFileCopyDlg::OnRun()
 		if ( NULL == pFile || ! pFile->IsAvailable() ) break;
 
 		m_wndProgress.OffsetPos( 1 );
-
-		//
 		m_wndFileName.SetWindowText( strName );
+
 		ProcessFile( strName, strPath, bMetaData );
-		//
-
-/*
-		// Alternate code to check if file is hashing first
-		CString sCurrent, sFile;
-		int nRemaining;
-		LibraryBuilder.UpdateStatus( &sCurrent, &nRemaining );
-		sFile = strPath + _T("\\") + strName;
-
-		if ( sFile == sCurrent )
-		{
-			LoadString ( sFile, IDS_LIBRARY_BITZI_HASHED );
-			sCurrent.Format( sFile, strName );
-			theApp.Message( MSG_SYSTEM, sCurrent  );
-
-			LoadString ( sCurrent, IDS_STATUS_FILEERROR );
-			m_wndFileName.SetWindowText( sCurrent );
-			
-		}
-		else
-		{
-			m_wndFileName.SetWindowText( strName );
-			ProcessFile( strName, strPath, bMetaData );
-		}
-		//
-*/
 	}
-
 
 	m_bThread = FALSE;
 }
@@ -335,31 +302,6 @@ BOOL CFileCopyDlg::ProcessFile(CString& strName, CString& strPath, BOOL bMetaDat
 
 	CString sSource, sTarget;
 
-	// Check if we can move the file first
-	sSource = strPath + _T("\\") + strName;
-	HANDLE hFile = CreateFile(	sSource, GENERIC_WRITE, 0 , NULL,
-								OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
-	if ( hFile == INVALID_HANDLE_VALUE )
-	{
-		CString strMessage, strFormat, strName;
-		LoadString( strFormat, IDS_LIBRARY_MOVE_FAIL );
-
-		m_wndFileName.GetWindowText( strName );
-		strMessage.Format( strFormat, strName );
-
-		switch ( AfxMessageBox( strMessage, MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 ) )
-		{
-		case IDYES:
-			break;
-		case IDNO:
-		default:
-			CloseHandle( hFile );
-			return FALSE;
-		}
-	}
-	CloseHandle( hFile );
-
-	// Move the metadata
 	if ( bMetaData )
 	{
 		CString strMetaFolder = strPath + _T("\\Metadata");
@@ -386,7 +328,6 @@ BOOL CFileCopyDlg::ProcessFile(CString& strName, CString& strPath, BOOL bMetaDat
 		}
 	}
 
-	// Move the file
 	sSource = strPath + _T("\\") + strName;
 	sTarget = m_sTarget + _T("\\") + strName;
 
@@ -443,14 +384,12 @@ BOOL CFileCopyDlg::ProcessMove(LPCTSTR pszSource, LPCTSTR pszTarget)
 
 	Uploads.OnRename( pszSource );
 
-	// Try moving the file
 	if ( MoveFile( pszSource, pszTarget ) )
 	{
 		Uploads.OnRename( pszSource, pszTarget );
 		return TRUE;
 	}
 
-	// Try a copy/delete. (Will usually make a duplicate of the file)
 	if ( ProcessCopy( pszSource, pszTarget ) )
 	{
 		Uploads.OnRename( pszSource, pszTarget );

@@ -60,24 +60,6 @@ CDownloadWithTransfers::~CDownloadWithTransfers()
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithTransfers counting
 
-int CDownloadWithTransfers::GetTransferCount() const
-{
-	int nCount = 0;
-
-	for ( CDownloadTransfer* pTransfer = m_pTransferFirst; pTransfer; pTransfer = pTransfer->m_pDlNext )
-    {
-		if ( ( pTransfer->m_nProtocol != PROTOCOL_ED2K ) ||
-		( static_cast< CDownloadTransferED2K* >( pTransfer )->m_pClient &&
-		static_cast< CDownloadTransferED2K* >( pTransfer )->m_pClient->m_bConnected ) )
-		{
-			
-			++nCount;
-		}
-	}
-	return nCount;
-}
-
-
 // This macro is used to clean up the function below and make it more readable. It's the first 
 // condition in any IF statement that checks if the current transfer should be counted
 #define VALID_TRANSFER ( ! pAddress || pAddress->S_un.S_addr == pTransfer->m_pHost.sin_addr.S_un.S_addr ) &&	\
@@ -88,6 +70,7 @@ int CDownloadWithTransfers::GetTransferCount() const
 
 int CDownloadWithTransfers::GetTransferCount(int nState, IN_ADDR* pAddress) const
 {
+	// if ( nState == -1 && pAddress == NULL ) return m_pTransfers.GetCount();
     int nCount = 0;
 
     switch ( nState )
@@ -175,9 +158,6 @@ BOOL CDownloadWithTransfers::CanStartTransfers(DWORD tNow)
 	
 	if ( tNow - m_tTransferStart < 100 ) return FALSE;
 	m_tTransferStart = tNow;
-
-	// Make sure the network is ready
-	if ( ! Network.ReadyToTransfer( tNow ) ) return FALSE;
 	
 	// Limit the connection rate
 	if ( Settings.Downloads.ConnectThrottle != 0 )
@@ -191,7 +171,6 @@ BOOL CDownloadWithTransfers::CanStartTransfers(DWORD tNow)
 	{
 		return FALSE;
 	}
-
 	return TRUE;
 }
 
@@ -240,19 +219,17 @@ BOOL CDownloadSource::CanInitiate(BOOL bNetwork, BOOL bEstablished) const
 {
 	if ( Settings.Connection.RequireForTransfers )
 	{
-		switch ( m_nProtocol )
+		if ( m_nProtocol == PROTOCOL_ED2K )
 		{
-		case PROTOCOL_G1:
-			if ( ! Settings.Gnutella1.EnableToday ) return FALSE;
-			break;
-		case PROTOCOL_G2:
-			if ( ! Settings.Gnutella2.EnableToday ) return FALSE;
-			break;
-		case PROTOCOL_ED2K:
 			if ( ! Settings.eDonkey.EnableToday ) return FALSE;
 			if ( ! bNetwork ) return FALSE;
-			break;
-		case PROTOCOL_HTTP:
+		}
+		else if ( m_nProtocol == PROTOCOL_BT )
+		{
+			if ( ! bNetwork ) return FALSE;
+		}
+		else if ( m_nProtocol == PROTOCOL_HTTP )
+		{
 			if ( m_nGnutella == 2 )
 			{
 				if ( ! Settings.Gnutella2.EnableToday ) return FALSE;
@@ -266,21 +243,12 @@ BOOL CDownloadSource::CanInitiate(BOOL bNetwork, BOOL bEstablished) const
 				if ( ! Settings.Gnutella1.EnableToday &&
 					 ! Settings.Gnutella2.EnableToday ) return FALSE;
 			}
-			break;
-		case PROTOCOL_FTP:
+		}
+		else if ( m_nProtocol == PROTOCOL_FTP )
+		{
 			if ( ! bNetwork ) return FALSE;
-			break;
-		case PROTOCOL_BT:
-			if ( ! bNetwork ) return FALSE;
-			break;
-		default:
-			theApp.Message( MSG_ERROR, _T("Source with invalid protocol found") );
-			return FALSE;
 		}
 	}
-
-	if ( ( Settings.Connection.IgnoreOwnIP ) && ( m_pAddress.S_un.S_addr == Network.m_pHost.sin_addr.S_un.S_addr ) ) 
-		return FALSE;
 	
 	return bEstablished || Downloads.AllowMoreTransfers( (IN_ADDR*)&m_pAddress );
 }
@@ -295,28 +263,6 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 	BOOL bConnected = Network.IsConnected();
 	CDownloadSource* pConnectHead = NULL;
 	CDownloadSource* pPushHead = NULL;
-
-	// If BT preferencing is on, check them first
-	if ( ( m_bBTH ) && ( Settings.BitTorrent.PreferenceBTSources ) )
-	{
-		for ( CDownloadSource* pSource = m_pSourceFirst ; pSource ; )
-		{
-			CDownloadSource* pNext = pSource->m_pNext;
-			
-			if ( ( pSource->m_pTransfer == NULL ) &&		// does not have a transfer
-				 ( pSource->m_bPushOnly == FALSE ) &&		// Not push
-				 ( pSource->m_nProtocol == PROTOCOL_BT ) &&	// Is a BT source
-				 ( pSource->m_tAttempt == 0 ) )				// Is a "fresh" source from the tracker
-			{
-				if ( pSource->CanInitiate( bConnected, FALSE ) )
-				{
-					CDownloadTransfer* pTransfer = pSource->CreateTransfer();
-					return pTransfer != NULL && pTransfer->Initiate();
-				}
-			}	
-			pSource = pNext;
-		}
-	}
 	
 	for ( CDownloadSource* pSource = m_pSourceFirst ; pSource ; )
 	{

@@ -27,7 +27,6 @@
 #include "WizardNetworksPage.h"
 #include "DlgDonkeyImport.h"
 #include "Skin.h"
-#include "DlgHelp.h"
 #include <shlobj.h>
 
 #ifdef _DEBUG
@@ -105,14 +104,6 @@ LRESULT CWizardNetworksPage::OnWizardNext()
 	Settings.eDonkey.EnableToday	= m_bEDEnable;
 	
 	DoDonkeyImport();
-
-	/*
-	if ( m_bEDEnable ) 
-	{
-		CHelpDlg::Show( _T("GeneralHelp.UploadWarning") );
-		Settings.Live.UploadLimitWarning = TRUE;
-	}
-	*/
 	
 	return 0;
 }
@@ -144,8 +135,8 @@ void CWizardNetworksPage::DoDonkeyImport()
 	HostCache.eDonkey.Import( strFolder );
 	
 	// Get a server list from the web (if you need one)
-	if ( ( Settings.eDonkey.EnableToday ) && ( HostCache.eDonkey.CountHosts() < 20 ) ) 
-		DiscoveryServices.QueryForHosts( PROTOCOL_ED2K );
+	if ( ( Settings.eDonkey.EnableToday ) && ( HostCache.eDonkey.CountHosts() < 10 ) ) 
+		DiscoveryServices.ExecuteDonkey();
 	
 	LPCTSTR pszFolders[] =
 	{

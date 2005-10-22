@@ -207,12 +207,8 @@ BOOL CDatagrams::IsStable()
 	if ( m_hSocket == INVALID_SOCKET ) return FALSE;
 	if ( ! Network.IsListening() ) return FALSE;
 
-	if ( Settings.Connection.FirewallStatus == CONNECTION_FIREWALLED )
-		return FALSE;			// We know we are firewalled
-	else if ( Settings.Connection.FirewallStatus == CONNECTION_OPEN )
-		return TRUE;			// We know we are not firewalled
-	else // ( Settings.Connection.FirewallStatus == CONNECTION_AUTO )
-		return m_bStable;		// Use detected state
+	// Are we stable OR know we are not firewalled
+	return m_bStable || ! Settings.Connection.Firewalled;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -881,11 +877,7 @@ BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	{
 		return OnQueryKeyRequest( pHost, pPacket );
 	}
-	else if ( pPacket->IsType( G2_PACKET_HIT ) )
-	{
-		return OnHit( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_HIT_WRAP ) )
+	else if ( pPacket->IsType( G2_PACKET_HIT ) || pPacket->IsType( G2_PACKET_HIT_WRAP ) )
 	{
 		return OnHit( pHost, pPacket );
 	}
@@ -951,11 +943,6 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	if ( ! bRelayed ) return TRUE;
 
 	if ( ! Network.IsConnectedTo( &pHost->sin_addr ) ) m_bStable = TRUE;
-
-	/*
-	CString str = inet_ntoa( pHost->sin_addr );
-	theApp.Message( MSG_ERROR, _T("Relayed Pong from %s:%u"), str, pHost->sin_port );
-	*/
 
 	return TRUE;
 }
@@ -1316,10 +1303,8 @@ BOOL CDatagrams::OnCrawlRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 
 	if ( bWantREXT )
 	{
-		vendorCode = VENDOR_CODE;
-		currentVersion = CLIENT_NAME;
-		currentVersion += " ";
-		currentVersion += theApp.m_sVersion;
+		vendorCode = "RAZA";
+		currentVersion = "Shareaza " + theApp.m_sVersion;
 	}
 
 	pPacket->WritePacket(

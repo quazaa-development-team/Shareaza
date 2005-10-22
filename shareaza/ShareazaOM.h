@@ -4,7 +4,7 @@
 
 
  /* File created by MIDL compiler version 6.00.0366 */
-/* at Mon Jun 20 15:29:02 2005
+/* at Tue May 24 21:02:27 2005
  */
 /* Compiler settings for .\Shareaza.idl:
     Oicf, W1, Zp8, env=Win32 (32b run)

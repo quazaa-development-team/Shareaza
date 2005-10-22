@@ -41,8 +41,6 @@ BEGIN_MESSAGE_MAP(CSchedulerSettingsPage, CSettingsPage)
 	ON_WM_LBUTTONDOWN()
 	ON_WM_LBUTTONUP()
 	ON_WM_LBUTTONDBLCLK()
-	ON_WM_RBUTTONDOWN()
-	ON_WM_RBUTTONUP()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -100,8 +98,6 @@ BOOL CSchedulerSettingsPage::OnInitDialog()
 
 	m_nDownDay			= m_nHoverDay = 0xFF;
 	m_nDownHour			= m_nHoverHour = 0xFF;
-	m_bPaint			= FALSE;
-	m_nPaintValue		= 0;
 
 	m_wndLimitedSpin.SetRange( 5, 95 );
 
@@ -138,32 +134,23 @@ void CSchedulerSettingsPage::OnMouseMove(UINT nFlags, CPoint point)
 		int nHoverDay = ( point.y - rc.top ) / 16;
 		int nHoverHour = ( point.x - rc.left ) / 16;
 
-		if ( ( nHoverDay != m_nHoverDay ) || ( nHoverHour != m_nHoverHour ) )
+		if ( nHoverDay != m_nHoverDay )
 		{
-			if ( m_bPaint )
-			{
-				m_pSchedule[nHoverDay][nHoverHour] = m_nPaintValue;
-				Invalidate();
-			}
+			m_nHoverDay = nHoverDay;
 
-			if ( nHoverDay != m_nHoverDay )
-			{
-				m_nHoverDay = nHoverDay;
+			strSliceDisplay.Format(_T("%s, %d:00 - %d:59"), m_sDayName[m_nHoverDay], m_nHoverHour, m_nHoverHour );
+			m_wndDisplay.SetWindowText( strSliceDisplay );
 
-				strSliceDisplay.Format(_T("%s, %d:00 - %d:59"), m_sDayName[m_nHoverDay], m_nHoverHour, m_nHoverHour );
-				m_wndDisplay.SetWindowText( strSliceDisplay );
+			Invalidate();
+		}
+		if ( nHoverHour != m_nHoverHour )
+		{
+			m_nHoverHour = nHoverHour;
 
-				Invalidate();
-			}
-			if ( nHoverHour != m_nHoverHour )
-			{
-				m_nHoverHour = nHoverHour;
+			strSliceDisplay.Format(_T("%s, %d:00 - %d:59"), m_sDayName[m_nHoverDay], m_nHoverHour, m_nHoverHour );
+			m_wndDisplay.SetWindowText( strSliceDisplay );
 
-				strSliceDisplay.Format(_T("%s, %d:00 - %d:59"), m_sDayName[m_nHoverDay], m_nHoverHour, m_nHoverHour );
-				m_wndDisplay.SetWindowText( strSliceDisplay );
-
-				Invalidate();
-			}
+			Invalidate();
 		}
 	}
 	else
@@ -187,30 +174,23 @@ void CSchedulerSettingsPage::OnMouseMove(UINT nFlags, CPoint point)
 void CSchedulerSettingsPage::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	if ( ( m_nHoverDay == 0xFF ) || ( m_nHoverHour == 0xFF ) ) return;
-	m_nDownDay		= m_nHoverDay;
-	m_nDownHour		= m_nHoverHour;
-	m_bPaint		= TRUE;
-	m_nPaintValue	= m_pSchedule[m_nHoverDay][m_nHoverHour];
+	m_nDownDay = m_nHoverDay;
+	m_nDownHour = m_nHoverHour;
 	SetCapture();
 	Invalidate();
 }
 
 void CSchedulerSettingsPage::OnLButtonUp(UINT nFlags, CPoint point)
 {
-	m_bPaint		= FALSE;
-	m_nPaintValue	= 0;
-	if ( ( m_nHoverDay == 0xFF ) || ( m_nHoverHour == 0xFF ) ) return;
-
 	if ( m_nDownDay != m_nHoverDay ) return;
 	if ( m_nDownHour != m_nHoverHour ) return;
-
+	if ( ( m_nHoverDay == 0xFF ) || ( m_nHoverHour == 0xFF ) ) return;
 
 	m_pSchedule[m_nHoverDay][m_nHoverHour] ++;
 	m_pSchedule[m_nHoverDay][m_nHoverHour] %= 3;
 
-	m_nDownDay		= 0xFF;
-	m_nDownHour		= 0xFF;
-
+	m_nDownDay	= 0xFF;
+	m_nDownHour	= 0xFF;
 
 	ReleaseCapture();
 	Invalidate();
@@ -219,47 +199,13 @@ void CSchedulerSettingsPage::OnLButtonUp(UINT nFlags, CPoint point)
 
 void CSchedulerSettingsPage::OnLButtonDblClk(UINT nFlags, CPoint point)
 {
-	m_bPaint		= FALSE;
-	m_nPaintValue	= 0;
 	if ( ( m_nHoverDay == 0xFF ) || ( m_nHoverHour == 0xFF ) ) return;
 
 	m_pSchedule[m_nHoverDay][m_nHoverHour] ++;
 	m_pSchedule[m_nHoverDay][m_nHoverHour] %= 3;
 
-	m_nDownDay		= 0xFF;
-	m_nDownHour		= 0xFF;
-
-	ReleaseCapture();
-	Invalidate();
-	UpdateWindow();
-}
-
-void CSchedulerSettingsPage::OnRButtonDown(UINT nFlags, CPoint point)
-{
-	if ( ( m_nHoverDay == 0xFF ) || ( m_nHoverHour == 0xFF ) ) return;
-	m_nDownDay		= m_nHoverDay;
-	m_nDownHour		= m_nHoverHour;
-	m_bPaint		= TRUE;
-	m_nPaintValue	= m_pSchedule[m_nHoverDay][m_nHoverHour];
-	SetCapture();
-	Invalidate();
-}
-
-void CSchedulerSettingsPage::OnRButtonUp(UINT nFlags, CPoint point)
-{
-	m_bPaint		= FALSE;
-	m_nPaintValue	= 0;
-	if ( ( m_nHoverDay == 0xFF ) || ( m_nHoverHour == 0xFF ) ) return;
-
-	if ( m_nDownDay != m_nHoverDay ) return;
-	if ( m_nDownHour != m_nHoverHour ) return;
-
-	m_pSchedule[m_nHoverDay][m_nHoverHour] += 2;
-	m_pSchedule[m_nHoverDay][m_nHoverHour] %= 3;
-
-	m_nDownDay		= 0xFF;
-	m_nDownHour		= 0xFF;
-
+	m_nDownDay	= 0xFF;
+	m_nDownHour = 0xFF;
 
 	ReleaseCapture();
 	Invalidate();
@@ -273,7 +219,7 @@ BOOL CSchedulerSettingsPage::OnEraseBkgnd(CDC* pDC)
 
 void CSchedulerSettingsPage::OnPaint()
 {
-	// Draw the schedule box
+	//Draw the schedule box
 	int nDay, nHour;
 	CPaintDC dc( this );
 	CRect rc;
@@ -303,20 +249,18 @@ void CSchedulerSettingsPage::OnPaint()
 		}
 	}
 
-	// Draw the border of the box
+	//Draw the border of the box
 	dc.Draw3dRect( 33, 9, 385, 145, RGB( 0, 0, 0 ), RGB( 0, 0, 0 ) );
 
-	// Draw the schedule time slices for the 'key'
-	LONG nYpos = ( rc.bottom / 2 ) + 7; 
-
+	//Draw the schedule time slices for the 'key'
 	ImageList_DrawEx( m_pTimeSlices, SCHEDULE_OFF, dc.GetSafeHdc(),
-					30 , nYpos , 16, 16, CLR_DEFAULT, CLR_DEFAULT, ILD_NORMAL );
+					30 , 184 , 16, 16, CLR_DEFAULT, CLR_DEFAULT, ILD_NORMAL );
 
 	ImageList_DrawEx( m_pTimeSlices, SCHEDULE_LIMITED_SPEED, dc.GetSafeHdc(),
-					30 , nYpos + 20 , 16, 16, CLR_DEFAULT, CLR_DEFAULT, ILD_NORMAL );
+					30 , 204 , 16, 16, CLR_DEFAULT, CLR_DEFAULT, ILD_NORMAL );
 
 	ImageList_DrawEx( m_pTimeSlices, SCHEDULE_FULL_SPEED  , dc.GetSafeHdc(),
-					30 , nYpos + 40 , 16, 16, CLR_DEFAULT, CLR_DEFAULT, ILD_NORMAL );
+					30 , 224 , 16, 16, CLR_DEFAULT, CLR_DEFAULT, ILD_NORMAL );
 
 	//CSettingsPage::OnPaint();
 }

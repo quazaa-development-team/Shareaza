@@ -51,7 +51,6 @@
 #include "DlgURLCopy.h"
 #include "DlgHelp.h"
 #include "Skin.h"
-#include "Network.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -197,7 +196,6 @@ int CDownloadsWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	m_nMoreSourcesLimiter	= 8;
 	m_tMoreSourcesTimer		= 0;
-	m_tLastUpdate			= 0;
 	
 	return 0;
 }
@@ -221,13 +219,10 @@ void CDownloadsWnd::OnSkinChange()
 void CDownloadsWnd::Update()
 {
 	int nCookie = 0;
-	DWORD tNow = GetTickCount();
-
-	m_tLastUpdate = tNow;
 	
 	if ( Settings.General.GUIMode != GUI_BASIC && Settings.Downloads.ShowGroups )
 	{
-		nCookie = (int)tNow;
+		nCookie = (int)GetTickCount();
 		m_wndTabBar.Update( nCookie );
 	}
 	
@@ -274,10 +269,9 @@ void CDownloadsWnd::OnSize(UINT nType, int cx, int cy)
 
 void CDownloadsWnd::OnTimer(UINT nIDEvent) 
 {
-	// Reset Selection Timer event (posted by ctrldownloads)
 	if ( nIDEvent == 5 ) m_tSel = 0;
 	
-	// Clear Completed event (10 second timer)
+	// If this is a clear event (regular timer)
 	if ( nIDEvent == 4 )
 	{
 		DWORD tNow = GetTickCount();
@@ -333,16 +327,7 @@ void CDownloadsWnd::OnTimer(UINT nIDEvent)
 		}
 	}
 	
-	// Window Update event (2 second timer)
-    if ( ( nIDEvent == 2 ) && ( m_pDragList == NULL ) )
-	{
-		// If the window is visible or hasn't been updated in 10 seconds
-		if ( ( IsWindowVisible() && IsActive( FALSE ) ) || ( ( GetTickCount() - m_tLastUpdate ) > 10*1000 ) )
-		{
-			// Update the window
-			Update();
-		}
-	}
+    if ( nIDEvent != 1 && m_pDragList == NULL ) Update();
 }
 
 void CDownloadsWnd::OnMDIActivate(BOOL bActivate, CWnd* pActivateWnd, CWnd* pDeactivateWnd) 
@@ -464,8 +449,6 @@ void CDownloadsWnd::Prepare()
 	m_bSelShareConsistent = TRUE;
 	m_bSelMoreSourcesOK = FALSE;
 	m_bSelSourceAcceptConnections = m_bSelSourceExtended = m_bSelHasReviews = FALSE;
-
-	m_bConnectOkay = FALSE;
 	
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
 	BOOL bFirstShare = TRUE;
@@ -540,9 +523,6 @@ void CDownloadsWnd::Prepare()
 			}
 		}
 	}
-		
-	if ( ( ! Settings.Connection.RequireForTransfers ) || ( Network.IsConnected() ) )
-		m_bConnectOkay = TRUE;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -975,7 +955,7 @@ void CDownloadsWnd::OnDownloadsSources()
 				else
 				{
 					// Warn user
-					theApp.Message( MSG_DEBUG, _T("Find more sources unable to start due to excessive network traffic") );
+					theApp.Message( MSG_SYSTEM, _T("Find more sources unable to start due to excessive network traffic") );
 					// Prevent ed2k bans, client drops, etc.
 					m_tMoreSourcesTimer = GetTickCount();
 					if ( m_nMoreSourcesLimiter < -30 ) m_nMoreSourcesLimiter = -30;
@@ -1256,7 +1236,7 @@ void CDownloadsWnd::OnDownloadsMoveDown()
 void CDownloadsWnd::OnUpdateTransfersConnect(CCmdUI* pCmdUI) 
 {
 	Prepare();
-	pCmdUI->Enable( m_bSelIdleSource && m_bConnectOkay );
+	pCmdUI->Enable( m_bSelIdleSource );
 }
 
 void CDownloadsWnd::OnTransfersConnect() 

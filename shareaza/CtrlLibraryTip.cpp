@@ -30,7 +30,6 @@
 #include "Schema.h"
 #include "SchemaCache.h"
 #include "TigerTree.h"
-#include "ThumbCache.h"
 #include "SHA.h"
 #include "ED2K.h"
 #include "ImageServices.h"
@@ -51,7 +50,6 @@ BEGIN_MESSAGE_MAP(CLibraryTipCtrl, CCoolTipCtrl)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
-#define THUMB_STORE_SIZE	128
 
 /////////////////////////////////////////////////////////////////////////////
 // CLibraryTipCtrl construction
@@ -83,7 +81,6 @@ BOOL CLibraryTipCtrl::OnPrepare()
 
 		m_sName = pFile->m_sName;
 		m_sPath = pFile->GetPath();
-		m_nIndex = pFile->m_nIndex;
 		m_sSize = Settings.SmartVolume( pFile->GetSize(), FALSE );
 		m_nIcon = 0;
 
@@ -229,7 +226,7 @@ void CLibraryTipCtrl::OnPaint(CDC* pDC)
 	{
 		CMetaItem* pItem = m_pMetadata.GetNext( pos );
 
-		DrawText( pDC, &pt, theApp.m_bRTL ? ':' + pItem->m_sKey : pItem->m_sKey + ':', 100 );
+		DrawText( pDC, &pt, pItem->m_sKey + ':', 100 );
 		DrawText( pDC, &pt, pItem->m_sValue, 100 + m_nKeyWidth );
 		pt.y += TIP_TEXTHEIGHT;
 
@@ -371,32 +368,8 @@ void CLibraryTipCtrl::OnRun()
 		m_pSection.Unlock();
 
 		CImageFile pFile( &pServices );
-		CThumbCache pCache;
-		CSize Size( THUMB_STORE_SIZE, THUMB_STORE_SIZE );
-		BOOL bSuccess = FALSE;
 
-		if ( !pCache.Load( strPath, &Size, m_nIndex, &pFile ) )
-		{
-			bSuccess = pFile.LoadFromFile( strPath, FALSE, TRUE ) && pFile.EnsureRGB();
-			if ( bSuccess ) 
-			{
-				int nSize = THUMB_STORE_SIZE * pFile.m_nWidth / pFile.m_nHeight;
-				
-				if ( nSize > THUMB_STORE_SIZE )
-				{
-					nSize = THUMB_STORE_SIZE * pFile.m_nHeight / pFile.m_nWidth;
-					pFile.Resample( THUMB_STORE_SIZE, nSize );
-				}
-				else
-				{
-					pFile.Resample( nSize, THUMB_STORE_SIZE );
-				}
-				pCache.Store( strPath, &Size, m_nIndex, &pFile );
-			}
-		}
-		else bSuccess = TRUE;
-
-		if ( bSuccess )
+		if ( pFile.LoadFromFile( strPath, FALSE, TRUE ) && pFile.EnsureRGB() )
 		{
 			int nSize = 94 * pFile.m_nWidth / pFile.m_nHeight;
 

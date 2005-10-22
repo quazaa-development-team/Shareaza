@@ -230,22 +230,18 @@ int CMediaListCtrl::Add(LPCTSTR pszPath, int nItem)
 	}
 	
 	LV_ITEM pItem;
-	CString strTemp = (LPTSTR)pszFile;
-	int nDotPos = strTemp.ReverseFind( '.' );
-	if ( nDotPos != -1 ) strTemp = strTemp.Left( nDotPos );
-	LPTSTR pszFileTmp = strTemp.GetBuffer( strTemp.GetLength() );
 	ZeroMemory( &pItem, sizeof(pItem) );
 	pItem.mask		= LVIF_TEXT|LVIF_IMAGE|LVIF_PARAM;
 	pItem.iItem		= nItem >= 0 ? nItem : GetItemCount();
 	pItem.iImage	= ShellIcons.Get( pszFile, 16 );
 	pItem.lParam	= nFile;
-	pItem.pszText	= pszFileTmp;
+	pItem.pszText	= (LPTSTR)pszFile;
 	pItem.iItem		= InsertItem( &pItem );
 	pItem.mask		= LVIF_TEXT;
 	pItem.iSubItem	= 1;
 	pItem.pszText	= (LPTSTR)pszPath;
 	SetItem( &pItem );
-	strTemp.ReleaseBuffer();
+	
 	return pItem.iItem;
 }
 
@@ -295,8 +291,7 @@ void CMediaListCtrl::SetCurrent(int nCurrent)
 	}
 
 	NMHDR pNM = { GetSafeHwnd(), GetDlgCtrlID(), MLN_NEWCURRENT };
-	CString strPath = GetPath( nCurrent );
-	GetSafeOwner()->SendMessage( WM_NOTIFY, pNM.idFrom, (LPARAM)&pNM );
+	GetOwner()->SendMessage( WM_NOTIFY, pNM.idFrom, (LPARAM)&pNM );
 }
 
 int CMediaListCtrl::GetNext(BOOL bSet)

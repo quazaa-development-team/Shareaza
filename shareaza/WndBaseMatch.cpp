@@ -546,7 +546,7 @@ void CBaseMatchWnd::OnSecurityBan()
 
 	if ( CQueryHit* pHit = m_pMatches->GetSelectedHit() )
 	{
-		Security.Ban( &pHit->m_pAddress, banSession );
+		Security.SessionBan( &pHit->m_pAddress );
 	}
 }
 

@@ -1,10 +1,6 @@
 //
 // DiscoveryServices.cpp
 //
-//	Date:			"$Date: 2005/10/04 02:44:01 $"
-//	Revision:		"$Revision: 1.38 $"
-//  Last change by:	"$Author: mogthecat $"
-//
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
@@ -58,7 +54,6 @@ CDiscoveryServices::CDiscoveryServices()
 	m_nLastUpdateProtocol = PROTOCOL_NULL;
 	m_tExecute		= 0;
 	m_bFirstTime	= TRUE;
-	m_tMetQueried	= 0;
 }
 
 CDiscoveryServices::~CDiscoveryServices()
@@ -106,6 +101,36 @@ int CDiscoveryServices::GetCount(int nType, PROTOCOLID nProtocol) const
 		}
 	}
 	return nCount;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CDiscoveryServices Check we have the minimum number of services
+
+BOOL CDiscoveryServices::EnoughServices() const
+{
+	int nWebCacheCount = 0, nServerMetCount = 0;	// Types of services
+	int nG1Count = 0, nG2Count = 0;					// Protocols
+	
+	for ( POSITION pos = GetIterator() ; pos ; )
+	{
+		CDiscoveryService* pService = GetNext( pos );
+		if ( pService->m_nType == CDiscoveryService::dsWebCache )
+		{
+			nWebCacheCount++;
+
+			if ( pService->m_bGnutella1 ) nG1Count++;
+			if ( pService->m_bGnutella2 ) nG2Count++;
+		}
+		else if ( pService->m_nType == CDiscoveryService::dsServerMet )
+		{
+			nServerMetCount ++;
+		}
+	}
+
+	return ( ( nWebCacheCount   > 4 ) &&	// At least 5 webcaches
+		     ( nG2Count			> 2 ) &&	// At least 3 G2 services
+			 ( nG1Count			> 0 ) &&	// At least 1 G1 service
+			 ( nServerMetCount  > 0 ) );	// At least 1 server.met
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -281,44 +306,6 @@ BOOL CDiscoveryServices::CheckWebCacheValid(LPCTSTR pszAddress)
 	return TRUE;
 }
 
-BOOL CDiscoveryServices::CheckMinimumServices()
-{
-	// Add the default services if we don't have enough
-	if ( ! EnoughServices() )
-	{
-		AddDefaults();
-		return FALSE;
-	}
-
-	return TRUE;
-}
-
-//////////////////////////////////////////////////////////////////////
-// CDiscoveryServices execute a service to get hosts
-
-// WARNING: Way too agressive for general use- Be very careful where this is called!
-// This is a public function, and should be called once when setting up/installing the program. 
-// IE: In the Quickstart Wizard *only*
-// Using this for general querying would overload services and get you blacklisted.
-BOOL CDiscoveryServices::QueryForHosts( PROTOCOLID nProtocol )
-{
-	CSingleLock pLock( &Network.m_pSection );
-	if ( ! pLock.Lock( 250 ) ) return FALSE;
-
-	for ( int nLoop = 0 ; nLoop < 3 ; nLoop ++ )
-	{
-		if ( RequestRandomService( nProtocol ) )
-			return TRUE;
-	}
-	
-	return FALSE;
-}
-
-DWORD CDiscoveryServices::MetQueried() const
-{
-	return m_tMetQueried;
-}
-
 CDiscoveryService* CDiscoveryServices::GetByAddress(LPCTSTR pszAddress) const
 {
 	for ( POSITION pos = GetIterator() ; pos ; )
@@ -359,6 +346,16 @@ void CDiscoveryServices::Stop()
 	StopWebRequest();
 }
 
+BOOL CDiscoveryServices::CheckMinimumServices()
+{
+	if ( ! EnoughServices() )
+	{
+		AddDefaults();
+		return FALSE;
+	}
+
+	return TRUE;
+}
 
 //////////////////////////////////////////////////////////////////////
 // CDiscoveryServices load and save
@@ -368,7 +365,7 @@ BOOL CDiscoveryServices::Load()
 	CSingleLock pLock( &Network.m_pSection, TRUE );
 	CFile pFile;
 	
-	CString strFile = Settings.General.UserPath + _T("\\Data\\Discovery.dat");
+	CString strFile = Settings.General.Path + _T("\\Data\\Discovery.dat");
 	
 	// Load the services from disk
 	if ( ! pFile.Open( strFile, CFile::modeRead ) )
@@ -411,7 +408,7 @@ BOOL CDiscoveryServices::Save()
 	CSingleLock pLock( &Network.m_pSection, TRUE );
 	CFile pFile;
 
-	CString strFile = Settings.General.UserPath + _T("\\Data\\Discovery.dat");
+	CString strFile = Settings.General.Path + _T("\\Data\\Discovery.dat");
 	if ( !pFile.Open( strFile, CFile::modeWrite|CFile::modeCreate ) )
 		return FALSE;
 
@@ -454,37 +451,6 @@ void CDiscoveryServices::Serialize(CArchive& ar)
 			m_pList.AddTail( pService );
 		}
 	}
-}
-
-//////////////////////////////////////////////////////////////////////
-// CDiscoveryServices Check we have the minimum number of services
-// Returns TRUE if there are enough services, or FALSE if there are not.
-
-BOOL CDiscoveryServices::EnoughServices() const
-{
-	int nWebCacheCount = 0, nServerMetCount = 0;	// Types of services
-	int nG1Count = 0, nG2Count = 0;					// Protocols
-	
-	for ( POSITION pos = GetIterator() ; pos ; )
-	{
-		CDiscoveryService* pService = GetNext( pos );
-		if ( pService->m_nType == CDiscoveryService::dsWebCache )
-		{
-			nWebCacheCount++;
-
-			if ( pService->m_bGnutella1 ) nG1Count++;
-			if ( pService->m_bGnutella2 ) nG2Count++;
-		}
-		else if ( pService->m_nType == CDiscoveryService::dsServerMet )
-		{
-			nServerMetCount ++;
-		}
-	}
-
-	return ( ( nWebCacheCount   > 4 ) &&	// At least 5 webcaches
-		     ( nG2Count			> 2 ) &&	// At least 3 G2 services
-			 ( nG1Count			> 0 ) &&	// At least 1 G1 service
-			 ( nServerMetCount  > 0 ) );	// At least 1 server.met
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -602,8 +568,8 @@ BOOL CDiscoveryServices::Update()
 	else											// No protocols active- no updates
 		return FALSE;
 
-	//*** ToDo: Ultrapeer mode hasn't been updated or tested in a long time
-
+//*** ToDo: If you don't have leafs, you aren't an UP. If you aren't an UP, you don't advertise 
+// for leafs! This means Neighbours.IsG1Ultrapeer() will never be true...
 	ASSERT ( ( nProtocol == PROTOCOL_G1 ) || ( nProtocol == PROTOCOL_G2 ) );
 
 	// Must have at least 4 peers
@@ -659,13 +625,15 @@ BOOL CDiscoveryServices::Execute(BOOL bSecondary)
 		if ( ( bG1Required ) && ( nG1Hosts < 15 ) && RequestRandomService( PROTOCOL_G1 ) )
 			return TRUE;
 
-		// Note: Do not enable MetAutoQuery until we have a MET file set up!
-		if ( ( Settings.eDonkey.EnableToday ) && ( Settings.eDonkey.MetAutoQuery ) &&
-			 ( HostCache.eDonkey.CountHosts() < 3 ) && ( m_tMetQueried == 0 ) )
-		{	
-			m_tMetQueried = tNow;					// Execute this once only. (Very important)
+		/*
+		// Note: Do not enable until we have a MET file set up!
+		if ( ( Settings.eDonkey.EnableToday ) && ( ! Settings.eDonkey.MetQueryTime == 0 ) &&
+			 ( HostCache.eDonkey.CountHosts() < 3 ) )
+		{	// Execute this once only! It's not a webcache...
+			Settings.eDonkey.MetQueryTime = tNow;
 			if ( RequestRandomService( PROTOCOL_ED2K ) ) return TRUE;
 		}
+		*/
 		
 		if ( ( bG1Required ) && ( m_nLastQueryProtocol == PROTOCOL_G2 ) )
 			return RequestRandomService( PROTOCOL_G1 );
@@ -697,6 +665,29 @@ BOOL CDiscoveryServices::Execute(BOOL bSecondary)
 		return RequestRandomService( PROTOCOL_G1 );	
 	}
 
+	return FALSE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CDiscoveryServices execute eDonkey2000
+
+// Warning: This function will query all known MET files until a working one is found.
+// Be very careful where this is called! This is a public function, and should be called 
+// once when setting up/installing the program. (In the Quickstart Wizard *only*)
+BOOL CDiscoveryServices::ExecuteDonkey()
+{
+	CSingleLock pLock( &Network.m_pSection );
+	if ( ! pLock.Lock( 250 ) ) return FALSE;
+	
+	for ( POSITION pos = GetIterator() ; pos ; )
+	{
+		CDiscoveryService* pService = GetNext( pos );
+		
+		if ( pService->m_nType == CDiscoveryService::dsServerMet )
+		{
+			if ( RequestWebCache( pService, wcmServerMet, PROTOCOL_ED2K ) ) return TRUE;
+		}
+	}
 	return FALSE;
 }
 
@@ -974,7 +965,7 @@ BOOL CDiscoveryServices::RequestWebCache(CDiscoveryService* pService, int nMode,
 	
 	if ( m_pWebCache == NULL ) return FALSE;
 	
-	CString strAgent = Settings.SmartAgent();
+	CString strAgent = Settings.SmartAgent( Settings.General.UserAgent );
 	
 	m_hInternet = InternetOpen( strAgent, INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0 );
 	if ( ! m_hInternet ) return FALSE;

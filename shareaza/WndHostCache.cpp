@@ -112,8 +112,6 @@ int CHostCacheWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	
 	CBitmap bmImages;
 	bmImages.LoadBitmap( IDB_PROTOCOLS );
-	if ( theApp.m_bRTL ) 
-		bmImages.m_hObject = CreateMirroredBitmap( (HBITMAP)bmImages.m_hObject );
 	m_gdiImageList.Create( 16, 16, ILC_COLOR16|ILC_MASK, 7, 1 );
 	m_gdiImageList.Add( &bmImages, RGB( 0, 255, 0 ) );
 	m_wndList.SetImageList( &m_gdiImageList, LVSIL_SMALL );
@@ -171,7 +169,6 @@ void CHostCacheWnd::Update(BOOL bForce)
 	CHostCacheList* pCache = HostCache.ForProtocol( nEffective );
 	
 	m_nCookie = pCache->m_nCookie;
-	int nProtocolRev = m_gdiImageList.GetImageCount() - 1;
 	
 	for ( CHostCacheHost* pHost = pCache->GetNewest() ; pHost ; pHost = pHost->m_pPrevTime )
 	{
@@ -185,7 +182,7 @@ void CHostCacheWnd::Update(BOOL bForce)
 		
 		CLiveItem* pItem = pLiveList.Add( pHost );
 		
-		pItem->m_nImage			= theApp.m_bRTL ? nProtocolRev - pHost->m_nProtocol : pHost->m_nProtocol;
+		pItem->m_nImage			= pHost->m_nProtocol;
 		pItem->m_nMaskOverlay	= pHost->m_bPriority;
 		
 		pItem->Set( 0, CString( inet_ntoa( pHost->m_pAddress ) ) );
@@ -255,19 +252,16 @@ void CHostCacheWnd::OnSize(UINT nType, int cx, int cy)
 
 void CHostCacheWnd::OnTimer(UINT nIDEvent) 
 {
-	if ( nIDEvent == 1 && IsPartiallyVisible() )
-	{
-		PROTOCOLID nEffective = m_nMode ? m_nMode : PROTOCOL_G2;
+	PROTOCOLID nEffective = m_nMode ? m_nMode : PROTOCOL_G2;
 
-		if ( ( nEffective != PROTOCOL_G1 ) && ( nEffective != PROTOCOL_G2 ) && ( nEffective != PROTOCOL_ED2K ) )
-			nEffective = PROTOCOL_G2;
+	if ( ( nEffective != PROTOCOL_G1 ) && ( nEffective != PROTOCOL_G2 ) && ( nEffective != PROTOCOL_ED2K ) )
+		nEffective = PROTOCOL_G2;
 
-		CHostCacheList* pCache = HostCache.ForProtocol( nEffective );
-		DWORD tTicks = GetTickCount();
+	CHostCacheList* pCache = HostCache.ForProtocol( nEffective );
+	DWORD tTicks = GetTickCount();
 
-		// Wait 5 seconds before refreshing; do not force updates
-		if ( ( pCache->m_nCookie != m_nCookie ) && ( ( tTicks - tLastUpdate ) > 5000 ) ) Update();
-	}
+	// Wait 5 seconds before refreshing; do not force updates
+	if ( ( pCache->m_nCookie != m_nCookie ) && ( ( tTicks - tLastUpdate ) > 5000 ) ) Update();
 }
 
 void CHostCacheWnd::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)

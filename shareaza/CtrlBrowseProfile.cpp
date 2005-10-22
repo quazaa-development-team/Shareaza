@@ -295,7 +295,6 @@ void CBrowseProfileCtrl::UpdateDocument1(CGProfile* pProfile)
 
 void CBrowseProfileCtrl::UpdateDocument2(CHostBrowser* pBrowser)
 {
-	int nBookmarks = 0;
 	CGProfile* pProfile = pBrowser->m_pProfile;
 
 	CSingleLock pLock( &m_pDocument2->m_pSection, TRUE );
@@ -336,17 +335,9 @@ void CBrowseProfileCtrl::UpdateDocument2(CHostBrowser* pBrowser)
 				m_pDocument2->Add( retGap, _T("5"), NULL, 0, 1, posSave );
 				m_pDocument2->Add( retLink, strTitle, strURL, retfMiddle, 1, posSave );
 				m_pDocument2->Add( retNewline, _T("2"), NULL, 0, 1, posSave );
-
-				nBookmarks ++;
 			}
 		}
 	}
-
-
-	if ( nBookmarks )
-		m_pDocument2->ShowGroup( 3, TRUE );
-	else
-		m_pDocument2->ShowGroup( 3, FALSE );
 
 	m_wndDoc2.InvalidateIfModified();
 }

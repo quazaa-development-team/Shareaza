@@ -116,6 +116,7 @@ IDI_PAINTBRUSHES        ICON                    "Res\\Paintbrushes.ICO"
 IDI_COLLECTION_MASK     ICON                    "Res\\CollectionMask.ico"
 IDI_COLLECTION          ICON                    "Res\\Collection.ico"
 IDI_FIREWALLED          ICON                    "Res\\Firewalled.ico"
+IDI_MERCORA             ICON                    "Res\\Mercora.ico"
 IDI_SMALL               ICON                    "Res\\ShareazaSmall.ico"
 IDI_ICON                ICON                    "Res\\ShareazaIcon.ico"
 IDR_BITTORRENT_ICON     ICON                    "res\\Bittorrent.ico"
@@ -126,8 +127,8 @@ IDR_BITTORRENT_ICON     ICON                    "res\\Bittorrent.ico"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,2,0,2
- PRODUCTVERSION 2,2,0,2
+ FILEVERSION 2,1,1,0
+ PRODUCTVERSION 2,1,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -145,12 +146,12 @@ BEGIN
             VALUE "Comments", "Shareaza Ultimate File Sharing"
             VALUE "CompanyName", "Shareaza Development Team"
             VALUE "FileDescription", "Shareaza Ultimate File Sharing"
-            VALUE "FileVersion", "2, 2, 0, 2"
+            VALUE "FileVersion", "2, 1, 1, 0"
             VALUE "InternalName", "Shareaza"
             VALUE "LegalCopyright", "Copyright © Shareaza Development Team, 2002-2005."
             VALUE "OriginalFilename", "Shareaza.exe"
             VALUE "ProductName", "Shareaza"
-            VALUE "ProductVersion", "2, 2, 0, 2"
+            VALUE "ProductVersion", "2, 1, 1, 0"
         END
     END
     BLOCK "VarFileInfo"
@@ -218,6 +219,7 @@ BEGIN
         MENUITEM "My &Profile...",              ID_TOOLS_PROFILE
         MENUITEM "S&kin Shareaza...",           ID_TOOLS_SKIN
         MENUITEM "Choose &Language...",         ID_TOOLS_LANGUAGE
+        MENUITEM "Mercora",                     ID_TOOLS_MERCORA
         MENUITEM SEPARATOR
         MENUITEM "QuickStart &Wizard...",       ID_TOOLS_WIZARD
         MENUITEM "&Shareaza Settings...",       ID_TOOLS_SETTINGS
@@ -962,9 +964,6 @@ IDB_REMOTE_SKIN         BITMAP                  "Res\\RemoteWnd.bmp"
 IDB_PANEL_MARK          BITMAP                  "Res\\PanelMark.bmp"
 IDB_SCHEDULER_HEADER    BITMAP                  "Res\\Scheduler.bmp"
 IDB_SCHEDULER_TIMESLICES BITMAP                  "Res\\TimeSlices.bmp"
-IDB_SHELL_BASE_RTL      BITMAP                  "res\\ShellBaseRTL.bmp"
-IDB_NAVBAR_IMAGE_RTL    BITMAP                  "Res\\NavbarRTL.bmp"
-IDB_NAVBAR_ALPHA_RTL    BITMAP                  "Res\\NavbarAlphaRTL.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1115,47 +1114,44 @@ STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Connection"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
-    GROUPBOX        "&Inbound Address:",IDC_STATIC,7,5,268,59
-    LTEXT           "Address:",IDC_STATIC,15,22,35,12,SS_CENTERIMAGE
-    COMBOBOX        IDC_INBOUND_HOST,55,22,99,70,CBS_DROPDOWN | CBS_SORT | 
+    GROUPBOX        "&Inbound Address:",IDC_STATIC,5,5,270,65
+    LTEXT           "Address:",IDC_STATIC,15,25,35,12,SS_CENTERIMAGE
+    COMBOBOX        IDC_INBOUND_HOST,55,25,99,70,CBS_DROPDOWN | CBS_SORT | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Speed:",IDC_STATIC,165,22,35,12,SS_CENTERIMAGE
-    COMBOBOX        IDC_INBOUND_SPEED,205,22,60,80,CBS_DROPDOWN | WS_VSCROLL | 
-                    WS_TABSTOP
-    LTEXT           "Port:",IDC_STATIC,15,42,35,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_INBOUND_PORT,55,42,35,12,ES_AUTOHSCROLL
+    LTEXT           "Port:",IDC_STATIC,15,45,35,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_INBOUND_PORT,55,45,35,12,ES_AUTOHSCROLL
     CONTROL         "Random",IDC_INBOUND_RANDOM,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,100,42,50,12
-    CONTROL         "Force binding to this address",IDC_INBOUND_BIND,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,160,42,105,12
-    GROUPBOX        "&Outbound Address:",IDC_STATIC,7,72,268,44
-    LTEXT           "Address:",IDC_STATIC,14,92,30,12,SS_CENTERIMAGE
-    COMBOBOX        IDC_OUTBOUND_HOST,56,92,99,70,CBS_DROPDOWN | CBS_SORT | 
-                    WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Speed:",IDC_STATIC,166,92,35,12,SS_CENTERIMAGE
-    COMBOBOX        IDC_OUTBOUND_SPEED,206,92,60,80,CBS_DROPDOWN | 
-                    WS_VSCROLL | WS_TABSTOP
-    GROUPBOX        "O&ptions:",IDC_STATIC,7,122,268,51
-    RTEXT           "Can accept incoming connections",IDC_STATIC,14,137,147,
-                    12
-    COMBOBOX        IDC_CAN_ACCEPT,165,135,47,52,CBS_DROPDOWN | WS_VSCROLL | 
+                    WS_TABSTOP,100,45,50,12
+    LTEXT           "Speed:",IDC_STATIC,165,25,35,12,SS_CENTERIMAGE
+    COMBOBOX        IDC_INBOUND_SPEED,205,25,60,80,CBS_DROPDOWN | WS_VSCROLL | 
                     WS_TABSTOP
-    CONTROL         "Ignore private/local IP addresses ",IDC_IGNORE_LOCAL,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,154,161,12,
-                    WS_EX_RIGHT
-    GROUPBOX        "&Timeouts:",IDC_STATIC,7,179,268,34
-    LTEXT           "Connection:",IDC_STATIC,21,193,45,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_TIMEOUT_CONNECTION,69,193,35,12,ES_AUTOHSCROLL | 
+    CONTROL         "Force binding to this address",IDC_INBOUND_BIND,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,160,45,105,12
+    GROUPBOX        "&Outbound Address:",IDC_STATIC,5,75,270,45
+    LTEXT           "Address:",IDC_STATIC,15,95,30,12,SS_CENTERIMAGE
+    COMBOBOX        IDC_OUTBOUND_HOST,55,95,99,70,CBS_DROPDOWN | CBS_SORT | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Speed:",IDC_STATIC,165,95,35,12,SS_CENTERIMAGE
+    COMBOBOX        IDC_OUTBOUND_SPEED,205,95,60,80,CBS_DROPDOWN | 
+                    WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "O&ptions:",IDC_STATIC,5,125,150,60
+    CONTROL         "Ignore private/local IP addresses",IDC_IGNORE_LOCAL,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,160,136,12
+    GROUPBOX        "&Timeouts:",IDC_STATIC,160,125,115,60
+    LTEXT           "Connection:",IDC_STATIC,170,142,50,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_TIMEOUT_CONNECTION,225,142,40,12,ES_AUTOHSCROLL | 
                     ES_NUMBER
     CONTROL         "Spin1",IDC_TIMEOUT_CONNECTION_SPIN,"msctls_updown32",
                     UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | 
-                    UDS_ARROWKEYS | UDS_NOTHOUSANDS,105,193,11,12
-    LTEXT           "Handshake:",IDC_STATIC,158,193,45,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_TIMEOUT_HANDSHAKE,206,193,35,12,ES_AUTOHSCROLL | 
+                    UDS_ARROWKEYS | UDS_NOTHOUSANDS,266,142,8,12
+    LTEXT           "Handshake:",IDC_STATIC,170,162,50,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_TIMEOUT_HANDSHAKE,225,162,40,12,ES_AUTOHSCROLL | 
                     ES_NUMBER
     CONTROL         "Spin1",IDC_TIMEOUT_HANDSHAKE_SPIN,"msctls_updown32",
                     UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | 
-                    UDS_ARROWKEYS | UDS_NOTHOUSANDS,243,193,11,12
+                    UDS_ARROWKEYS | UDS_NOTHOUSANDS,267,162,8,12
+    CONTROL         "I can accept incoming connections",IDC_CAN_ACCEPT,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,145,136,12
 END
 
 IDD_SETTINGS_GNUTELLA DIALOGEX 0, 0, 282, 220
@@ -1453,7 +1449,7 @@ FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
     LTEXT           "For optimum performance, Shareaza needs to know a little bit about your connection to the Internet.",
                     IDC_STATIC,10,10,265,20
-    COMBOBOX        IDC_CONNECTION_GROUP,26,35,190,102,CBS_DROPDOWNLIST | 
+    COMBOBOX        IDC_CONNECTION_GROUP,25,35,190,102,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Is your network or campus protected by a firewall or NAT router?",
                     IDC_CONNECTION_LAN_LABEL,10,60,265,15,NOT WS_VISIBLE
@@ -1465,10 +1461,10 @@ BEGIN
                     NOT WS_VISIBLE | WS_VSCROLL | WS_TABSTOP
     LTEXT           "If you know how fast your Internet connection is able to operate, select the best option below:",
                     IDC_STATIC,10,100,265,20
-    COMBOBOX        IDC_CONNECTION_TYPE,26,125,95,150,CBS_DROPDOWNLIST | 
+    COMBOBOX        IDC_CONNECTION_TYPE,25,125,95,102,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     CTEXT           "OR, choose:",IDC_STATIC,125,125,60,12,SS_CENTERIMAGE
-    COMBOBOX        IDC_CONNECTION_SPEED,190,125,75,178,CBS_DROPDOWN | 
+    COMBOBOX        IDC_CONNECTION_SPEED,190,125,75,135,CBS_DROPDOWN | 
                     WS_VSCROLL | WS_TABSTOP
 END
 
@@ -1536,7 +1532,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_3DLOOK | WS_POPUP | WS_CAPTION |
 CAPTION "Download File or Torrent"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
-    CONTROL         154,IDC_BANNER,"Static",SS_BITMAP,0,0,292,31
+    CONTROL         154,IDC_STATIC,"Static",SS_BITMAP,0,0,292,31
     ICON            IDI_FILE,IDC_STATIC,6,36,20,20
     LTEXT           "Downloading any file with Shareaza is easy.  Simply type or paste the URL or URI describing the file into the box below and press Enter.",
                     IDC_STATIC,36,38,246,18
@@ -1646,13 +1642,13 @@ BEGIN
                     IDC_MESSAGE_MOVE,5,5,205,10,NOT WS_VISIBLE
 END
 
-IDD_URL_ACTION DIALOGEX 0, 0, 292, 154
+IDD_URL_ACTION DIALOG  0, 0, 292, 154
 STYLE DS_SETFONT | DS_MODALFRAME | DS_3DLOOK | DS_CENTER | WS_POPUP | 
     WS_CAPTION | WS_SYSMENU
 CAPTION "Shareaza URI Manager"
-FONT 8, "Tahoma", 0, 0, 0x1
+FONT 8, "Tahoma"
 BEGIN
-    CONTROL         154,IDC_BANNER,"Static",SS_BITMAP | WS_GROUP,0,0,293,172
+    CONTROL         154,IDC_STATIC,"Static",SS_BITMAP | WS_GROUP,0,0,293,172
     LTEXT           "You have clicked on a Shareaza-powered URI which links to the following content on the network:",
                     IDC_MESSAGE_1,20,40,250,20,NOT WS_VISIBLE
     LTEXT           "You have clicked on a Shareaza-powered URL which will connect you to the following host or server:",
@@ -1683,25 +1679,18 @@ STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Welcome to Shareaza"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
-    LTEXT           "Shareaza supports a flexible user interface, so you can choose what is most comfortable for you. You can change these options at any time.",
-                    IDC_STATIC,12,7,258,20
-    GROUPBOX        "Please select user interface:",IDC_STATIC,7,27,269,83
+    LTEXT           "Shareaza supports two different user interfaces, so you can choose the one which is most comfortable for you.",
+                    IDC_STATIC,10,10,265,20
+    LTEXT           "Please select one of these two user interfaces:",
+                    IDC_STATIC,10,35,265,10
     CONTROL         "Normal Mode",IDC_INTERFACE_0,"Button",
-                    BS_AUTORADIOBUTTON | WS_GROUP,14,39,250,10
+                    BS_AUTORADIOBUTTON | WS_GROUP,10,55,260,10
     CONTROL         "Power Mode",IDC_INTERFACE_1,"Button",BS_AUTORADIOBUTTON,
-                    14,75,250,10
+                    10,105,260,10
     LTEXT           "Simple, easy to use menus and buttons.\nFamiliar to users of other file sharing programs.",
-                    IDC_DESCRIPTION_0,27,51,243,21
-    LTEXT           "Power mode offers expert users lots of extra commands, windows, etc.\nIt may be a little confusing for new users!",
-                    IDC_DESCRIPTION_1,27,87,243,21
-    CONTROL         "Display simplified download progress bars. (Reduces CPU use)",
-                    IDC_DOWNLOADS_SIMPLEBAR,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,14,114,256,10
-    CONTROL         "Display additional torrent interface elements.",
-                    IDC_TORRENT_INTERFACE,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,14,127,256,10
-    CONTROL         "Handle torrent links.",IDC_URI_TORRENT,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,14,140,256,10
+                    IDC_DESCRIPTION_0,25,70,245,25
+    LTEXT           "Power mode offers expert users lots of extra commands, windows, etc.",
+                    IDC_DESCRIPTION_1,25,120,245,30
 END
 
 IDD_URL_COPY DIALOGEX 0, 0, 292, 134
@@ -1709,7 +1698,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Copy URI"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
-    CONTROL         154,IDC_BANNER,"Static",SS_BITMAP,0,0,293,172
+    CONTROL         154,IDC_STATIC,"Static",SS_BITMAP,0,0,293,172
     LTEXT           "You can copy a URI for the selected item in a variety of different formats.  Please choose the format you wish to use by clicking one of the URIs below:",
                     IDC_MESSAGE,10,40,270,30
     CONTROL         "...",IDC_URL_MAGNET,"Static",SS_LEFTNOWORDWRAP | 
@@ -1843,12 +1832,12 @@ BEGIN
                     ES_READONLY
 END
 
-IDD_URL_EXPORT DIALOGEX 0, 0, 292, 129
+IDD_URL_EXPORT DIALOG  0, 0, 292, 129
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Export URIs"
-FONT 8, "Tahoma", 0, 0, 0x1
+FONT 8, "Tahoma"
 BEGIN
-    CONTROL         154,IDC_BANNER,"Static",SS_BITMAP,0,0,293,172
+    CONTROL         154,IDC_STATIC,"Static",SS_BITMAP,0,0,293,172
     LTEXT           "You have selected %lu files to export as Shareaza-powered URI references.  Please select the format for the URIs, and click Save:",
                     IDC_MESSAGE,10,40,270,20
     EDITTEXT        IDC_URL_FORMAT,10,65,270,12,ES_AUTOHSCROLL
@@ -1865,13 +1854,13 @@ BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,235,105,45,14
 END
 
-IDD_UPGRADE DIALOGEX 0, 0, 292, 154
+IDD_UPGRADE DIALOG  0, 0, 292, 154
 STYLE DS_SETFONT | DS_MODALFRAME | DS_3DLOOK | DS_CENTER | WS_POPUP | 
     WS_CAPTION | WS_SYSMENU
 CAPTION "Upgrade Alert"
-FONT 8, "Tahoma", 0, 0, 0x1
+FONT 8, "Tahoma"
 BEGIN
-    CONTROL         154,IDC_BANNER,"Static",SS_BITMAP,0,0,293,172
+    CONTROL         154,IDC_STATIC,"Static",SS_BITMAP,0,0,293,172
     LTEXT           "A new version of Shareaza is now available.  Would you like to upgrade?",
                     IDC_MESSAGE,20,40,250,60
     LTEXT           "If you select Upgrade Now, Shareaza will add the upgrade to your download queue and automatically begin downloading it.",
@@ -2084,16 +2073,16 @@ STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Library"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
-    GROUPBOX        "&Options:",IDC_STATIC,5,5,139,85,WS_GROUP
+    GROUPBOX        "&Options:",IDC_STATIC,5,5,135,85,WS_GROUP
     CONTROL         "Remember folder views",IDC_STORE_VIEWS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,15,20,126,12
+                    BS_AUTOCHECKBOX | WS_TABSTOP,15,20,120,12
     CONTROL         "Watch library folders",IDC_WATCH_FOLDERS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,15,35,126,12
+                    BS_AUTOCHECKBOX | WS_TABSTOP,15,35,120,12
     CONTROL         "Quick hashing (Uses more CPU)",IDC_HIGH_HASH,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,15,65,126,12
+                    BS_AUTOCHECKBOX | WS_TABSTOP,15,65,120,12
     CONTROL         "Allow others to browse shares",IDC_BROWSE_FILES,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,15,50,126,12
-    GROUPBOX        "&Recent Files:",IDC_STATIC,5,92,139,84,WS_GROUP
+                    BS_AUTOCHECKBOX | WS_TABSTOP,15,50,120,12
+    GROUPBOX        "&Recent Files:",IDC_STATIC,5,92,135,84,WS_GROUP
     LTEXT           "Remember:",IDC_STATIC,15,112,46,12,SS_CENTERIMAGE
     EDITTEXT        IDC_RECENT_TOTAL,65,112,35,12,ES_AUTOHSCROLL | ES_NUMBER
     CONTROL         "Spin1",IDC_RECENT_TOTAL_SPIN,"msctls_updown32",
@@ -2361,7 +2350,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_3DLOOK | DS_CENTER | WS_POPUP |
 CAPTION "Shared Folder Manager"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
-    CONTROL         154,IDC_BANNER,"Static",SS_BITMAP,0,0,293,172
+    CONTROL         154,IDC_STATIC,"Static",SS_BITMAP,0,0,293,172
     LTEXT           "This is a list of folders in your library.  You can add and remove folders using the buttons on the left.  When you add a new folder it is initially shared with other users, however you can unshare it from the Shareaza library if you wish.",
                     IDC_STATIC,5,35,280,30
     CONTROL         "List1",IDC_SHARE_FOLDERS,"SysListView32",LVS_REPORT | 
@@ -2394,7 +2383,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_3DLOOK | DS_CENTER | WS_POPUP |
 CAPTION "Select Visualisation"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
-    CONTROL         154,IDC_BANNER,"Static",SS_BITMAP,0,0,293,172
+    CONTROL         154,IDC_STATIC,"Static",SS_BITMAP,0,0,293,172
     GROUPBOX        "Select an audio visualisation from the list:",
                     IDC_STATIC,5,35,280,140,WS_GROUP
     CONTROL         "List1",IDC_PLUGINS,"SysListView32",LVS_REPORT | 
@@ -2496,7 +2485,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Shareaza Respects its Users"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
-    CONTROL         154,IDC_BANNER,"Static",SS_BITMAP,0,0,293,172
+    CONTROL         154,IDC_STATIC,"Static",SS_BITMAP,0,0,293,172
     LTEXT           "Did you know Shareaza is a 100% free product?",
                     IDC_TITLE,15,34,265,19,SS_CENTERIMAGE
     LTEXT           "Shareaza does NOT contain ANY ""spyware"", ""adware"" or other bundled software. It does NOT display any advertisements or ""popups"", ever.\n\nIf you ever see advertising or ""popups"" while using Shareaza, be assured that they are NOT coming from this program.",
@@ -2510,12 +2499,12 @@ BEGIN
     DEFPUSHBUTTON   "Close",IDOK,245,190,39,14
 END
 
-IDD_PROMOTE DIALOGEX 0, 0, 292, 185
+IDD_PROMOTE DIALOG  0, 0, 292, 185
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Spread the Word"
-FONT 8, "Tahoma", 0, 0, 0x1
+FONT 8, "Tahoma"
 BEGIN
-    CONTROL         154,IDC_BANNER,"Static",SS_BITMAP,0,0,293,172
+    CONTROL         154,IDC_STATIC,"Static",SS_BITMAP,0,0,293,172
     LTEXT           "Help Us Spread the Word",IDC_TITLE,15,45,265,10,
                     SS_CENTERIMAGE
     LTEXT           "We hope you have enjoyed using Shareaza so far.  We believe it is the best file sharing application around.",
@@ -2535,7 +2524,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Existing File"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
-    CONTROL         154,IDC_BANNER,"Static",SS_BITMAP | WS_GROUP,0,0,292,31
+    CONTROL         154,IDC_STATIC,"Static",SS_BITMAP | WS_GROUP,0,0,292,31
     CONTROL         "filename goes here",IDC_FILE_NAME,"Static",
                     SS_LEFTNOWORDWRAP | SS_WORDELLIPSIS | WS_GROUP,15,40,260,
                     10
@@ -2563,7 +2552,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Close Button"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
-    CONTROL         154,IDC_BANNER,"Static",SS_BITMAP | WS_GROUP,0,0,292,31
+    CONTROL         154,IDC_STATIC,"Static",SS_BITMAP | WS_GROUP,0,0,292,31
     LTEXT           "This is the first time you have clicked Shareaza's close button.  Please choose what action you would like Shareaza to take when clicking the close button from now on:",
                     IDC_STATIC,15,40,260,30
     CONTROL         "Minimise to the tray area",IDC_CLOSE_0,"Button",
@@ -2576,10 +2565,10 @@ BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,235,126,50,14
 END
 
-IDD_SETTINGS_DONKEY DIALOGEX 0, 0, 282, 220
+IDD_SETTINGS_DONKEY DIALOG  0, 0, 282, 220
 STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "eDonkey2000"
-FONT 8, "Tahoma", 0, 0, 0x1
+FONT 8, "Tahoma"
 BEGIN
     GROUPBOX        "&eDonkey2000 Network:",IDC_STATIC,5,5,270,36,WS_GROUP
     CONTROL         "Connect to eDonkey2000 today",IDC_ENABLE_TODAY,"Button",
@@ -2590,14 +2579,13 @@ BEGIN
     CONTROL         "Search known remote servers in the server cache:",
                     IDC_SERVER_WALK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,
                     64,250,12
-    RTEXT           "Stop searching after:",IDC_STATIC,15,82,95,12,
+    RTEXT           "Stop searching after:",IDC_STATIC,30,82,80,12,
                     SS_CENTERIMAGE
     EDITTEXT        IDC_RESULTS,120,82,35,12,ES_AUTOHSCROLL | ES_NUMBER
     CONTROL         "Spin1",IDC_RESULTS_SPIN,"msctls_updown32",
                     UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | 
                     UDS_ARROWKEYS | UDS_NOTHOUSANDS,156,82,8,12
-    LTEXT           "search results.",IDC_STATIC,165,82,100,12,
-                    SS_CENTERIMAGE
+    LTEXT           "search results.",IDC_STATIC,165,82,85,12,SS_CENTERIMAGE
     GROUPBOX        "&Client Link Connections:",IDC_STATIC,5,110,270,37
     RTEXT           "Connect to no more than:",IDC_STATIC,15,125,95,12,
                     SS_CENTERIMAGE
@@ -2735,7 +2723,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Download Server.met File"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
-    CONTROL         154,IDC_BANNER,"Static",SS_BITMAP,0,0,292,31
+    CONTROL         154,IDC_STATIC,"Static",SS_BITMAP,0,0,292,31
     LTEXT           "You can download an eDonkey2000 server.met file from the web to refresh your local list of servers.",
                     IDC_STATIC,10,40,270,20
     EDITTEXT        IDC_URL,10,65,270,12,ES_AUTOHSCROLL
@@ -2795,12 +2783,12 @@ BEGIN
                     NOT WS_BORDER
 END
 
-IDD_DONKEY_IMPORT DIALOGEX 0, 0, 292, 169
+IDD_DONKEY_IMPORT DIALOG  0, 0, 292, 169
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Import eDonkey2000 Downloads"
-FONT 8, "Tahoma", 0, 0, 0x1
+FONT 8, "Tahoma"
 BEGIN
-    CONTROL         154,IDC_BANNER,"Static",SS_BITMAP,0,0,292,31
+    CONTROL         154,IDC_STATIC,"Static",SS_BITMAP,0,0,292,31
     LTEXT           "Shareaza has detected that you have another eDonkey2000 program installed on your computer.  Would you like to import any unfinished downloads into Shareaza?",
                     IDC_STATIC,15,40,260,30
     DEFPUSHBUTTON   "Yes",IDC_IMPORT,15,75,50,14
@@ -2935,7 +2923,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_3DLOOK | WS_POPUP | WS_CAPTION |
 CAPTION "Open Torrent File"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
-    CONTROL         154,IDC_BANNER,"Static",SS_BITMAP,0,0,292,31
+    CONTROL         154,IDC_STATIC,"Static",SS_BITMAP,0,0,292,31
     LTEXT           "You have opened a BitTorrent torrent file.  Would you like to download its contents, or re-seed it?",
                     IDC_STATIC,7,36,276,18
     DEFPUSHBUTTON   "Download",IDC_DOWNLOAD,66,61,50,14,WS_GROUP
@@ -3009,45 +2997,42 @@ STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "BitTorrent"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
-    GROUPBOX        "&Interface:",IDC_STATIC,5,5,270,25
+    GROUPBOX        "&Interface:",IDC_STATIC,6,5,270,27
     CONTROL         "Display additional BitTorrent interface elements",
                     IDC_TORRENT_INTERFACE,"Button",BS_AUTOCHECKBOX | 
-                    WS_GROUP | WS_TABSTOP,16,13,250,15
-    GROUPBOX        "&Download Connections:",IDC_STATIC,5,30,270,70
-    EDITTEXT        IDC_TORRENT_DOWNLOADS,15,41,35,12,ES_AUTOHSCROLL | 
+                    WS_GROUP | WS_TABSTOP,16,14,250,15
+    GROUPBOX        "&Download Connections:",IDC_STATIC,5,37,270,60
+    EDITTEXT        IDC_TORRENT_DOWNLOADS,15,48,35,12,ES_AUTOHSCROLL | 
                     ES_NUMBER
     CONTROL         "",IDC_TORRENT_DOWNLOADS_SPIN,"msctls_updown32",
                     UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | 
-                    UDS_ARROWKEYS | UDS_NOTHOUSANDS,51,42,11,12
-    LTEXT           "Torrents at once",IDC_STATIC,57,41,207,12,
+                    UDS_ARROWKEYS | UDS_NOTHOUSANDS,51,48,11,12
+    LTEXT           "Torrents at once",IDC_STATIC,57,48,207,12,
                     SS_CENTERIMAGE
-    EDITTEXT        IDC_TORRENT_CLIENTLINKS,15,57,35,12,ES_AUTOHSCROLL | 
+    EDITTEXT        IDC_TORRENT_CLIENTLINKS,15,64,35,12,ES_AUTOHSCROLL | 
                     ES_NUMBER
     CONTROL         "",IDC_TORRENT_LINKS_SPIN,"msctls_updown32",
                     UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | 
-                    UDS_ARROWKEYS | UDS_NOTHOUSANDS,51,58,11,12
-    LTEXT           "Client connections",IDC_STATIC,57,57,211,12,
+                    UDS_ARROWKEYS | UDS_NOTHOUSANDS,51,64,11,12
+    LTEXT           "Client connections",IDC_STATIC,57,64,211,12,
                     SS_CENTERIMAGE
-    CONTROL         " Clear downloaded torrents        When the share ratio reaches",
-                    IDC_TORRENT_AUTOCLEAR,"Button",BS_AUTOCHECKBOX | 
-                    BS_VCENTER | WS_TABSTOP,15,73,212,11,WS_EX_TRANSPARENT
-    EDITTEXT        IDC_TORRENT_CLEAR_PERCENTAGE,230,73,35,12,ES_AUTOHSCROLL
+    CONTROL         " Clear downloaded torrents",IDC_TORRENT_AUTOCLEAR,
+                    "Button",BS_AUTOCHECKBOX | BS_VCENTER | WS_TABSTOP,15,80,
+                    105,11,WS_EX_TRANSPARENT
+    LTEXT           "When the share ratio reaches ",IDC_STATIC,126,80,101,11,
+                    SS_CENTERIMAGE,WS_EX_TRANSPARENT | WS_EX_RIGHT
+    EDITTEXT        IDC_TORRENT_CLEAR_PERCENTAGE,230,80,35,12,ES_AUTOHSCROLL
     CONTROL         "",IDC_TORRENT_CLEAR_SPIN,"msctls_updown32",
                     UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | 
-                    UDS_ARROWKEYS | UDS_NOTHOUSANDS,253,74,11,12
-    LTEXT           "%",IDC_STATIC,266,74,8,11,SS_CENTERIMAGE,
-                    WS_EX_TRANSPARENT
-    CONTROL         " Prefer torrent sources",IDC_TORRENT_PREFERENCE,"Button",
-                    BS_AUTOCHECKBOX | BS_VCENTER | WS_TABSTOP,15,86,205,11,
-                    WS_EX_TRANSPARENT
-    GROUPBOX        "&EndGame:",IDC_STATIC,5,102,270,27
+                    UDS_ARROWKEYS | UDS_NOTHOUSANDS,253,80,11,12
+    GROUPBOX        "&EndGame:",IDC_STATIC,6,99,270,27
     CONTROL         "Enable EndGame mode when completing torrents",
                     IDC_TORRENT_ENDGAME,"Button",BS_AUTOCHECKBOX | WS_GROUP | 
-                    WS_TABSTOP,16,112,250,15
-    GROUPBOX        "&Store Torrents Here:",IDC_STATIC,5,131,270,32,WS_GROUP
-    EDITTEXT        IDC_TORRENTS_FOLDER,15,143,225,12,ES_AUTOHSCROLL | 
+                    WS_TABSTOP,16,108,250,15
+    GROUPBOX        "&Store Torrents Here:",IDC_STATIC,5,128,270,32,WS_GROUP
+    EDITTEXT        IDC_TORRENTS_FOLDER,15,140,225,12,ES_AUTOHSCROLL | 
                     ES_READONLY | NOT WS_TABSTOP
-    PUSHBUTTON      "",IDC_TORRENTS_BROWSE,245,139,23,20
+    PUSHBUTTON      "",IDC_TORRENTS_BROWSE,245,136,23,20
     GROUPBOX        "&Torrent Creator:",IDC_STATIC,5,164,270,50,WS_GROUP
     EDITTEXT        IDC_TORRENTS_TORRENTMAKER,15,176,225,12,ES_AUTOHSCROLL | 
                     ES_READONLY | NOT WS_TABSTOP
@@ -3055,6 +3040,8 @@ BEGIN
     RTEXT           "Default Tracker: ",IDC_STATIC,14,197,69,11,
                     SS_CENTERIMAGE
     EDITTEXT        IDC_TORRENT_DEFAULTTRACKER,83,197,184,12,ES_AUTOHSCROLL
+    LTEXT           "%",IDC_STATIC,266,81,8,11,SS_CENTERIMAGE,
+                    WS_EX_TRANSPARENT
 END
 
 IDD_SETTINGS_SCHEDULER DIALOGEX 0, 0, 282, 220
@@ -3062,19 +3049,19 @@ STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Scheduler"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
-    GROUPBOX        "&Options:",IDC_STATIC,3,156,154,58
+    GROUPBOX        "&Options:",IDC_STATIC,3,155,154,56
     CONTROL         " &Enable scheduler",IDC_SCHEDULER_ENABLE,"Button",
-                    BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,10,165,144,15,
+                    BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,10,164,144,15,
                     WS_EX_TRANSPARENT
-    EDITTEXT        IDC_SCHEDULER_LIMITED,10,182,29,12,ES_AUTOHSCROLL | 
+    EDITTEXT        IDC_SCHEDULER_LIMITED,10,181,29,12,ES_AUTOHSCROLL | 
                     ES_NUMBER
     CONTROL         "",IDC_SCHEDULER_LIMITED_SPIN,"msctls_updown32",
                     UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | 
                     UDS_ARROWKEYS | UDS_NOTHOUSANDS,27,181,11,12
-    CONTROL         "&Connect to only G2 when limited",
+    CONTROL         "&Connect to G2 only when limited",
                     IDC_SCHEDULER_LIMITED_NETWORKS,"Button",BS_AUTOCHECKBOX | 
-                    WS_GROUP | WS_TABSTOP,10,196,142,15,WS_EX_TRANSPARENT
-    GROUPBOX        "Key:",IDC_STATIC,3,105,154,49
+                    WS_GROUP | WS_TABSTOP,10,195,142,15,WS_EX_TRANSPARENT
+    GROUPBOX        "Key:",IDC_STATIC,3,104,154,49
     RTEXT           "Sun",IDC_STATIC,0,26,21,8,0,WS_EX_TRANSPARENT
     RTEXT           "Mon",IDC_STATIC,0,36,21,8,0,WS_EX_TRANSPARENT
     RTEXT           "Tue",IDC_STATIC,0,46,21,8,0,WS_EX_TRANSPARENT
@@ -3082,20 +3069,20 @@ BEGIN
     RTEXT           "Thu",IDC_STATIC,0,66,21,8,0,WS_EX_TRANSPARENT
     RTEXT           "Fri",IDC_STATIC,0,76,21,8,0,WS_EX_TRANSPARENT
     RTEXT           "Sat",IDC_STATIC,0,86,21,8,0,WS_EX_TRANSPARENT
-    LTEXT           "Do not connect",IDC_STATIC,36,115,116,8,0,
+    LTEXT           "Do not connect",IDC_STATIC,36,114,116,8,0,
                     WS_EX_TRANSPARENT
-    LTEXT           "Limited connection",IDC_STATIC,36,128,116,8,0,
+    LTEXT           "Limited connection",IDC_STATIC,36,126,116,8,0,
                     WS_EX_TRANSPARENT
-    LTEXT           "Connect at full speed",IDC_STORE_VIEWS,36,140,116,8,0,
+    LTEXT           "Connect at full speed",IDC_STORE_VIEWS,36,139,116,8,0,
                     WS_EX_TRANSPARENT
-    LTEXT           "% of &bandwidth when limited",IDC_STATIC,40,182,114,12,
+    LTEXT           "% of &bandwidth when limited",IDC_STATIC,40,181,114,12,
                     SS_CENTERIMAGE,WS_EX_TRANSPARENT
     EDITTEXT        IDC_SCHEDULER_DISPLAY,35,96,187,11,ES_AUTOHSCROLL | 
                     ES_READONLY | WS_DISABLED | NOT WS_BORDER | NOT 
                     WS_TABSTOP,WS_EX_TRANSPARENT
-    GROUPBOX        "Help",IDC_STATIC,159,105,118,108,0,WS_EX_RIGHT
+    GROUPBOX        "Help",IDC_STATIC,159,104,118,107,0,WS_EX_RIGHT
     LTEXT           "The scheduler is designed to allow you to set times when Shareaza will connect and download files. \n\n\nNote: If you have Shareaza open while the scheduler is active, you may see it changing settings- This is normal!",
-                    IDC_STATIC,167,113,101,93
+                    IDC_STATIC,167,112,101,94
 END
 
 IDD_FILTER_SAVE_AS DIALOGEX 0, 0, 205, 46
@@ -3107,7 +3094,7 @@ BEGIN
     EDITTEXT        IDC_NAME,7,19,128,14,ES_AUTOHSCROLL
     DEFPUSHBUTTON   "OK",IDOK,148,7,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,148,24,50,14
-    LTEXT           "Save the current filter as",IDC_STATIC,7,7,129,8
+    LTEXT           "Save the current filter as",IDC_STATIC,7,7,81,8
 END
 
 IDD_DOWNLOAD_REVIEWS DIALOGEX 0, 0, 362, 202
@@ -3116,7 +3103,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_3DLOOK | WS_POPUP | WS_CAPTION |
 CAPTION "Download Reviews"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
-    CONTROL         154,IDC_BANNER,"Static",SS_BITMAP,0,0,367,31
+    CONTROL         154,IDC_STATIC,"Static",SS_BITMAP,0,0,367,31
     DEFPUSHBUTTON   "OK",IDOK,305,181,50,14
     CONTROL         "",IDC_REVIEWS,"SysListView32",LVS_REPORT | 
                     LVS_SHAREIMAGELISTS | WS_BORDER | WS_TABSTOP,7,39,348,
@@ -3949,14 +3936,6 @@ BEGIN
 0x4120, 0x5344, 0x204c, 0x3728, 0x3836, 0x294b, "\000" 
     IDC_CONNECTION_TYPE, 0x403, 13, 0
 0x4120, 0x5344, 0x204c, 0x3128, 0x352e, 0x294d, "\000" 
-    IDC_CONNECTION_TYPE, 0x403, 13, 0
-0x4120, 0x5344, 0x204c, 0x3428, 0x302e, 0x294d, "\000" 
-    IDC_CONNECTION_TYPE, 0x403, 14, 0
-0x4120, 0x5344, 0x324c, 0x2820, 0x2e38, 0x4d30, 0x0029, 
-    IDC_CONNECTION_TYPE, 0x403, 15, 0
-0x4120, 0x5344, 0x324c, 0x2820, 0x3231, 0x302e, 0x294d, "\000" 
-    IDC_CONNECTION_TYPE, 0x403, 16, 0
-0x4120, 0x5344, 0x324c, 0x202b, 0x3228, 0x2e34, 0x4d30, 0x0029, 
     IDC_CONNECTION_TYPE, 0x403, 18, 0
 0x4320, 0x6261, 0x656c, 0x4d20, 0x646f, 0x6d65, 0x532f, 0x5344, 0x004c, 
 
@@ -3998,10 +3977,6 @@ BEGIN
 0x3420, 0x3930, 0x2036, 0x626b, 0x7370, "\000" 
     IDC_CONNECTION_SPEED, 0x403, 11, 0
 0x3520, 0x3231, 0x2030, 0x626b, 0x7370, "\000" 
-    IDC_CONNECTION_SPEED, 0x403, 11, 0
-0x3820, 0x3931, 0x2032, 0x626b, 0x7370, "\000" 
-    IDC_CONNECTION_SPEED, 0x403, 12, 0
-0x3120, 0x3232, 0x3838, 0x6b20, 0x7062, 0x0073, 
     0
 END
 
@@ -4315,6 +4290,7 @@ IDR_LARGE_LOGO          JPEG                    "Res\\LogoLarge.jpg"
 // PNG
 //
 
+IDR_MERCORA_BUTTON      PNG                     "Res\\Mercora.png"
 IDR_HOME_HEADER_1       PNG                     "Res\\HomeHeader.1.png"
 IDR_HOME_HEADER_2       PNG                     "Res\\HomeHeader.2.png"
 IDR_SPLASH              PNG                     "Res\\Splash.png"
@@ -4350,16 +4326,6 @@ BEGIN
     IDR_MEDIAFRAME          "Media Player"
     IDR_SEARCHPADFRAME      "Search"
     IDR_HELPFRAME           "Shareaza Help"
-END
-
-STRINGTABLE 
-BEGIN
-    IDS_FILTER_DELETE_CONFIRM "Are you sure you want to delete this filter ?"
-    IDS_SCHEMAS             "&Schemas"
-    IDS_MULTIPLE_VALUES     "Multiple Values"
-    IDS_MULTIPLE            "Multiple"
-    IDS_FILTER_REPLACE      "There already is a filter called ""%s"", do you want to replace it?"
-    IDS_FILTER_NO_NAME      "Please give your filter a name."
 END
 
 STRINGTABLE 
@@ -4473,7 +4439,6 @@ END
 STRINGTABLE 
 BEGIN
     IDS_HASH_MESSAGE        "Shareaza is creating hashes for %i file(s):"
-    IDS_DLM_TIME_DAH        "%i days and %i hours"
 END
 
 STRINGTABLE 
@@ -4530,7 +4495,10 @@ BEGIN
     IDS_TIP_HITS            "Hits"
     IDS_TIP_UPLOADS         "Uploads"
     IDS_TIP_TODAYTOTAL      "%lu today, %lu total"
-    IDS_TIP_NOHASHSET       " (No Hashset)"
+END
+
+STRINGTABLE 
+BEGIN
     IDS_TIP_STATUS          "Status:"
     IDS_TIP_SPEED           "Speed:"
     IDS_TIP_URL             "URL:"
@@ -4547,6 +4515,10 @@ BEGIN
     IDS_TIP_SOURCE_UNSTABLE "This source may be unstable"
     IDS_TIP_FILE_BUSY       "Sources for this file are currently busy"
     IDS_TIP_FILE_FIREWALLED "Sources for this file are firewalled"
+END
+
+STRINGTABLE 
+BEGIN
     IDS_TIP_FILE_UNSTABLE   "Sources for this file may be unstable"
 END
 
@@ -4778,38 +4750,6 @@ END
 
 STRINGTABLE 
 BEGIN
-    IDS_DOWNLOAD_TIGER_CORRUPT 
-                            "Download host's tiger-tree data is corrupt or internally inconsistent, ignoring it."
-    IDS_DOWNLOAD_TIGER_MISMATCH 
-                            "Download host's tiger-tree does not match expected root value."
-    IDS_DOWNLOAD_TIGER_READY 
-                            "Received tiger-tree volume for ""%s"", %i levels, minimum verifiable chunk %s."
-    IDS_DOWNLOAD_CLOSING_EXTRA 
-                            "Closing download connection to %s, no longer required."
-    IDS_DOWNLOAD_CLOSING_OVERFLOW 
-                            "Download host %s sent unsolicited data, closing connection."
-    IDS_DOWNLOAD_METADATA_REQUEST "Requesting metadata for ""%s"" from %s..."
-    IDS_DOWNLOAD_METADATA_RECV "Receiving tiger-tree data from %s (%s)..."
-    IDS_DOWNLOAD_HASHSET_REQUEST 
-                            "Requesting eDonkey2000 hashset for ""%s"" from %s..."
-    IDS_DOWNLOAD_HASHSET_ERROR 
-                            "Received an invalid eDonkey2000 hashset from %s, dropping source."
-    IDS_DOWNLOAD_HASHSET_READY 
-                            "Received eDonkey2000 hashset for ""%s"", minimum verifiable chunk %s."
-    IDS_DOWNLOAD_HASHSET_CORRUPT 
-                            "Download host's eDonkey2000 hashset is corrupt or internally inconsistent, dropping source."
-    IDS_DOWNLOAD_INFLATE_ERROR 
-                            "Unable to initialize inflate for download ""%s""."
-    IDS_DOWNLOAD_QUEUE_TIMEOUT 
-                            "Timed out waiting for queue update from eDonkey2000 download host %s for file ""%s""."
-    IDS_DOWNLOAD_QUEUE_DROP "Staying in queue for ""%s""."
-    IDS_DOWNLOAD_DISK_SPACE "Insufficient disk space to download ""%s"" (%s)."
-    IDS_DOWNLOAD_VERIFY_DROP 
-                            "Dropping source %s (%s) for sending corrupted parts of ""%s"" (%I64i-%I64i)."
-END
-
-STRINGTABLE 
-BEGIN
     IDS_UPLOAD_NOHTTP       "Upload host %s sent an invalid HTTP request."
     IDS_UPLOAD_CONNECT      "Initiating a push connection to %s. %s"
     IDS_UPLOAD_CONNECT_ERROR "Unable to connect to host %s for push."
@@ -4821,7 +4761,7 @@ BEGIN
                             "Upload host %s requested ""%s"" with different SHA1."
     IDS_UPLOAD_BUSY_OLD     "Refusing upload of ""%s"" to %s (%s), busy and client does not support queues."
     IDS_UPLOAD_GIV          "Push connection to %s established, waiting for handshake..."
-    IDS_UPLOAD_CANTOPEN     "Can't open ""%s"" to upload to host %s due to disk or file error."
+    IDS_UPLOAD_CANTOPEN     "Can't open ""%s"" to upload to host %s, disk/file error."
     IDS_UPLOAD_CONTENT      "Sending upload content range %I64i-%I64i from ""%s"" to host %s (%s)."
     IDS_UPLOAD_FINISHED     "Finished uploading part of ""%s"" to %s."
     IDS_UPLOAD_ACCEPTED     "Incoming connection from %s is a HTTP upload request."
@@ -4853,66 +4793,6 @@ BEGIN
     IDS_UPLOAD_TIGER_SEND   "Uploading tiger-tree data for ""%s"" to %s."
     IDS_UPLOAD_METADATA_SEND "Uploading metadata for ""%s"" to %s."
     IDS_UPLOAD_BUSY_HOST    "Refusing upload of ""%s"" to %s (%s), too many concurrent from host."
-END
-
-STRINGTABLE 
-BEGIN
-    IDS_UPLOAD_PREVIEW_SEND "Uploading a preview of ""%s"" to %s."
-    IDS_UPLOAD_PREVIEW_BUSY "Refusing to upload a preview of ""%s"" to %s, too many preview connections."
-    IDS_UPLOAD_PREVIEW_EMPTY 
-                            "Upload host %s requested a preview of ""%s"", but no preview is available."
-    IDS_UPLOAD_PREVIEW_DYNAMIC 
-                            "Scheduling a dynamic preview of ""%s"" for upload to %s."
-    IDS_UPLOAD_BROWSE_BUSY  "Refusing browse user request from %s, too many browse connections."
-    IDS_UPLOAD_FILE         "Uploading file ""%s"" to host %s..."
-    IDS_UPLOAD_QUEUE_DROP   "Upload connection to %s was lost, preserving queue position."
-    IDS_UPLOAD_QUEUE_TIMEOUT 
-                            "Offline queued upload host %s expired, removing."
-    IDS_UPLOAD_BUSY_QUEUE   "Refusing upload of ""%s"" to %s (%s), all matching queues are full."
-    IDS_UPLOAD_DISABLED     "Refusing upload to %s (%s), network disabled."
-    IDS_UPLOAD_CANCEL_ED2K  "eDonkey2000 uploads should not be cancelled.  Are you sure you want to cancel this upload?"
-    IDS_UPLOAD_QUEUE_TORRENT "Torrent Uploads"
-    IDS_UPLOAD_QUEUE_HISTORY "Completed Uploads"
-    IDS_DOWNLOAD_CLEAR_GROUP 
-                            "Are you sure you want to cancel/abort every download in this group?"
-    IDS_UPLOAD_QUEUE_QUEUE  "Queue"
-    IDS_UPLOAD_QUEUE_ED2K_CORE "eDonkey Core"
-    IDS_UPLOAD_QUEUE_ED2K_PARTIALS "eDonkey Partials"
-    IDS_UPLOAD_QUEUE_ED2K_GUARD "eDonkey Guard"
-    IDS_UPLOAD_QUEUE_SMALL_FILES "Small Files"
-    IDS_UPLOAD_QUEUE_MEDIUM_FILES "Medium Files"
-    IDS_UPLOAD_QUEUE_LARGE_FILES "Large Files"
-    IDS_UPLOAD_QUEUE_PARTIAL_FILES "Partial Files"
-    IDS_UPLOAD_QUEUE_NEW    "New Queue"
-    IDS_UPLOAD_QUEUE_PARTIAL "Partial"
-    IDS_UPLOAD_QUEUE_COMPLETE "All Files"
-    IDS_UPLOAD_QUEUE_HTTP_GUARD "HTTP Guard"
-    IDS_DOWNLOAD_416_WITHOUT_RANGE 
-                            "Host ""%s"" sent a 416, without providing available ranges. Closing connection."
-END
-
-STRINGTABLE 
-BEGIN
-    IDS_LIBRARY_TARGET_EXISTS 
-                            "Target file exists:\n\n%s\n\nWould you like to overwrite it?"
-    IDS_LIBRARY_TYPE_FILTER_ALL "Show All File Types"
-    IDS_LIBRARY_COLLECTION_INVALID 
-                            "Shareaza received a collection file:\r\n\r\n""%s""\r\n\r\nThis file does not appear to be a valid collection file."
-    IDS_LIBRARY_COLLECTION_INSTALLED 
-                            "Shareaza has added the collection file ""%s"" to your library."
-    IDS_LIBRARY_COLLECTION_CANT_INSTALL 
-                            "Shareaza was unable to install the collection file ""%s"" by copying it to the folder ""%s""."
-    IDS_LIBRARY_COLLECTION_DOWNLOAD_FILE 
-                            "Would you like to download this file?\r\n\r\n""%s""\r\n\r\nChoose Cancel to stop any further prompts."
-    IDS_LIBRARY_COLLECTION_DOWNLOAD_ALL 
-                            "Would you like to download all files in this collection?\r\n\r\nChoose Cancel to stop any further prompts."
-    IDS_LIBRARY_COLLECTION_LOCKDOWN 
-                            "Would you like to prevent this collection from prompting you to download anything else?"
-    IDS_LIBRARY_COPYURI     "Copy &URI"
-    IDS_LIBRARY_EXPORTURIS  "Export &URIs..."
-    IDS_LIBRARY_SUBFOLDER_IN_LIBRARY 
-                            "A subfolder of the selected folder ""%s"" is already part of your library.\nAdding this folder will cause re-hashing of some files.\n\nDo you want to continue ?"
-    IDS_LIBRARY_MOVE_FAIL   "Unable to move the file %s. The file may be in use by another application.\n\nDo you wish to try to copy this file instead?"
 END
 
 STRINGTABLE 
@@ -4978,6 +4858,10 @@ BEGIN
     IDS_BITZI_REQUESTING    "Requesting..."
     IDS_BITZI_SUCCESS       "Success!"
     IDS_BITZI_FINISHED      "Finished, click Close"
+END
+
+STRINGTABLE 
+BEGIN
     IDS_BITZI_CLOSE         "&Close"
     IDS_MEDIAVIS_NOVIS      "(No Visualisation)"
 END
@@ -4993,7 +4877,7 @@ BEGIN
                             "The folder you are sharing is already shared as part of another shared folder:\n\n%s"
     IDS_PROFILE_NO_NICK     "You haven't entered a screen name in your user profile."
     IDS_PROFILE_NO_LOCATION "You haven't entered your location in your user profile.\n\nIt's a good idea to enter your location so that other users can see which country you are from.  Note that entering a location does not reveal any compromising information.\n\nAre you sure you want to continue without entering your location?"
-    IDS_WIZARD_PORT_FORWARD "You have indicated that you want to set up port-forwarding on your NAT router or firewall.\n\nPlease configure your network to forward TCP and UDP ports %i to your local PC."
+    IDS_WIZARD_PORT_FORWARD "You have indicated that you want to set up port-forwarding on your NAT router or firewall.\n\nPlease configure your network to forward TCP port %i to your local PC."
     IDS_SETTINGS_NEED_BANDWIDTH 
                             "Please type the bandwidth limit you wish to set in the form ""123 kb/s"" for kilobits per second, or ""123 KB/s"" for kilobytes per second."
     IDS_PROFILE_NO_VITALS   "You have not selected your age and gender.  Are you sure you want to continue without doing this?"
@@ -5006,12 +4890,6 @@ STRINGTABLE
 BEGIN
     IDS_SETTINGS_WARN_QUEUELIMIT 
                             "The eDonkey network uses large queues with long wait times. By limiting the maximum queue position you will accept so strictly, you may have trouble getting downloads to begin.\nAre you sure you want to limit what queue positions you will accept?"
-    IDS_SETTINGS_FILEPATH_TOO_LONG 
-                            "Windows doesn't support file paths longer than 256 characters.\nPlease select a folder with a shorter path."
-    IDS_SETTINGS_FILEPATH_NOT_SAME 
-                            "The complete and incomplete folders should not be the same"
-    IDS_SETTINGS_INCOMPLETE_LIBRARY 
-                            "The incomplete files folder should not be in the library, as it would reduce performance. Incomplete files may be shared directly from the transfers window."
 END
 
 STRINGTABLE 
@@ -5045,7 +4923,6 @@ BEGIN
     IDS_BROWSE_TIMEOUT      "Closing browse user connection %s due to lack of traffic."
     IDS_BROWSE_CLOSED       "Closing browse user connection to %s."
     IDS_BROWSE_TITLE_FORMAT "Browsing %s"
-    IDS_BROWSE_INTRO_FORMAT "Found %i shared files in %s's library."
 END
 
 STRINGTABLE 
@@ -5068,6 +4945,10 @@ BEGIN
     IDS_NEIGHBOUR_G1LU      "Gnutella: Leaf-to-Ultrapeer Connection"
     IDS_NEIGHBOUR_G1UL      "Gnutella: Ultrapeer-to-Leaf Connection"
     IDS_NEIGHBOUR_G2HH      "Gnutella II: Hub-to-Hub Connection"
+END
+
+STRINGTABLE 
+BEGIN
     IDS_NEIGHBOUR_G2LH      "Gnutella II: Leaf-to-Hub Connection"
     IDS_NEIGHBOUR_G2HL      "Gnutella II: Hub-to-Leaf Connection"
     IDS_NEIGHBOUR_ED2K_LOW  "eDonkey Server Connection (LOWID: %lu)"
@@ -5103,260 +4984,53 @@ END
 
 STRINGTABLE 
 BEGIN
-    IDS_CHAT_CONNECTING_TO  "Initiating a connection to %s..."
-    IDS_CHAT_CANT_CONNECT   "Unable to create a connection to %s."
-    IDS_CHAT_PUSH_SENT      "Requesting a firewalled push connection from %s..."
-    IDS_CHAT_PUSH_DONE      "Accepted push connection from %s, handshaking..."
-    IDS_CHAT_CONNECTED      "Connection established, handshaking..."
-    IDS_CHAT_HANDSHAKE_FAIL "Handshake failed, host may not support chatting."
-    IDS_CHAT_HANDSHAKE_G1   "Handshake complete, chat protocol version %s."
-    IDS_CHAT_HANDSHAKE_G2   "Exchanging profile information..."
-    IDS_CHAT_PROFILE_ACCEPTED "Authenticated user "
-    IDS_CHAT_PRIVATE_START  "Requesting private conversation with user..."
-    IDS_CHAT_PRIVATE_ONLINE "Private conversation granted, you are now chatting with %s."
-    IDS_CHAT_PRIVATE_REFUSED 
-                            "%s is not accepting private conversations, sorry."
-    IDS_CHAT_PRIVATE_AWAY   "%s is away: %s"
-    IDS_CHAT_DROPPED        "The chat connection was lost."
-    IDS_CHAT_CLOSED         "Connection closed."
-    IDS_CHAT_CANT_PUSH      "Unable to request a push connection from %s, no route available."
+    IDS_DOWNLOAD_TIGER_CORRUPT 
+                            "Download host's tiger-tree data is corrupt or internally inconsistent, ignoring it."
+    IDS_DOWNLOAD_TIGER_MISMATCH 
+                            "Download host's tiger-tree does not match expected root value."
+    IDS_DOWNLOAD_TIGER_READY 
+                            "Received tiger-tree volume for ""%s"", %i levels, minimum verifiable chunk %s."
+    IDS_DOWNLOAD_CLOSING_EXTRA 
+                            "Closing download connection to %s, no longer required."
+    IDS_DOWNLOAD_CLOSING_OVERFLOW 
+                            "Download host %s sent unsolicited data, closing connection."
+    IDS_DOWNLOAD_METADATA_REQUEST "Requesting metadata for ""%s"" from %s..."
+    IDS_DOWNLOAD_METADATA_RECV "Receiving tiger-tree data from %s (%s)..."
+    IDS_DOWNLOAD_HASHSET_REQUEST 
+                            "Requesting eDonkey2000 hashset for ""%s"" from %s..."
+    IDS_DOWNLOAD_HASHSET_ERROR 
+                            "Received an invalid eDonkey2000 hashset from %s, dropping source."
+    IDS_DOWNLOAD_HASHSET_READY 
+                            "Received eDonkey2000 hashset for ""%s"", minimum verifiable chunk %s."
+    IDS_DOWNLOAD_HASHSET_CORRUPT 
+                            "Download host's eDonkey2000 hashset is corrupt or internally inconsistent, dropping source."
+    IDS_DOWNLOAD_INFLATE_ERROR 
+                            "Unable to initialize inflate for download ""%s""."
+    IDS_DOWNLOAD_QUEUE_TIMEOUT 
+                            "Timed out waiting for queue update from eDonkey2000 download host %s for file ""%s""."
+    IDS_DOWNLOAD_QUEUE_DROP "Staying in queue for ""%s""."
+    IDS_DOWNLOAD_DISK_SPACE "Insufficient disk space to download ""%s"" (%s)."
+    IDS_DOWNLOAD_VERIFY_DROP 
+                            "Dropping source %s (%s) for sending corrupted parts of ""%s"" (%I64i-%I64i)."
 END
 
 STRINGTABLE 
 BEGIN
-    IDS_CHAT_NOT_CONNECTED_1 
-                            "Cannot send message, you are not connected.  Shareaza is trying to connect..."
-    IDS_CHAT_NOT_CONNECTED_2 
-                            "Cannot send message, a connection has not been established yet."
-    IDS_CHAT_NEED_PROFILE   "You have not yet filled in your user profile.  You must provide a profile before you can chat with other users.\n\nWould you like to fill in your profile now?"
-    IDS_CHAT_PRIORITY_GRANTED "Granted upload priority to host %s."
+    IDS_UPLOAD_QUEUE_ED2K_PARTIALS "eDonkey Partials"
+    IDS_UPLOAD_QUEUE_ED2K_GUARD "eDonkey Guard"
+    IDS_UPLOAD_QUEUE_SMALL_FILES "Small Files"
+    IDS_UPLOAD_QUEUE_MEDIUM_FILES "Medium Files"
+    IDS_UPLOAD_QUEUE_LARGE_FILES "Large Files"
+    IDS_UPLOAD_QUEUE_PARTIAL_FILES "Partial Files"
+    IDS_UPLOAD_QUEUE_NEW    "New Queue"
+    IDS_UPLOAD_QUEUE_PARTIAL "Partial"
+    IDS_UPLOAD_QUEUE_COMPLETE "All Files"
+    IDS_UPLOAD_QUEUE_HTTP_GUARD "HTTP Guard"
 END
 
 STRINGTABLE 
 BEGIN
-    IDS_ED2K_SERVER_CONNECTING 
-                            "Initiating connection to eDonkey2000 server at %s..."
-    IDS_ED2K_SERVER_CONNECTED 
-                            "Connected to eDonkey2000 server %s, handshaking..."
-    IDS_ED2K_SERVER_MESSAGE "ED2K[%s] %s"
-    IDS_ED2K_SERVER_REFUSED "eDonkey2000 server %s refused connection."
-    IDS_ED2K_SERVER_ONLINE  "eDonkey2000 server %s online, client ID is %lu."
-    IDS_ED2K_SERVER_IDCHANGE 
-                            "eDonkey2000 server %s changed our client ID from %lu to %lu."
-    IDS_ED2K_SERVER_IDENT   "eDonkey2000 server %s identified itself as ""%s""."
-    IDS_ED2K_SERVER_REJECTED "eDonkey2000 server %s rejected the connection."
-    IDS_ED2K_CLIENT_HANDSHAKE_FAIL 
-                            "Error exchanging handshake with eDonkey2000 client %s."
-    IDS_ED2K_CLIENT_DROPPED "eDonkey2000 client connection to %s was closed."
-    IDS_ED2K_CLIENT_BAD_PACKET 
-                            "Received a malformatted eDonkey2000 packet from %s (id=%x)."
-    IDS_ED2K_CLIENT_ACCEPTED 
-                            "Incoming connection from %s is an eDonkey2000 client link."
-    IDS_ED2K_CLIENT_SENT_HASHSET 
-                            "Sending eDonkey2000 hashset for ""%s"" to %s..."
-    IDS_ED2K_CLIENT_CLOSED  "eDonkey2000 client connection to %s was idle, closed."
-    IDS_ED2K_CLIENT_CONNECTING 
-                            "Initiating eDonkey2000 client connection to %s..."
-    IDS_ED2K_CLIENT_WRONG_GUID 
-                            "eDonkey2000 client %s has the wrong GUID, aborting handshake."
-END
-
-STRINGTABLE 
-BEGIN
-    IDS_ED2K_CLIENT_CONNECT_TIMEOUT 
-                            "Timed out connecting to eDonkey2000 client %s."
-    IDS_ED2K_CLIENT_HANDSHAKE_TIMEOUT 
-                            "Timed out handshaking with eDonkey2000 client %s."
-    IDS_ED2K_CLIENT_DISABLED 
-                            "Refusing eDonkey2000 client link from %s because eDonkey2000 is disabled."
-END
-
-STRINGTABLE 
-BEGIN
-    IDS_ED2K_EPI_START      "Starting eDonkey2000 partial download import process..."
-    IDS_ED2K_EPI_FINISHED   "Process complete, %i partial downloads imported successfully."
-    IDS_ED2K_EPI_FOLDER     "Scanning folder: ""%s""..."
-    IDS_ED2K_EPI_FILE_FAILED "  Unable to import file."
-    IDS_ED2K_EPI_FILE_START " Found partial file ""%s"", importing..."
-    IDS_ED2K_EPI_CANT_OPEN_PART "  Unable to open part file ""%s""."
-    IDS_ED2K_EPI_DETECTED   "  Found download ""%s"", size %s."
-    IDS_ED2K_EPI_FILE_OLD   "  Download data file is newer than .part file, aborting."
-    IDS_ED2K_EPI_COPY_START "  Copying ""%s"" to ""%s""..."
-    IDS_ED2K_EPI_COPY_FINISHED "  Finished copying file."
-    IDS_ED2K_EPI_FILE_CREATED 
-                            "  Created Shareaza partial download, %s remaining."
-    IDS_ED2K_EPI_ALREADY    "  This file is already in the Shareaza download list."
-    IDS_ED2K_EPI_DISK_SPACE "  Insufficient disk space to copy download file."
-END
-
-STRINGTABLE 
-BEGIN
-    IDS_BT_CLIENT_ACCEPTED  "Incoming connection from %s is a BitTorrent coupling, negotiating..."
-    IDS_BT_CLIENT_CONNECT_TIMEOUT 
-                            "Timed out connecting to BitTorrent client %s."
-    IDS_BT_CLIENT_HANDSHAKE_TIMEOUT 
-                            "Timed out handshaking with BitTorrent client %s."
-    IDS_BT_CLIENT_LOST      "Closing BitTorrent coupling with %s due to lack of traffic."
-    IDS_BT_CLIENT_WRONG_GUID 
-                            "BitTorrent coupling with %s failed because the remote client has a different Peer ID."
-    IDS_BT_CLIENT_WRONG_FILE 
-                            "BitTorrent coupling with %s responded with the wrong file."
-    IDS_BT_CLIENT_UNKNOWN_FILE 
-                            "BitTorrent coupling with %s requested an unknown file."
-    IDS_BT_CLIENT_ONLINE    "BitTorrent coupling with %s established for ""%s""."
-    IDS_BT_CLIENT_INACTIVE_FILE 
-                            "BitTorrent coupling with %s requested an inactive file."
-    IDS_BT_PREFETCH_FILE    "Received BitTorrent descriptor file: ""%s"""
-    IDS_BT_PREFETCH_ERROR   "Unable to parse prefetched BitTorrent file ""%s""."
-    IDS_BT_TRACK_ERROR      "Error from BitTorrent tracker for ""%s"" : ""%s""."
-    IDS_BT_TRACK_PARSE_ERROR "Error parsing BitTorrent tracker response."
-    IDS_BT_TRACK_SUCCESS    "Received BitTorrent tracker response for ""%s"", %i new sources."
-    IDS_BT_CLIENT_CONNECTING 
-                            "Initiating BitTorrent client coupling with %s..."
-    IDS_BT_CLIENT_HANDSHAKING 
-                            "Established BitTorrent coupling with %s, handshaking..."
-END
-
-STRINGTABLE 
-BEGIN
-    IDS_BT_TRACK_CHANGE     "You have changed the tracker URL for this torrent.  Are you sure you want to save this change?\n\nAn invalid tracker URL may prevent further downloading."
-    IDS_BT_CLIENT_EXTENDED  "BitTorrent coupling with %s is extended protocol, identified ""%s""."
-    IDS_BT_CLIENT_EXCHANGE  "Received %i new BitTorrent sources from %s."
-    IDS_BT_SEED_ALREADY     "The torrent ""%s"" is already on your download list, and cannot be seeded."
-    IDS_BT_SEED_PARSE_ERROR "Error loading the torrent file ""%s"".  This may not be a valid torrent."
-    IDS_BT_SEED_CREATE_FAIL "Unable to create BitTorrent share file ""%s""."
-    IDS_BT_SEED_SOURCE_LOST "This torrent includes the file ""%s"", but Shareaza cannot find this file in your library.  If possible, move the file to a shared folder and try again."
-    IDS_BT_SEED_SOURCE_SIZE "This torrent includes the file ""%s"" which should be %s, however your version of the file is %s."
-    IDS_BT_SEED_COPY_FAIL   "An error occurred while copying from ""%s"" to a BitTorrent share file."
-    IDS_BT_SEED_ERROR       "An unknown error occurred while trying to seed ""%s""."
-    IDS_BT_SEED_VERIFY_FAIL "An error was detected in the file ""%s""."
-    IDS_BT_TRACKER_RETRY    "Tracker did not respond- Retrying announce (%i of %i)"
-    IDS_BT_TRACKER_DOWN     "Unable to communicate with tracker"
-END
-
-STRINGTABLE 
-BEGIN
-    IDS_BT_CLIENT_DROP_CONNECTING "BitTorrent connection to %s was dropped."
-    IDS_BT_CLIENT_DROP_HANDSHAKE "BitTorrent handshake with %s was dropped."
-    IDS_BT_CLIENT_DROP_CONNECTED "BitTorrent coupling with %s was dropped."
-    IDS_BT_CLIENT_DUPLICATE "BitTorrent coupling with %s not accepted, a connection to this client already exists."
-    IDS_BT_CLIENT_MAX_CONNECTIONS 
-                            "BitTorrent coupling with %s not accepted, maximum connections reached."
-END
-
-STRINGTABLE 
-BEGIN
-    IDS_DOWNLOAD_EDIT_RENAME 
-                            "You have made changes to the name field.  Are you sure you want to rename this download?"
-    IDS_DOWNLOAD_EDIT_BAD_SHA1 
-                            "You have typed a SHA1 value, however it is invalid.  Please check it and try again."
-    IDS_DOWNLOAD_EDIT_BAD_TIGER 
-                            "You have typed a root tiger-tree value, however it is invalid.  Please check it and try again."
-    IDS_DOWNLOAD_EDIT_BAD_ED2K 
-                            "You have typed an eDonkey2000 hash value, however it is invalid.  Please check it and try again."
-    IDS_DOWNLOAD_EDIT_CHANGE_SHA1 
-                            "You have provided a SHA1 hash value which is different to the one currently associated with this download.  Are you sure you want to change the SHA1 hash now?"
-    IDS_DOWNLOAD_EDIT_CHANGE_TIGER 
-                            "You have provided a root tiger-tree hash value which is different to the one currently associated with this download.  Are you sure you want to change the tiger-tree root hash now?"
-    IDS_DOWNLOAD_EDIT_CHANGE_ED2K 
-                            "You have provided an eDonkey2000 hash value which is different to the one currently associated with this download.  Are you sure you want to change the eDonkey2000 hash now?"
-    IDS_DOWNLOAD_EDIT_FORGET_VERIFY 
-                            "Are you sure you want to forget the current verification status?  All downloaded data will be treated as untrusted, and cached hashtrees and hashsets will be flushed."
-    IDS_DOWNLOAD_EDIT_FORGET_SOURCES 
-                            "Are you sure you want to forget all sources for the selected download?"
-    IDS_DOWNLOAD_EDIT_BAD_RANGE 
-                            "Please enter a valid range to erase.  The ""from"" field is the first byte to erase, the ""last"" field is the last byte to erase."
-    IDS_DOWNLOAD_EDIT_CANT_ERASE 
-                            "Unable to erase the selected range from the download because no part of the range is present."
-    IDS_DOWNLOAD_EDIT_ERASED "Erased %I64i bytes from the download."
-    IDS_DOWNLOAD_QUEUE_HUGE "Dropping download source %s for ""%s"" because queue position %i is too high."
-    IDS_DOWNLOAD_EDIT_COMPLETE_NOHASH 
-                            "You cannot assume this download is complete and reverify it because you do not yet have any partial verification data, such as tiger-tree volume, eDonkey hashset or BitTorrent hashset.  Without verification information the download cannot be reverified."
-    IDS_DOWNLOAD_EDIT_COMPLETE_VERIFY 
-                            "Are you sure you want to assume this download is complete and reverify it?  The whole file will be considered, and Shareaza will accept parts which pass verification and redownload parts which fail verification."
-END
-
-STRINGTABLE 
-BEGIN
-    IDS_REMOTE_DISABLED     "Remote access is disabled."
-    IDS_REMOTE_ENABLED      "You must chose a username and password."
-    IDS_REMOTE_UNAVAILABLE  "Unable to accept connections, URL unavailable."
-END
-
-STRINGTABLE 
-BEGIN
-    IDS_GENERAL_NOURNAVAILABLE "No URN available"
-    IDS_GENERAL_CLOSE       "Close"
-    IDS_GENERAL_OF          "of"
-    IDS_GENERAL_RTL_WARNING "Changing interface direction requires restart. \nYou will need to start Shareaza manually. Exit now?"
-    IDS_GENERAL_RTL_NOTSUPPORTED 
-                            "Right-to-left languages are not supported in your OS."
-    IDS_GENERAL_NO          "No"
-    IDS_GENERAL_YES         "Yes"
-    IDS_GENERAL_AUTO        "Auto"
-END
-
-STRINGTABLE 
-BEGIN
-    IDS_DAY_SUNDAY          "Sunday"
-    IDS_DAY_MONDAY          "Monday"
-    IDS_DAY_TUESDAY         "Tuesday"
-    IDS_DAY_WEDNESDAY       "Wednesday"
-    IDS_DAY_THURSDAY        "Thursday"
-    IDS_DAY_FRIDAY          "Friday"
-    IDS_DAY_SATURDAY        "Saturday"
-END
-
-STRINGTABLE 
-BEGIN
-    IDS_STATUS_CONNECTING   "Connecting"
-    IDS_STATUS_REQUESTING   "Requesting"
-    IDS_STATUS_RESPONSE     "Response"
-    IDS_STATUS_DOWNLOADING  "Downloading"
-    IDS_STATUS_TIGERTREE    "TigerTree"
-    IDS_STATUS_HASHSET      "Hashset"
-    IDS_STATUS_METADATA     "Metadata"
-    IDS_STATUS_BUSY         "Busy"
-    IDS_STATUS_ENQUEUE      "Enqueue"
-    IDS_STATUS_QUEUED       "Queued"
-    IDS_STATUS_UNKNOWN      "Unknown"
-    IDS_STATUS_COMPLETED    "Completed"
-    IDS_STATUS_SEEDING      "Seeding"
-    IDS_STATUS_MOVING       "Moving"
-    IDS_STATUS_PAUSED       "Paused"
-    IDS_STATUS_FILEERROR    "File Error"
-    IDS_STATUS_CANTMOVE     "Can't Move"
-    IDS_STATUS_VERIFYING    "Verifying"
-    IDS_STATUS_ACTIVE       "Active"
-    IDS_STATUS_PENDING      "Pending"
-    IDS_STATUS_SEARCHING    "Searching"
-    IDS_STATUS_CREATING     "Creating"
-    IDS_STATUS_TORRENT      "Torrent"
-    IDS_STATUS_TRACKERDOWN  "Tracker Down"
-    IDS_STATUS_NOSOURCES    "(No Sources)"
-    IDS_STATUS_VERIFIED     "Verified"
-    IDS_STATUS_UNVERIFIED   "Unverified"
-    IDS_STATUS_SOURCE       "source"
-    IDS_STATUS_SOURCES      "sources"
-    IDS_STATUS_SOURCESTENS  "sources"
-    IDS_STATUS_SOURCES11TO19 "sources"
-    IDS_STATUS_SOURCES2TO4  "sources"
-    IDS_STATUS_SOURCES5TO9  "sources"
-    IDS_STATUS_UNINTERESTED "Uninterested"
-    IDS_STATUS_CHOKED       "Choked"
-    IDS_STATUS_NEXT         "Next"
-    IDS_STATUS_Q            "Q"
-END
-
-STRINGTABLE 
-BEGIN
-    IDS_RATING_NORATING     "(No Rating)"
-    IDS_RATING_1            "Fake / Corrupt"
-    IDS_RATING_2            "Poor"
-    IDS_RATING_3            "Average"
-    IDS_RATING_4            "Good"
-    IDS_RATING_5            "Very Good"
-    IDS_RATING_6            "Excellent"
+    IDS_BROWSE_INTRO_FORMAT "Found %i shared files in %s's library."
 END
 
 STRINGTABLE 
@@ -5368,6 +5042,20 @@ BEGIN
     ID_TOOLS_SETTINGS       "Configure Shareaza settings..."
     ID_VIEW_SYSTEM          "Show or hide the SYSTEM window."
     ID_VIEW_NEIGHBOURS      "Show or hide the NEIGHBOURS window."
+END
+
+STRINGTABLE 
+BEGIN
+    ID_HOSTCACHE_REMOVE     "Remove the selected hosts from the host cache."
+    ID_NETWORK_CONNECT_TO   "Manually connect to a host..."
+    ID_NETWORK_SEARCH       "Start a new search of the network..."
+    ID_SEARCH_DOWNLOAD      "Download the selected file(s)."
+    ID_SEARCH_SEARCH        "Search the network again..."
+    ID_SEARCH_FILTER        "Filter the search results by certain words and conditions..."
+    ID_SEARCH_FILTER_REMOVE "Remove filtering from the results."
+    ID_HITMONITOR_CLEAR     "Clear the hit monitor buffer."
+    ID_SEARCHMONITOR_PAUSE  "Pause search monitoring."
+    ID_HITMONITOR_PAUSE     "Pause hit monitoring."
 END
 
 STRINGTABLE 
@@ -5389,20 +5077,6 @@ BEGIN
     ID_VIEW_RESULTS_MONITOR "Show or hide the HIT MONITOR window."
     ID_HOSTCACHE_CONNECT    "Connect to the selected host(s)."
     ID_HOSTCACHE_DISCONNECT "Disconnect from the selected neighbour(s)."
-END
-
-STRINGTABLE 
-BEGIN
-    ID_HOSTCACHE_REMOVE     "Remove the selected hosts from the host cache."
-    ID_NETWORK_CONNECT_TO   "Manually connect to a host..."
-    ID_NETWORK_SEARCH       "Start a new search of the network..."
-    ID_SEARCH_DOWNLOAD      "Download the selected file(s)."
-    ID_SEARCH_SEARCH        "Search the network again..."
-    ID_SEARCH_FILTER        "Filter the search results by certain words and conditions..."
-    ID_SEARCH_FILTER_REMOVE "Remove filtering from the results."
-    ID_HITMONITOR_CLEAR     "Clear the hit monitor buffer."
-    ID_SEARCHMONITOR_PAUSE  "Pause search monitoring."
-    ID_HITMONITOR_PAUSE     "Pause hit monitoring."
 END
 
 STRINGTABLE 
@@ -5558,6 +5232,10 @@ BEGIN
     ID_LIBRARY_LAUNCH       "Open or play the selected file(s)."
     ID_NEIGHBOURS_COPY      "Copy a URI to access the selected host."
     ID_TOOLS_RESKIN         "Reload and apply your current skin selection."
+END
+
+STRINGTABLE 
+BEGIN
     ID_MONITOR_CLOSE        "Close the monitor window."
     ID_WINDOW_TOOLBAR       "Show or hide the toolbar."
     ID_WINDOW_TABBAR        "Show or hide the window tab bar."
@@ -5572,6 +5250,10 @@ BEGIN
     ID_DOWNLOADS_MOVE_DOWN  "Move the selected download(s) down the priority list."
     ID_TOOLS_LANGUAGE       "Select the language you wish to use Shareaza in..."
     ID_DOWNLOADS_SETTINGS   "Configure download settings..."
+END
+
+STRINGTABLE 
+BEGIN
     ID_UPLOADS_SETTINGS     "Configure upload settings..."
     ID_DOWNLOADS_FILTER_ALL "Show all downloads."
     ID_DOWNLOADS_FILTER_ACTIVE "Show downloads which are active."
@@ -5589,6 +5271,10 @@ BEGIN
     ID_LIBRARY_VIEW_LIST    "Show files in a horizontal list\nList View"
     ID_LIBRARY_VIEW_ICON    "Show files as icons\nIcon View"
     ID_LIBRARY_VIEW_THUMBNAIL "Show thumbnails for files\nThumbnail View"
+END
+
+STRINGTABLE 
+BEGIN
     ID_LIBRARY_PARENT       "Move up to the parent folder."
     ID_LIBRARY_PANEL        "Show or hide the library detail panel."
     ID_LIBRARY_FOLDER_PROPERTIES 
@@ -5606,6 +5292,10 @@ BEGIN
     ID_MEDIA_PREVIOUS       "Skip back to the previous file in the current playlist.\nPrevious File"
     ID_MEDIA_NEXT           "Skip ahead to the next file in the current playlist.\nNext File"
     ID_MEDIA_SIZE_FILL      "Choose the best size for the video based on its aspect ratio."
+END
+
+STRINGTABLE 
+BEGIN
     ID_MEDIA_SIZE_DISTORT   "Stretch the video to fill the window, potentially distorting it."
     ID_MEDIA_SIZE_ONE       "Show the video at its original (natural) size."
     ID_MEDIA_SIZE_TWO       "Show the video at double its original (natural) size."
@@ -5622,6 +5312,10 @@ BEGIN
     ID_MEDIA_SELECT         "Select and play this file."
     ID_MEDIA_ADD            "Add a media file to the playlist..."
     ID_MEDIA_REMOVE         "Remove the selected media file from the playlist."
+END
+
+STRINGTABLE 
+BEGIN
     ID_MEDIA_CLEAR          "Clear (empty) the playlist."
     ID_MEDIA_SAVE           "Save the current playlist to a file..."
     ID_MEDIA_PLAYLIST       "Show or hide the playlist editor."
@@ -5656,6 +5350,70 @@ BEGIN
     ID_CHAT_EMOTICONS       "Insert an emoticon."
     ID_DOWNLOADS_SHARE      "Share this partially downloaded file with other users."
     ID_MEDIA_ADD_FOLDER     "Add a folder of media files to the playlist..."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_CHAT_CONNECTING_TO  "Initiating a connection to %s..."
+    IDS_CHAT_CANT_CONNECT   "Unable to create a connection to %s."
+    IDS_CHAT_PUSH_SENT      "Requesting a firewalled push connection from %s..."
+    IDS_CHAT_PUSH_DONE      "Accepted push connection from %s, handshaking..."
+    IDS_CHAT_CONNECTED      "Connection established, handshaking..."
+    IDS_CHAT_HANDSHAKE_FAIL "Handshake failed, host may not support chatting."
+    IDS_CHAT_HANDSHAKE_G1   "Handshake complete, chat protocol version %s."
+    IDS_CHAT_HANDSHAKE_G2   "Exchanging profile information..."
+    IDS_CHAT_PROFILE_ACCEPTED "Authenticated user "
+    IDS_CHAT_PRIVATE_START  "Requesting private conversation with user..."
+    IDS_CHAT_PRIVATE_ONLINE "Private conversation granted, you are now chatting with %s."
+    IDS_CHAT_PRIVATE_REFUSED 
+                            "%s is not accepting private conversations, sorry."
+    IDS_CHAT_PRIVATE_AWAY   "%s is away: %s"
+    IDS_CHAT_DROPPED        "The chat connection was lost."
+    IDS_CHAT_CLOSED         "Connection closed."
+    IDS_CHAT_CANT_PUSH      "Unable to request a push connection from %s, no route available."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_CHAT_NOT_CONNECTED_1 
+                            "Cannot send message, you are not connected.  Shareaza is trying to connect..."
+    IDS_CHAT_NOT_CONNECTED_2 
+                            "Cannot send message, a connection has not been established yet."
+    IDS_CHAT_NEED_PROFILE   "You have not yet filled in your user profile.  You must provide a profile before you can chat with other users.\n\nWould you like to fill in your profile now?"
+    IDS_CHAT_PRIORITY_GRANTED "Granted upload priority to host %s."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_LIBRARY_TARGET_EXISTS 
+                            "Target file exists:\n\n%s\n\nWould you like to overwrite it?"
+    IDS_LIBRARY_TYPE_FILTER_ALL "Show All File Types"
+    IDS_LIBRARY_COLLECTION_INVALID 
+                            "Shareaza received a collection file:\r\n\r\n""%s""\r\n\r\nThis file does not appear to be a valid collection file."
+    IDS_LIBRARY_COLLECTION_INSTALLED 
+                            "Shareaza has added the collection file ""%s"" to your library."
+    IDS_LIBRARY_COLLECTION_CANT_INSTALL 
+                            "Shareaza was unable to install the collection file ""%s"" by copying it to the folder ""%s""."
+    IDS_LIBRARY_COLLECTION_DOWNLOAD_FILE 
+                            "Would you like to download this file?\r\n\r\n""%s""\r\n\r\nChoose Cancel to stop any further prompts."
+    IDS_LIBRARY_COLLECTION_DOWNLOAD_ALL 
+                            "Would you like to download all files in this collection?\r\n\r\nChoose Cancel to stop any further prompts."
+    IDS_LIBRARY_COLLECTION_LOCKDOWN 
+                            "Would you like to prevent this collection from prompting you to download anything else?"
+    IDS_LIBRARY_COPYURI     "Copy &URI"
+    IDS_LIBRARY_EXPORTURIS  "Export &URIs..."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_FILTER_DELETE_CONFIRM "Are you sure you want to delete this filter ?"
+    IDS_SCHEMAS             "&Schemas"
+    IDS_MULTIPLE_VALUES     "Multiple Values"
+    IDS_MULTIPLE            "Multiple"
+END
+
+STRINGTABLE 
+BEGIN
     ID_LIBRARY_FOLDER_FILE_PROPERTIES 
                             "View and edit the properties of all files in the selected folder(s)..."
     ID_LIBRARY_REBUILD      "Rebuild metadata and hashes for the selected folders or files."
@@ -5671,6 +5429,34 @@ BEGIN
     ID_SEARCH_FOR_THIS      "Search for other copies of the selected file."
     ID_SEARCH_FOR_SIMILAR   "Search for files which are similar to the selected file."
     ID_SEARCH_FOR_ARTIST    "Search for music files by the same artist as the selected file."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_UPLOAD_PREVIEW_SEND "Uploading a preview of ""%s"" to %s."
+    IDS_UPLOAD_PREVIEW_BUSY "Refusing to upload a preview of ""%s"" to %s, too many preview connections."
+    IDS_UPLOAD_PREVIEW_EMPTY 
+                            "Upload host %s requested a preview of ""%s"", but no preview is available."
+    IDS_UPLOAD_PREVIEW_DYNAMIC 
+                            "Scheduling a dynamic preview of ""%s"" for upload to %s."
+    IDS_UPLOAD_BROWSE_BUSY  "Refusing browse user request from %s, too many browse connections."
+    IDS_UPLOAD_FILE         "Uploading file ""%s"" to host %s..."
+    IDS_UPLOAD_QUEUE_DROP   "Upload connection to %s was lost, preserving queue position."
+    IDS_UPLOAD_QUEUE_TIMEOUT 
+                            "Offline queued upload host %s expired, removing."
+    IDS_UPLOAD_BUSY_QUEUE   "Refusing upload of ""%s"" to %s (%s), all matching queues are full."
+    IDS_UPLOAD_DISABLED     "Refusing upload to %s (%s), network disabled."
+    IDS_UPLOAD_CANCEL_ED2K  "eDonkey2000 uploads should not be cancelled.  Are you sure you want to cancel this upload?"
+    IDS_UPLOAD_QUEUE_TORRENT "Torrent Uploads"
+    IDS_UPLOAD_QUEUE_HISTORY "Completed Uploads"
+    IDS_DOWNLOAD_CLEAR_GROUP 
+                            "Are you sure you want to cancel/abort every download in this group?"
+    IDS_UPLOAD_QUEUE_QUEUE  "Queue"
+    IDS_UPLOAD_QUEUE_ED2K_CORE "eDonkey Core"
+END
+
+STRINGTABLE 
+BEGIN
     ID_SEARCH_FOR_ALBUM     "Search for music files in the same album as the selected file."
     ID_SEARCH_FOR_SERIES    "Search for video files in the same series as the selected file."
     ID_CHAT_TIMESTAMP       "Show the time when each message was received."
@@ -5685,6 +5471,10 @@ BEGIN
     ID_NETWORK_ED2K         "Connect to the eDonkey2000 network."
     ID_HOSTCACHE_PRIORITY   "Try to connect to this server before other servers."
     ID_VIEW_BASIC           "Use Shareaza in Normal mode."
+END
+
+STRINGTABLE 
+BEGIN
     ID_LIBRARY_SEARCH_QUICK "Search your file library..."
     ID_DOWNLOAD_GROUP_NEW   "Create a new download group..."
     ID_DOWNLOAD_GROUP_REMOVE "Remove the selected download group."
@@ -5710,6 +5500,220 @@ END
 
 STRINGTABLE 
 BEGIN
+    IDS_ED2K_SERVER_CONNECTING 
+                            "Initiating connection to eDonkey2000 server at %s..."
+    IDS_ED2K_SERVER_CONNECTED 
+                            "Connected to eDonkey2000 server %s, handshaking..."
+    IDS_ED2K_SERVER_MESSAGE "ED2K[%s] %s"
+    IDS_ED2K_SERVER_REFUSED "eDonkey2000 server %s refused connection."
+    IDS_ED2K_SERVER_ONLINE  "eDonkey2000 server %s online, client ID is %lu."
+    IDS_ED2K_SERVER_IDCHANGE 
+                            "eDonkey2000 server %s changed our client ID from %lu to %lu."
+    IDS_ED2K_SERVER_IDENT   "eDonkey2000 server %s identified itself as ""%s""."
+    IDS_ED2K_SERVER_REJECTED "eDonkey2000 server %s rejected the connection."
+    IDS_ED2K_CLIENT_HANDSHAKE_FAIL 
+                            "Error exchanging handshake with eDonkey2000 client %s."
+    IDS_ED2K_CLIENT_DROPPED "eDonkey2000 client connection to %s was closed."
+    IDS_ED2K_CLIENT_BAD_PACKET 
+                            "Received a malformatted eDonkey2000 packet from %s (id=%x)."
+    IDS_ED2K_CLIENT_ACCEPTED 
+                            "Incoming connection from %s is an eDonkey2000 client link."
+    IDS_ED2K_CLIENT_SENT_HASHSET 
+                            "Sending eDonkey2000 hashset for ""%s"" to %s..."
+    IDS_ED2K_CLIENT_CLOSED  "eDonkey2000 client connection to %s was idle, closed."
+    IDS_ED2K_CLIENT_CONNECTING 
+                            "Initiating eDonkey2000 client connection to %s..."
+    IDS_ED2K_CLIENT_WRONG_GUID 
+                            "eDonkey2000 client %s has the wrong GUID, aborting handshake."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_ED2K_CLIENT_CONNECT_TIMEOUT 
+                            "Timed out connecting to eDonkey2000 client %s."
+    IDS_ED2K_CLIENT_HANDSHAKE_TIMEOUT 
+                            "Timed out handshaking with eDonkey2000 client %s."
+    IDS_ED2K_CLIENT_DISABLED 
+                            "Refusing eDonkey2000 client link from %s because eDonkey2000 is disabled."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_BT_CLIENT_ACCEPTED  "Incoming connection from %s is a BitTorrent coupling, negotiating..."
+    IDS_BT_CLIENT_CONNECT_TIMEOUT 
+                            "Timed out connecting to BitTorrent client %s."
+    IDS_BT_CLIENT_HANDSHAKE_TIMEOUT 
+                            "Timed out handshaking with BitTorrent client %s."
+    IDS_BT_CLIENT_LOST      "Closing BitTorrent coupling with %s due to lack of traffic."
+    IDS_BT_CLIENT_WRONG_GUID 
+                            "BitTorrent coupling with %s failed because the remote client has a different Peer ID."
+    IDS_BT_CLIENT_WRONG_FILE 
+                            "BitTorrent coupling with %s responded with the wrong file."
+    IDS_BT_CLIENT_UNKNOWN_FILE 
+                            "BitTorrent coupling with %s requested an unknown file."
+    IDS_BT_CLIENT_ONLINE    "BitTorrent coupling with %s established for ""%s""."
+    IDS_BT_CLIENT_DROPPED   "BitTorrent coupling with %s was lost."
+    IDS_BT_PREFETCH_FILE    "Received BitTorrent descriptor file: ""%s"""
+    IDS_BT_PREFETCH_ERROR   "Unable to parse prefetched BitTorrent file ""%s""."
+    IDS_BT_TRACK_ERROR      "Error from BitTorrent tracker for ""%s"" : ""%s""."
+    IDS_BT_TRACK_PARSE_ERROR "Error parsing BitTorrent tracker response."
+    IDS_BT_TRACK_SUCCESS    "Received BitTorrent tracker response for ""%s"", %i new sources."
+    IDS_BT_CLIENT_CONNECTING 
+                            "Initiating BitTorrent client coupling with %s..."
+    IDS_BT_CLIENT_HANDSHAKING 
+                            "Established BitTorrent coupling with %s, handshaking..."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_ED2K_EPI_START      "Starting eDonkey2000 partial download import process..."
+    IDS_ED2K_EPI_FINISHED   "Process complete, %i partial downloads imported successfully."
+    IDS_ED2K_EPI_FOLDER     "Scanning folder: ""%s""..."
+    IDS_ED2K_EPI_FILE_FAILED "  Unable to import file."
+    IDS_ED2K_EPI_FILE_START " Found partial file ""%s"", importing..."
+    IDS_ED2K_EPI_CANT_OPEN_PART "  Unable to open part file ""%s""."
+    IDS_ED2K_EPI_DETECTED   "  Found download ""%s"", size %s."
+    IDS_ED2K_EPI_FILE_OLD   "  Download data file is newer than .part file, aborting."
+    IDS_ED2K_EPI_COPY_START "  Copying ""%s"" to ""%s""..."
+    IDS_ED2K_EPI_COPY_FINISHED "  Finished copying file."
+    IDS_ED2K_EPI_FILE_CREATED 
+                            "  Created Shareaza partial download, %s remaining."
+    IDS_ED2K_EPI_ALREADY    "  This file is already in the Shareaza download list."
+    IDS_ED2K_EPI_DISK_SPACE "  Insufficient disk space to copy download file."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_BT_TRACK_CHANGE     "You have changed the tracker URL for this torrent.  Are you sure you want to save this change?\n\nAn invalid tracker URL may prevent further downloading."
+    IDS_BT_CLIENT_EXTENDED  "BitTorrent coupling with %s is extended protocol, identified ""%s""."
+    IDS_BT_CLIENT_EXCHANGE  "Received %i new BitTorrent sources from %s."
+    IDS_BT_SEED_ALREADY     "The torrent ""%s"" is already on your download list, and cannot be seeded."
+    IDS_BT_SEED_PARSE_ERROR "Error loading the torrent file ""%s"".  This may not be a valid torrent."
+    IDS_BT_SEED_CREATE_FAIL "Unable to create BitTorrent share file ""%s""."
+    IDS_BT_SEED_SOURCE_LOST "This torrent includes the file ""%s"", but Shareaza cannot find this file in your library.  If possible, move the file to a shared folder and try again."
+    IDS_BT_SEED_SOURCE_SIZE "This torrent includes the file ""%s"" which should be %s, however your version of the file is %s."
+    IDS_BT_SEED_COPY_FAIL   "An error occurred while copying from ""%s"" to a BitTorrent share file."
+    IDS_BT_SEED_ERROR       "An unknown error occurred while trying to seed ""%s""."
+    IDS_BT_SEED_VERIFY_FAIL "An error was detected in the file ""%s""."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_DOWNLOAD_EDIT_RENAME 
+                            "You have made changes to the name field.  Are you sure you want to rename this download?"
+    IDS_DOWNLOAD_EDIT_BAD_SHA1 
+                            "You have typed a SHA1 value, however it is invalid.  Please check it and try again."
+    IDS_DOWNLOAD_EDIT_BAD_TIGER 
+                            "You have typed a root tiger-tree value, however it is invalid.  Please check it and try again."
+    IDS_DOWNLOAD_EDIT_BAD_ED2K 
+                            "You have typed an eDonkey2000 hash value, however it is invalid.  Please check it and try again."
+    IDS_DOWNLOAD_EDIT_CHANGE_SHA1 
+                            "You have provided a SHA1 hash value which is different to the one currently associated with this download.  Are you sure you want to change the SHA1 hash now?"
+    IDS_DOWNLOAD_EDIT_CHANGE_TIGER 
+                            "You have provided a root tiger-tree hash value which is different to the one currently associated with this download.  Are you sure you want to change the tiger-tree root hash now?"
+    IDS_DOWNLOAD_EDIT_CHANGE_ED2K 
+                            "You have provided an eDonkey2000 hash value which is different to the one currently associated with this download.  Are you sure you want to change the eDonkey2000 hash now?"
+    IDS_DOWNLOAD_EDIT_FORGET_VERIFY 
+                            "Are you sure you want to forget the current verification status?  All downloaded data will be treated as untrusted, and cached hashtrees and hashsets will be flushed."
+    IDS_DOWNLOAD_EDIT_FORGET_SOURCES 
+                            "Are you sure you want to forget all sources for the selected download?"
+    IDS_DOWNLOAD_EDIT_BAD_RANGE 
+                            "Please enter a valid range to erase.  The ""from"" field is the first byte to erase, the ""last"" field is the last byte to erase."
+    IDS_DOWNLOAD_EDIT_CANT_ERASE 
+                            "Unable to erase the selected range from the download because no part of the range is present."
+    IDS_DOWNLOAD_EDIT_ERASED "Erased %I64i bytes from the download."
+    IDS_DOWNLOAD_QUEUE_HUGE "Dropping download source %s for ""%s"" because queue position %i is too high."
+    IDS_DOWNLOAD_EDIT_COMPLETE_NOHASH 
+                            "You cannot assume this download is complete and reverify it because you do not yet have any partial verification data, such as tiger-tree volume, eDonkey hashset or BitTorrent hashset.  Without verification information the download cannot be reverified."
+    IDS_DOWNLOAD_EDIT_COMPLETE_VERIFY 
+                            "Are you sure you want to assume this download is complete and reverify it?  The whole file will be considered, and Shareaza will accept parts which pass verification and redownload parts which fail verification."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_REMOTE_DISABLED     "Remote access is disabled."
+    IDS_REMOTE_ENABLED      "You must chose a username and password."
+    IDS_REMOTE_UNAVAILABLE  "Unable to accept connections, URL unavailable."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_GENERAL_NOURNAVAILABLE "No URN available"
+    IDS_GENERAL_CLOSE       "Close"
+    IDS_GENERAL_OF          "of"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_DAY_SUNDAY          "Sunday"
+    IDS_DAY_MONDAY          "Monday"
+    IDS_DAY_TUESDAY         "Tuesday"
+    IDS_DAY_WEDNESDAY       "Wednesday"
+    IDS_DAY_THURSDAY        "Thursday"
+    IDS_DAY_FRIDAY          "Friday"
+    IDS_DAY_SATURDAY        "Saturday"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_STATUS_CONNECTING   "Connecting"
+    IDS_STATUS_REQUESTING   "Requesting"
+    IDS_STATUS_RESPONSE     "Response"
+    IDS_STATUS_DOWNLOADING  "Downloading"
+    IDS_STATUS_TIGERTREE    "TigerTree"
+    IDS_STATUS_HASHSET      "Hashset"
+    IDS_STATUS_METADATA     "Metadata"
+    IDS_STATUS_BUSY         "Busy"
+    IDS_STATUS_ENQUEUE      "Enqueue"
+    IDS_STATUS_QUEUED       "Queued"
+    IDS_STATUS_UNKNOWN      "Unknown"
+    IDS_STATUS_COMPLETED    "Completed"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_STATUS_SEEDING      "Seeding"
+    IDS_STATUS_MOVING       "Moving"
+    IDS_STATUS_PAUSED       "Paused"
+    IDS_STATUS_FILEERROR    "File Error"
+    IDS_STATUS_CANTMOVE     "Can't Move"
+    IDS_STATUS_VERIFYING    "Verifying"
+    IDS_STATUS_ACTIVE       "Active"
+    IDS_STATUS_PENDING      "Pending"
+    IDS_STATUS_SEARCHING    "Searching"
+    IDS_STATUS_CREATING     "Creating"
+    IDS_STATUS_TORRENT      "Torrent"
+    IDS_STATUS_TRACKERDOWN  "Tracker Down"
+    IDS_STATUS_NOSOURCES    "(No Sources)"
+    IDS_STATUS_VERIFIED     "Verified"
+    IDS_STATUS_UNVERIFIED   "Unverified"
+    IDS_STATUS_SOURCE       "source"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_STATUS_SOURCES      "sources"
+    IDS_STATUS_SOURCESTENS  "sources"
+    IDS_STATUS_SOURCES11TO19 "sources"
+    IDS_STATUS_SOURCES2TO4  "sources"
+    IDS_STATUS_SOURCES5TO9  "sources"
+    IDS_STATUS_UNINTERESTED "Uninterested"
+    IDS_STATUS_CHOKED       "Choked"
+    IDS_STATUS_NEXT         "Next"
+    IDS_STATUS_Q            "Q"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_PROPERTY_PAGE_GENERAL "General"
+    IDS_PROPERTY_PAGE_METADATA "Metadata"
+    IDS_PROPERTY_PAGE_COMMENTS "My Review"
+    IDS_PROPERTY_PAGE_SHARING "Sharing"
+    IDS_PROPERTY_PAGE_SOURCES "Sources"
+END
+
+STRINGTABLE 
+BEGIN
     ID_WINDOW_NAVBAR        "Show or hide the navigation bar."
     ID_DOWNLOADS_RATE       "Rate the selected download."
     ID_LIBRARY_VIEW_COLLECTION 
@@ -5726,6 +5730,7 @@ BEGIN
     ID_MEDIA_MUTE           "Mute audio playback"
     ID_WINDOW_REMOTE        "Show or hide the Shareaza Remote Control"
     ID_UPLOADS_FILTER_TORRENT "Show BitTorrent uploads."
+    ID_TOOLS_MERCORA        "Start P2P Radio"
     ID_TOOLS_SEEDTORRENT    "Seed the selected Torrent on BitTorrent."
 END
 
@@ -5748,6 +5753,17 @@ BEGIN
     ID_WINDOW_CASCADE       "Expand all open windows to fill the screen."
     ID_WINDOW_TILE_HORZ     "Arrange open windows as horizontal, non-overlapping tiles."
     ID_WINDOW_TILE_VERT     "Arrange open windows as vertical, non-overlapping tiles."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_RATING_NORATING     "(No Rating)"
+    IDS_RATING_1            "Fake / Corrupt"
+    IDS_RATING_2            "Poor"
+    IDS_RATING_3            "Average"
+    IDS_RATING_4            "Good"
+    IDS_RATING_5            "Very Good"
+    IDS_RATING_6            "Excellent"
 END
 
 #endif    // English (Australia) resources

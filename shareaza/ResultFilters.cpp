@@ -1,10 +1,6 @@
 //
 // ResultFilters.cpp
 //
-//	Date:			"$Date: 2005/10/03 17:21:43 $"
-//	Revision:		"$Revision: 1.7 $"
-//  Last change by:	"$Author: mogthecat $"
-//
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
@@ -42,22 +38,22 @@ CResultFilters::CResultFilters(void)
 
 CResultFilters::~CResultFilters(void)
 {
-	if ( m_pFilters )
+	if (m_pFilters)
 	{
-		for ( DWORD i = 0; i < m_nFilters; i++ )
+		for (DWORD i = 0; i < m_nFilters; i++)
 		{
 			delete m_pFilters[i];
 		}
 	}
 
-	delete [] ( m_pFilters );
+	delete [] (m_pFilters);
 }
 
 void CResultFilters::Serialize(CArchive & ar)
 {
 	int nVersion = 1;
 
-	if ( ar.IsStoring() )
+	if (ar.IsStoring())
 	{
 		ar << nVersion;
 
@@ -104,54 +100,26 @@ void CResultFilters::Add(CFilterOptions *pOptions)
 	m_pFilters = pFilters;
 }
 
-// Search for (first) filter with name strName, return index if found, -1 (NONE) otherwise
-int CResultFilters::Search(const CString& strName)
-{
-	for ( DWORD index = 0; index < m_nFilters; index++ )
-	{
-		if ( strName.Compare( m_pFilters[index]->m_sName ) == 0 )
-		{
-			return index;
-		}
-	}
-	return NONE;
- }
-
 void CResultFilters::Remove(DWORD index)
 {
-	if ( ( index >= 0 ) && ( index < m_nFilters ) )
+	if ((index >= 0) && (index < m_nFilters))
 	{
 		delete m_pFilters[index];
 		CopyMemory(&m_pFilters[index], &m_pFilters[index + 1], sizeof(CFilterOptions *) * (m_nFilters - index));
 		m_nFilters--;
-
-		if ( index == m_nDefault ) m_nDefault = NONE;
-		else if ( ( m_nDefault != NONE ) && ( index < m_nDefault ) ) m_nDefault--;
-		
-		if ( m_nFilters == 0 ) m_nDefault = NONE;
 	}
 }
 
 void CResultFilters::Load()
 {
-	// Delete old content first
-	if ( m_pFilters )
-	{
-		for ( DWORD i = 0; i < m_nFilters; i++ )
-		{
-			delete m_pFilters[i];
-		}
-	}
-	delete [] ( m_pFilters );
-	
 	CString strFile;
 	CFile f;
 
-	strFile.Format( _T("%s\\Data\\Filters.dat"), (LPCTSTR)Settings.General.UserPath );
+	strFile.Format( _T("%s\\Data\\Filters.dat"), (LPCTSTR)Settings.General.Path );
 
-	if ( f.Open( strFile, CFile::modeRead ) )
+	if (f.Open(strFile, CFile::modeRead))
 	{
-		CArchive ar( &f, CArchive::load );
+		CArchive ar(&f, CArchive::load);
 		Serialize(ar);
 		ar.Close();
 		f.Close();
@@ -163,12 +131,12 @@ void CResultFilters::Save()
 	CString strFile;
 	CFile f;
 
-	strFile.Format( _T("%s\\Data\\Filters.dat"), (LPCTSTR)Settings.General.UserPath );
+	strFile.Format( _T("%s\\Data\\Filters.dat"), (LPCTSTR)Settings.General.Path );
 
 	if (f.Open(strFile, CFile::modeCreate | CFile::modeWrite))
 	{
-		CArchive ar( &f, CArchive::store );
-		Serialize( ar );
+		CArchive ar(&f, CArchive::store);
+		Serialize(ar);
 		ar.Close();
 		f.Close();
 	}
@@ -184,8 +152,6 @@ CFilterOptions::CFilterOptions()
 	m_bFilterReject		= ( Settings.Search.FilterMask & ( 1 << 3 ) ) > 0;
 	m_bFilterLocal		= ( Settings.Search.FilterMask & ( 1 << 4 ) ) > 0;
 	m_bFilterBogus		= ( Settings.Search.FilterMask & ( 1 << 5 ) ) > 0;
-	m_bFilterDRM		= ( Settings.Search.FilterMask & ( 1 << 6 ) ) > 0;
-	m_bFilterAdult		= ( Settings.Search.FilterMask & ( 1 << 7 ) ) > 0;
 	m_nFilterMinSize	= 1;
 	m_nFilterMaxSize	= 0;
 	m_nFilterSources	= 1;
@@ -193,7 +159,7 @@ CFilterOptions::CFilterOptions()
 
 void CFilterOptions::Serialize(CArchive & ar)
 {
-	if ( ar.IsStoring() ) // saving
+	if ( ar.IsStoring() ) //saving
 	{
 		ar << m_sName;
 		ar << m_sFilter;

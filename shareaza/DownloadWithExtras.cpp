@@ -86,11 +86,7 @@ BOOL CDownloadWithExtras::CanPreview()
 	if ( m_pPreviewWnd != NULL ) return FALSE;
 	
 	LPCTSTR pszType = _tcsrchr( m_sLocalName, '.' );
-	if ( pszType == NULL )
-	{
-		pszType = _tcsrchr( m_sRemoteName, '.' );
 	if ( pszType == NULL ) return FALSE;
-	}
 	
 	CString strType( pszType );
 	CharLower( strType.GetBuffer() );
@@ -203,7 +199,7 @@ BOOL CDownloadWithExtras::AddReview(CDownloadReview* pReview)
 	return TRUE;
 }
 
-// Delete a reviews
+// Delete all reviews
 void CDownloadWithExtras::DeleteReview(CDownloadReview *pReview)
 {
 	if ( pReview == NULL ) return;
@@ -314,29 +310,6 @@ CDownloadReview* CDownloadWithExtras::FindReview(int nRating, LPCTSTR pszName, L
 	}
 
 	return NULL;
-}
-
-// Get the average rating of all reviews
-int CDownloadWithExtras::GetReviewAverage() const
-{
-	int nAverageRating = 0, nCount = 0;
-
-	CDownloadReview *pNext = NULL, *pReview = m_pReviewFirst;
-
-	while ( pReview )
-	{
-		pNext = pReview->m_pNext;
-		if ( pReview->m_nFileRating > 0 )
-		{
-			nAverageRating += pReview->m_nFileRating;
-			nCount ++;
-		}
-		pReview = pNext;
-	}
-
-	if ( nCount ) nAverageRating /= nCount;
-
-	return nAverageRating;
 }
 
 

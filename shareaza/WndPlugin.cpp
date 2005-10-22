@@ -154,7 +154,7 @@ void CPluginWnd::OnSkinChange()
 				MAKEINTRESOURCE( m_nResID ), IMAGE_ICON, 16, 16, 0 );
 		}
 
-		SetIcon( theApp.m_bRTL ? CreateMirroredIcon( hIcon ) : hIcon, FALSE );
+		SetIcon( hIcon, FALSE );
 
 		CString strCaption;
 		Skin.LoadString( strCaption, m_nResID );

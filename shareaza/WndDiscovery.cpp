@@ -97,18 +97,12 @@ int CDiscoveryWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		LVS_EX_FULLROWSELECT|LVS_EX_HEADERDRAGDROP|LVS_EX_LABELTIP );
 	
 	m_gdiImageList.Create( 16, 16, ILC_MASK|ILC_COLOR32, 4, 1 );
-	m_gdiImageList.Add( theApp.m_bRTL ? CreateMirroredIcon( theApp.LoadIcon( IDR_HOSTCACHEFRAME ) ) : 
-		theApp.LoadIcon( IDR_HOSTCACHEFRAME ) );
-	m_gdiImageList.Add( theApp.m_bRTL ? CreateMirroredIcon( theApp.LoadIcon( IDI_DISCOVERY_GRAY ) ) : 
-		theApp.LoadIcon( IDI_DISCOVERY_GRAY ) );
-	m_gdiImageList.Add( theApp.m_bRTL ? CreateMirroredIcon( theApp.LoadIcon( IDR_DISCOVERYFRAME ) ) : 
-		theApp.LoadIcon( IDR_DISCOVERYFRAME ) );
-	m_gdiImageList.Add( theApp.m_bRTL ? CreateMirroredIcon( theApp.LoadIcon( IDI_WEB_URL ) ) : 
-		theApp.LoadIcon( IDI_WEB_URL ) );
-	m_gdiImageList.Add( theApp.m_bRTL ? CreateMirroredIcon( theApp.LoadIcon( IDI_DISCOVERY_BLUE ) ) : 
-		theApp.LoadIcon( IDI_DISCOVERY_BLUE ) );
-	m_gdiImageList.Add( theApp.m_bRTL ? CreateMirroredIcon( theApp.LoadIcon( IDI_FIREWALLED ) ) : 
-		theApp.LoadIcon( IDI_FIREWALLED ) );
+	m_gdiImageList.Add( theApp.LoadIcon( IDR_HOSTCACHEFRAME ) );
+	m_gdiImageList.Add( theApp.LoadIcon( IDI_DISCOVERY_GRAY ) );
+	m_gdiImageList.Add( theApp.LoadIcon( IDR_DISCOVERYFRAME ) );
+	m_gdiImageList.Add( theApp.LoadIcon( IDI_WEB_URL ) );
+	m_gdiImageList.Add( theApp.LoadIcon( IDI_DISCOVERY_BLUE ) );
+	m_gdiImageList.Add( theApp.LoadIcon( IDI_FIREWALLED ) );
 	m_wndList.SetImageList( &m_gdiImageList, LVSIL_SMALL );
 
 	m_wndList.InsertColumn( 0, _T("Address"), LVCFMT_LEFT, 260, -1 );
@@ -260,7 +254,7 @@ void CDiscoveryWnd::OnSize(UINT nType, int cx, int cy)
 
 void CDiscoveryWnd::OnTimer(UINT nIDEvent) 
 {
-	if ( ( nIDEvent == 1 ) && ( IsPartiallyVisible() ) ) Update();
+	if ( nIDEvent == 1 ) Update();
 }
 
 void CDiscoveryWnd::OnDblClkList(NMHDR* pNMHDR, LRESULT* pResult)

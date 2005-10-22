@@ -25,7 +25,6 @@
 #include "WizardInterfacePage.h"
 #include "WndMain.h"
 #include "Skin.h"
-#include "ShareazaURL.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -48,10 +47,7 @@ END_MESSAGE_MAP()
 CWizardInterfacePage::CWizardInterfacePage() : CWizardPage(CWizardInterfacePage::IDD)
 {
 	//{{AFX_DATA_INIT(CWizardInterfacePage)
-	m_bExpert				= Settings.General.GUIMode != GUI_BASIC;
-	m_bSimpleDownloadBars	= Settings.Downloads.SimpleBar;
-	m_bTorrentInterface		= Settings.BitTorrent.AdvancedInterface;
-	m_bHandleTorrents		= Settings.Web.Torrent;
+	m_bExpert = -1;
 	//}}AFX_DATA_INIT
 }
 
@@ -68,9 +64,6 @@ void CWizardInterfacePage::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_INTERFACE_1, m_wndInterface1);
 	DDX_Control(pDX, IDC_INTERFACE_0, m_wndInterface0);
 	DDX_Radio(pDX, IDC_INTERFACE_0, m_bExpert);
-	DDX_Check(pDX, IDC_DOWNLOADS_SIMPLEBAR, m_bSimpleDownloadBars);
-	DDX_Check(pDX, IDC_TORRENT_INTERFACE, m_bTorrentInterface);
-	DDX_Check(pDX, IDC_URI_TORRENT, m_bHandleTorrents);
 	//}}AFX_DATA_MAP
 }
 
@@ -83,11 +76,7 @@ BOOL CWizardInterfacePage::OnInitDialog()
 
 	Skin.Apply( _T("CWizardInterfacePage"), this );
 
-	m_bExpert				= Settings.General.GUIMode != GUI_BASIC;
-	m_bSimpleDownloadBars	= Settings.Downloads.SimpleBar;
-	m_bTorrentInterface		= Settings.BitTorrent.AdvancedInterface;
-	m_bHandleTorrents		= Settings.Web.Torrent;
-
+	m_bExpert = Settings.General.GUIMode != GUI_BASIC;
 	UpdateData( FALSE );
 
 	m_wndInterface0.SetFont( &theApp.m_gdiFontBold );
@@ -129,31 +118,22 @@ LRESULT CWizardInterfacePage::OnWizardNext()
 {
 	UpdateData( TRUE );
 
-	Settings.Downloads.SimpleBar			= m_bSimpleDownloadBars;
-	Settings.BitTorrent.AdvancedInterface	= m_bTorrentInterface;
-
-	if ( Settings.Web.Torrent != m_bHandleTorrents )
-	{
-		Settings.Web.Torrent = m_bHandleTorrents;
-		CShareazaURL::Register();
-	}
-
 	CWaitCursor pCursor;
+
 	CMainWnd* pMainWnd = (CMainWnd*)AfxGetMainWnd();
 
-	if ( m_bExpert ) Settings.General.GUIMode = GUI_TABBED;
-	else Settings.General.GUIMode = GUI_BASIC;
-	pMainWnd->SetGUIMode( Settings.General.GUIMode, FALSE );
-	
+	if ( m_bExpert )
+	{
+		if ( Settings.General.GUIMode == GUI_BASIC )
+			pMainWnd->SetGUIMode( GUI_TABBED );
+	}
+	else
+	{
+		if ( Settings.General.GUIMode != GUI_BASIC )
+			pMainWnd->SetGUIMode( GUI_BASIC );
+	}
+
 	Settings.Save();
 
-	// If this system is capable of handling multiple networks, go to the network settings wizard.
-	if ( ( theApp.m_bNT )													&&	// 9x based systems can't handle enough connections
-		 ( !theApp.m_bLimitedConnections || Settings.General.IgnoreXPsp2 )	&&	// The connection rate limiting (XPsp2) makes multi-network performance awful
-		 ( Settings.Connection.FirewallStatus == CONNECTION_OPEN )			&&	// Firewalled users place a heavy load on other networks. (ED2K, in particular)
-		 ( Settings.Connection.InSpeed > 256 )								&&	// Must have a decent connection to be worth it. (Or extra traffic will slow downloads)
-		 ( Settings.GetOutgoingBandwidth() > 16 ))								// If your outbound bandwidth is too low, the ED2K ratio will throttle you anyway
-		return 0;
-	else
-		return IDD_WIZARD_FINISHED;
+	return 0;
 }

@@ -42,8 +42,6 @@ BEGIN_MESSAGE_MAP(CSchemaCtrl, CWnd)
 	ON_WM_SIZE()
 	ON_WM_NCPAINT()
 	ON_WM_SETFOCUS()
-	ON_WM_LBUTTONDOWN()
-	ON_WM_MOUSEWHEEL()
 	//}}AFX_MSG_MAP
 	ON_EN_CHANGE(IDC_METADATA_CONTROL, OnControlEdit)
 	ON_CBN_SELCHANGE(IDC_METADATA_CONTROL, OnControlEdit)
@@ -63,12 +61,6 @@ CSchemaCtrl::CSchemaCtrl()
 	m_bShowBorder	= TRUE;
 	m_pSchema		= NULL;
 	m_nScroll		= 0;
-
-	// Try to get the number of lines to scroll when the mouse wheel is rotated
-	if( !SystemParametersInfo ( SPI_GETWHEELSCROLLLINES, 0, &m_nScrollWheelLines, 0) )
-	{
-		m_nScrollWheelLines = 3;
-	}
 }
 
 CSchemaCtrl::~CSchemaCtrl()
@@ -81,8 +73,7 @@ CSchemaCtrl::~CSchemaCtrl()
 BOOL CSchemaCtrl::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID) 
 {
 	dwStyle |= WS_CHILD|WS_VSCROLL|WS_CLIPCHILDREN;
-	DWORD dwExStyle = theApp.m_bRTL ? WS_EX_LAYOUTRTL : 0;
-	return CWnd::CreateEx( dwExStyle, NULL, NULL, dwStyle, rect, pParentWnd, nID, NULL );
+	return CWnd::Create( NULL, NULL, dwStyle, rect, pParentWnd, nID, NULL );
 }
 
 int CSchemaCtrl::OnCreate(LPCREATESTRUCT lpCreateStruct) 
@@ -256,16 +247,8 @@ void CSchemaCtrl::Layout()
 
 		if ( m_nCaptionWidth )
 		{
-			if ( theApp.m_bRTL )
-			{
-				rcNew.left		= m_nCaptionWidth;
-				rcNew.right		= rcClient.right - 10;
-			}
-			else
-			{
-				rcNew.left		= m_nCaptionWidth;
-				rcNew.right		= rcClient.right - 10;
-			}
+			rcNew.left		= m_nCaptionWidth;
+			rcNew.right		= rcClient.right - 10;
 			rcNew.top		= nTop + m_nItemHeight / 2 - 9;
 			rcNew.bottom	= nTop + m_nItemHeight / 2 + 9;
 		}
@@ -367,7 +350,7 @@ void CSchemaCtrl::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 		break;
 	case SB_THUMBPOSITION:
 	case SB_THUMBTRACK:
-		m_nScroll = nPos;
+		m_nScroll = pScroll.nTrackPos;
 		break;
 	}
 
@@ -393,17 +376,6 @@ void CSchemaCtrl::ScrollBy(int nDelta)
 	ScrollWindowEx( 0, -nDelta, NULL, NULL, NULL, NULL, SW_SCROLLCHILDREN|SW_INVALIDATE );
 	Layout();
 	UpdateWindow();
-}
-
-void CSchemaCtrl::OnLButtonDown(UINT nFlags, CPoint point)
-{
-	SetFocus();
-}
-
-BOOL CSchemaCtrl::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
-{
-	OnVScroll( SB_THUMBPOSITION, (int)( GetScrollPos( SB_VERT ) - zDelta / WHEEL_DELTA * m_nScrollWheelLines * 8 ), NULL );
-	return TRUE;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -435,7 +407,7 @@ void CSchemaCtrl::OnPaint()
 {
 	CRect rcClient, rcItem;
 	CPaintDC dc( this );
-
+		
 	GetClientRect( &rcClient );
 	rcItem.CopyRect( &rcClient );
 

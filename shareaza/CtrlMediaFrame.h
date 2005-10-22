@@ -1,10 +1,6 @@
 //
 // CtrlMediaFrame.h
 //
-//	Date:			"$Date: 2005/10/21 19:47:34 $"
-//	Revision:		"$Revision: 1.6 $"
-//  Last change by:	"$Author: rolandas $"
-//
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
@@ -51,8 +47,6 @@ public:
 	BOOL	SeekTo(float nPosition);
 	BOOL	SetVolume(float nVolume);
 	BOOL	PaintStatusMicro(CDC& dc, CRect& rcBar);
-	void	DisableScreenSaver();
-	void	EnableScreenSaver();
 protected:
 	void	SetFullScreen(BOOL bFullScreen);
 	void	PaintSplash(CDC& dc, CRect& rcBar);
@@ -66,7 +60,6 @@ protected:
 	void	ZoomTo(MediaZoom nZoom);
 	void	AspectTo(double nAspect);
 	void	UpdateState();
-	HRESULT PluginPlay( BSTR bsFileName );
 public:
 	inline IMediaPlayer* GetPlayer() { return m_pPlayer; }
 	inline MediaState GetState() { return m_pPlayer != NULL ? m_nState : smsNull; }
@@ -79,11 +72,7 @@ protected:
 	LONGLONG		m_nPosition;
 	BOOL			m_bMute;
 	BOOL			m_bThumbPlay;
-	BOOL			m_bRepeat;
-	BOOL			m_bLastMedia;
-	BOOL			m_bLastNotPlayed;
-	BOOL			m_bEnqueue;
-	BOOL			m_bStopFlag;
+	BOOL			m_bAutoPlay;
 	DWORD			m_tLastPlay;
 protected:
 	CString			m_sFile;
@@ -101,7 +90,6 @@ protected:
 	DWORD			m_tBarTime;
 	CPoint			m_ptCursor;
 	BOOL			m_bListVisible;
-	BOOL			m_bListWasVisible;
 	int				m_nListSize;
 	BOOL			m_bStatusVisible;
 protected:
@@ -112,9 +100,6 @@ protected:
 	CFont			m_pFontDefault;
 	CFont			m_pFontKey;
 	CFont			m_pFontValue;
-protected:
-	int*			m_pScreenSaveValue;
-	BOOL			m_bScreenSaverEnabled;
 public:
 	static CMediaFrame* g_pMediaFrame;
 
@@ -131,6 +116,7 @@ protected:
 	afx_msg void OnDestroy();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnPaint();
+	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);

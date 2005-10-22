@@ -111,13 +111,6 @@ BOOL CWizardProfilePage::OnSetActive()
 
 	m_sNick = MyProfile.GetNick();
 
-	if ( m_sNick.IsEmpty() )
-	{
-		TCHAR pBuffer[64];
-		DWORD nSize = 64;
-		if ( GetUserNameW( pBuffer, &nSize ) ) m_sNick = pBuffer;
-	}
-
 	if ( CXMLElement* pVitals = MyProfile.GetXML( _T("vitals") ) )
 	{
 		CString strGender	= pVitals->GetAttributeValue( _T("gender") );
@@ -319,5 +312,5 @@ LRESULT CWizardProfilePage::OnWizardNext()
 
 	MyProfile.Save();
 
-	return 0;
+	return ( (Settings.Connection.InSpeed > 128) && (theApp.m_bNT) && (!Settings.Connection.Firewalled) && (!theApp.m_bLimitedConnections) ) ? 0 : IDD_WIZARD_FINISHED;
 }

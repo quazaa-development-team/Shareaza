@@ -48,7 +48,6 @@ BEGIN_MESSAGE_MAP(CMediaWnd, CPanelWnd)
 	ON_MESSAGE(0x0319, OnMediaKey)
 	ON_MESSAGE(WM_DEVMODECHANGE, OnDevModeChange)
 	ON_MESSAGE(WM_DISPLAYCHANGE, OnDisplayChange)
-	ON_WM_DROPFILES()
 END_MESSAGE_MAP()
 
 
@@ -204,11 +203,7 @@ BOOL CMediaWnd::OnDropFiles(CStringList& pFiles, const CPoint& ptScreen, BOOL bD
 	m_wndFrame.ScreenToClient( &pt );
 	CWnd* pDropped = m_wndFrame.ChildWindowFromPoint( pt );
 
-	BOOL bEnqueue;
-	if ( pDropped != NULL )
-		bEnqueue = ( pDropped->IsKindOf( RUNTIME_CLASS(CMediaListCtrl) ) );
-	else
-		bEnqueue = FALSE;
+	BOOL bEnqueue = ( pDropped->IsKindOf( RUNTIME_CLASS(CMediaListCtrl) ) );
 
 	for ( POSITION pos = pFiles.GetHeadPosition() ; pos ; )
 	{
@@ -221,26 +216,4 @@ BOOL CMediaWnd::OnDropFiles(CStringList& pFiles, const CPoint& ptScreen, BOOL bD
 	}
 
 	return TRUE;
-}
-
-void CMediaWnd::OnDropFiles(HDROP hDropInfo)
-{
-	if ( hDropInfo != NULL )
-	{
-		CStringList oFileList;
-		TCHAR szFileName[MAX_PATH + 1];
-		UINT nFiles = DragQueryFile( hDropInfo, (UINT)-1, NULL, 0 );
-		for( UINT nNames = 0; nNames < nFiles; nNames++ )
-		{
-			ZeroMemory( szFileName, MAX_PATH + 1 );
-			DragQueryFile( hDropInfo, nNames, (LPTSTR)szFileName, MAX_PATH + 1 );
-	        oFileList.AddTail( szFileName ); 
-		}
-		CPoint oPoint;
-		POINT pt;
-		DragQueryPoint( hDropInfo, &pt );
-		oPoint.SetPoint( pt.x, pt.y );
-
-		OnDropFiles( oFileList, oPoint, TRUE );
-	}
 }

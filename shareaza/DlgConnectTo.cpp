@@ -85,8 +85,6 @@ BOOL CConnectToDlg::OnInitDialog()
 
 	CBitmap bmImages;
 	bmImages.LoadBitmap( IDB_PROTOCOLS );
-	if ( theApp.m_bRTL ) 
-		bmImages.m_hObject = CreateMirroredBitmap( (HBITMAP)bmImages.m_hObject );
 	m_pImages.Create( 16, 16, ILC_COLOR16|ILC_MASK, 7, 1 );
 	m_pImages.Add( &bmImages, RGB( 0, 255, 0 ) );
 
@@ -156,7 +154,6 @@ void CConnectToDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 	CDC dc;
 
 	dc.Attach( lpDrawItemStruct->hDC );
-	if ( theApp.m_bRTL ) theApp.m_pfnSetLayout( dc.m_hDC, LAYOUT_RTL );
 
 	CFont* pOldFont = (CFont*)dc.SelectObject( &theApp.m_gdiFont );
 	dc.SetTextColor( GetSysColor( ( lpDrawItemStruct->itemState & ODS_SELECTED )
@@ -167,14 +164,7 @@ void CConnectToDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 		? COLOR_HIGHLIGHT : COLOR_WINDOW ) );
 	dc.SetBkMode( TRANSPARENT );
 
-	int nImage = (int)lpDrawItemStruct->itemID;
-
-	if ( theApp.m_bRTL ) 
-		nImage = m_pImages.GetImageCount() - nImage - 2;
-	else
-		nImage += 1;
-
-	m_pImages.Draw( &dc, nImage, pt,
+	m_pImages.Draw( &dc, lpDrawItemStruct->itemID + 1, pt,
 		( lpDrawItemStruct->itemState & ODS_SELECTED ) ? ILD_SELECTED : ILD_NORMAL );
 
 	m_wndProtocol.GetLBText( lpDrawItemStruct->itemID, str );

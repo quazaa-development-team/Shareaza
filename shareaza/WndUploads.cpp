@@ -129,8 +129,7 @@ int CUploadsWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	SetTimer( 4, 5000, NULL );
 	PostMessage( WM_TIMER, 4 );
 
-	m_tSel			= 0;
-	m_tLastUpdate	= 0;
+	m_tSel = 0;
 
 	return 0;
 }
@@ -167,16 +166,14 @@ void CUploadsWnd::OnSkinChange()
 
 void CUploadsWnd::OnTimer(UINT nIDEvent)
 {
-	// Reset Selection Timer event (posted by ctrluploads)
-	if ( nIDEvent == 5 ) m_tSel	= 0;
+	if ( nIDEvent == 5 ) m_tSel = 0;
 
-	// Clear event (5 second timer)
 	if ( nIDEvent == 4 )
 	{
 		CSingleLock pLock( &Transfers.m_pSection );
 		if ( ! pLock.Lock( 10 ) ) return;
 
-		DWORD tNow = GetTickCount();
+		DWORD nNow = GetTickCount();
 		BOOL bCull = Uploads.GetCount( NULL ) > 75;
 
 		for ( POSITION pos = Uploads.GetIterator() ; pos ; )
@@ -184,7 +181,7 @@ void CUploadsWnd::OnTimer(UINT nIDEvent)
 			CUploadTransfer* pUpload = Uploads.GetNext( pos );
 
 			if ( pUpload->m_nState == upsNull &&
-				 tNow - pUpload->m_tConnected > Settings.Uploads.ClearDelay )
+				 nNow - pUpload->m_tConnected > Settings.Uploads.ClearDelay )
 			{
 				if ( Settings.Uploads.AutoClear || pUpload->m_nUploaded == 0 || bCull )
 				{
@@ -194,18 +191,7 @@ void CUploadsWnd::OnTimer(UINT nIDEvent)
 		}
 	}
 
-	// Update event (2 second timer)
-	if ( nIDEvent == 2 )
-	{
-		DWORD tNow = GetTickCount();
-
-		// If the window is visible or hasn't been updated in 10 seconds
-		if ( ( IsWindowVisible() && IsActive( FALSE ) ) || ( ( tNow - m_tLastUpdate ) > 10*1000 ) )
-		{
-			m_wndUploads.Update();
-			m_tLastUpdate = tNow;
-		}
-	}
+	if ( nIDEvent != 1 ) m_wndUploads.Update();
 }
 
 void CUploadsWnd::OnContextMenu(CWnd* pWnd, CPoint point)
@@ -534,7 +520,7 @@ void CUploadsWnd::OnSecurityBan()
 			IN_ADDR pAddress = pUpload->m_pHost.sin_addr;
 			pUpload->Remove( FALSE );
 			pLock.Unlock();
-			Security.Ban( &pAddress, banSession );
+			Security.SessionBan( &pAddress );
 			pLock.Lock();
 		}
 	}
@@ -598,7 +584,10 @@ void CUploadsWnd::OnUploadsAutoClear()
 void CUploadsWnd::OnUpdateEditQueue(CCmdUI* pCmdUI)
 {
 	Prepare();
-	pCmdUI->Enable( ! m_bSelFile );
+	//pCmdUI->Enable( ! m_bSelFile );
+
+	//Sometimes locks up... disable for now
+	pCmdUI->Enable( FALSE );
 }
 
 void CUploadsWnd::OnEditQueue()
@@ -611,7 +600,24 @@ void CUploadsWnd::OnEditQueue()
 
 		if ( pQueue->m_bSelected )
 		{
-			CSettingsManagerDlg::Run( _T("CUploadsSettingsPage") );
+			pLock.Unlock();
+
+			CQueuePropertiesDlg dlg( pQueue, FALSE, this );
+
+			//dlg.DoModal();  //Note: the CSkinDialog::OnOK() at the end will sometimes lock
+			// up Raza? Needs to be fixed
+
+			UploadQueues.Save();
+
+			if ( UploadQueues.GetCount() == 0 )
+				UploadQueues.CreateDefault();
+			else
+				UploadQueues.Validate();
+
+			// Changing queues might change what files are in the hash table
+			LibraryDictionary.RebuildHashTable();
+			// ED2k file list will automatically update on next server connection
+
 			return;
 		}
 	}

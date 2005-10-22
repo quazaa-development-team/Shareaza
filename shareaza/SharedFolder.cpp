@@ -387,8 +387,6 @@ BOOL CLibraryFolder::ThreadScan(DWORD nScanCookie)
 			}
 			else
 			{
-				if ( pFind.dwFileAttributes & (FILE_ATTRIBUTE_ENCRYPTED) ) continue;
-
 				CLibraryFile* pFile = GetFile( pFind.cFileName );
 				
 				if ( pFile != NULL )
@@ -482,7 +480,7 @@ BOOL CLibraryFolder::ThreadScan(DWORD nScanCookie)
 	}
 	
 	if ( m_pParent == NULL )
-		theApp.Message( MSG_DEBUG, _T("Finished scanning (%i)"), bChanged );
+		theApp.Message( MSG_DEBUG, _T("Finnished scanning (%i)"), bChanged );
 	
 	return bChanged;
 }

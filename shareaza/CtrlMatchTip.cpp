@@ -115,8 +115,7 @@ BOOL CMatchTipCtrl::Create(CWnd* pParentWnd)
 {
 	CRect rc( 0, 0, 0, 0 );
 	m_pOwner = pParentWnd;
-	DWORD dwStylesEx = WS_EX_TOPMOST | ( theApp.m_bRTL ? WS_EX_LAYOUTRTL : 0 );
-	return CWnd::CreateEx( dwStylesEx, m_hClass, NULL, WS_POPUP|WS_DISABLED, rc, pParentWnd, 0, NULL );
+	return CWnd::CreateEx( WS_EX_TOPMOST, m_hClass, NULL, WS_POPUP|WS_DISABLED, rc, pParentWnd, 0, NULL );
 }
 
 void CMatchTipCtrl::Show(CMatchFile* pFile, CQueryHit* pHit)
@@ -697,13 +696,8 @@ CSize CMatchTipCtrl::ComputeSize()
 	}
 
 	sz.cy += 32;
-	CString strTest;
-	LoadString( strTest, IDS_TIP_SIZE );
-	strTest.Append( _T(": ") );
-	ExpandSize( dc, sz, strTest + m_sSize, 40 );
-	LoadString( strTest, IDS_TIP_TYPE );
-	strTest.Append( _T(": ") );
-	ExpandSize( dc, sz, strTest + m_sType, 40 );
+	ExpandSize( dc, sz, m_sSize, 80 );
+	ExpandSize( dc, sz, m_sType, 80 );
 
 	if ( m_sSHA1.GetLength() || m_sTiger.GetLength() || m_sED2K.GetLength() )
 	{
@@ -878,20 +872,16 @@ void CMatchTipCtrl::OnPaint()
 
 	pt.x += 40;
 	LoadString( str, IDS_TIP_SIZE );
-	str.Append( _T(": ") );
-	DrawText( dc, pt, str );
-	CSize sz = dc.GetTextExtent( str, str.GetLength() );
-	pt.x += sz.cx;
+	DrawText( dc, pt, str + ':' );
+	pt.x += 40;
 	DrawText( dc, pt, m_sSize );
-	pt.x -= sz.cx;
+	pt.x -= 40;
 	pt.y += 16;
 	LoadString( str, IDS_TIP_TYPE );
-	str.Append( _T(": ") );
-	DrawText( dc, pt, str );
-	sz = dc.GetTextExtent( str, str.GetLength() );
-	pt.x += sz.cx;
+	DrawText( dc, pt, str + ':' );
+	pt.x += 40;
 	DrawText( dc, pt, m_sType );
-	pt.x -= sz.cx;
+	pt.x -= 40;
 	pt.x -= 40;
 	pt.y += 16;
 
@@ -1023,7 +1013,7 @@ void CMatchTipCtrl::OnPaint()
 		{
 			CMetaItem* pItem = m_pMetadata.GetNext( pos );
 
-			DrawText( dc, pt, theApp.m_bRTL ? ':' + pItem->m_sKey : pItem->m_sKey + ':' );
+			DrawText( dc, pt, pItem->m_sKey + ':' );
 			pt.x += m_nKeyWidth;
 			DrawText( dc, pt, pItem->m_sValue );
 			pt.x -= m_nKeyWidth;
@@ -1037,13 +1027,11 @@ void CMatchTipCtrl::OnPaint()
 
 void CMatchTipCtrl::DrawText(CDC& dc, CPoint& pt, LPCTSTR pszText)
 {
-	DWORD dwFlags = ( theApp.m_bRTL ? ETO_RTLREADING : 0 );
-	short nExtraPoint = ( theApp.m_bRTL ? 1 : 0 );
 	CSize sz = dc.GetTextExtent( pszText, _tcslen( pszText ) );
-	CRect rc( pt.x, pt.y, pt.x + sz.cx + nExtraPoint, pt.y + sz.cy );
+	CRect rc( pt.x, pt.y, pt.x + sz.cx, pt.y + sz.cy );
 
 	dc.SetBkColor( m_crBack );
-	dc.ExtTextOut( pt.x, pt.y, ETO_CLIPPED|ETO_OPAQUE|dwFlags, &rc, pszText, _tcslen( pszText ), NULL );
+	dc.ExtTextOut( pt.x, pt.y, ETO_CLIPPED|ETO_OPAQUE, &rc, pszText, _tcslen( pszText ), NULL );
 	dc.ExcludeClipRect( &rc );
 }
 

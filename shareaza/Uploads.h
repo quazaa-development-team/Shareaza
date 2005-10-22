@@ -51,7 +51,6 @@ public:
 	int			GetTorrentCount(int nState) const;
 public:
 	BOOL		AllowMoreTo(IN_ADDR* pAddress) const;
-	BOOL		CanUploadFileTo(IN_ADDR* pAddress, const SHA1* pSHA1 = NULL) const;
 	BOOL		EnforcePerHostLimit(CUploadTransfer* pUpload, BOOL bRequest = FALSE);
 public:
 	void		SetStable(DWORD nSpeed);

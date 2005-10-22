@@ -95,9 +95,10 @@ int CDownloadWithSources::GetBTSourceCount(BOOL bNoPush) const
 	
 	for ( CDownloadSource* pSource = m_pSourceFirst ; pSource ; pSource = pSource->m_pNext )
 	{
-		if ( ( pSource->m_nProtocol == PROTOCOL_BT ) &&									// Only counting BT sources
-			 ( pSource->m_tAttempt < tNow || pSource->m_tAttempt - tNow <= 900000 ) &&	// Don't count dead sources
-			 ( ! pSource->m_bPushOnly || ! bNoPush ) )									// Push sources might not be counted
+		if ( ( ! pSource->m_bPushOnly || ! bNoPush ) &&									// Push sources might not be counted
+			 ( pSource->m_tAttempt < tNow || pSource->m_tAttempt - tNow <= 900000 ) &&	// This source is probably dead
+			 ( pSource->m_nProtocol == PROTOCOL_BT ) )									// Only counting BT sources
+			
 		{
 			nCount++;
 		}
@@ -271,14 +272,6 @@ BOOL CDownloadWithSources::AddSourceED2K(DWORD nClientID, WORD nClientPort, DWOR
 
 BOOL CDownloadWithSources::AddSourceBT(SHA1* pGUID, IN_ADDR* pAddress, WORD nPort)
 {
-	// Unreachable (Push) BT sources should never be added.
-	if ( Network.IsFirewalledAddress( pAddress, Settings.Connection.IgnoreOwnIP ) )
-		return FALSE;
-	
-	// Check for own IP, in case IgnoreLocalIP is not set
-	if ( ( Settings.Connection.IgnoreOwnIP ) && ( pAddress->S_un.S_addr == Network.m_pHost.sin_addr.S_un.S_addr ) ) 
-		return FALSE;
-
 	return AddSourceInternal( new CDownloadSource( (CDownload*)this, pGUID, pAddress, nPort ) );
 }
 
@@ -423,17 +416,17 @@ int CDownloadWithSources::AddSourceURLs(LPCTSTR pszURLs, BOOL bURN)
 
 BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 {
-	// Check/Reject if source is invalid
+	//Check/Reject if source is invalid
 	if ( ! pSource->m_bPushOnly )
 	{
-		// Reject invalid IPs (Sometimes ed2k sends invalid 0.x.x.x sources)
+		//Reject invalid IPs (Sometimes ed2k sends invalid 0.x.x.x sources)
 		if ( pSource->m_pAddress.S_un.S_un_b.s_b1 == 0 )
 		{
 			delete pSource;
 			return FALSE;
 		}
 
-		// Reject if source is the local IP/port
+		//Reject if source is the local IP/port
 		if ( Network.m_pHost.sin_addr.S_un.S_addr == pSource->m_pAddress.S_un.S_addr )
 		{
 			if ( ( ( pSource->m_nServerPort == 0 ) && (Settings.Connection.InPort == pSource->m_nPort ) )
@@ -446,22 +439,11 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 	}
 	else if ( pSource->m_nProtocol == PROTOCOL_ED2K )
 	{
-		// Reject invalid server IPs (Sometimes ed2k sends invalid 0.x.x.x sources)
+		//Reject invalid server IPs (Sometimes ed2k sends invalid 0.x.x.x sources)
 		if ( pSource->m_pServerAddress.S_un.S_un_b.s_b1 == 0 )
 		{
 			delete pSource;
 			return FALSE;
-		}
-	}
-
-	// Check if GUID is valid (MLDonkey source exchange bug)
-	if ( pSource->m_bGUID )
-	{
-		if ( ( pSource->m_pGUID.w[0] == 0 ) && ( pSource->m_pGUID.w[1] == 0 ) && 
-			 ( pSource->m_pGUID.w[2] == 0 ) && ( pSource->m_pGUID.w[3] == 0 ) )
-		{
-			// GUID appear to be null, so invalidate it to prevent duplicate sources
-			pSource->m_bGUID = FALSE;
 		}
 	}
 
@@ -507,7 +489,7 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithSources query for URLs
 
-CString CDownloadWithSources::GetSourceURLs(CStringList* pState, int nMaximum, PROTOCOLID nProtocol, CDownloadSource* pExcept)
+CString CDownloadWithSources::GetSourceURLs(CStringList* pState, int nMaximum, BOOL bHTTP, CDownloadSource* pExcept)
 {
 	CString strSources, strURL;
 	
@@ -520,12 +502,7 @@ CString CDownloadWithSources::GetSourceURLs(CStringList* pState, int nMaximum, P
 		{
 			if ( pState != NULL ) pState->AddTail( pSource->m_sURL );
 			
-			
-			// Only return appropriate sources
-			if ( ( nProtocol == PROTOCOL_HTTP ) && ( pSource->m_nProtocol != PROTOCOL_HTTP ) ) continue;
-			if ( ( nProtocol == PROTOCOL_G1 ) && ( pSource->m_nGnutella != 1 ) ) continue;
-
-			//if ( bHTTP && pSource->m_nProtocol != PROTOCOL_HTTP ) continue;
+			if ( bHTTP && pSource->m_nProtocol != PROTOCOL_HTTP ) continue;
 			
 			strURL = pSource->m_sURL;
 			Replace( strURL, _T(","), _T("%2C") );

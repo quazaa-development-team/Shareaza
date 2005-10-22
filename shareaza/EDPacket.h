@@ -231,16 +231,15 @@ inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
 #define ED2K_C2C_UDP_QUEUEFULL			0x93
 
 // Server TCP flags
-#define	ED2K_SERVER_TCP_DEFLATE			0x00000001
-#define	ED2K_SERVER_TCP_SMALLTAGS		0x00000008
-#define	ED2K_SERVER_TCP_UNICODE			0x00000010
-#define	ED2K_SERVER_TCP_GETSOURCES2		0x00000020
-#define	ED2K_SERVER_TCP_RELATEDSEARCH	0x00000040
+#define	ED2K_SERVER_TCP_DEFLATE		0x00000001
+#define	ED2K_SERVER_TCP_SMALLTAGS	0x00000008
+#define	ED2K_SERVER_TCP_UNICODE		0x00000010
+#define	ED2K_SERVER_TCP_GETSOURCES2	0x00000020
 // Server UDP flags
-#define	ED2K_SERVER_UDP_GETSOURCES		0x00000001
-#define	ED2K_SERVER_UDP_GETFILES		0x00000002
-#define	ED2K_SERVER_UDP_UNICODE			0x00000010
-#define	ED2K_SERVER_UDP_GETSOURCES2		0x00000020
+#define	ED2K_SERVER_UDP_GETSOURCES	0x00000001
+#define	ED2K_SERVER_UDP_GETFILES	0x00000002
+#define	ED2K_SERVER_UDP_UNICODE		0x00000010
+#define	ED2K_SERVER_UDP_GETSOURCES2	0x00000020
 
 
 class CEDTag
@@ -346,7 +345,6 @@ public:
 #define ED2K_FT_LENGTH				0xD3
 #define ED2K_FT_BITRATE				0xD4
 #define ED2K_FT_CODEC				0xD5
-#define ED2K_FT_FILERATING			0xF7
 
 // eMuleinfo tags. Note this is now obsolete, due to ED2K_CT_FEATUREVERSIONS
 #define ED2K_ET_COMPRESSION			0x20
@@ -355,7 +353,7 @@ public:
 #define ED2K_ET_SOURCEEXCHANGE		0x23
 #define ED2K_ET_COMMENTS			0x24
 #define ED2K_ET_EXTENDEDREQUEST		0x25
-#define ED2K_ET_COMPATIBLECLIENT	0x26	// Client ID.
+#define ED2K_ET_COMPATIBLECLIENT	0x26	// Client ID. (Shareaza = 4)
 #define ED2K_ET_FEATURES			0x27	// Preview and sec ID
 
 // Max files (Hash + Size) in a getsources packet
@@ -367,7 +365,7 @@ public:
 #define ED2K_COMMENT_MAX			250
 
 // Client ID
-#define ED2K_COMPATIBLECLIENT_ID	ED2K_CLIENT_ID	// Used to be 4, changed on request
+#define ED2K_COMPATIBLECLIENT_ID	0x4
 
 // "Unknown" and "Unknown mod" client ID for compatible client variable
 #define ED2K_CLIENT_UNKNOWN			0xFF

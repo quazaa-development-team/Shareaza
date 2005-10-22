@@ -1,10 +1,6 @@
 //
 // HostCache.cpp
 //
-//	Date:			"$Date: 2005/07/16 14:43:11 $"
-//	Revision:		"$Revision: 1.16 $"
-//  Last change by:	"$Author: mogthecat $"
-//
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
@@ -33,7 +29,6 @@
 #include "VendorCache.h"
 #include "G1Packet.h"
 #include "EDPacket.h"
-#include "Buffer.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -80,7 +75,7 @@ BOOL CHostCache::Load()
 		pCache->Clear();
 	}
 	
-	strFile.Format( _T("%s\\Data\\HostCache.dat"), (LPCTSTR)Settings.General.UserPath );
+	strFile.Format( _T("%s\\Data\\HostCache.dat"), (LPCTSTR)Settings.General.Path );
 	if ( ! pFile.Open( strFile, CFile::modeRead ) ) return FALSE;
 	
 	try
@@ -105,7 +100,7 @@ BOOL CHostCache::Save()
 	CString strFile;
 	CFile pFile;
 	
-	strFile.Format( _T("%s\\Data\\HostCache.dat"), (LPCTSTR)Settings.General.UserPath );
+	strFile.Format( _T("%s\\Data\\HostCache.dat"), (LPCTSTR)Settings.General.Path );
 	
 	if ( ! pFile.Open( strFile, CFile::modeWrite|CFile::modeCreate ) ) return FALSE;
 	
@@ -547,7 +542,7 @@ DWORD CHostCacheList::CountHosts() const
 }
 
 //////////////////////////////////////////////////////////////////////
-// CHostCacheList query acknowledgement prune (G2)
+// CHostCacheList query acknowledgement prune
 
 void CHostCacheList::PruneByQueryAck()
 {
@@ -569,37 +564,6 @@ void CHostCacheList::PruneByQueryAck()
 		pHost = pNext;
 	}
 }
-
-
-//////////////////////////////////////////////////////////////////////
-// CHostCacheList prune old hosts (To remove old hosts when trying to connect to G1)
-
-void CHostCacheList::PruneOldHosts()
-{
-	DWORD tNow = time( NULL );
-	
-	for ( CHostCacheHost* pHost = m_pNewest ; pHost ; )
-	{
-		CHostCacheHost* pNext = pHost->m_pPrevTime;
-
-		DWORD nExpire;
-
-		if ( pHost->m_nProtocol == PROTOCOL_G1 )
-			nExpire = Settings.Gnutella1.HostExpire;
-		else if ( pHost->m_nProtocol == PROTOCOL_G2 )
-			nExpire = Settings.Gnutella2.HostExpire;
-		else // ed2k
-			nExpire = 0;
-
-		if ( ( nExpire ) && ( tNow - pHost->m_tSeen > nExpire ) )
-		{
-			Remove( pHost );
-		}
-		
-		pHost = pNext;
-	}
-}
-
 
 //////////////////////////////////////////////////////////////////////
 // CHostCacheList serialize
@@ -730,75 +694,6 @@ int CHostCacheList::ImportMET(CFile* pFile)
 	
 	return nServers;
 }
-
-//////////////////////////////////////////////////////////////////////
-// CHostCacheList MET import
-
-int CHostCacheList::LoadDefaultED2KServers()
-{
-	CSingleLock pLock( &Network.m_pSection, TRUE );
-
-	CFile pFile;
-	int nServers = 0;
-	CString strFile = Settings.General.Path + _T("\\Data\\DefaultServers.dat");
-
-	if (  pFile.Open( strFile, CFile::modeRead ) )			// Load default list from file if possible
-	{
-		theApp.Message( MSG_DEFAULT, _T("Loading default ED2K server list") );
-
-		try
-		{
-			CString strLine;
-			CBuffer pBuffer;
-			TCHAR cType;
-
-			pBuffer.EnsureBuffer( (DWORD)pFile.GetLength() );
-			pBuffer.m_nLength = (DWORD)pFile.GetLength();
-			pFile.Read( pBuffer.m_pBuffer, pBuffer.m_nLength );
-			pFile.Close();
-
-			while ( pBuffer.ReadLine( strLine ) )
-			{
-				if ( strLine.GetLength() < 7 ) continue; // Blank comment line
-
-				cType = strLine.GetAt( 0 );
-
-				if ( cType != '#' )
-				{
-					CString strServer = strLine.Right( strLine.GetLength() - 2 );
-
-					int nIP[4], nPort;
-
-					if ( _stscanf( strServer, _T("%i.%i.%i.%i:%i"), &nIP[0], &nIP[1], &nIP[2], &nIP[3],	&nPort ) == 5 )
-					{
-						IN_ADDR pAddress;
-						pAddress.S_un.S_un_b.s_b1 = nIP[0];
-						pAddress.S_un.S_un_b.s_b2 = nIP[1];
-						pAddress.S_un.S_un_b.s_b3 = nIP[2];
-						pAddress.S_un.S_un_b.s_b4 = nIP[3];
-
-						CHostCacheHost* pServer = Add( &pAddress, nPort );
-
-						if ( cType == 'P' )
-							pServer->m_bPriority = TRUE;
-						else
-							pServer->m_bPriority = FALSE;
-
-						nServers++;
-					}
-				}
-			}
-		}
-		catch ( CException* pException )
-		{
-			if (pFile.m_hFile != CFile::hFileNull) pFile.Close(); // Check if file is still open, if yes close
-			pException->Delete();
-		}
-	}
-
-	return nServers;
-}
-
 
 
 //////////////////////////////////////////////////////////////////////
@@ -1023,13 +918,12 @@ BOOL CHostCacheHost::CanConnect(DWORD tNow) const
 BOOL CHostCacheHost::CanQuote(DWORD tNow) const
 {
 	if ( ! tNow ) tNow = time( NULL );
-	return tNow - m_tSeen < Settings.Gnutella2.HostCurrent;
+	return tNow - m_tSeen < Settings.Gnutella.HostCacheExpire;
 }
 
 //////////////////////////////////////////////////////////////////////
 // CHostCacheHost query test
 
-// Can we UDP query this host? (G2/ed2k)
 BOOL CHostCacheHost::CanQuery(DWORD tNow) const
 {
 	// eDonkey2000 server
@@ -1049,7 +943,7 @@ BOOL CHostCacheHost::CanQuery(DWORD tNow) const
 		if ( 0 == m_tQuery ) return TRUE;
 		
 		// Don't query too fast
-		return ( tNow - m_tQuery ) >= max( Settings.eDonkey.QueryServerThrottle, DWORD(60) );
+		return ( tNow - m_tQuery ) >= Settings.eDonkey.QueryServerThrottle;
 	}
 	else if ( m_nProtocol == PROTOCOL_G2 )
 	{
@@ -1062,8 +956,8 @@ BOOL CHostCacheHost::CanQuery(DWORD tNow) const
 		// Get the time if not supplied
 		if ( 0 == tNow ) tNow = time( NULL );
 		
-		// Must be a recently seen (current) host
-		if ( ( tNow - m_tSeen ) > Settings.Gnutella2.HostCurrent ) return FALSE;
+		// Must not have expired from host cache
+		if ( ( tNow - m_tSeen ) > Settings.Gnutella.HostCacheExpire ) return FALSE;
 		
 		// Retry After
 		if ( 0 != m_tRetryAfter && tNow < m_tRetryAfter ) return FALSE;

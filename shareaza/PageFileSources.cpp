@@ -84,10 +84,7 @@ BOOL CFileSourcesPage::OnInitDialog()
 	m_wndList.InsertColumn( 1, _T("Expires"), LVCFMT_RIGHT, 128, 0 );
 
 	m_gdiImageList.Create( 16, 16, ILC_COLOR16|ILC_MASK, 1, 1 );
-	HICON hIcon;
-	hIcon = theApp.LoadIcon( IDI_WEB_URL );
-	if ( theApp.m_bRTL ) hIcon = CreateMirroredIcon( hIcon );
-	m_gdiImageList.Add( hIcon );
+	m_gdiImageList.Add( theApp.LoadIcon( IDI_WEB_URL ) );
 	m_wndList.SetImageList( &m_gdiImageList, LVSIL_SMALL );
 
 	m_wndList.SendMessage( LVM_SETEXTENDEDLISTVIEWSTYLE,
@@ -114,12 +111,10 @@ BOOL CFileSourcesPage::OnInitDialog()
 void CFileSourcesPage::AddSource(CSharedSource* pSource)
 {
 	LV_ITEM pItem;
-	CString strURL = pSource->m_sURL;
-	if ( theApp.m_bRTL ) strURL = _T("\x202A") + strURL;
 
 	ZeroMemory( &pItem, sizeof(pItem) );
 	pItem.mask		= LVIF_TEXT|LVIF_PARAM|LVIF_IMAGE;
-	pItem.pszText	= (LPTSTR)(LPCTSTR)strURL;
+	pItem.pszText	= (LPTSTR)(LPCTSTR)pSource->m_sURL;
 	pItem.iImage	= 0;
 	pItem.lParam	= (LPARAM)pSource;
 	pItem.iItem		= m_wndList.GetItemCount();

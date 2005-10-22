@@ -205,9 +205,9 @@ void CBrowseHeaderCtrl::DoPaint(CDC* pDC, CRect& rcClient, BOOL bTransparent)
 	rcWork.DeflateRect( 0, 4 );
 
 	pDC->SelectObject( &CoolInterface.m_fntCaption );
-	Skin.DrawWrappedText( pDC, &rcWork, m_sTitle, NULL, FALSE );
+	Skin.DrawWrappedText( pDC, &rcWork, m_sTitle, FALSE );
 	pDC->SelectObject( &CoolInterface.m_fntNormal );
-	Skin.DrawWrappedText( pDC, &rcWork, m_sIntro, NULL, FALSE );
+	Skin.DrawWrappedText( pDC, &rcWork, m_sIntro, FALSE );
 
 	pDC->SelectObject( pOldFont );
 }

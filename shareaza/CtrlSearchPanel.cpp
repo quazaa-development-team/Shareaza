@@ -118,24 +118,15 @@ int CSearchPanel::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_boxSchema.Create( this, 0, _T("Schema"), IDR_SEARCHFRAME );
 	m_boxResults.Create( this, 80, _T("Results"), IDR_HOSTCACHEFRAME );
 	
-	// Basic search box
 	AddBox( &m_boxSearch );
-
-	// Advanced search options
 	if ( m_bAdvanced ) 
 	{
 		AddBox( &m_boxAdvanced );
-		// If the resolution is low, minimise the advanced box by default
-		if ( GetSystemMetrics( SM_CYSCREEN ) < 1024 ) m_boxAdvanced.Expand( FALSE );
+		if ( GetSystemMetrics( SM_CYSCREEN ) <= 1024 ) m_boxAdvanced.Expand( FALSE );
 	}
-
-	// Metadata
 	AddBox( &m_boxSchema );
-
-	// Results summary
 	if ( m_bAdvanced ) AddBox( &m_boxResults );
 	
-	// The metadata box varies in height to fill available space
 	SetStretchBox( &m_boxSchema );
 	
 	OnSkinChange();
@@ -265,10 +256,7 @@ void CSearchPanel::OnSchemaChange()
 	
 	if ( pSchema != NULL )
 	{
-		HICON hIcon = ShellIcons.ExtractIcon( pSchema->m_nIcon16, 16 );
-		// inefficient but we need to mirror it again
-		if ( theApp.m_bRTL ) hIcon = CreateMirroredIcon( hIcon );
-		m_boxSchema.SetIcon( hIcon, TRUE );
+		m_boxSchema.SetIcon( ShellIcons.ExtractIcon( pSchema->m_nIcon16, 16 ), TRUE );
 		CString strTitle = pSchema->m_sTitle;
 		int nPos = strTitle.Find( ':' );
 		if ( nPos > 0 ) strTitle = strTitle.Mid( nPos + 1 );

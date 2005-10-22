@@ -158,20 +158,22 @@
 #define IDD_SETTINGS_SCHEDULER          250
 #define IDD_DOWNLOAD_REVIEWS            251
 #define IDI_FIREWALLED                  252
+#define IDI_MERCORA                     254
+#define IDR_MERCORA_BUTTON              255
 #define IDR_HOME_HEADER_1               257
 #define IDR_HOME_HEADER_2               258
 #define IDR_SPLASH                      259
 #define IDI_SMALL                       260
 #define IDI_ICON                        261
+#define IDB_BITMAP1                     262
 #define IDB_PANEL_MARK                  262
+#define IDI_ICON1                       263
 #define IDR_BITTORRENT_ICON             263
 #define IDI_MAIL                        265
+#define IDB_BITMAP3                     265
 #define IDD_CODEPAGES                   266
 #define IDB_SCHEDULER_HEADER            270
 #define IDB_SCHEDULER_TIMESLICES        271
-#define IDB_SHELL_BASE_RTL              272
-#define IDB_NAVBAR_IMAGE_RTL            273
-#define IDB_NAVBAR_ALPHA_RTL            274
 #define IDC_CONNECT_HOST                1000
 #define IDC_CONNECT_PORT                1001
 #define IDC_SCHEMAS                     1002
@@ -659,7 +661,6 @@
 #define IDC_TORRENT_CLEAR_SPIN          1396
 #define IDC_G1_CLIENTMODE               1396
 #define IDC_G2_CLIENTMODE               1397
-#define IDC_TORRENT_PREFERENCE          1397
 #define IDC_REVIEWS                     1397
 #define IDC_REVIEW_FILENAME             1398
 #define IDC_CODEPAGES                   1399
@@ -678,8 +679,6 @@
 #define IDS_SCHEMAS                     7001
 #define IDS_MULTIPLE_VALUES             7002
 #define IDS_MULTIPLE                    7003
-#define IDS_FILTER_REPLACE              7004
-#define IDS_FILTER_NO_NAME              7005
 #define IDS_SETTINGS                    8000
 #define IDS_WIZARD                      8001
 #define IDS_FILE_PROPERTIES             8002
@@ -758,7 +757,6 @@
 #define IDS_SEARCH_PANEL_INPUT_4        8180
 #define IDS_SEARCH_PANEL_INPUT_5        8181
 #define IDS_HASH_MESSAGE                8208
-#define IDS_DLM_TIME_DAH                8223
 #define IDS_DLM_DOWNLOADING             8224
 #define IDS_DLM_PAUSED                  8225
 #define IDS_DLM_COMPLETED               8226
@@ -799,7 +797,6 @@
 #define IDS_TIP_HITS                    8316
 #define IDS_TIP_UPLOADS                 8317
 #define IDS_TIP_TODAYTOTAL              8318
-#define IDS_TIP_NOHASHSET               8319
 #define IDS_TIP_STATUS                  8320
 #define IDS_TIP_SPEED                   8321
 #define IDS_TIP_URL                     8322
@@ -817,6 +814,12 @@
 #define IDS_TIP_FILE_BUSY               8334
 #define IDS_TIP_FILE_FIREWALLED         8335
 #define IDS_TIP_FILE_UNSTABLE           8336
+#define IDS_PROPERTY_PAGE_GENERAL       9000
+#define IDS_PROPERTY_PAGE_METADATA      9001
+#define IDS_PROPERTY_PAGE_REVIEW        9002
+#define IDS_PROPERTY_PAGE_COMMENTS      9002
+#define IDS_PROPERTY_PAGE_SHARING       9003
+#define IDS_PROPERTY_PAGE_SOURCES       9004
 #define IDR_HTML_ABOUT                  12001
 #define IDR_HTML_FILENOTFOUND           12002
 #define IDR_HTML_HASHMISMATCH           12003
@@ -1019,7 +1022,6 @@
 #define IDS_UPLOAD_QUEUE_PARTIAL        16375
 #define IDS_UPLOAD_QUEUE_COMPLETE       16376
 #define IDS_UPLOAD_QUEUE_HTTP_GUARD     16377
-#define IDS_DOWNLOAD_416_WITHOUT_RANGE  16378
 #define IDS_LIBRARY_CONFIRM_EXECUTE     16384
 #define IDS_LIBRARY_METADATA_MANY       16385
 #define IDS_LIBRARY_METADATA_EDIT       16386
@@ -1046,8 +1048,6 @@
 #define IDS_LIBRARY_COLLECTION_LOCKDOWN 16407
 #define IDS_LIBRARY_COPYURI             16408
 #define IDS_LIBRARY_EXPORTURIS          16409
-#define IDS_LIBRARY_SUBFOLDER_IN_LIBRARY 16410
-#define IDS_LIBRARY_MOVE_FAIL           16411
 #define IDS_CHAT_CONNECTED_X            16448
 #define IDS_CHAT_ONLINE_X               16449
 #define IDS_CHAT_CLOSED_X               16450
@@ -1112,9 +1112,6 @@
 #define IDS_WIZARD_YEARS_OLD            16810
 #define IDS_SETTINGS_AUTOMATIC_IP       16811
 #define IDS_SETTINGS_WARN_QUEUELIMIT    16816
-#define IDS_SETTINGS_FILEPATH_TOO_LONG  16817
-#define IDS_SETTINGS_FILEPATH_NOT_SAME  16818
-#define IDS_SETTINGS_INCOMPLETE_LIBRARY 16819
 #define IDS_DISCOVERY_BOOTSTRAP         16864
 #define IDS_DISCOVERY_QUERY             16865
 #define IDS_DISCOVERY_WEB_SUCCESS       16866
@@ -1231,14 +1228,16 @@
 #define IDS_ED2K_EPI_ALREADY            17259
 #define IDS_ED2K_EPI_DISK_SPACE         17260
 #define IDS_BT_CLIENT_ACCEPTED          17472
+#define IDS_BT_CONNECT_TIMEOUT          17473
 #define IDS_BT_CLIENT_CONNECT_TIMEOUT   17473
+#define IDS_BT_HANDSHAKE_TIMEOUT        17474
 #define IDS_BT_CLIENT_HANDSHAKE_TIMEOUT 17474
 #define IDS_BT_CLIENT_LOST              17475
 #define IDS_BT_CLIENT_WRONG_GUID        17476
 #define IDS_BT_CLIENT_WRONG_FILE        17477
 #define IDS_BT_CLIENT_UNKNOWN_FILE      17478
 #define IDS_BT_CLIENT_ONLINE            17479
-#define IDS_BT_CLIENT_INACTIVE_FILE     17480
+#define IDS_BT_CLIENT_DROPPED           17480
 #define IDS_BT_PREFETCH_FILE            17481
 #define IDS_BT_PREFETCH_ERROR           17482
 #define IDS_BT_TRACK_ERROR              17483
@@ -1257,13 +1256,6 @@
 #define IDS_BT_SEED_COPY_FAIL           17496
 #define IDS_BT_SEED_ERROR               17497
 #define IDS_BT_SEED_VERIFY_FAIL         17498
-#define IDS_BT_TRACKER_RETRY            17500
-#define IDS_BT_TRACKER_DOWN             17501
-#define IDS_BT_CLIENT_DROP_CONNECTING   17505
-#define IDS_BT_CLIENT_DROP_HANDSHAKE    17506
-#define IDS_BT_CLIENT_DROP_CONNECTED    17507
-#define IDS_BT_CLIENT_DUPLICATE         17510
-#define IDS_BT_CLIENT_MAX_CONNECTIONS   17511
 #define IDS_DOWNLOAD_EDIT_RENAME        18496
 #define IDS_DOWNLOAD_EDIT_BAD_SHA1      18497
 #define IDS_DOWNLOAD_EDIT_BAD_TIGER     18498
@@ -1285,11 +1277,6 @@
 #define IDS_GENERAL_NOURNAVAILABLE      20000
 #define IDS_GENERAL_CLOSE               20001
 #define IDS_GENERAL_OF                  20002
-#define IDS_GENERAL_RTL_WARNING         20003
-#define IDS_GENERAL_RTL_NOTSUPPORTED    20004
-#define IDS_GENERAL_NO                  20005
-#define IDS_GENERAL_YES                 20006
-#define IDS_GENERAL_AUTO                20007
 #define IDS_STATUS_CONNECTING           20100
 #define IDS_STATUS_REQUESTING           20101
 #define IDS_STATUS_RESPONSE             20102
@@ -1642,6 +1629,7 @@
 #define ID_MEDIA_MUTE                   33113
 #define ID_WINDOW_REMOTE                33114
 #define ID_UPLOADS_FILTER_TORRENT       33115
+#define ID_TOOLS_MERCORA                33116
 #define ID_TOOLS_SEEDTORRENT            33117
 #define ID_TOOLS_RESEEDTORRENT          33118
 #define ID_HELP_FORUMS                  33120
@@ -1659,9 +1647,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
-#define _APS_NEXT_RESOURCE_VALUE        275
+#define _APS_NEXT_RESOURCE_VALUE        270
 #define _APS_NEXT_COMMAND_VALUE         33135
-#define _APS_NEXT_CONTROL_VALUE         1418
+#define _APS_NEXT_CONTROL_VALUE         1412
 #define _APS_NEXT_SYMED_VALUE           102
 #endif
 #endif

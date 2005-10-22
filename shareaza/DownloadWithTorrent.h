@@ -51,7 +51,6 @@ public:
 	BOOL		m_bTorrentEndgame;
 	BOOL		m_bTorrentTrackerError;
 	CString		m_sTorrentTrackerError;
-	int			m_nTorrentTrackerErrors;
 	SHA1		m_pPeerID;
 	CString		m_sKey;
 	int			m_nStartTorrentDownloads;
@@ -80,8 +79,6 @@ public:
 	inline BOOL		IsSeeding() const { return m_bSeeding; }
 	float			GetRatio() const;
 	BOOL 			CheckTorrentRatio() const;
-	BOOL			UploadExists(in_addr* pIP) const;
-	BOOL			UploadExists(SHA1* pGUID) const;
 public:
 	CDownloadTransferBT*	CreateTorrentTransfer(CBTClient* pClient);
 	CBTPacket*				CreateBitfieldPacket();

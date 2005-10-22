@@ -49,8 +49,6 @@ public:
 	CUploadsCtrl	m_wndUploads;
 	CCoolBarCtrl	m_wndToolBar;
 protected:
-	DWORD			m_tLastUpdate;
-protected:
 	DWORD			m_tSel;
 	BOOL			m_bSelFile;
 	BOOL			m_bSelUpload;

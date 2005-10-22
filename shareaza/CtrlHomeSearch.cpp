@@ -56,7 +56,6 @@ END_MESSAGE_MAP()
 
 CHomeSearchCtrl::CHomeSearchCtrl()
 {
-	m_pTextInput = NULL;
 }
 
 CHomeSearchCtrl::~CHomeSearchCtrl()
@@ -75,16 +74,16 @@ BOOL CHomeSearchCtrl::PreTranslateMessage(MSG* pMsg)
 	}
 	else if ( pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_TAB )
 	{
-		if ( m_pTextInput == &m_wndText && m_wndText.GetWindowTextLength() > 0 )
+		CWnd* pFocus = GetFocus();
+
+		if ( pFocus == &m_wndText )
 		{
 			m_wndSchema.SetFocus();
-			m_pTextInput = &m_wndSchema;
 			return TRUE;
 		}
-		else
+		else if ( pFocus == &m_wndSchema )
 		{
 			m_wndText.SetFocus();
-			m_pTextInput = &m_wndText;
 			return TRUE;
 		}
 	}
@@ -134,13 +133,11 @@ void CHomeSearchCtrl::Setup(COLORREF crWindow)
 
 	LoadString( strCaption, IDS_SEARCH_PANEL_START );
 	m_wndSearch.SetWindowText( strCaption );
-	HICON hIcon = CoolInterface.ExtractIcon( ID_SEARCH_SEARCH );
-	m_wndSearch.SetIcon( theApp.m_bRTL ? CreateMirroredIcon( hIcon ) : hIcon );
+	m_wndSearch.SetIcon( CoolInterface.ExtractIcon( ID_SEARCH_SEARCH ) );
 
 	LoadString( strCaption, IDS_SEARCH_PANEL_ADVANCED );
 	m_wndAdvanced.SetWindowText( strCaption + _T('\x2026') );
-	hIcon = CoolInterface.ExtractIcon( ID_SEARCH_DETAILS );
-	m_wndAdvanced.SetIcon( theApp.m_bRTL ? CreateMirroredIcon( hIcon ) : hIcon );
+	m_wndAdvanced.SetIcon( CoolInterface.ExtractIcon( ID_SEARCH_DETAILS ) );
 
 	LoadString( m_wndSchema.m_sNoSchemaText, IDS_SEARCH_PANEL_AFT );
 
@@ -328,5 +325,5 @@ void CHomeSearchCtrl::OnSearchAdvanced()
 void CHomeSearchCtrl::OnSetFocus(CWnd* pOldWnd)
 {
 	CWnd::OnSetFocus( pOldWnd );
-	//m_wndText.SetFocus();
+	m_wndText.SetFocus();
 }

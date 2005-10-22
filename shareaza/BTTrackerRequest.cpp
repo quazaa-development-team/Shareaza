@@ -106,15 +106,11 @@ CBTTrackerRequest::CBTTrackerRequest(CDownload* pDownload, LPCTSTR pszVerb, BOOL
 	//m_pRequest.AddHeader( _T("Accept"), _T("application/x-bittorrent") ); // This causes problems with some trackers
 	m_pRequest.AddHeader( _T("Accept-Encoding"), _T("gzip") );
 	
-	if ( Settings.BitTorrent.StandardPeerID )
-	{
-		CString strUserAgent = Settings.SmartAgent();
-		m_pRequest.SetUserAgent( strUserAgent );
-	}
+	CString strUserAgent = Settings.SmartAgent( Settings.General.UserAgent );
+	Replace( strUserAgent, _T("Shareaza"), _T("RAZA") );
+	m_pRequest.SetUserAgent( strUserAgent );
 
 	//m_pRequest.AddHeader( _T("Cache-Control"), _T("no-cache") ); // Shouldn't be needed
-
-	//theApp.Message( MSG_DEBUG, _T("Sending announce") );
 
 	BTClients.Add( this );
 	CreateThread();
@@ -288,7 +284,7 @@ BOOL CBTTrackerRequest::Process(CBENode* pRoot)
 	CBENode* pPeers = pRoot->GetNode( "peers" );
 	int nCount = 0;
 	
-	if ( pPeers->IsType( CBENode::beList )  && ( ( ! m_pDownload->IsMoving() ) || ( Settings.Connection.FirewallStatus == CONNECTION_FIREWALLED ) ) )
+	if ( pPeers->IsType( CBENode::beList )  && ( ( ! m_pDownload->IsMoving() ) || ( Settings.Connection.Firewalled ) ) )
 	{
 		for ( int nPeer = 0 ; nPeer < pPeers->GetCount() ; nPeer++ )
 		{
@@ -321,7 +317,7 @@ BOOL CBTTrackerRequest::Process(CBENode* pRoot)
 			}
 		}
 	}
-	else if ( pPeers->IsType( CBENode::beString ) && ( ( ! m_pDownload->IsMoving() ) || ( Settings.Connection.FirewallStatus == CONNECTION_FIREWALLED  ) ) )
+	else if ( pPeers->IsType( CBENode::beString ) && ( ( ! m_pDownload->IsMoving() ) || ( Settings.Connection.Firewalled ) ) )
 	{
 		if ( 0 == ( pPeers->m_nValue % 6 ) )
 		{

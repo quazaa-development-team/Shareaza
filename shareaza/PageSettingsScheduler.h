@@ -49,20 +49,17 @@ public:
 
 // Painting Data
 protected:
-	BYTE			m_pSchedule[7][24];		// 2D Array representing the schedule
+	BYTE			m_pSchedule[7][24];
 
-	CImageList		m_pTimeSlices;			// Images for the three states a time slice can be in
-	CBitmap			m_bmHeader;				// Header graphic (times)
+	CImageList		m_pTimeSlices;
+	CBitmap			m_bmHeader;
 
 	BYTE			m_nHoverDay;
 	BYTE			m_nHoverHour;
 	BYTE			m_nDownDay;
 	BYTE			m_nDownHour;
 
-	BOOL			m_bPaint;
-	BYTE			m_nPaintValue;
-
-	CString			m_sDayName[7];			// List of day names
+	CString			m_sDayName[7];
 
 // Overrides
 public:
@@ -83,8 +80,6 @@ protected:
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
-	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
-	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 

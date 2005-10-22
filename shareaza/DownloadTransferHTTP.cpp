@@ -340,7 +340,7 @@ BOOL CDownloadTransferHTTP::SendRequest()
 		m_pOutput->Print( "Accept-Encoding: backwards\r\n" );
 	}
 	
-	strLine = Settings.SmartAgent();
+	strLine = Settings.SmartAgent( Settings.General.UserAgent );
 	
 	if ( strLine.GetLength() )
 	{
@@ -380,10 +380,7 @@ BOOL CDownloadTransferHTTP::SendRequest()
 		m_pOutput->Print( "X-Content-URN: " );
 		m_pOutput->Print( strURN + _T("\r\n") );
 		
-		if ( m_pSource->m_nGnutella == 1 )
-			strLine = m_pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_G1, m_pSource );
-		else
-			strLine = m_pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_HTTP, m_pSource );
+		strLine = m_pDownload->GetSourceURLs( &m_pSourcesSent, 15, TRUE, m_pSource );
 		
 		if ( strLine.GetLength() )
 		{
@@ -626,8 +623,6 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		if ( _tcsistr( m_sUserAgent, _T("shareaza") ) != NULL ) m_pSource->SetGnutella( 3 );
 		if ( _tcsistr( m_sUserAgent, _T("trustyfiles") ) != NULL ) m_pSource->SetGnutella( 3 );
 		if ( _tcsistr( m_sUserAgent, _T("gnucdna") ) != NULL ) m_pSource->SetGnutella( 3 );
-		if ( _tcsistr( m_sUserAgent, _T("vagaa") ) != NULL ) m_pSource->SetGnutella( 3 );
-		if ( _tcsistr( m_sUserAgent, _T("mxie") ) != NULL ) m_pSource->SetGnutella( 3 );
 		if ( _tcsistr( m_sUserAgent, _T("adagio") ) != NULL ) m_pSource->SetGnutella( 2 );
 	}
 	else if ( strHeader.CompareNoCase( _T("Connection") ) == 0 )
@@ -815,12 +810,6 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		m_bGotRanges = TRUE;
 		m_pSource->SetAvailableRanges( strValue );
 		m_pSource->SetGnutella( 1 );
-		if ( m_pSource->m_oAvailable.empty() )
-		{
-			theApp.Message( MSG_DEBUG, _T( "header did not include valid ranges, dropping source..." ) );
-			Close( TS_FALSE );
-			return FALSE;
-		}
 	}
 	else if ( strHeader.CompareNoCase( _T("X-Queue") ) == 0 )
 	{
@@ -1099,18 +1088,28 @@ BOOL CDownloadTransferHTTP::ReadContent()
 		m_nPosition += nLength;
 		m_nDownloaded += nLength;
 		
-		if ( ! bSubmit )
+		if ( ! bSubmit /* && m_pDownload->GetProgress() < 0.95f */ )
 		{
-			BOOL bUseful = m_pDownload->IsRangeUsefulEnough( this,
-				m_bRecvBackwards ? m_nOffset : m_nOffset + m_nPosition,
-				m_nLength - m_nPosition );
+			BOOL bUseful = FALSE;
+			
+			if ( m_bRecvBackwards )
+			{
+				bUseful = m_pDownload->IsRangeUseful( m_nOffset, m_nLength - m_nPosition );
+			}
+			else
+			{
+				bUseful = m_pDownload->IsRangeUseful( m_nOffset + m_nPosition, m_nLength - m_nPosition );
+			}
 			
 			if ( /* m_bInitiated || */ ! bUseful )
 			{
+				return StartNextFragment();
+			}
+/*			{
 				theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_FRAGMENT_OVERLAP, (LPCTSTR)m_sAddress );
 				Close( TS_TRUE );
 				return FALSE;
-			}
+			}*/
 		}
 	}
 	
@@ -1250,23 +1249,6 @@ BOOL CDownloadTransferHTTP::ReadFlush()
 			theApp.Message( MSG_ERROR, IDS_DOWNLOAD_QUEUED,
 				(LPCTSTR)m_sAddress, m_nQueuePos, m_nQueueLen,
 				(LPCTSTR)m_sQueueName );
-		}
-		else if ( m_bRangeFault && !m_bGotRanges )
-        {
-			/* we got a "requested range unavailable" error but the source doesn't
-			advertise available ranges; don't start to guess, try again later */
-			theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_416_WITHOUT_RANGE, (LPCTSTR)m_sAddress );
-			Close( TS_TRUE );
-			return FALSE;
-        }
-		else if ( m_bRangeFault && m_bGotRanges && m_nRequests >= 2 )
-		{
-			/* we made two requests already and the source does advertise available
-            ranges, but we still managed to request a wrong one */
-			// TODO: find the reason why this is happening
-			theApp.Message( MSG_ERROR, _T("BUG: Shareaza requested a fragment from host %s, although it knew that the host doesn't have that fragment") , (LPCTSTR)m_sAddress );
-			Close( TS_TRUE );
-			return FALSE;
 		}
 		else
 		{

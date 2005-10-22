@@ -399,10 +399,6 @@ BOOL CLibraryBuilderInternals::ReadID3v2( HANDLE hFile)
 				pXML->AddAttribute( _T("seconds"), strMS );
 			}
 		}
-		else if ( strcmp( szFrameTag, "TCOP" ) == 0 || strcmp( szFrameTag, "TCR" ) == 0 )
-		{
-			CopyID3v2Field( pXML, _T("copyright"), pBuffer, nFrameSize );
-		}
 		else if ( strcmp( szFrameTag, "TCON" ) == 0 || strcmp( szFrameTag, "TCO" ) == 0 )
 		{
 			if ( CopyID3v2Field( pXML, _T("genre"), pBuffer, nFrameSize ) )
@@ -476,11 +472,6 @@ BOOL CLibraryBuilderInternals::CopyID3v2Field(CXMLElement* pXML, LPCTSTR pszAttr
 		if ( nLength < 3 ) return FALSE;
 		pBuffer += 3;
 		nLength -= 3;
-		if ( nLength > 0 && pBuffer[ 0 ] == 0 )
-		{
-			pBuffer += 1;
-			nLength -= 1;
-		}
 	}
 	
 	if ( nEncoding == 0 )
@@ -1382,7 +1373,7 @@ BOOL CLibraryBuilderInternals::ReadMPEG( HANDLE hFile)
 	LPCTSTR pszFPS[] = { _T("23.976"), _T("24"), _T("25"), _T("29.97"), _T("30"), _T("50"), _T("59.94"), _T("60") };
 	int nFrameIndex = ( nBuffer[3] & 0x0F );
 	
-	if ( nFrameIndex >= 1 && nFrameIndex < 9 )
+	if ( nFrameIndex >= 1 && nFrameIndex <= 9 )
 	{
 		pXML->AddAttribute( _T("frameRate"), pszFPS[ nFrameIndex - 1 ] );
 	}
@@ -1453,28 +1444,7 @@ BOOL CLibraryBuilderInternals::ReadOGG( HANDLE hFile)
 		CharUpper( strKey.GetBuffer() );
 		strKey.ReleaseBuffer();
 
-		// decode UTF-8 string
-		int nLength = strValue.GetLength();
-
-		LPTSTR pszSource = new TCHAR[ nLength + 1 ]; 
-		CHAR* pszDest = new CHAR[ nLength + 1 ];
-
-		_tcscpy( pszSource, strValue.GetBuffer() );
-		for ( unsigned int nLen = 0; nLen < _tcslen( pszSource ); nLen++ )
-			pszDest[ nLen ] = (CHAR) pszSource[ nLen ];
-		delete pszSource;
-
-		int nWide = MultiByteToWideChar( CP_UTF8, 0, pszDest, nLength, NULL, 0 );
-		LPWSTR pszWide = new WCHAR[ nWide + 1 ];
-		MultiByteToWideChar( CP_UTF8, 0, pszDest, nLength, pszWide, nWide );
-		pszWide[ nWide ] = 0;
-		strValue = pszWide;
-		
-		delete [] pszWide;
-		delete pszDest;
-
 		strValue.TrimLeft(); strValue.TrimRight();
-
 		if ( strValue.IsEmpty() ) continue;
 		
 		if ( strKey == _T("TITLE") )
@@ -1504,10 +1474,6 @@ BOOL CLibraryBuilderInternals::ReadOGG( HANDLE hFile)
 		else if ( strKey == _T("DATE") )
 		{
 			pXML->AddAttribute( _T("year"), strValue );
-		}
-		else if ( strKey == _T("LICENSE") )
-		{
-			pXML->AddAttribute( _T("copyright"), strValue );
 		}
 	}
 	

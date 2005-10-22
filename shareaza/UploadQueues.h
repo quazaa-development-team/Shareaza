@@ -43,8 +43,6 @@ public:
 protected:
 	CPtrList			m_pList;
 
-	BOOL				m_bDonkeyLimited;
-
 // Operations
 public:
 	BOOL	Enqueue(CUploadTransfer* pUpload, BOOL bForce = FALSE);
@@ -65,8 +63,7 @@ public:
 	int		GetQueueRemaining();
 	int		GetTransferCount();
 	BOOL	IsTransferAvailable();
-	DWORD	GetMinimumDonkeyBandwidth();
-	DWORD	GetCurrentDonkeyBandwidth();
+	DWORD	GetDonkeyBandwidth();
 	BOOL	CanUpload(PROTOCOLID nProtocol, CLibraryFile *pFile, BOOL bCanQueue = FALSE );	// Can this file be uploaded with the current queue setup?
 	int		QueueRank(PROTOCOLID nProtocol, CLibraryFile *pFile );	// What queue position would this file be in?
 
@@ -100,11 +97,6 @@ public:
 	{
 		if ( pQueue == NULL ) return FALSE;
 		return m_pList.Find( pQueue ) != NULL;
-	}
-
-	inline BOOL	IsDonkeyRatioActive() const 
-	{ 
-		return ( m_bDonkeyLimited ); 
 	}
 
 };

@@ -90,7 +90,6 @@ public:
 	CDownloadReview* FindReview(IN_ADDR* pIP) const;
 	CDownloadReview* FindReview(LPCTSTR pszUserName) const;
 	CDownloadReview* FindReview(int nRating, LPCTSTR pszName, LPCTSTR pszComment) const;
-	int			GetReviewAverage() const;
 
 public:
 	void		ShowMonitor(CSingleLock* pLock = NULL);

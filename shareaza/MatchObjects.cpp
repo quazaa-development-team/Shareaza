@@ -1,10 +1,6 @@
 //
 // MatchObjects.cpp
 //
-//	Date:			"$Date: 2005/10/15 10:18:04 $"
-//	Revision:		"$Revision: 1.19 $"
-//  Last change by:	"$Author: mogthecat $"
-//
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
@@ -45,7 +41,6 @@
 
 #include "CtrlMatch.h"
 #include "LiveList.h"
-#include "ResultFilters.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -62,41 +57,15 @@ static char THIS_FILE[]=__FILE__;
 
 CMatchList::CMatchList()
 {
-	m_pResultFilters = new CResultFilters;
-	m_pResultFilters->Load();
-	
-	int nDefaultFilter = m_pResultFilters->m_nDefault;
-
-	if ( ( nDefaultFilter != NONE ) && ( (int)m_pResultFilters->m_nFilters >= nDefaultFilter + 1 ) )
-	{
-		m_sFilter			= m_pResultFilters->m_pFilters[nDefaultFilter]->m_sFilter;
-		m_bFilterBusy		= m_pResultFilters->m_pFilters[nDefaultFilter]->m_bFilterBusy;
-		m_bFilterPush		= m_pResultFilters->m_pFilters[nDefaultFilter]->m_bFilterPush;
-		m_bFilterUnstable	= m_pResultFilters->m_pFilters[nDefaultFilter]->m_bFilterUnstable;
-		m_bFilterReject		= m_pResultFilters->m_pFilters[nDefaultFilter]->m_bFilterReject;
-		m_bFilterLocal		= m_pResultFilters->m_pFilters[nDefaultFilter]->m_bFilterLocal;
-		m_bFilterBogus		= m_pResultFilters->m_pFilters[nDefaultFilter]->m_bFilterBogus;
-		m_bFilterDRM		= m_pResultFilters->m_pFilters[nDefaultFilter]->m_bFilterDRM;
-		m_bFilterAdult		= m_pResultFilters->m_pFilters[nDefaultFilter]->m_bFilterAdult;
-		m_nFilterMinSize	= m_pResultFilters->m_pFilters[nDefaultFilter]->m_nFilterMinSize;
-		m_nFilterMaxSize	= m_pResultFilters->m_pFilters[nDefaultFilter]->m_nFilterMaxSize;
-		m_nFilterSources	= m_pResultFilters->m_pFilters[nDefaultFilter]->m_nFilterSources;
-	}
-	else
-	{
-		m_bFilterBusy		= ( Settings.Search.FilterMask & ( 1 << 0 ) ) > 0;
-		m_bFilterPush		= ( Settings.Search.FilterMask & ( 1 << 1 ) ) > 0;
-		m_bFilterUnstable	= ( Settings.Search.FilterMask & ( 1 << 2 ) ) > 0;
-		m_bFilterReject		= ( Settings.Search.FilterMask & ( 1 << 3 ) ) > 0;
-		m_bFilterLocal		= ( Settings.Search.FilterMask & ( 1 << 4 ) ) > 0;
-		m_bFilterBogus		= ( Settings.Search.FilterMask & ( 1 << 5 ) ) > 0;
-		m_bFilterDRM		= ( Settings.Search.FilterMask & ( 1 << 6 ) ) > 0;
-		m_bFilterAdult		= ( Settings.Search.FilterMask & ( 1 << 7 ) ) > 0;
-		m_nFilterMinSize	= 1;
-		m_nFilterMaxSize	= 0;
-		m_nFilterSources	= 1;
-	}
-
+	m_bFilterBusy		= ( Settings.Search.FilterMask & ( 1 << 0 ) ) > 0;
+	m_bFilterPush		= ( Settings.Search.FilterMask & ( 1 << 1 ) ) > 0;
+	m_bFilterUnstable	= ( Settings.Search.FilterMask & ( 1 << 2 ) ) > 0;
+	m_bFilterReject		= ( Settings.Search.FilterMask & ( 1 << 3 ) ) > 0;
+	m_bFilterLocal		= ( Settings.Search.FilterMask & ( 1 << 4 ) ) > 0;
+	m_bFilterBogus		= ( Settings.Search.FilterMask & ( 1 << 5 ) ) > 0;
+	m_nFilterMinSize	= 1;
+	m_nFilterMaxSize	= 0;
+	m_nFilterSources	= 1;
 	m_nSortColumn		= -1;
 	m_bSortDir			= 1;
 	m_pSchema			= NULL;
@@ -143,8 +112,6 @@ CMatchList::~CMatchList()
 	delete [] m_pSizeMap;
 	
 	if ( m_pFiles ) delete [] m_pFiles;
-
-	delete m_pResultFilters;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -209,7 +176,6 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 		int nHadCount		= 0;
 		int nHadFiltered	= 0;
 		BOOL bHad[3];
-		PROTOCOLID nProtocol= pHit->m_nProtocol;
 		
 		if ( pHit->m_bSHA1 )
 		{
@@ -222,9 +188,7 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 					nHadCount		= pSeek->GetItemCount();
 					nHadFiltered	= pSeek->m_nFiltered;
 					
-					bHad[0] = pSeek->m_bSHA1; 
-					bHad[1] = pSeek->m_bTiger; 
-					bHad[2] = pSeek->m_bED2K;
+					bHad[0] = pSeek->m_bSHA1; bHad[1] = pSeek->m_bTiger; bHad[2] = pSeek->m_bED2K;
 					
 					if ( pSeek->Add( pHit, TRUE ) )
 					{
@@ -248,9 +212,7 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 					nHadCount		= pSeek->GetItemCount();
 					nHadFiltered	= pSeek->m_nFiltered;
 					
-					bHad[0] = pSeek->m_bSHA1; 
-					bHad[1] = pSeek->m_bTiger; 
-					bHad[2] = pSeek->m_bED2K;
+					bHad[0] = pSeek->m_bSHA1; bHad[1] = pSeek->m_bTiger; bHad[2] = pSeek->m_bED2K;
 					
 					if ( pSeek->Add( pHit, TRUE ) )
 					{
@@ -274,9 +236,7 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 					nHadCount		= pSeek->GetItemCount();
 					nHadFiltered	= pSeek->m_nFiltered;
 					
-					bHad[0] = pSeek->m_bSHA1; 
-					bHad[1] = pSeek->m_bTiger; 
-					bHad[2] = pSeek->m_bED2K;
+					bHad[0] = pSeek->m_bSHA1; bHad[1] = pSeek->m_bTiger; bHad[2] = pSeek->m_bED2K;
 					
 					if ( pSeek->Add( pHit, TRUE ) )
 					{
@@ -345,7 +305,7 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 				m_nFilteredFiles --;
 				m_nFilteredHits -= nHadFiltered;
 
-				switch ( nProtocol )
+				switch ( pHit->m_nProtocol )
 				{
 				case PROTOCOL_G1:
 				case PROTOCOL_G2:
@@ -418,7 +378,7 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 			m_nFilteredFiles ++;
 			m_nFilteredHits += pFile->m_nFiltered;
 
-			switch ( nProtocol )
+			switch ( pHit->m_nProtocol )
 			{
 			case PROTOCOL_G1:
 			case PROTOCOL_G2:
@@ -633,8 +593,6 @@ void CMatchList::Filter()
 	if ( m_bFilterReject )		Settings.Search.FilterMask |= ( 1 << 3 );
 	if ( m_bFilterLocal )		Settings.Search.FilterMask |= ( 1 << 4 );
 	if ( m_bFilterBogus	)		Settings.Search.FilterMask |= ( 1 << 5 );
-	if ( m_bFilterDRM )			Settings.Search.FilterMask |= ( 1 << 6 );
-	if ( m_bFilterAdult	)		Settings.Search.FilterMask |= ( 1 << 7 );
 	
 	if ( m_pszFilter ) delete [] m_pszFilter;
 	m_pszFilter = NULL;
@@ -759,11 +717,7 @@ BOOL CMatchList::FilterHit(CQueryHit* pHit)
 	else
 		pHit->m_sSpeed.Empty();
 
-	if ( AdultFilter.IsHitAdult( pHit->m_sName ) )
-	{
-		if ( Settings.Search.AdultFilter ) return FALSE;		// Global adult filter
-		if ( m_bFilterAdult ) return FALSE;						// Local adult filter
-	}
+	if ( AdultFilter.IsSearchFiltered( pHit->m_sName ) ) return FALSE;
 	
 	return ( pHit->m_bFiltered = TRUE );
 }
@@ -1336,8 +1290,6 @@ DWORD CMatchFile::Filter()
 
 	if ( m_pBest == NULL ) return 0;	// If we filtered all hits, don't try to display
 	if ( m_pList->m_bFilterLocal && m_bExisting ) return 0;
-	if ( m_pList->m_bFilterDRM && m_bDRM ) return 0;
-
 	if ( m_nSources < m_pList->m_nFilterSources ) return 0;
 	// if ( m_nFiltered < m_pList->m_nFilterSources ) return 0;
 

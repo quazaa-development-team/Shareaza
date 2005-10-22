@@ -1,9 +1,9 @@
 //
 // ChatSession.cpp
 //
-//	Date:			"$Date: 2005/10/04 02:42:09 $"
-//	Revision:		"$Revision: 1.21 $"
-//  Last change by:	"$Author: mogthecat $"
+//	Date:			"$Date: 2005/03/26 13:56:45 $"
+//	Revision:		"$Revision: 1.19 $"
+//  Last change by:	"$Author: thetruecamper $"
 //
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
@@ -283,7 +283,7 @@ BOOL CChatSession::OnConnected()
 		m_pOutput->Print( "CHAT CONNECT/0.2\r\n" );
 		m_pOutput->Print( "Accept: text/plain,application/x-gnutella2\r\n" );
 		m_pOutput->Print( "User-Agent: " );
-		m_pOutput->Print( Settings.SmartAgent() );
+		m_pOutput->Print( Settings.SmartAgent( Settings.General.UserAgent ) );
 		m_pOutput->Print( "\r\n" );
 		if ( m_bInitiated ) SendMyAddress();
 		m_pOutput->Print( "\r\n" );
@@ -447,7 +447,6 @@ BOOL CChatSession::OnHeaderLine(CString& strHeader, CString& strValue)
 	}
 	else if (	strHeader.CompareNoCase( _T("X-My-Address") ) == 0 ||
 				strHeader.CompareNoCase( _T("Listen-IP") ) == 0 ||
-				strHeader.CompareNoCase( _T("X-Node") ) == 0 ||
 				strHeader.CompareNoCase( _T("Node") ) == 0 )
 	{
 		int nColon = strValue.Find( ':' );
@@ -485,7 +484,7 @@ BOOL CChatSession::OnHeadersComplete()
 		}
 		
 		m_pOutput->Print( "User-Agent: " );
-		m_pOutput->Print( Settings.SmartAgent() );
+		m_pOutput->Print( Settings.SmartAgent( Settings.General.UserAgent ) );
 		m_pOutput->Print( "\r\n" );
 		m_pOutput->Print( "\r\n" );
 		

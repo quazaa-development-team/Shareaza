@@ -158,7 +158,8 @@ CString CLibraryFile::GetSearchName() const
 		str = m_pFolder->m_sPath.Mid( nBase + 1 ) + '\\' + m_sName;
 	}
 	
-	ToLower( str );
+	CharLower( str.GetBuffer() );
+	str.ReleaseBuffer();
 	return str;
 }
 
@@ -309,7 +310,7 @@ BOOL CLibraryFile::Delete()
 		int nReturn = SHFileOperation( &pOp );
 		
 		delete [] pszPath;
-
+		
 		if ( nReturn != 0 )
 		{
 			Uploads.OnRename( GetPath(), GetPath() );
@@ -567,7 +568,7 @@ CSharedSource* CLibraryFile::AddAlternateSource(LPCTSTR pszURL, BOOL bForce)
 	return pSource;
 }
 
-CString CLibraryFile::GetAlternateSources(CStringList* pState, int nMaximum, PROTOCOLID nProtocol)
+CString CLibraryFile::GetAlternateSources(CStringList* pState, int nMaximum, BOOL bHTTP)
 {
 	CString strSources;
 	SYSTEMTIME stNow;
@@ -585,8 +586,7 @@ CString CLibraryFile::GetAlternateSources(CStringList* pState, int nMaximum, PRO
 		{
 			if ( pState != NULL ) pState->AddTail( pSource->m_sURL );
 			
-			if ( ( nProtocol == PROTOCOL_HTTP ) && ( _tcsncmp( pSource->m_sURL, _T("http://"), 7 ) != 0 ) )
-				continue;
+			if ( bHTTP && _tcsncmp( pSource->m_sURL, _T("http://"), 7 ) != 0 ) continue;
 			
 			CString strURL = pSource->m_sURL;
 			Replace( strURL, _T(","), _T("%2C") );

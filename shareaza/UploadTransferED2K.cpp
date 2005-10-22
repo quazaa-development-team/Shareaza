@@ -65,7 +65,6 @@ CUploadTransferED2K::CUploadTransferED2K(CEDClient* pClient) : CUploadTransfer( 
 	
 	m_tRankingSent	= 0;
 	m_tRankingCheck	= 0;
-	m_tLastRun		= 0;
 	
 	m_pClient->m_mOutput.pLimit = &m_nBandwidth;
 }
@@ -181,11 +180,6 @@ BOOL CUploadTransferED2K::OnRun()
 
 BOOL CUploadTransferED2K::OnRunEx(DWORD tNow)
 {
-	// Limit per-source packet rate
-	if ( tNow - m_tLastRun < Settings.eDonkey.SourceThrottle ) return FALSE;
-	m_tLastRun = tNow;
-
-
 	if ( m_nState == upsQueued )
 	{
 		if ( m_pClient->IsOnline() == FALSE && tNow > m_tRequest &&
@@ -518,7 +512,7 @@ BOOL CUploadTransferED2K::OpenFile()
 		return TRUE;
 	}
 	
-	theApp.Message( MSG_ERROR, IDS_UPLOAD_CANTOPEN, (LPCTSTR)m_sFileName, (LPCTSTR)m_sAddress );	
+	theApp.Message( MSG_ERROR, IDS_UPLOAD_CANTOPEN, (LPCTSTR)m_sAddress, (LPCTSTR)m_sFileName );	
 	
 	CEDPacket* pReply = CEDPacket::New( ED2K_C2C_FILENOTFOUND );
 	pReply->Write( &m_pED2K, sizeof(MD4) );

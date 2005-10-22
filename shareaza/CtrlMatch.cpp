@@ -88,12 +88,6 @@ CMatchCtrl::CMatchCtrl()
 	m_nMessage		= 0;
 	m_bSearchLink	= FALSE;
 	m_bTips			= TRUE;
-
-	// Try to get the number of lines to scroll when the mouse wheel is rotated
-	if( !SystemParametersInfo ( SPI_GETWHEELSCROLLLINES, 0, &m_nScrollWheelLines, 0) )
-	{
-		m_nScrollWheelLines = 3;
-	}
 }
 
 CMatchCtrl::~CMatchCtrl()
@@ -516,7 +510,7 @@ void CMatchCtrl::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 
 BOOL CMatchCtrl::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt) 
 {
-	ScrollBy( zDelta / WHEEL_DELTA * -m_nScrollWheelLines );
+	ScrollBy( zDelta / WHEEL_DELTA * -3 );
 
 	return TRUE;
 }
@@ -591,7 +585,6 @@ void CMatchCtrl::OnPaint()
 	
 	CRect rcClient, rcItem;
 	CPaintDC dc( this );
-	if ( theApp.m_bRTL ) dc.SetTextAlign( TA_RTLREADING );
 	
 	GetClientRect( &rcClient );
 	rcClient.top += HEADER_HEIGHT;

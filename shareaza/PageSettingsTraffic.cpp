@@ -78,10 +78,10 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	CRect rc;
 	m_wndList.GetClientRect( &rc );
 	rc.right -= GetSystemMetrics( SM_CXVSCROLL ) + 1;
-
+	
 	m_wndList.InsertColumn( 0, _T("Setting"), LVCFMT_LEFT, rc.right - 80, 0 );
 	m_wndList.InsertColumn( 1, _T("Value"), LVCFMT_LEFT, 80, 1 );
-
+	
 	m_wndList.SendMessage( LVM_SETEXTENDEDLISTVIEWSTYLE,
 		LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT );
 	
@@ -90,7 +90,6 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.General.MaxDebugLogSize, 1024*1024, 0, 100, _T(" MB") );
 	AddSetting( &Settings.General.UpdateCheck, 1, 0, 1 );
 	AddSetting( &Settings.General.DiskSpaceWarning, 1, 5, 2000 , _T(" M") );
-	AddSetting( &Settings.General.DiskSpaceStop, 1, 0, 1000 , _T(" M") );
 	AddSetting( &Settings.General.HashIntegrity, 1, 0, 1 );
 	AddSetting( &Settings.General.MinTransfersRest, 1, 1, 100, _T(" ms") );
 
@@ -104,8 +103,6 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Connection.ConnectThrottle, 1, 0, 500, _T(" ms") );
 	AddSetting( &Settings.Connection.DetectConnectionLoss, 1, 0, 1 );
 	AddSetting( &Settings.Connection.DetectConnectionReset, 1, 0, 1 );
-	AddSetting( &Settings.Connection.ForceConnectedState, 1, 0, 1 );
-	AddSetting( &Settings.Connection.SlowConnect, 1, 0, 1 );
 	
 	AddSetting( &Settings.Gnutella.ConnectFactor, 1, 1, 20, _T("x") );
 	AddSetting( &Settings.Gnutella.MaxResults, 1, 1, 1000 );
@@ -113,8 +110,8 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Gnutella.HitsPerPacket, 1, 0, 1024 );
 	AddSetting( &Settings.Gnutella.RouteCache, 60, 1, 120, _T(" m") );
 	AddSetting( &Settings.Gnutella.HostCacheSize, 1, 32, 16384 );
+	AddSetting( &Settings.Gnutella.HostCacheExpire, 60, 1, 24*60, _T(" m") );
 	AddSetting( &Settings.Gnutella.BlockBlankClients, 1, 0, 1 );
-	AddSetting( &Settings.Gnutella.SpecifyProtocol, 1, 0, 1 );
 	
 	AddSetting( &Settings.Gnutella1.PacketBufferSize, 1, 1, 1024 );
 	AddSetting( &Settings.Gnutella1.PacketBufferTime, 1000, 10, 180, _T(" s") );
@@ -129,7 +126,6 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Gnutella1.VendorMsg, 1, 0, 1 );
 	AddSetting( &Settings.Gnutella1.QueryThrottle, 60, 5, 2048, _T(" m") );
 	AddSetting( &Settings.Gnutella1.RequeryDelay, 60, 45, 2048, _T(" m") );
-	AddSetting( &Settings.Gnutella1.HostExpire, 24 * 60 * 60, 0, 100, _T(" d") );
 	AddSetting( &Settings.Gnutella1.PingFlood, 1000, 0, 30, _T(" s") );
 	AddSetting( &Settings.Gnutella1.PingRate, 1000, 5, 180, _T(" s") );
 	AddSetting( &Settings.Gnutella1.PongCache, 1000, 1, 180, _T(" s") );
@@ -150,8 +146,6 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Gnutella2.KHLPeriod, 1000, 1, 60 * 60, _T(" s") );
 	AddSetting( &Settings.Gnutella2.KHLHubCount, 1, 1, 256 );
 	AddSetting( &Settings.Gnutella2.HAWPeriod, 1000, 1, 60 * 60, _T(" s") );
-	AddSetting( &Settings.Gnutella2.HostCurrent, 60, 1, 24*60, _T(" m") );
-	AddSetting( &Settings.Gnutella2.HostExpire, 24 * 60 * 60, 0, 100, _T(" d") );
 	AddSetting( &Settings.Gnutella2.QueryGlobalThrottle, 1, 1, 60*1000, _T(" ms") );
 	AddSetting( &Settings.Gnutella2.QueryHostThrottle, 1, 1, 10*60, _T(" s") );
 	AddSetting( &Settings.Gnutella2.QueryHostDeadline, 1, 1, 120*60, _T(" s") );
@@ -168,10 +162,8 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.eDonkey.QueryFileThrottle, 60*1000, 30, 120, _T(" m") );
 	AddSetting( &Settings.eDonkey.GetSourcesThrottle, 60*60*1000, 1, 24, _T(" h") );
 	AddSetting( &Settings.eDonkey.QueueRankThrottle, 1000, 60, 600, _T(" s") );
-	AddSetting( &Settings.eDonkey.PacketThrottle, 1, 250, 5000, _T(" ms") );
-	AddSetting( &Settings.eDonkey.SourceThrottle, 1, 250, 5000, _T(" ms") );
+	AddSetting( &Settings.eDonkey.PacketThrottle, 1, 500, 5000, _T(" ms") );
 	AddSetting( &Settings.eDonkey.LearnNewServers, 1, 0, 1 );
-	AddSetting( &Settings.eDonkey.LearnNewServersClient, 1, 0, 1 );
 	AddSetting( &Settings.eDonkey.RequestPipe, 1, 1, 10 );
 	AddSetting( &Settings.eDonkey.RequestSize, 1024, 10, 1000, _T(" KB") );
 	AddSetting( &Settings.eDonkey.FrameSize, 1024, 1, 500, _T(" KB") );
@@ -184,7 +176,6 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.eDonkey.Endgame, 1, 0, 1 );
 	
 	AddSetting( &Settings.BitTorrent.DefaultTrackerPeriod, 60000, 5, 120, _T(" m") );
-	AddSetting( &Settings.BitTorrent.MaxTrackerRetry, 1, 1, 8 );
 	AddSetting( &Settings.BitTorrent.TorrentCodePage, 1, 0, 9999999 );
 	AddSetting( &Settings.BitTorrent.TorrentExtraKeys, 1, 0, 1 );
 	AddSetting( &Settings.BitTorrent.TorrentIgnoreErrors, 1, 0, 1 );
@@ -196,10 +187,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.BitTorrent.RandomPeriod, 1000, 1, 60*5, _T(" s") );
 	AddSetting( &Settings.BitTorrent.SourceExchangePeriod, 1, 1, 60*5, _T(" m") );
 	AddSetting( &Settings.BitTorrent.UploadCount, 1, 2, 16 );
-	AddSetting( &Settings.BitTorrent.AutoSeed, 1, 0, 1 );
-	AddSetting( &Settings.BitTorrent.BandwidthPercentage, 1, 50, 95, _T("%") );
 	AddSetting( &Settings.BitTorrent.TrackerKey, 1, 0, 1 );
-	AddSetting( &Settings.BitTorrent.StandardPeerID, 1, 0, 1 );
 	
 	AddSetting( &Settings.Discovery.AccessThrottle, 60, 1, 180, _T(" m") );
 	AddSetting( &Settings.Discovery.Lowpoint, 1, 1, 512 );
@@ -323,10 +311,7 @@ void CAdvancedSettingsPage::UpdateItem(int nItem)
 	else
 	{
 		strValue.Format( _T("%lu"), pItem->m_nValue / pItem->m_nScale );
-		if ( theApp.m_bRTL )
-			strValue = _T("\x200E") + strValue + pItem->m_sSuffix;
-		else
-			strValue += pItem->m_sSuffix;
+		strValue += pItem->m_sSuffix;
 	}
 	
 	m_wndList.SetItemText( nItem, 1, strValue );

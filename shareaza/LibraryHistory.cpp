@@ -42,17 +42,7 @@ CLibraryHistory::CLibraryHistory()
 {
 	LastSeededTorrent.m_sName.Empty();
 	LastSeededTorrent.m_sPath.Empty();
-	ZeroMemory( &LastSeededTorrent.m_pBTH, sizeof(SHA1) );
-	LastSeededTorrent.m_tLastSeeded		= 0;
-	LastSeededTorrent.m_nUploaded		= 0;
-	LastSeededTorrent.m_nDownloaded		= 0;
-
-	LastCompletedTorrent.m_sName.Empty();
-	LastCompletedTorrent.m_sPath.Empty();
-	ZeroMemory( &LastCompletedTorrent.m_pBTH, sizeof(SHA1) );
-	LastCompletedTorrent.m_tLastSeeded	= 0;
-	LastCompletedTorrent.m_nUploaded	= 0;
-	LastCompletedTorrent.m_nDownloaded	= 0;
+	LastSeededTorrent.m_tLastSeeded = 0;
 }
 
 CLibraryHistory::~CLibraryHistory()

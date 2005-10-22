@@ -1,10 +1,6 @@
 //
 // PageSettingsDownloads.cpp
 //
-//	Date:			"$Date: 2005/10/09 16:34:00 $"
-//	Revision:		"$Revision: 1.20 $"
-//  Last change by:	"$Author: mogthecat $"
-//
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
@@ -107,23 +103,9 @@ BOOL CDownloadsSettingsPage::OnInitDialog()
 	m_nMaxFileTransfers		= Settings.Downloads.MaxFileTransfers;
 	m_bRequireConnect		= Settings.Connection.RequireForTransfers;
 	
-
-	// Apply range limits to spin control
-	if ( ! theApp.m_bNT )
-	{
-		m_wndMaxDownFiles.SetRange( 1, 80 );
-		m_wndMaxDownTransfers.SetRange( 1, 80 );
-		m_wndMaxFileTransfers.SetRange( 1, 80 );
-	}
-	else
-	{
-		m_wndMaxDownFiles.SetRange( 1, 100 );
-		if ( Settings.GetOutgoingBandwidth() >= 16 ) 
-			m_wndMaxDownTransfers.SetRange( 1, 250 );
-		else 
-			m_wndMaxDownTransfers.SetRange( 1, 200 );
-		m_wndMaxFileTransfers.SetRange( 1, 100 );
-	}
+	m_wndMaxDownFiles.SetRange( 1, 100 );
+	m_wndMaxDownTransfers.SetRange( 1, 200 );
+	m_wndMaxFileTransfers.SetRange( 1, 100 );
 	
 	m_wndDownloadsPath.SetIcon( IDI_BROWSE );
 	m_wndIncompletePath.SetIcon( IDI_BROWSE );
@@ -134,19 +116,6 @@ BOOL CDownloadsSettingsPage::OnInitDialog()
 		m_sQueueLimit = _T("MAX");
 
 	m_bDownloadsChanged = FALSE;
-
-	
-	// Update the text in the bandwidth limit combo
-	if ( Settings.Bandwidth.Downloads )
-	{
-		m_sBandwidthLimit = Settings.SmartVolume( Settings.Bandwidth.Downloads * 8, FALSE, TRUE );
-	}
-	else
-	{
-		m_sBandwidthLimit	= Settings.SmartVolume( 0, FALSE, TRUE );
-		int nSpace			= m_sBandwidthLimit.Find( ' ' );
-		m_sBandwidthLimit	= _T("MAX") + m_sBandwidthLimit.Mid( nSpace );
-	}
 	
 	UpdateData( FALSE );
 	
@@ -174,24 +143,6 @@ void CDownloadsSettingsPage::OnDownloadsBrowse()
 	SHGetMalloc( &pMalloc );
 	pMalloc->Free( pPath );
 	pMalloc->Release();
-	
-	// Warn user about a path that's too long
-	if ( _tcslen( szPath ) > 256 - 33 )
-	{
-		CString strMessage;
-		LoadString( strMessage, IDS_SETTINGS_FILEPATH_TOO_LONG );
-		AfxMessageBox( strMessage, MB_ICONEXCLAMATION );
-		return;
-	}
-
-	// Make sure download/incomplete folders aren't the same
-	if ( _tcsicmp( szPath, m_sIncompletePath ) == 0 )
-	{
-		CString strMessage;
-		LoadString( strMessage, IDS_SETTINGS_FILEPATH_NOT_SAME );
-		AfxMessageBox( strMessage, MB_ICONEXCLAMATION );
-		return;
-	}
 	
 	UpdateData( TRUE );
 	m_sDownloadsPath = szPath;
@@ -221,33 +172,6 @@ void CDownloadsSettingsPage::OnIncompleteBrowse()
 	pMalloc->Free( pPath );
 	pMalloc->Release();
 
-	// Warn user about a path that's too long
-	if ( _tcslen( szPath ) > MAX_PATH - 60 )
-	{
-		CString strMessage;
-		LoadString( strMessage, IDS_SETTINGS_FILEPATH_TOO_LONG );
-		AfxMessageBox( strMessage, MB_ICONEXCLAMATION );
-		return;
-	}
-
-	// Make sure download/incomplete folders aren't the same
-	if ( _tcsicmp( szPath, m_sDownloadsPath ) == 0 )
-	{
-		CString strMessage;
-		LoadString( strMessage, IDS_SETTINGS_FILEPATH_NOT_SAME );
-		AfxMessageBox( strMessage, MB_ICONEXCLAMATION );
-		return;
-	}
-
-	// Warn user about an incomplete folder in the library
-	if ( LibraryFolders.IsFolderShared( szPath ) )
-	{
-		CString strMessage;
-		LoadString( strMessage, IDS_SETTINGS_INCOMPLETE_LIBRARY );
-		AfxMessageBox( strMessage, MB_ICONEXCLAMATION );
-		return;
-	}
-
 	UpdateData( TRUE );
 	m_sIncompletePath = szPath;
 	UpdateData( FALSE );
@@ -257,7 +181,8 @@ BOOL CDownloadsSettingsPage::OnKillActive()
 {
 	UpdateData();
 	
-	if ( ( ! IsNotLimited( m_sBandwidthLimit ) ) && Settings.ParseVolume( m_sBandwidthLimit, TRUE ) == 0 )
+	if ( m_sBandwidthLimit.GetLength() > 0 && m_sBandwidthLimit.Find( _T("MAX") ) < 0 &&
+		 Settings.ParseVolume( m_sBandwidthLimit, TRUE ) == 0 )
 	{
 		CString strMessage;
 		LoadString( strMessage, IDS_SETTINGS_NEED_BANDWIDTH );
@@ -275,14 +200,13 @@ void CDownloadsSettingsPage::OnOK()
 	UpdateData( TRUE );
 
 	// Figure out what the text in the queue limit box means
-	if ( IsNotLimited( m_sQueueLimit ) )
+	if ( ( m_sQueueLimit.Find( _T("MAX") ) > 0 ) || ( m_sQueueLimit.Find( _T("NONE") ) > 0 ) )
 	{
 		// Max queue is not limited
 		nQueueLimit = 0;
 	}
 	else
 	{
-		// Max queue is limited, calculate number
 		int nPosition = 1, nCount = m_sQueueLimit.GetLength();
 		while ( nCount-- )
 		{
@@ -298,7 +222,7 @@ void CDownloadsSettingsPage::OnOK()
 
 	// Check the queue limit value is okay
 	if ( ( nQueueLimit > 0 ) && ( nQueueLimit < 2000 ) && ( ! Settings.Live.QueueLimitWarning ) &&
-		 ( Settings.eDonkey.EnableToday || Settings.eDonkey.EnableAlways ) && ( Settings.Downloads.QueueLimit != nQueueLimit ) )
+		 ( Settings.eDonkey.EnableToday || Settings.eDonkey.EnableAlways ) )
 	{
 		// Warn the user about setting the max queue wait limit too low
 		CString strMessage;
@@ -322,29 +246,16 @@ void CDownloadsSettingsPage::OnOK()
 		m_sQueueLimit = _T("MAX");
 
 	// Apply limits to display
-	if ( ! theApp.m_bNT )
-	{
-		// Win9x is unable to handle high numbers of connections
-		m_nMaxDownFiles = min ( m_nMaxDownFiles, 80 );
-		m_nMaxDownTransfers = min ( m_nMaxDownTransfers, 80 );
-		m_nMaxFileTransfers = min ( m_nMaxFileTransfers, 80 );
-	}
-	else
-	{
-		// For other systems we can guestimate a good value based on available bandwidth
 	m_nMaxDownFiles = min ( m_nMaxDownFiles, 100 );
 	if ( Settings.GetOutgoingBandwidth() < 16 )
 		m_nMaxDownTransfers = min ( m_nMaxDownTransfers, 200 );
-		else if ( Settings.GetOutgoingBandwidth() <= 32 )
+	else if ( Settings.GetOutgoingBandwidth() < 32 )
 		m_nMaxDownTransfers = min ( m_nMaxDownTransfers, 250 );
-		else if ( Settings.GetOutgoingBandwidth() <= 64 )
-			m_nMaxDownTransfers = min ( m_nMaxDownTransfers, 400 );
-		else if ( Settings.GetOutgoingBandwidth() <= 128 )
-			m_nMaxDownTransfers = min ( m_nMaxDownTransfers, 600 );
+	else if ( Settings.GetOutgoingBandwidth() < 64 )
+		m_nMaxDownTransfers = min ( m_nMaxDownTransfers, 500 );
 	else
 		m_nMaxDownTransfers = min ( m_nMaxDownTransfers, 800 );
 	m_nMaxFileTransfers = min ( m_nMaxFileTransfers, 100 );
-	}
 
 	// Display any data changes
 	UpdateData( FALSE );
@@ -400,11 +311,26 @@ void CDownloadsSettingsPage::OnOK()
 	CSettingsPage::OnOK();
 }
 
+
 void CDownloadsSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
 {
 	CSettingsPage::OnShowWindow(bShow, nStatus);
 	if ( bShow )
 	{
+		CString str;
+
+		// Update speed units for the text in the bandwidth limit combo
+		if ( Settings.Bandwidth.Downloads )
+		{
+			m_sBandwidthLimit = Settings.SmartVolume( Settings.Bandwidth.Downloads * 8, FALSE, TRUE );
+		}
+		else
+		{
+			m_sBandwidthLimit	= Settings.SmartVolume( 0, FALSE, TRUE );
+			int nSpace			= m_sBandwidthLimit.Find( ' ' );
+			m_sBandwidthLimit	= _T("MAX") + m_sBandwidthLimit.Mid( nSpace );
+		}
+
 		// Update the bandwidth limit combo values
 
 		// Remove any existing strings
@@ -438,14 +364,4 @@ void CDownloadsSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
 
 		UpdateData( FALSE );
 	}
-}
-
-BOOL CDownloadsSettingsPage::IsNotLimited(LPCTSTR pText)
-{
-	if ( ( _tcslen( pText ) == 0 ) ||
-		 ( _tcsistr( pText, _T("MAX") ) != NULL ) || 
-		 ( _tcsistr( pText, _T("NONE") ) != NULL ) )
-		return TRUE;
-	else
-		return FALSE;
 }

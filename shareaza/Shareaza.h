@@ -50,8 +50,6 @@ public:
 	DWORD				m_dwWindowsVersion;			// Windows version
 	DWORD				m_dwWindowsVersionMinor;	// Windows minor version
 	QWORD				m_nPhysicalMemory;			// Physical RAM installed
-	BOOL				m_bRTL;						// Right-to-Left GUI (2000, XP only)
-	BOOL                m_bMenuWasVisible;          // For the menus in media player window
 
 	int					m_nDefaultFontSize;			// The basic font size. (11)
 	CString				m_sDefaultFont;				// Main font. (Tahoma)
@@ -63,8 +61,6 @@ public:
 	BOOL (WINAPI *m_pfnGetMonitorInfoA)(HMONITOR, LPMONITORINFO);
 	HMONITOR (WINAPI *m_pfnMonitorFromRect)(LPCRECT, DWORD);
 	HMONITOR (WINAPI *m_pfnMonitorFromWindow)(HWND, DWORD);
-	HINSTANCE m_hGDI32;
-	DWORD (WINAPI *m_pfnSetLayout)(HDC, DWORD);
 
 protected:
 	CCriticalSection	m_csMessage;
@@ -117,9 +113,7 @@ CString	TimeToString(DWORD tVal);
 BOOL	TimeFromString(LPCTSTR psz, FILETIME* pTime);
 CString	TimeToString(FILETIME* pTime);
 
-void	RecalcDropWidth(CComboBox* pWnd);
-HICON	CreateMirroredIcon(HICON hIconOrig);
-HBITMAP	CreateMirroredBitmap(HBITMAP hbmOrig);
+void RecalcDropWidth(CComboBox* pWnd);
 
 #ifdef _DEBUG
 #define MLOG(x) theApp.Message( MSG_DEBUG, x )
@@ -213,24 +207,3 @@ static inline bool IsWord(LPCTSTR pszString, int nStart, int nLength)
 		(AFX_PMSG) \
 		(reinterpret_cast<BOOL (AFX_MSG_CALL CCmdTarget::*)(NMHDR*, LRESULT*) > \
 		(memberFxn)) },
-
-
-// Client's name
-#define CLIENT_NAME			"Shareaza"
-
-
-// Network ID stuff
-
-// 4 Character vendor code (used on G1, G2)
-// BEAR, LIME, RAZA, etc
-#define VENDOR_CODE			"RAZB"
-
-// ed2k client ID number.
-// 0 = eMule, 1 - cDonkey, 4 = Shareaza mod/fork/etc, 28 = Raza.
-#define ED2K_CLIENT_ID		4
-
-// 2 Character BT peer-id code
-// SZ = Raza, AZ = Azerus, etc
-#define BT_ID1				'S'
-#define BT_ID2				'~'
-
