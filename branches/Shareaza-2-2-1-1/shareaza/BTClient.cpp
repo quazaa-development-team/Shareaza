@@ -189,11 +189,10 @@ BOOL CBTClient::OnRun()
 			Close();
 			return FALSE;
 		}
-		else if ( tNow - m_mOutput.tLast > Settings.BitTorrent.LinkPing / 2 && m_pOutput->m_nLength == 0 )
+		else if ( tNow - m_tLastKeepAlive > /*Settings.BitTorrent.LinkPing*/ 120 * 1000 )
 		{
-			DWORD dwZero = 0;
-			m_pOutput->Add( &dwZero, 4 );
-			OnWrite();
+			Send( CBTPacket::New( BT_PACKET_KEEPALIVE ) );
+			m_tLastKeepAlive = tNow;
 		}
 		
 
