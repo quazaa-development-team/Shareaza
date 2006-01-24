@@ -62,6 +62,7 @@ CBTClient::CBTClient()
 	
 	m_sUserAgent = _T("BitTorrent");
 	m_mInput.pLimit = m_mOutput.pLimit = &Settings.Bandwidth.Request;
+	m_tLastKeepAlive = GetTickCount();
 	
 	BTClients.Add( this );
 }
