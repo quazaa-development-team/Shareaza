@@ -480,26 +480,42 @@ void CShakeNeighbour::SendHostHeaders(LPCTSTR pszMessage)
 		SendMinimalHeaders(); // Say we are Shareaza, and understand Gnutella2 packets
 	}
 
-	// Compose text with IP address and online time information to help the remote computer find more Gnutella computers
-	int nCount = Settings.Gnutella1.PongCount;		// The list can't be longer than the pong count
-	if ( m_bG2Accept || m_bG2Send || m_bShareaza )	// The remote computer accepts Gnutella2 packets, sends them, or is Shareaza too
+	// Compose text with IP address and online time information to help the remote computer find hosts
+	
+	if ( m_bG2Accept || m_bG2Send || m_bShareaza )
 	{
+		// The remote computer accepts Gnutella2 packets, sends them, or is Shareaza too
+
+		int nCount = Settings.Gnutella1.PongCount;		// Set max length of list
+
 		// Loop through the Gnutella2 host cache from newest to oldest
 		for ( pHost = HostCache.Gnutella2.GetNewest() ; pHost && nCount > 0 ; pHost = pHost->m_pPrevTime )
 		{
-			// This host is still recent enough to tell another computer about
-			if ( pHost->CanQuote( nTime ) )
+			
+			if ( pHost->CanQuote( nTime ) )		// if host is still recent enough
 			{
-				// Compose text for one computer and add it to the string
+				// Add it to the string
 				strHost = pHost->ToString();						// The host object composes text about itself
 				if ( strHosts.GetLength() ) strHosts += _T(",");	// Separate each computer's info with a comma
 				strHosts += strHost;								// Add this computer's info to the big string
 				nCount--;											// Record that we documented another computer
 			}
 		}
+
+		// If we have any G2 hosts to tell the remote computer about
+		if ( strHosts.GetLength() )
+		{
+			m_pOutput->Print( "X-Try-Hubs: " );
+			m_pOutput->Print( strHosts );
+			m_pOutput->Print( "\r\n" );
+		}
 	}
-	else // The remote computer is running Gnutella
+	else
 	{
+		// This computer is running Gnutella
+
+		int nCount = Settings.Gnutella1.PongCount;		// Set max length of list
+
 		// Loop through the Gnutella host cache from newest to oldest
 		for ( pHost = HostCache.Gnutella1.GetNewest() ; pHost && nCount > 0 ; pHost = pHost->m_pPrevTime )
 		{
@@ -513,15 +529,15 @@ void CShakeNeighbour::SendHostHeaders(LPCTSTR pszMessage)
 				nCount--;											// Record that we documented another computer
 			}
 		}
-	}
 
-	// If we have any computers to tell the remote computer about
-	if ( strHosts.GetLength() )
-	{
-		// Send the information in a header like "X-Try-Ultrapeers: 24.98.97.155:6348 2004-12-18T23:47Z," and so on
-		m_pOutput->Print( "X-Try-Ultrapeers: " );
-		m_pOutput->Print( strHosts );
-		m_pOutput->Print( "\r\n" );
+		// If we have any G1 hosts to tell the remote computer about
+		if ( strHosts.GetLength() )
+		{
+			// Send the information in a header like "X-Try-Ultrapeers: 24.98.97.155:6348 2004-12-18T23:47Z," and so on
+			m_pOutput->Print( "X-Try-Ultrapeers: " );
+			m_pOutput->Print( strHosts );
+			m_pOutput->Print( "\r\n" );
+		}
 	}
 
 	// If this method started the handshake with a message line, end it with the blank line
@@ -767,42 +783,78 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 		// Look for the text "deflate", and make m_bDeflateSend true if it's found
 		m_bDeflateSend |= ( strValue.Find( _T("deflate") ) >= 0 );
 
-	} // The remote computer is giving us a list of IP addreses we can try to contact more ultrapeers
-	else if (	strHeader.CompareNoCase( _T("X-Try-Ultrapeers") ) == 0 ||
-				strHeader.CompareNoCase( _T("X-Try-Hubs") ) == 0 )
+	} 
+	else if ( m_bBadClient )
 	{
-		// Some clients send bad data here- ignore it.
-		if ( ! m_bBadClient )
+		// We don't want to accept Hubs or UltraPeers from clients that have bugs that pollute 
+		// the host cache, so stop here.
+	}
+	else if ( strHeader.CompareNoCase( _T("X-Try-DNA-Hubs") ) == 0 )
+	{	// The remote computer is giving us a list GnucDNA G2 hubs
+		int nCount = 0;
+		for ( strValue += ',' ; ; ) 
 		{
-			int nCount = 0;
-			// Append a comma onto the end of the value text once, and then loop forever
-			for ( strValue += ',' ; ; ) // for (;;) is the same thing as forever
-			{
-				// Find the first comma in the value text
-				int nPos = strValue.Find( ',' ); // Set nPos to the distance in characters from the start to the comma
-				if ( nPos < 0 ) break;           // If no comma was found, leave the loop
+			int nPos = strValue.Find( ',' );		// Set nPos to the distance in characters from the start to the comma
+			if ( nPos < 0 ) break;					// If no comma was found, leave the loop
+			CString strHost = strValue.Left( nPos );// Copy the text up to the comma into strHost
+			strValue = strValue.Mid( nPos + 1 );    // Clip that text and the comma off the start of strValue
 
-				// Move the text before the comma from the value string to a new string for the host
-				CString strHost = strValue.Left( nPos ); // Copy the text up to the comma into strHost
-				strValue = strValue.Mid( nPos + 1 );     // Clip that text and the comma off the start of strValue
-
-				// The remote computer accepts Gnutella2 packets, is sending them, or is Shareaza
-				if ( m_bG2Accept || m_bG2Send || m_bShareaza )
-				{
-					// Add the host to the Gnutella2 host cache, sending the text "RAZA" along if the remote computer is Shareaza
-					if ( HostCache.Gnutella2.Add( strHost, 0, m_bShareaza ? SHAREAZA_VENDOR_T : NULL ) ) nCount++; // Count it
-
-				} // This is a Gnutella connection, not Gnutella2
-				else
-				{
-					// Add the host to the Gnutella2 host cache, sending the text "RAZA" along if the remote computer is Shareaza
-					if ( HostCache.Gnutella1.Add( strHost, 0, m_bShareaza ? SHAREAZA_VENDOR_T : NULL ) ) nCount++; // Count it
-				}
-			}
-
-			// Tell discovery services the remote computer's IP address, and how many hosts it just told us about
-			DiscoveryServices.OnGnutellaAdded( &m_pHost.sin_addr, nCount );
+			// Add the host to the Gnutella2 host cache, noting it's a DNA hub
+			if ( HostCache.Gnutella2.Add( strHost, 0, _T("GDNA") ) ) nCount++;
 		}
+		// Tell discovery services the remote computer's IP address, and how many hosts it just told us about
+		DiscoveryServices.OnGnutellaAdded( &m_pHost.sin_addr, nCount );
+	}
+	else if ( strHeader.CompareNoCase( _T("X-Try-Hubs") ) == 0 )
+	{	// The remote computer is giving us a list G2 hubs
+		int nCount = 0;
+		for ( strValue += ',' ; ; ) 
+		{
+			int nPos = strValue.Find( ',' );		// Set nPos to the distance in characters from the start to the comma
+			if ( nPos < 0 ) break;					// If no comma was found, leave the loop
+			CString strHost = strValue.Left( nPos );// Copy the text up to the comma into strHost
+			strValue = strValue.Mid( nPos + 1 );    // Clip that text and the comma off the start of strValue
+
+			// Add the host to the Gnutella2 host cache, sending the text "RAZA" along if the remote computer is Shareaza
+			if ( HostCache.Gnutella2.Add( strHost, 0, m_bShareaza ? SHAREAZA_VENDOR_T : NULL ) ) nCount++; // Count it
+		}
+		// Tell discovery services the remote computer's IP address, and how many hosts it just told us about
+		DiscoveryServices.OnGnutellaAdded( &m_pHost.sin_addr, nCount );
+	} 
+	else if (	strHeader.CompareNoCase( _T("X-Try-Ultrapeers") ) == 0 )
+	{	// This header has been used for several things. In general, it's giving us a list of
+		// Gnutella Ultrapeers, however some older versions of Shareaza can send G2 hubs in it,
+		// if the client advertises G2 capability
+
+		// Todo: Clean this up once there are very few of the older clients around
+
+		int nCount = 0;
+		// Append a comma onto the end of the value text once, and then loop forever
+		for ( strValue += ',' ; ; ) // for (;;) is the same thing as forever
+		{
+			// Find the first comma in the value text
+			int nPos = strValue.Find( ',' ); // Set nPos to the distance in characters from the start to the comma
+			if ( nPos < 0 ) break;           // If no comma was found, leave the loop
+
+			// Move the text before the comma from the value string to a new string for the host
+			CString strHost = strValue.Left( nPos ); // Copy the text up to the comma into strHost
+			strValue = strValue.Mid( nPos + 1 );     // Clip that text and the comma off the start of strValue
+
+			// The remote computer accepts Gnutella2 packets, is sending them, or is Shareaza
+			if ( m_bG2Accept || m_bG2Send || m_bShareaza )
+			{
+				// Add the host to the Gnutella2 host cache, sending the text "RAZA" along if the remote computer is Shareaza
+				if ( HostCache.Gnutella2.Add( strHost, 0, m_bShareaza ? SHAREAZA_VENDOR_T : NULL ) ) nCount++; // Count it
+
+			} 
+			else	// This is a Gnutella connection, not Gnutella2
+			{
+				// Add the host to the Gnutella host cache
+				if ( HostCache.Gnutella1.Add( strHost, 0, NULL ) ) nCount++;
+			}
+		}
+		// Tell discovery services the remote computer's IP address, and how many hosts it just told us about
+		DiscoveryServices.OnGnutellaAdded( &m_pHost.sin_addr, nCount );
 	}
 
 	// Report success
@@ -1465,7 +1517,9 @@ BOOL CShakeNeighbour::IsClientObsolete()
 
 		// Check for old version and betas
 		if (( _tcsistr( m_sUserAgent, _T("Shareaza 1."   ) ) ) ||	// Old versions
-			( _tcsistr( m_sUserAgent, _T("Shareaza 2.0." ) ) ) )
+			( _tcsistr( m_sUserAgent, _T("Shareaza 2.0"  ) ) ) ||
+			( _tcsistr( m_sUserAgent, _T("Shareaza 2.1"  ) ) ) ||
+			( _tcsistr( m_sUserAgent, _T("Shareaza 2.2.0") ) ) )
 			return TRUE;
 
 		// Assumed to be reasonably current
@@ -1510,10 +1564,18 @@ BOOL CShakeNeighbour::IsClientBad()
 	if ( _tcsistr( m_sUserAgent, _T("gnucdna") ) )		return FALSE;
 
 	if ( _tcsistr( m_sUserAgent, _T("adagio") ) )		return FALSE;
-
-	if ( _tcsistr( m_sUserAgent, _T("shareaza") ) )		return FALSE;
 	
 	if ( _tcsistr( m_sUserAgent, _T("trustyfiles") ) )	return FALSE;
+	
+	// Really obsolete versions of Shareaza should be blocked. (they may have bad settings)
+	if ( _tcsistr( m_sUserAgent, _T("shareaza") ) )	
+	{
+		if ( _tcsistr( m_sUserAgent, _T("shareaza 1.") ) )	return TRUE;
+		if ( _tcsistr( m_sUserAgent, _T("shareaza 6.") ) )	return TRUE;
+		if ( _tcsistr( m_sUserAgent, _T("shareaza 7.") ) )	return TRUE;
+		// Current versions okay
+		return FALSE;
+	}
 
 	// GPL breakers- Clients violating the GPL
 	// See http://www.gnu.org/copyleft/gpl.html
@@ -1531,6 +1593,8 @@ BOOL CShakeNeighbour::IsClientBad()
 	//if ( _tcsistr( m_sUserAgent, _T("") ) )			return TRUE;
 
 
+
+
 	// Unknown- Assume OK
 	return FALSE;
 }
@@ -1544,6 +1608,9 @@ BOOL CShakeNeighbour::IsClientBanned()
 {
 	// No user agent- assume OK
 	if ( m_sUserAgent.IsEmpty() ) return FALSE;
+
+	// i2hub - leecher client. (Tested, does not upload)
+	if ( _tcsistr( m_sUserAgent, _T("i2hub 2.0") ) )	return TRUE;
 
 	// Unknown- Assume OK
 	return FALSE;
