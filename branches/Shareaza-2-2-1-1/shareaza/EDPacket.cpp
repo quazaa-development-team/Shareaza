@@ -538,6 +538,12 @@ BOOL CEDTag::Read(CFile* pFile)
 	{
 		LPSTR psz = new CHAR[ nLen + 1 ];
 
+		if ( psz == NULL )
+		{
+			theApp.Message( MSG_ERROR, _T("Memory allocation error in CEDTag::Read()") );
+			return FALSE;
+		}
+
 		if ( pFile->Read( psz, nLen ) == nLen )
 		{
 			psz[ nLen ] = 0;
@@ -556,6 +562,12 @@ BOOL CEDTag::Read(CFile* pFile)
 		if ( pFile->Read( &nLen, sizeof(nLen) ) != sizeof(nLen) ) return FALSE;
 
 		LPSTR psz = new CHAR[ nLen + 1 ];
+		
+		if ( psz == NULL )
+		{
+			theApp.Message( MSG_ERROR, _T("Memory allocation error in CEDTag::Read()") );
+			return FALSE;
+		}
 
 		if ( pFile->Read( psz, nLen ) == nLen )
 		{
