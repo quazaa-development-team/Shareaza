@@ -300,6 +300,7 @@ public:
 		DWORD		RequeryDelay;
 		DWORD		HubHorizonSize;
 		DWORD		QueryLimit;
+		BOOL		CheckForDNAHubs;
 	} Gnutella2;
 	
 	struct seDonkey
@@ -330,12 +331,14 @@ public:
 		DWORD		FrameSize;
 		DWORD		ReAskTime;
 		DWORD		DequeueTime;
-		BOOL		ExtendedRequest;
+		DWORD		ExtendedRequest;
+		BOOL		SendPortServer;				// Send port in tag to ed2k servers. (not needed for newer servers)
 		BOOL		MagnetSearch;				// Search for magnets over ed2k (lower server load)
 		DWORD		MinServerFileSize;			// Minimum size a file in the library must be in order to be included in the server file list. (In KB)
 		BOOL		TagNames;					// Add (Shareaza.com) to user name over ed2k
 		DWORD		DefaultServerFlags;			// Default server flags (for UDP searches)
 		BOOL		Endgame;					// Allow endgame mode when completing downloads. (Download same chunk from multiple sources)
+		BOOL		LargeFileSupport;			// Allow 64 bit file sizes
 	} eDonkey;
 	
 	struct sBitTorrent
