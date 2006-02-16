@@ -481,8 +481,11 @@ void CShakeNeighbour::SendHostHeaders(LPCTSTR pszMessage)
 	}
 
 	// Compose text with IP address and online time information to help the remote computer find hosts
-	
-	if ( m_bG2Accept || m_bG2Send || m_bShareaza )
+	if ( m_bBadClient )
+	{
+		// Send nothing
+	}
+	else if ( m_bG2Accept || m_bG2Send || m_bShareaza )
 	{
 		// The remote computer accepts Gnutella2 packets, sends them, or is Shareaza too
 
@@ -665,7 +668,7 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			m_nState = nrsRejected;
 			// Ban them and ignore anything else in the headers
 			theApp.Message( MSG_ERROR, _T("Banning hostile client %s"), (LPCTSTR)m_sUserAgent );
-			Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+			Security.Ban( &m_pHost.sin_addr, banSession, FALSE );
 			m_bBadClient = TRUE;
 			return TRUE;
 		}
@@ -782,7 +785,6 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 	{
 		// Look for the text "deflate", and make m_bDeflateSend true if it's found
 		m_bDeflateSend |= ( strValue.Find( _T("deflate") ) >= 0 );
-
 	} 
 	else if ( m_bBadClient )
 	{
@@ -1555,6 +1557,7 @@ BOOL CShakeNeighbour::IsClientObsolete()
 // CShakeNeighbour IsClientBad
 
 // Checks the user agent to see if it's a GPL breaker, or other trouble-maker
+// We don't ban them, but also don't offer leaf slots to them.
 BOOL CShakeNeighbour::IsClientBad()
 {
 	// No user agent- assume OK
@@ -1604,6 +1607,7 @@ BOOL CShakeNeighbour::IsClientBad()
 // CShakeNeighbour IsClientBanned
 
 // Checks the user agent to see if it's a leecher client, or other banned client
+// Test new releases, and remove block if/when they are fixed.
 BOOL CShakeNeighbour::IsClientBanned()
 {
 	// No user agent- assume OK
