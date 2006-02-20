@@ -189,7 +189,7 @@ DWORD CUploadTransfer::GetMeasuredSpeed()
 
 void CUploadTransfer::SetSpeedLimit(DWORD nLimit)
 {
-	ZeroMemory( m_nAverageRate, sizeof m_nAverageRate );
+	ZeroMemory( m_nAverageRate, sizeof(DWORD) * ULA_SLOTS );
 	m_nBandwidth	= nLimit;
 	m_tAverageTime	= 0;
 	m_nAveragePos	= 0;
@@ -252,7 +252,7 @@ void CUploadTransfer::LongTermAverage(DWORD tNow)
 
 	if ( Settings.Live.BandwidthScale < 100 )
 	{
-		nSpeed = nSpeed * 100 / max( 1u, Settings.Live.BandwidthScale );
+		nSpeed = nSpeed * 100 / max( DWORD(1), Settings.Live.BandwidthScale );
 	}
 
 	m_nAverageRate[ m_nAveragePos ] = max( m_nAverageRate[ m_nAveragePos ], nSpeed );
@@ -353,16 +353,14 @@ void CUploadTransfer::CalculateRating(DWORD tNow)
 
 void CUploadTransfer::ClearHashes()
 {
-    m_oSHA1.clear();
-    m_oTiger.clear();
-    m_oED2K.clear();
+	m_bSHA1 = m_bTiger = m_bED2K = FALSE;
 }
 
 BOOL CUploadTransfer::HashesFromURN(LPCTSTR pszURN)
 {
-	if ( !m_oSHA1 ) m_oSHA1.fromUrn( pszURN );
-	if ( !m_oTiger ) m_oTiger.fromUrn( pszURN );
-	if ( !m_oED2K ) m_oED2K.fromUrn( pszURN );
+	m_bSHA1		|= CSHA::HashFromURN( pszURN, &m_pSHA1 );
+	m_bTiger	|= CTigerNode::HashFromURN( pszURN, &m_pTiger );
+	m_bED2K		|= CED2K::HashFromURN( pszURN, &m_pED2K );
 	return TRUE;
 }
 
@@ -391,65 +389,68 @@ void CUploadTransfer::ClearRequest()
 BOOL CUploadTransfer::RequestComplete(CLibraryFile* pFile)
 {
 	ASSERT( pFile != NULL );
-	
-	if ( validAndUnequal( m_oSHA1, pFile->m_oSHA1 ) ) return FALSE;
-	if ( validAndUnequal( m_oTiger, pFile->m_oTiger ) ) return FALSE;
-	if ( validAndUnequal( m_oED2K, pFile->m_oED2K ) ) return FALSE;
-	
+
+	if ( m_bSHA1 && pFile->m_bSHA1 && m_pSHA1 != pFile->m_pSHA1 ) return FALSE;
+	if ( m_bTiger && pFile->m_bTiger && m_pTiger != pFile->m_pTiger ) return FALSE;
+	if ( m_bED2K && pFile->m_bED2K && m_pED2K != pFile->m_pED2K ) return FALSE;
+
 	m_sFileName	= pFile->m_sName;
 	m_sFilePath	= pFile->GetPath();
 	m_nFileBase	= pFile->m_nVirtualSize > 0 ? pFile->m_nVirtualBase : 0;
 	m_nFileSize	= pFile->m_nVirtualSize > 0 ? pFile->m_nVirtualSize : pFile->m_nSize;
 	m_sFileTags	= pFile->m_sShareTags;
 	m_bFilePartial = FALSE;
-	
-	m_oSHA1 = pFile->m_oSHA1;
-	m_oTiger = pFile->m_oTiger;
-	m_oED2K = pFile->m_oED2K;
-	
+
+	if ( m_bSHA1 = pFile->m_bSHA1 ) m_pSHA1 = pFile->m_pSHA1;
+	if ( m_bTiger = pFile->m_bTiger ) m_pTiger = pFile->m_pTiger;
+	if ( m_bED2K = pFile->m_bED2K ) m_pED2K = pFile->m_pED2K;
+
 	return TRUE;
 }
 
 BOOL CUploadTransfer::RequestPartial(CDownload* pFile)
 {
 	ASSERT( pFile != NULL );
-	
-	if ( validAndUnequal( m_oSHA1, pFile->m_oSHA1 ) ) return FALSE;
-	if ( validAndUnequal( m_oTiger, pFile->m_oTiger ) ) return FALSE;
-	if ( validAndUnequal( m_oED2K, pFile->m_oED2K ) ) return FALSE;
-	
-	m_sFileName	= pFile->m_sDisplayName;
-	m_sFilePath	= pFile->m_sDiskName;
+
+	if ( m_bSHA1 && pFile->m_bSHA1 && m_pSHA1 != pFile->m_pSHA1 ) return FALSE;
+	if ( m_bTiger && pFile->m_bTiger && m_pTiger != pFile->m_pTiger ) return FALSE;
+	if ( m_bED2K && pFile->m_bED2K && m_pED2K != pFile->m_pED2K ) return FALSE;
+
+	m_sFileName	= pFile->m_sRemoteName;
+	m_sFilePath	= pFile->m_sLocalName;
 	m_nFileBase	= 0;
 	m_nFileSize	= pFile->m_nSize;
 	m_bFilePartial = TRUE;
 	m_sFileTags.Empty();
-	
-	if ( m_oSHA1 && !pFile->m_oSHA1 )
+
+	if ( m_bSHA1 && ! pFile->m_bSHA1 )
 	{
-		pFile->m_oSHA1 = m_oSHA1;
+		pFile->m_bSHA1 = TRUE;
+		pFile->m_pSHA1 = m_pSHA1;
 	}
-	else
+	else if ( m_bSHA1 = pFile->m_bSHA1 )
 	{
-		m_oSHA1 = pFile->m_oSHA1;
+		m_pSHA1 = pFile->m_pSHA1;
 	}
-	
-	if ( m_oTiger && ! pFile->m_oTiger )
+
+	if ( m_bTiger && ! pFile->m_bTiger )
 	{
-		pFile->m_oTiger = m_oTiger;
+		pFile->m_bTiger = TRUE;
+		pFile->m_pTiger = m_pTiger;
 	}
-	else
+	else if ( m_bTiger = pFile->m_bTiger )
 	{
-		m_oTiger = pFile->m_oTiger;
+		m_pTiger = pFile->m_pTiger;
 	}
-	
-	if ( m_oED2K && ! pFile->m_oED2K )
+
+	if ( m_bED2K && ! pFile->m_bED2K )
 	{
-		pFile->m_oED2K = m_oED2K;
+		pFile->m_bED2K = TRUE;
+		pFile->m_pED2K = m_pED2K;
 	}
-	else
+	else if ( m_bED2K = pFile->m_bED2K )
 	{
-		m_oED2K = pFile->m_oED2K;
+		m_pED2K = pFile->m_pED2K;
 	}
 
 	return TRUE;
@@ -468,7 +469,7 @@ void CUploadTransfer::StartSending(int nState)
 
 void CUploadTransfer::AllocateBaseFile()
 {
-	m_pBaseFile =	UploadFiles.GetFile( this, m_oSHA1,
+	m_pBaseFile =	UploadFiles.GetFile( this, m_bSHA1 ? &m_pSHA1 : NULL,
 					m_sFileName, m_sFilePath, m_nFileSize );
 }
 

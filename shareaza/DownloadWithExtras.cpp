@@ -85,11 +85,11 @@ BOOL CDownloadWithExtras::CanPreview()
 {
 	if ( m_pPreviewWnd != NULL ) return FALSE;
 	
-	LPCTSTR pszType = _tcsrchr( m_sSafeName, '.' );
+	LPCTSTR pszType = _tcsrchr( m_sLocalName, '.' );
 	if ( pszType == NULL )
 	{
-		pszType = _tcsrchr( m_sDisplayName, '.' );
-		if ( pszType == NULL ) return FALSE;
+		pszType = _tcsrchr( m_sRemoteName, '.' );
+	if ( pszType == NULL ) return FALSE;
 	}
 	
 	CString strType( pszType );
@@ -392,7 +392,7 @@ void CDownloadWithExtras::Serialize(CArchive& ar, int nVersion)
 	}
 	else
 	{
-		for ( DWORD_PTR nCount = ar.ReadCount() ; nCount ; nCount-- )
+		for ( int nCount = ar.ReadCount() ; nCount ; nCount-- )
 		{
 			CString str;
 			ar >> str;
@@ -402,7 +402,7 @@ void CDownloadWithExtras::Serialize(CArchive& ar, int nVersion)
 		if ( nVersion >= 32 )
 		{
 
-			for ( DWORD_PTR nCount = ar.ReadCount() ; nCount ; nCount-- )
+			for ( int nCount = ar.ReadCount() ; nCount ; nCount-- )
 			{
 				CDownloadReview *pReview = new CDownloadReview;
 				pReview->Serialize( ar, nVersion );
@@ -456,7 +456,7 @@ CDownloadReview::~CDownloadReview()
 //////////////////////////////////////////////////////////////////////
 // CDownloadReview serialize
 
-void CDownloadReview::Serialize(CArchive& ar, int /*nVersion*/)
+void CDownloadReview::Serialize(CArchive& ar, int nVersion)
 {
 	if ( ar.IsStoring() )
 	{

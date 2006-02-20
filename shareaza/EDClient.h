@@ -45,7 +45,8 @@ public:
 	CEDClient*	m_pEdPrev;
 	CEDClient*	m_pEdNext;
 public:
-	Hashes::Guid m_oGUID;
+	BOOL		m_bGUID;
+	GGUID		m_pGUID;
 	DWORD		m_nClientID;
 	WORD		m_nUDP;
 	SOCKADDR_IN	m_pServer;
@@ -72,7 +73,8 @@ public:	//Client capabilities
 	BOOL		m_bEmPreview;		// Not over ed2k
 public:
 	BOOL		m_bLogin;
-    Hashes::Ed2kHash m_oUpED2K;
+	BOOL		m_bUpMD4;
+	MD4			m_pUpMD4;
 	QWORD		m_nUpSize;
 public:
 	CDownloadTransferED2K*	m_pDownload;
@@ -85,7 +87,7 @@ public:
 	
 // Operations
 public:
-	BOOL	ConnectTo(DWORD nClientID, WORD nClientPort, IN_ADDR* pServerAddress, WORD nServerPort, const Hashes::Guid& oGUID);
+	BOOL	ConnectTo(DWORD nClientID, WORD nClientPort, IN_ADDR* pServerAddress, WORD nServerPort, GGUID* pGUID);
 	BOOL	Equals(CEDClient* pClient);
 	BOOL	Connect();
 	void	Remove();

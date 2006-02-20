@@ -1,8 +1,8 @@
 //
 // WndMain.cpp
 //
-//	Date:			"$Date: 2006/02/19 14:06:16 $"
-//	Revision:		"$Revision: 1.48 $"
+//	Date:			"$Date: 2005/09/01 18:00:14 $"
+//	Revision:		"$Revision: 1.42 $"
 //  Last change by:	"$Author: rolandas $"
 //
 // Copyright (c) Shareaza Development Team, 2002-2005.
@@ -136,7 +136,6 @@ BEGIN_MESSAGE_MAP(CMainWnd, CMDIFrameWnd)
 	ON_MESSAGE(0x0319, OnMediaKey)
 	ON_MESSAGE(WM_DEVMODECHANGE, OnDevModeChange)
 	ON_MESSAGE(WM_DISPLAYCHANGE, OnDisplayChange)
-	ON_MESSAGE(WM_LIBRARYSEARCH, OnLibrarySearch)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_PLUGIN_FIRST, ID_PLUGIN_LAST, OnUpdatePluginRange)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_SYSTEM, OnUpdateViewSystem)
 	ON_COMMAND(ID_VIEW_SYSTEM, OnViewSystem)
@@ -292,8 +291,9 @@ CMainWnd::~CMainWnd()
 
 BOOL CMainWnd::PreCreateWindow(CREATESTRUCT& cs) 
 {
-	WNDCLASS wndcls = {};
+	WNDCLASS wndcls;
 	
+	ZeroMemory( &wndcls, sizeof(WNDCLASS) );
 	wndcls.style			= CS_DBLCLKS;
 	wndcls.lpfnWndProc		= AfxWndProc;
 	wndcls.hInstance		= AfxGetInstanceHandle();
@@ -315,7 +315,7 @@ int CMainWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if ( theApp.m_bRTL )
 	{
 		lpCreateStruct->dwExStyle |= WS_EX_LAYOUTRTL;
-		SetWindowLongPtr( GetSafeHwnd(), GWL_EXSTYLE, lpCreateStruct->dwExStyle );
+		SetWindowLong( GetSafeHwnd(), GWL_EXSTYLE, lpCreateStruct->dwExStyle );
 	}
 
 	if ( CMDIFrameWnd::OnCreate( lpCreateStruct ) == -1 ) return -1;
@@ -425,7 +425,7 @@ int CMainWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	SetGUIMode( Settings.General.GUIMode, FALSE );
 	
 	// Boot
-	
+
 	if ( theApp.GetProfileInt( _T("Windows"), _T("RunWizard"), FALSE ) == FALSE )
 	{
 		PostMessage( WM_COMMAND, ID_TOOLS_WIZARD );
@@ -473,10 +473,13 @@ void CMainWnd::OnClose()
 		m_bTrayIcon = FALSE;
 	}
 	
-	if ( ! IsIconic() ) SaveBarState( _T("Toolbars\\CoolBar") );
-	theApp.WriteProfileInt( _T("Toolbars"), _T("CRemoteWnd"), m_wndRemoteWnd.IsVisible() );
-	Settings.SaveWindow( _T("CMainWnd"), this );
-	m_pWindows.SaveWindowStates();
+	if ( ! m_bTrayHide )
+	{
+		if ( ! IsIconic() ) SaveBarState( _T("Toolbars\\CoolBar") );
+		theApp.WriteProfileInt( _T("Toolbars"), _T("CRemoteWnd"), m_wndRemoteWnd.IsVisible() );
+		Settings.SaveWindow( _T("CMainWnd"), this );
+		m_pWindows.SaveWindowStates();
+	}
 	
 	m_pWindows.SaveSearchWindows();
 	m_pWindows.Close();	
@@ -613,12 +616,12 @@ void CMainWnd::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 	if ( nID != SC_RESTORE ) CoolMenu.AddMenu( pPopupMenu, TRUE );
 }
 
-void CMainWnd::OnMeasureItem(int /*nIDCtl*/, LPMEASUREITEMSTRUCT lpMeasureItemStruct) 
+void CMainWnd::OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct) 
 {
 	CoolMenu.OnMeasureItem( lpMeasureItemStruct );
 }
 
-void CMainWnd::OnDrawItem(int /*nIDCtl*/, LPDRAWITEMSTRUCT lpDrawItemStruct) 
+void CMainWnd::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct) 
 {
 	CoolMenu.OnDrawItem( lpDrawItemStruct );
 }
@@ -629,7 +632,7 @@ void CMainWnd::OnSysColorChange()
 	CoolInterface.OnSysColourChange();
 }
 
-void CMainWnd::OnUpdateFrameTitle(BOOL /*bAddToTitle*/)
+void CMainWnd::OnUpdateFrameTitle(BOOL bAddToTitle)
 {
 	m_wndTabBar.OnUpdateCmdUI( this, FALSE );
 	m_wndNavBar.OnUpdateCmdUI( this, FALSE );
@@ -653,7 +656,8 @@ void CMainWnd::OnWindowPosChanging(WINDOWPOS* lpwndpos)
 	
 	if ( theApp.m_pfnGetMonitorInfoA != NULL ) //If GetMonitorInfo() is available
 	{
-		MONITORINFO oMonitor = {};
+		MONITORINFO oMonitor;
+		ZeroMemory( &oMonitor, sizeof(oMonitor) );
 		oMonitor.cbSize = sizeof(oMonitor);
 		
 		theApp.m_pfnGetMonitorInfoA( theApp.m_pfnMonitorFromWindow( GetSafeHwnd(), MONITOR_DEFAULTTOPRIMARY ), &oMonitor );
@@ -697,7 +701,7 @@ void CMainWnd::OnWindowPosChanging(WINDOWPOS* lpwndpos)
 /////////////////////////////////////////////////////////////////////////////
 // CMainWnd common timer
 
-void CMainWnd::OnTimer(UINT_PTR /*nIDEvent*/) 
+void CMainWnd::OnTimer(UINT nIDEvent) 
 {
 	// Fix resource handle
 	
@@ -806,7 +810,7 @@ void CMainWnd::OnGetMinMaxInfo(MINMAXINFO FAR* lpMMI)
 	if ( m_pSkin ) m_pSkin->OnGetMinMaxInfo( lpMMI );
 }
 
-LRESULT CMainWnd::OnLog(WPARAM wParam, LPARAM lParam)
+LONG CMainWnd::OnLog(WPARAM wParam, LPARAM lParam)
 {
 	LPTSTR pszLog = (LPTSTR)lParam;
 	
@@ -840,7 +844,7 @@ void CMainWnd::OpenFromTray(int nShowCmd)
 	m_bTrayHide = FALSE;
 }
 
-LRESULT CMainWnd::OnTray(WPARAM /*wParam*/, LPARAM lParam)
+LONG CMainWnd::OnTray(UINT wParam, LONG lParam)
 {
 	if ( LOWORD(lParam) == WM_LBUTTONDBLCLK )
 	{
@@ -900,7 +904,7 @@ void CMainWnd::OnSysCommand(UINT nID, LPARAM lParam)
 		if ( lParam != ' ' && lParam != '-' )
 		{
 			if ( lParam )
-				m_wndMenuBar.OpenMenuChar( static_cast< UINT >( lParam ) );
+				m_wndMenuBar.OpenMenuChar( lParam );
 			else
 				m_wndMenuBar.OpenMenuBar();
 				
@@ -963,7 +967,7 @@ void CMainWnd::OnSysCommand(UINT nID, LPARAM lParam)
 /////////////////////////////////////////////////////////////////////////////
 // CMainWnd custom message handlers
 
-LRESULT CMainWnd::OnSkinChanged(WPARAM /*wParam*/, LPARAM /*lParam*/)
+LONG CMainWnd::OnSkinChanged(UINT wParam, LONG lParam)
 {
 	CWaitCursor pCursor;
 	
@@ -992,10 +996,10 @@ LRESULT CMainWnd::OnSkinChanged(WPARAM /*wParam*/, LPARAM /*lParam*/)
 	
 	if ( CWnd* pDockBar = GetDlgItem( AFX_IDW_DOCKBAR_TOP ) )
 	{
-		LONG_PTR nBrush = GetClassLongPtr( pDockBar->GetSafeHwnd(), GCLP_HBRBACKGROUND );
+		DWORD nBrush = GetClassLong( pDockBar->GetSafeHwnd(), GCL_HBRBACKGROUND );
 		if ( nBrush > 64 ) DeleteObject( (HBRUSH)nBrush );
-		nBrush = (LONG_PTR)CreateSolidBrush( CoolInterface.m_crMidtone );
-		SetClassLongPtr( pDockBar->GetSafeHwnd(), GCLP_HBRBACKGROUND, (ULONG_PTR_ARG)nBrush );
+		nBrush = (DWORD)CreateSolidBrush( CoolInterface.m_crMidtone );
+		SetClassLong( pDockBar->GetSafeHwnd(), GCL_HBRBACKGROUND, (LONG)nBrush );
 	}
 	
 	m_pSkin = Skin.GetWindowSkin( this );
@@ -1039,13 +1043,13 @@ LRESULT CMainWnd::OnSkinChanged(WPARAM /*wParam*/, LPARAM /*lParam*/)
 	return 0;
 }
 
-LRESULT CMainWnd::OnWinsock(WPARAM wParam, LPARAM lParam)
+LONG CMainWnd::OnWinsock(WPARAM wParam, LPARAM lParam)
 {
 	Network.OnWinsock( wParam, lParam );
 	return 0;
 }
 
-LRESULT CMainWnd::OnHandleURL(WPARAM wParam, LPARAM /*lParam*/)
+LONG CMainWnd::OnHandleURL(WPARAM wParam, LPARAM lParam)
 {
 	CShareazaURL* pURL = (CShareazaURL*)wParam;
 	
@@ -1076,7 +1080,7 @@ LRESULT CMainWnd::OnHandleURL(WPARAM wParam, LPARAM /*lParam*/)
 	return 0;
 }
 
-LRESULT CMainWnd::OnHandleCollection(WPARAM wParam, LPARAM /*lParam*/)
+LONG CMainWnd::OnHandleCollection(WPARAM wParam, LPARAM lParam)
 {
 	LPTSTR pszPath = (LPTSTR)wParam;
 	CString strPath( pszPath );
@@ -1090,7 +1094,7 @@ LRESULT CMainWnd::OnHandleCollection(WPARAM wParam, LPARAM /*lParam*/)
 	return 0;
 }
 
-LRESULT CMainWnd::OnVersionCheck(WPARAM wParam, LPARAM /*lParam*/)
+LONG CMainWnd::OnVersionCheck(WPARAM wParam, LPARAM lParam)
 {
 	if ( wParam == 0 && VersionChecker.m_sMessage.GetLength() )
 	{
@@ -1121,7 +1125,7 @@ LRESULT CMainWnd::OnVersionCheck(WPARAM wParam, LPARAM /*lParam*/)
 	return 0;
 }
 
-LRESULT CMainWnd::OnOpenChat(WPARAM wParam, LPARAM /*lParam*/)
+LONG CMainWnd::OnOpenChat(WPARAM wParam, LPARAM lParam)
 {
 	CSingleLock pLock( &ChatCore.m_pSection, TRUE );
 	CChatSession* pSession = (CChatSession*)wParam;
@@ -1129,13 +1133,14 @@ LRESULT CMainWnd::OnOpenChat(WPARAM wParam, LPARAM /*lParam*/)
 	return 0;
 }
 
-LRESULT CMainWnd::OnOpenSearch(WPARAM wParam, LPARAM /*lParam*/)
+LONG CMainWnd::OnOpenSearch(WPARAM wParam, LPARAM lParam)
 {
-	CQuerySearch::OpenWindow( auto_ptr< CQuerySearch >( (CQuerySearch*)wParam ) );
+	CQuerySearch* pSearch = (CQuerySearch*)wParam;
+	if ( pSearch->OpenWindow() == NULL ) delete pSearch;
 	return 0;
 }
 
-LRESULT CMainWnd::OnMediaKey(WPARAM /*wParam*/, LPARAM lParam)
+LONG CMainWnd::OnMediaKey(WPARAM wParam, LPARAM lParam)
 {
 	if ( CMediaWnd* pWnd = (CMediaWnd*)m_pWindows.Find( RUNTIME_CLASS(CMediaWnd) ) )
 	{
@@ -1144,7 +1149,7 @@ LRESULT CMainWnd::OnMediaKey(WPARAM /*wParam*/, LPARAM lParam)
 	return 0;
 }
 
-LRESULT CMainWnd::OnDevModeChange(WPARAM wParam, LPARAM lParam)
+LONG CMainWnd::OnDevModeChange(WPARAM wParam, LPARAM lParam)
 {
 	if ( CMediaWnd* pWnd = (CMediaWnd*)m_pWindows.Find( RUNTIME_CLASS(CMediaWnd) ) )
 	{
@@ -1153,7 +1158,7 @@ LRESULT CMainWnd::OnDevModeChange(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-LRESULT CMainWnd::OnDisplayChange(WPARAM wParam, LPARAM lParam)
+LONG CMainWnd::OnDisplayChange(WPARAM wParam, LPARAM lParam)
 {
 	if ( CMediaWnd* pWnd = (CMediaWnd*)m_pWindows.Find( RUNTIME_CLASS(CMediaWnd) ) )
 	{
@@ -1162,33 +1167,17 @@ LRESULT CMainWnd::OnDisplayChange(WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-LRESULT CMainWnd::OnLibrarySearch(WPARAM wParam, LPARAM /*lParam*/)
-{
-	OnTabLibrary();
-
-	LRESULT result = 0;
-	LPCTSTR pszSearch = (LPCTSTR)wParam;
-
-	if ( CLibraryWnd* pWnd = (CLibraryWnd*)m_pWindows.Find( RUNTIME_CLASS(CLibraryWnd) ) )
-	{
-		pWnd->m_wndFrame.m_wndSearch.SetWindowText( pszSearch );
-		result = pWnd->m_wndFrame.SendMessage( WM_COMMAND, ID_LIBRARY_SEARCH_QUICK );
-	}
-	delete pszSearch;
-	return result;
-}
-
 /////////////////////////////////////////////////////////////////////////////
 // CMainWnd status message functionality
 
-LRESULT CMainWnd::OnSetMessageString(WPARAM wParam, LPARAM lParam)
+LONG CMainWnd::OnSetMessageString(WPARAM wParam, LPARAM lParam)
 {
 	if ( wParam == AFX_IDS_IDLEMESSAGE )
 	{
 		CString strOld;
 		m_wndStatusBar.GetWindowText( strOld );
 		if ( strOld != m_sMsgStatus ) m_wndStatusBar.SetWindowText( m_sMsgStatus );
-		m_nIDLastMessage = m_nIDTracking = static_cast< UINT >( wParam );
+		m_nIDLastMessage = m_nIDTracking = wParam;
 		return 0;
 	}
 	else
@@ -1217,7 +1206,7 @@ void CMainWnd::UpdateMessages()
 		QWORD nLocalVolume;
 		LibraryMaps.GetStatistics( NULL, &nLocalVolume );
 
-		if ( Settings.General.GUIMode == GUI_BASIC )
+		if( Settings.General.GUIMode == GUI_BASIC )
 		{	//In the basic GUI, don't bother with mode details or neighbour count.
 			LoadString( strFormat, IDS_STATUS_BAR_CONNECTED_SIMPLE );
 			strMessage.Format( strFormat, (LPCTSTR)Settings.SmartVolume( nLocalVolume, TRUE ) );
@@ -1427,13 +1416,6 @@ void CMainWnd::LocalSystemChecks()
 				PostMessage( WM_COMMAND, ID_HELP_DONKEYSERVERS );
 			}
 		}
-
-		// Check for duplicates if LibraryBuilder finished hashing during startup
-		// Happens when Library*.dat files are not saved and Shareaza crashed
-		// In this case all files are re-added and we can find malicious duplicates
-		if ( !Settings.Live.LastDuplicateHash.IsEmpty() &&
-			 !Settings.Live.MaliciousWarning )
-			Library.CheckDuplicates( Settings.Live.LastDuplicateHash );
 	}
 
 }
@@ -1515,7 +1497,7 @@ void CMainWnd::OnNetworkConnectTo()
 {
 	CConnectToDlg dlg;
 	if ( dlg.DoModal() != IDOK ) return;
-	Network.ConnectTo( dlg.m_sHost, dlg.m_nPort, PROTOCOLID( dlg.m_nProtocol + 1 ), dlg.m_bNoUltraPeer );
+	Network.ConnectTo( dlg.m_sHost, dlg.m_nPort, dlg.m_nProtocol + 1, dlg.m_bNoUltraPeer );
 }
 
 void CMainWnd::OnNetworkBrowseTo() 
@@ -1852,7 +1834,7 @@ void CMainWnd::OnViewHelp()
 /////////////////////////////////////////////////////////////////////////////
 // CMainWnd tab menu
 
-void CMainWnd::OnUpdateTabConnect(CCmdUI* /*pCmdUI*/) 
+void CMainWnd::OnUpdateTabConnect(CCmdUI* pCmdUI) 
 {
 	CCoolBarItem* pItem = m_wndToolBar.GetID( ID_TAB_CONNECT );
 	
@@ -1953,7 +1935,7 @@ void CMainWnd::OnUpdateTabMedia(CCmdUI* pCmdUI)
 
 	if ( CCoolBarItem* pItem = m_wndToolBar.GetID( ID_TAB_MEDIA ) )
 	{
-		if ( ( pChild = (CMediaWnd*)m_pWindows.Find( RUNTIME_CLASS(CMediaWnd) ) ) != NULL )
+		if ( pChild = (CMediaWnd*)m_pWindows.Find( RUNTIME_CLASS(CMediaWnd) ) )
 		{
 			pItem->SetTextColour( pChild->IsPlaying() ? RGB( 0, 0x80, 0 ) : CoolInterface.m_crCmdText );
 		}
@@ -2088,9 +2070,11 @@ void CMainWnd::OnToolsLanguage()
 	if ( dlg.DoModal() == IDOK )
 	{
 		CWaitCursor pCursor;
+		OnSkinChanged( 0, 0 );
 		SetGUIMode( Settings.General.GUIMode );
 	}
 }
+
 
 void CMainWnd::OnToolsSeedTorrent()
 {
@@ -2419,7 +2403,7 @@ void CMainWnd::OnNcCalcSize(BOOL bCalcValidRects, NCCALCSIZE_PARAMS FAR* lpncsp)
 		CMDIFrameWnd::OnNcCalcSize( bCalcValidRects, lpncsp );
 }
 
-ONNCHITTESTRESULT CMainWnd::OnNcHitTest(CPoint point) 
+UINT CMainWnd::OnNcHitTest(CPoint point) 
 {
 	if ( m_pSkin )
 		return m_pSkin->OnNcHitTest( this, point, TRUE );
@@ -2472,13 +2456,13 @@ void CMainWnd::OnNcLButtonDblClk(UINT nHitTest, CPoint point)
 	CMDIFrameWnd::OnNcLButtonDblClk( nHitTest, point );
 }
 
-LRESULT CMainWnd::OnSetText(WPARAM /*wParam*/, LPARAM /*lParam*/)
+LONG CMainWnd::OnSetText(WPARAM wParam, LPARAM lParam)
 {
 	if ( m_pSkin )
 	{
 		BOOL bVisible = IsWindowVisible();
 		if ( bVisible ) ModifyStyle( WS_VISIBLE, 0 );
-		LRESULT lResult = Default();
+		LONG lResult = Default();
 		if ( bVisible ) ModifyStyle( 0, WS_VISIBLE );
 		if ( m_pSkin ) m_pSkin->OnSetText( this );
 		return lResult;
@@ -2494,7 +2478,7 @@ LRESULT CMainWnd::OnSetText(WPARAM /*wParam*/, LPARAM /*lParam*/)
 
 IMPLEMENT_UNKNOWN(CMainWnd, DropTarget)
 
-STDMETHODIMP CMainWnd::XDropTarget::DragEnter(IDataObject FAR* pDataObj, DWORD /*grfKeyState*/, POINTL /*pt*/, DWORD FAR* pdwEffect)
+STDMETHODIMP CMainWnd::XDropTarget::DragEnter(IDataObject FAR* pDataObj, DWORD grfKeyState, POINTL pt, DWORD FAR* pdwEffect)
 {
 	METHOD_PROLOGUE( CMainWnd, DropTarget )
 	
@@ -2515,7 +2499,7 @@ STDMETHODIMP CMainWnd::XDropTarget::DragEnter(IDataObject FAR* pDataObj, DWORD /
 	}
 }
 
-STDMETHODIMP CMainWnd::XDropTarget::DragOver(DWORD /*grfKeyState*/, POINTL pt, DWORD FAR* pdwEffect)
+STDMETHODIMP CMainWnd::XDropTarget::DragOver(DWORD grfKeyState, POINTL pt, DWORD FAR* pdwEffect)
 {
 	METHOD_PROLOGUE( CMainWnd, DropTarget )
 	
@@ -2551,7 +2535,7 @@ STDMETHODIMP CMainWnd::XDropTarget::DragLeave()
 	return S_OK;
 }
 
-STDMETHODIMP CMainWnd::XDropTarget::Drop(IDataObject FAR* pDataObj, DWORD /*grfKeyState*/, POINTL pt, DWORD FAR* /*pdwEffect*/)
+STDMETHODIMP CMainWnd::XDropTarget::Drop(IDataObject FAR* pDataObj, DWORD grfKeyState, POINTL pt, DWORD FAR* pdwEffect)
 {
 	METHOD_PROLOGUE( CMainWnd, DropTarget )
 	
@@ -2603,7 +2587,7 @@ CString CMainWnd::XDropTarget::ObjectToURL(IDataObject* pObject)
 	STGMEDIUM pMedium;
 	CString str;
 	
-	pFormat.cfFormat = BYTE( RegisterClipboardFormat( _T("UniformResourceLocator") ) );
+	pFormat.cfFormat = RegisterClipboardFormat( _T("UniformResourceLocator") );
 	
 	if ( SUCCEEDED( pObject->GetData( &pFormat, &pMedium ) ) && pMedium.hGlobal != NULL )
 	{

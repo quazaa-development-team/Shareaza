@@ -65,12 +65,6 @@ CDownloads::CDownloads()
 	m_nRunCookie			= 0;
 	m_bClosing				= FALSE;
 	m_tLastConnect			= 0;
-
-	m_tBandwidthLastCalc	= 0;
-	m_tBandwidthAtMax		= 0;
-	m_tBandwidthAtMaxED2K	= 0;
-
-	m_nLimitNew				= Settings.Bandwidth.Downloads;
 }
 
 CDownloads::~CDownloads()
@@ -96,12 +90,12 @@ CDownload* CDownloads::Add(CQueryHit* pHit, BOOL bAddToHead)
 	
 	CDownload* pDownload = NULL;
 	
-	if ( pDownload == NULL && pHit->m_oSHA1 )
-		pDownload = FindBySHA1( pHit->m_oSHA1 );
-	if ( pDownload == NULL && pHit->m_oTiger )
-		pDownload = FindByTiger( pHit->m_oTiger );
-	if ( pDownload == NULL && pHit->m_oED2K )
-		pDownload = FindByED2K( pHit->m_oED2K );
+	if ( pDownload == NULL && pHit->m_bSHA1 )
+		pDownload = FindBySHA1( &pHit->m_pSHA1 );
+	if ( pDownload == NULL && pHit->m_bTiger )
+		pDownload = FindByTiger( &pHit->m_pTiger );
+	if ( pDownload == NULL && pHit->m_bED2K )
+		pDownload = FindByED2K( &pHit->m_pED2K );
 	
 	if ( pDownload != NULL )
 	{
@@ -121,8 +115,8 @@ CDownload* CDownloads::Add(CQueryHit* pHit, BOOL bAddToHead)
 		theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_ADDED,
 			(LPCTSTR)pDownload->GetDisplayName(), pDownload->GetSourceCount() );
 
-        if ( pDownload->m_oSHA1 ) pDownload->m_oSHA1.signalTrusted();
-        else if ( pDownload->m_oED2K ) pDownload->m_oED2K.signalTrusted();
+		if( pDownload->m_bSHA1 ) pDownload->m_bSHA1Trusted = TRUE;
+		else if( pDownload->m_bED2K ) pDownload->m_bED2KTrusted = TRUE;
 	}
 
 	pHit->m_bDownload = TRUE;
@@ -130,7 +124,8 @@ CDownload* CDownloads::Add(CQueryHit* pHit, BOOL bAddToHead)
 	DownloadGroups.Link( pDownload );
 	Transfers.StartThread();
 
-	if ( ( GetTryingCount() < Settings.Downloads.MaxFiles ) || ( bAddToHead ) )
+	if ( ( (pDownload->GetSourceCount() == 0 ) || ( pDownload->m_bED2K && ! pDownload->m_bSHA1 ) ) 
+	 &&( (GetTryingCount() < Settings.Downloads.MaxFiles ) || ( bAddToHead ) ) )
 	{
 		pDownload->SetStartTimer();
 	}
@@ -145,12 +140,12 @@ CDownload* CDownloads::Add(CMatchFile* pFile, BOOL bAddToHead)
 	
 	CDownload* pDownload = NULL;
 	
-	if ( pDownload == NULL && pFile->m_oSHA1 )
-		pDownload = FindBySHA1( pFile->m_oSHA1 );
-	if ( pDownload == NULL && pFile->m_oTiger )
-		pDownload = FindByTiger( pFile->m_oTiger );
-	if ( pDownload == NULL && pFile->m_oED2K )
-		pDownload = FindByED2K( pFile->m_oED2K );
+	if ( pDownload == NULL && pFile->m_bSHA1 )
+		pDownload = FindBySHA1( &pFile->m_pSHA1 );
+	if ( pDownload == NULL && pFile->m_bTiger )
+		pDownload = FindByTiger( &pFile->m_pTiger );
+	if ( pDownload == NULL && pFile->m_bED2K )
+		pDownload = FindByED2K( &pFile->m_pED2K );
 	
 	if ( pDownload != NULL )
 	{
@@ -197,8 +192,8 @@ CDownload* CDownloads::Add(CMatchFile* pFile, BOOL bAddToHead)
 		theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_ADDED,
 			(LPCTSTR)pDownload->GetDisplayName(), pDownload->GetSourceCount() );
 
-        if ( pDownload->m_oSHA1 ) pDownload->m_oSHA1.signalTrusted();
-        else if ( pDownload->m_oED2K ) pDownload->m_oED2K.signalTrusted();
+		if( pDownload->m_bSHA1 ) pDownload->m_bSHA1Trusted = TRUE;
+		else if( pDownload->m_bED2K ) pDownload->m_bED2KTrusted = TRUE;
 	}
 	
 	pFile->m_bDownload = TRUE;
@@ -206,15 +201,12 @@ CDownload* CDownloads::Add(CMatchFile* pFile, BOOL bAddToHead)
 	DownloadGroups.Link( pDownload );
 	Transfers.StartThread();
 	
-	if ( ( GetTryingCount() < Settings.Downloads.MaxFiles ) || ( bAddToHead ) )
+	if ( ( (pDownload->GetSourceCount() == 0 ) ||
+		   ( pDownload->m_bED2K && ! pDownload->m_bSHA1 )) &&
+		   (GetTryingCount() < Settings.Downloads.MaxFiles ) )
 	{
+		pDownload->FindMoreSources();
 		pDownload->SetStartTimer();
-
-		if ( ( (pDownload->GetSourceCount() <= 1 ) ||
-			( pDownload->m_oED2K && ! pDownload->m_oSHA1 )) )
-		{
-			pDownload->FindMoreSources();
-		}
 	}
 	
 	return pDownload;
@@ -231,14 +223,14 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
 	CDownload* pDownload = NULL;
 	
-	if ( pDownload == NULL && pURL->m_oSHA1 )
-		pDownload = FindBySHA1( pURL->m_oSHA1 );
-	if ( pDownload == NULL && pURL->m_oTiger )
-		pDownload = FindByTiger( pURL->m_oTiger );
-	if ( pDownload == NULL && pURL->m_oED2K )
-		pDownload = FindByED2K( pURL->m_oED2K );
-	if ( pDownload == NULL && pURL->m_oBTH )
-		pDownload = FindByBTH( pURL->m_oBTH );
+	if ( pDownload == NULL && pURL->m_bSHA1 )
+		pDownload = FindBySHA1( &pURL->m_pSHA1 );
+	if ( pDownload == NULL && pURL->m_bTiger )
+		pDownload = FindByTiger( &pURL->m_pTiger );
+	if ( pDownload == NULL && pURL->m_bED2K )
+		pDownload = FindByED2K( &pURL->m_pED2K );
+	if ( pDownload == NULL && pURL->m_bBTH )
+		pDownload = FindByBTH( &pURL->m_pBTH );
 	
 	if ( pDownload != NULL )
 	{
@@ -252,37 +244,42 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 	
 	pDownload = new CDownload();
 	
-	if ( pURL->m_oSHA1 )
+	if ( pURL->m_bSHA1 )
 	{
-		pDownload->m_oSHA1			= pURL->m_oSHA1;
-        pDownload->m_oSHA1.signalTrusted();
+		pDownload->m_bSHA1			= TRUE;
+		pDownload->m_pSHA1			= pURL->m_pSHA1;
+		pDownload->m_bSHA1Trusted	= TRUE;
 	}
-	if ( pURL->m_oTiger )
+	if ( pURL->m_bTiger )
 	{
-		pDownload->m_oTiger			= pURL->m_oTiger;
-        pDownload->m_oTiger.signalTrusted();
+		pDownload->m_bTiger			= TRUE;
+		pDownload->m_pTiger			= pURL->m_pTiger;
+		pDownload->m_bTigerTrusted	= TRUE;
 	}
-    if ( pURL->m_oMD5 )
+	if ( pURL->m_bMD5 )
 	{
-		pDownload->m_oMD5			= pURL->m_oMD5;
-        pDownload->m_oMD5.signalTrusted();
+		pDownload->m_bMD5			= TRUE;
+		pDownload->m_pMD5			= pURL->m_pMD5;
+		pDownload->m_bMD5Trusted	= TRUE;
 	}
-	if ( pURL->m_oED2K )
+	if ( pURL->m_bED2K )
 	{
-		pDownload->m_oED2K			= pURL->m_oED2K;
-        pDownload->m_oED2K.signalTrusted();
+		pDownload->m_bED2K			= TRUE;
+		pDownload->m_pED2K			= pURL->m_pED2K;
+		pDownload->m_bED2KTrusted	= TRUE;
 		pDownload->Share( TRUE );
 	}
-	if ( pURL->m_oBTH )
+	if ( pURL->m_bBTH )
 	{
-		pDownload->m_oBTH			= pURL->m_oBTH;
-		pDownload->m_oBTH.signalTrusted();
+		pDownload->m_bBTH			= TRUE;
+		pDownload->m_pBTH			= pURL->m_pBTH;
+		pDownload->m_bBTHTrusted	= TRUE;
 		pDownload->Share( TRUE );
 	}
 	
 	if ( pURL->m_sName.GetLength() )
 	{
-		pDownload->m_sDisplayName = pURL->m_sName;
+		pDownload->m_sRemoteName = pURL->m_sName;
 	}
 	
 	if ( pURL->m_bSize )
@@ -309,11 +306,12 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 	theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_ADDED,
 		(LPCTSTR)pDownload->GetDisplayName(), pDownload->GetSourceCount() );
 	
-	if ( (  pDownload->m_oBTH && ( GetTryingCount(TRUE)  < Settings.BitTorrent.DownloadTorrents ) ) ||
-		 ( !pDownload->m_oBTH && ( GetTryingCount(FALSE) < Settings.Downloads.MaxFiles ) ) )
+	if( (  pDownload->m_bBTH && ( GetTryingCount(TRUE)  < Settings.BitTorrent.DownloadTorrents ) ) ||
+		( !pDownload->m_bBTH && ( GetTryingCount(FALSE) < Settings.Downloads.MaxFiles ) ) )
 	{
 		pDownload->SetStartTimer();
-		if ( pDownload->GetSourceCount() <= 1 ) pDownload->FindMoreSources();
+		if ( pURL->m_nAction != CShareazaURL::uriSource )
+			pDownload->FindMoreSources();
 	}
 	
 	DownloadGroups.Link( pDownload );
@@ -400,7 +398,7 @@ int CDownloads::GetSeedCount() const
 		
 		if ( pDownload->IsSeeding() )
 			nCount++;		//Manually seeded Torrent
-		else if ( pDownload->IsCompleted() && pDownload->m_oBTH && pDownload->IsFullyVerified() )
+		else if ( pDownload->IsCompleted() && pDownload->m_bBTH && pDownload->IsFullyVerified() )
 			nCount++;		//Torrent that has completed
 	}
 	
@@ -415,7 +413,7 @@ int CDownloads::GetActiveTorrentCount() const
 	{
 		CDownload* pDownload = GetNext( pos );
 		
-		if ( pDownload->IsDownloading() && pDownload->m_oBTH &&
+		if ( pDownload->IsDownloading() && pDownload->m_bBTH &&
 			! pDownload->IsSeeding()	&& ! pDownload->IsCompleted() &&
 			! pDownload->IsMoving()		&& ! pDownload->IsPaused() )
 				nCount++;
@@ -424,11 +422,11 @@ int CDownloads::GetActiveTorrentCount() const
 	return nCount;
 }
 
-INT_PTR CDownloads::GetCount(BOOL bActiveOnly) const
+int CDownloads::GetCount(BOOL bActiveOnly) const
 {
 	if ( ! bActiveOnly ) return m_pList.GetCount();
 	
-	INT_PTR nCount = 0;
+	int nCount = 0;
 	
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
@@ -464,7 +462,7 @@ int CDownloads::GetTryingCount(BOOL bTorrentsOnly) const
 		
 		if ( ( pDownload->IsTrying() ) && ( ! pDownload->IsCompleted() ) && ( ! pDownload->IsPaused() ) )
 		{
-			if ( ( pDownload->m_oBTH ) || ( ! bTorrentsOnly ) )
+			if ( ( pDownload->m_bBTH ) || ( ! bTorrentsOnly ) )
 				nCount++;
 		}
 	}
@@ -522,34 +520,34 @@ BOOL CDownloads::CheckActive(CDownload* pDownload, int nScope) const
 CDownload* CDownloads::FindByURN(LPCTSTR pszURN, BOOL bSharedOnly) const
 {
 	CDownload* pDownload;
-    Hashes::TigerHash oTiger;
-    Hashes::Sha1Hash oSHA1;
-    Hashes::Ed2kHash oED2K;
+	TIGEROOT pTiger;
+	SHA1 pSHA1;
+	MD4 pED2K;
 	
-    if ( oSHA1.fromUrn( pszURN ) )
+	if ( CSHA::HashFromURN( pszURN, &pSHA1 ) )
 	{
-		if ( ( pDownload = FindBySHA1( oSHA1, bSharedOnly ) ) != NULL ) return pDownload;
+		if ( pDownload = FindBySHA1( &pSHA1, bSharedOnly ) ) return pDownload;
 	}
 	
-	if ( oTiger.fromUrn( pszURN ) )
+	if ( CTigerNode::HashFromURN( pszURN, &pTiger ) )
 	{
-		if ( ( pDownload = FindByTiger( oTiger, bSharedOnly ) ) != NULL ) return pDownload;
+		if ( pDownload = FindByTiger( &pTiger, bSharedOnly ) ) return pDownload;
 	}
 	
-	if ( oED2K.fromUrn( pszURN ) )
+	if ( CED2K::HashFromURN( pszURN, &pED2K ) )
 	{
-		if ( ( pDownload = FindByED2K( oED2K, bSharedOnly ) ) != NULL ) return pDownload;
+		if ( pDownload = FindByED2K( &pED2K, bSharedOnly ) ) return pDownload;
 	}
 	
 	return NULL;
 }
 
-CDownload* CDownloads::FindBySHA1(const Hashes::Sha1Hash& oSHA1, BOOL bSharedOnly) const
+CDownload* CDownloads::FindBySHA1(const SHA1* pSHA1, BOOL bSharedOnly) const
 {
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = GetNext( pos );
-		if ( validAndEqual( pDownload->m_oSHA1, oSHA1 ) )
+		if ( pDownload->m_bSHA1 && pDownload->m_pSHA1 == *pSHA1 )
 		{
 			if ( ! bSharedOnly || ( pDownload->IsShared() && pDownload->IsStarted() ) )
 				return pDownload;
@@ -559,12 +557,12 @@ CDownload* CDownloads::FindBySHA1(const Hashes::Sha1Hash& oSHA1, BOOL bSharedOnl
 	return NULL;
 }
 
-CDownload* CDownloads::FindByTiger(const Hashes::TigerHash& oTiger, BOOL bSharedOnly) const
+CDownload* CDownloads::FindByTiger(const TIGEROOT* pTiger, BOOL bSharedOnly) const
 {
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = GetNext( pos );
-		if ( validAndEqual( pDownload->m_oTiger, oTiger ) )
+		if ( pDownload->m_bTiger && pDownload->m_pTiger == *pTiger )
 		{
 			if ( ! bSharedOnly || ( pDownload->IsShared() && pDownload->IsStarted() ) )
 				return pDownload;
@@ -574,12 +572,12 @@ CDownload* CDownloads::FindByTiger(const Hashes::TigerHash& oTiger, BOOL bShared
 	return NULL;
 }
 
-CDownload* CDownloads::FindByED2K(const Hashes::Ed2kHash& oED2K, BOOL bSharedOnly) const
+CDownload* CDownloads::FindByED2K(const MD4* pED2K, BOOL bSharedOnly) const
 {
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = GetNext( pos );
-		if ( validAndEqual( pDownload->m_oED2K, oED2K ) )
+		if ( pDownload->m_bED2K && pDownload->m_pED2K == *pED2K )
 		{
 			if ( ! bSharedOnly || ( pDownload->IsShared() && pDownload->IsStarted() )
 				&& ( pDownload->m_nSize > ED2K_PART_SIZE || pDownload->IsCompleted() ) )
@@ -590,12 +588,12 @@ CDownload* CDownloads::FindByED2K(const Hashes::Ed2kHash& oED2K, BOOL bSharedOnl
 	return NULL;
 }
 
-CDownload* CDownloads::FindByBTH(const Hashes::BtHash& oBTH, BOOL bSharedOnly) const
+CDownload* CDownloads::FindByBTH(const SHA1* pBTH, BOOL bSharedOnly) const
 {
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = GetNext( pos );
-		if ( validAndEqual( pDownload->m_oBTH, oBTH ) )
+		if ( pDownload->m_bBTH && pDownload->m_pBTH == *pBTH )
 		{
 			if ( ! bSharedOnly || ( pDownload->IsShared() ) )
 				return pDownload;
@@ -636,8 +634,8 @@ DWORD CDownloads::GetFreeSID()
 		if ( nSerID ) return nSerID;
 	}
 	
-//	ASSERT( FALSE );
-//	return 0;
+	ASSERT( FALSE );
+	return 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -792,7 +790,7 @@ BOOL CDownloads::AllowMoreTransfers(IN_ADDR* pAddress) const
 	
 	if ( pAddress == NULL ) return nCount < Settings.Downloads.MaxTransfers;
 	
-	if ( m_pHostLimits.Lookup( pAddress->S_un.S_addr, nLimit ) )
+	if ( m_pHostLimits.Lookup( (LPVOID)pAddress->S_un.S_addr, (void*&)nLimit ) )
 	{
 		return ( nCount < nLimit );
 	}
@@ -804,7 +802,7 @@ BOOL CDownloads::AllowMoreTransfers(IN_ADDR* pAddress) const
 
 void CDownloads::SetPerHostLimit(IN_ADDR* pAddress, int nLimit)
 {
-	m_pHostLimits.SetAt( pAddress->S_un.S_addr, nLimit );
+	m_pHostLimits.SetAt( (LPVOID)pAddress->S_un.S_addr, (LPVOID)nLimit );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -871,195 +869,111 @@ BOOL CDownloads::IsSpaceAvailable(QWORD nVolume, int nPath)
 
 void CDownloads::OnRun()
 {
-	DWORD tNow = GetTickCount();
+	DWORD nActiveDownloads		= 0;	// Number of downloads that are doing something
+	DWORD nActiveTransfers		= 0;	// Number of transfers that are in the downloading state
+	DWORD nTotalTransfers		= 0;	// Total transfers
+	DWORD nTotalBandwidth		= 0;	// Total bandwidth in use
+	DWORD nRunningTransfers		= 0;	// Number of transfers that are downloading and transfering data
+	DWORD nRunningED2KTransfers	= 0;	// Number of ed2k transfers that are downloading and transfering data
+	DWORD nTotalED2KBandwidth	= 0;	// Total ed2k bandwidth in use.
 
-
-	// Re-calculating bandwidth may be a little CPU heavy if there are a lot of transfers- limit
-	// it to 4 times per second
-	if ( ( ( tNow - m_tBandwidthLastCalc ) < 250 ) && ( tNow > m_tBandwidthLastCalc ) )
 	{
-		// Just run the downloads, don't bother re-calulating bandwidth
 		CTransfers::Lock oLock;
 
 		m_nValidation = 0;
 		++m_nRunCookie;
-			
+		
 		for ( POSITION pos = GetIterator(); pos; )
 		{
 			CDownload* pDownload = GetNext( pos );
 			pDownload->m_nRunCookie = m_nRunCookie;
 			pDownload->OnRun();
+			
+			int nTemp = 0;
+			
+			for ( CDownloadTransfer* pTransfer = pDownload->GetFirstTransfer() ; pTransfer ; pTransfer = pTransfer->m_pDlNext )
+			{
+				if ( pTransfer->m_nProtocol == PROTOCOL_ED2K )
+				{
+					CDownloadTransferED2K* pED2K = (CDownloadTransferED2K*)pTransfer;
+					if ( pED2K->m_pClient == NULL || pED2K->m_pClient->m_bConnected == FALSE ) continue;
+					if ( pTransfer->m_nState == dtsQueued ) continue;
+				}
+				else if ( pTransfer->m_nProtocol == PROTOCOL_BT )
+				{
+					CDownloadTransferBT* pBT = (CDownloadTransferBT*)pTransfer;
+					if ( pBT->m_nState == dtsTorrent && pBT->m_bChoked ) continue;
+				}
+				
+				nTemp ++;
+				
+				if ( pTransfer->m_nState == dtsDownloading )
+				{
+					DWORD nSpeed = pTransfer->GetMeasuredSpeed();
+					nTotalBandwidth += nSpeed;
+					nActiveTransfers ++;
+					if ( nSpeed > 32 ) nRunningTransfers ++; 
+
+					if ( pTransfer->m_nProtocol == PROTOCOL_ED2K ) 
+					{
+						nTotalED2KBandwidth += nSpeed;
+						if ( nSpeed > 32 ) nRunningED2KTransfers ++;
+					}
+				}
+			}
+			
+			if ( nTemp )
+			{
+				nActiveDownloads ++;
+				nTotalTransfers += nTemp;
+			}
+		}
+	}
+
+	m_nTransfers = nActiveTransfers;
+	m_nBandwidth = nTotalBandwidth;
+	
+	m_bAllowMoreDownloads = nActiveDownloads < (DWORD)Settings.Downloads.MaxFiles;
+	m_bAllowMoreTransfers = nTotalTransfers < (DWORD)Settings.Downloads.MaxTransfers;
+	
+	// Transfers that are not managing at least 32 bytes/sec are not counted when averaging limits
+	if ( nRunningTransfers > 0 )
+	{
+		m_nLimitGeneric	= Settings.Bandwidth.Downloads / nRunningTransfers;
+		m_nLimitDonkey = m_nLimitGeneric;
+		if ( UploadQueues.IsDonkeyRatioActive() )
+		{
+			// Use either the minimum we have reserved, or the current upload allocation, whichever is greater.
+			DWORD nDonkeyLimit = max( UploadQueues.GetMinimumDonkeyBandwidth(), UploadQueues.GetCurrentDonkeyBandwidth() );
+		
+			if ( nDonkeyLimit < 10240 )
+			{
+				// ED2K 3:1 ratio if you aren't uploading at 10KB/s
+				nDonkeyLimit *= 3;	
+
+				// Because this is a per-source limit, we should check overall usage as well.
+				if ( nTotalED2KBandwidth > ( nDonkeyLimit / 2 ) )
+				{
+					// We're getting close to the ed2k ratio, so we need to limit some sources.
+
+					if ( nRunningED2KTransfers > 0 )
+						m_nLimitDonkey = nDonkeyLimit / nRunningED2KTransfers;
+					else 
+						m_nLimitDonkey = nDonkeyLimit;
+
+				}
+
+				// Make sure we have not set the ed2k limit higher than the general limit
+				if ( m_nLimitGeneric ) m_nLimitDonkey = min( m_nLimitGeneric, m_nLimitDonkey );
+			}
 		}
 	}
 	else
 	{
-		// Run downloads, update bandwidth settings and allows
-		m_tBandwidthLastCalc = tNow;
-
-		DWORD nActiveDownloads		= 0;	// Number of downloads that are doing something
-		DWORD nActiveTransfers		= 0;	// Number of transfers that are in the downloading state
-		DWORD nTotalTransfers		= 0;	// Total transfers
-		DWORD nTotalBandwidth		= 0;	// Total bandwidth in use
-		DWORD nRunningTransfers		= 0;	// Number of transfers that are downloading and transfering data
-		DWORD nRunningTransfersED2K	= 0;	// Number of ed2k transfers that are downloading and transfering data
-		DWORD nTotalBandwidthED2K	= 0;	// Total ed2k bandwidth in use.
-
-		DWORD nBandwidthAvailable	= Settings.Bandwidth.Downloads;
-		DWORD nBandwidthAvailableED2K = 0;
-		BOOL bDonkeyRatioActive		= FALSE;
-
-		{	// Lock transfers section
-			CTransfers::Lock oLock;
-			CList<CDownloadTransfer*> pTransfersToLimit;
-			m_nValidation = 0;
-			++m_nRunCookie;
-				
-			// Run all the downloads, select the transfers that need bandwidth limiting
-			for ( POSITION pos = GetIterator(); pos; )
-			{
-				CDownload* pDownload = GetNext( pos );
-				pDownload->m_nRunCookie = m_nRunCookie;
-				pDownload->OnRun();
-					
-				int nTemp = 0;
-					
-				for ( CDownloadTransfer* pTransfer = pDownload->GetFirstTransfer() ; pTransfer ; pTransfer = pTransfer->m_pDlNext )
-				{
-					if ( pTransfer->m_nProtocol == PROTOCOL_ED2K )					
-					{
-						CDownloadTransferED2K* pED2K = (CDownloadTransferED2K*)pTransfer;
-						if ( pED2K->m_pClient == NULL || pED2K->m_pClient->m_bConnected == FALSE ) continue;
-						if ( pTransfer->m_nState == dtsQueued ) continue;
-					}
-					else if ( pTransfer->m_nProtocol == PROTOCOL_BT )
-					{						
-						CDownloadTransferBT* pBT = (CDownloadTransferBT*)pTransfer;
-						if ( pBT->m_nState == dtsTorrent && pBT->m_bChoked ) continue;
-					}
-						
-					nTemp ++;
-						
-					if ( pTransfer->m_nState == dtsDownloading )
-					{
-						DWORD nSpeed = pTransfer->GetMeasuredSpeed();
-						nTotalBandwidth += nSpeed;
-						nActiveTransfers ++;
-						if ( nSpeed > 32 ) 
-						{
-							nRunningTransfers ++; 
-							pTransfersToLimit.AddTail( pTransfer );
-							if ( pTransfer->m_nProtocol == PROTOCOL_ED2K ) 
-							{
-								nTotalBandwidthED2K += nSpeed;
-								nRunningTransfersED2K ++;
-							}
-							// Limit will be set below, once all data is collected
-						}
-						else
-						{
-							// This download is 'stalled'. It's probably not going to transfer 
-							// anything, so we don't want to reserve bandwidth for it.
-							pTransfer->m_nBandwidth = 0;
-							// Don't bother limiting. If it starts to transfer then it
-							// will be limited properly. For now, ignore since it's inactive.
-						}
-					}
-				}
-					
-				if ( nTemp )
-				{
-					nActiveDownloads ++;
-					nTotalTransfers += nTemp;
-				}
-			}
-
-			// Set the ed2k ratio, bandwidth available
-			if ( UploadQueues.IsDonkeyRatioActive() )
-			{
-				nBandwidthAvailableED2K = max( UploadQueues.GetMinimumDonkeyBandwidth(), UploadQueues.GetCurrentDonkeyBandwidth() );
-				if ( nBandwidthAvailableED2K < 10240 )
-				{
-					bDonkeyRatioActive = TRUE;
-					// ED2K 3:1 ratio if you aren't uploading at 10KB/s
-					nBandwidthAvailableED2K *= 3;	
-				}
-				else
-					nBandwidthAvailableED2K = 0;
-			}
-
-			// Limit the transfers. Faster transfers get a bigger share of the bandwidth
-			for ( POSITION pos = pTransfersToLimit.GetHeadPosition() ; pos ; )
-			{
-				CDownloadTransfer* pTransfer = pTransfersToLimit.GetNext( pos );
-
-				DWORD nCurrentSpeed = pTransfer->GetMeasuredSpeed();
-				DWORD nLimit;
-
-				if ( nTotalBandwidth == 0 )
-				{
-					nLimit = nBandwidthAvailable / (DWORD)pTransfersToLimit.GetCount();
-				}
-				else
-				{
-					double nPercentageUsed = (double)nCurrentSpeed / (double)nTotalBandwidth;
-					nPercentageUsed = min(nPercentageUsed, 0.90);
-					nLimit = (DWORD)(nBandwidthAvailable * nPercentageUsed);
-				}
-					
-				// eDonkey ratio
-				if ( bDonkeyRatioActive && ( pTransfer->m_nProtocol == PROTOCOL_ED2K ) )
-				{
-					DWORD nLimitED2K;
-					if ( nRunningTransfersED2K == 0 )
-					{
-						nLimitED2K = nBandwidthAvailableED2K;
-					}
-					else if ( nTotalBandwidthED2K == 0 )
-					{
-						nLimitED2K = nBandwidthAvailableED2K / nRunningTransfersED2K;
-					}
-					else
-					{
-						double nPercentageUsed = (double)nCurrentSpeed / (double)nTotalBandwidthED2K;
-						nPercentageUsed = min(nPercentageUsed, 0.90);
-						nLimitED2K = (DWORD)(nBandwidthAvailableED2K * nPercentageUsed );
-					}
-
-					if ( nLimit ) nLimit = min( nLimit, nLimitED2K );
-					else nLimit = nLimitED2K;
-				}
-
-				// Minimum allocation- 64 bytes / second to prevent time-outs.
-				if ( ( nLimit ) && ( nLimit < 64 ) ) nLimit = 64;
-
-				pTransfer->m_nBandwidth = nLimit;
-			}
-
-		} 	// End of transfers section lock
-
-		// Update limit assigned to new transfers
-		if ( nBandwidthAvailable > nTotalBandwidth ) m_nLimitNew = nBandwidthAvailable - nTotalBandwidth;
-		else m_nLimitNew = Settings.Bandwidth.Request;
-
-		// Save bandwidth stats, Update allows
-		m_nTransfers = nActiveTransfers;
-		m_nBandwidth = nTotalBandwidth;
-				
-		m_bAllowMoreDownloads = nActiveDownloads < (DWORD)Settings.Downloads.MaxFiles;
-		m_bAllowMoreTransfers = nTotalTransfers < (DWORD)Settings.Downloads.MaxTransfers;
-
-		// Set "bandwidth use is near maximum" timers
-		// beware that the MAX setting uses a limit of 0 internally, so we need to catch that case first
-		if ( nBandwidthAvailable != 0 )
-		{
-			if ( ( nTotalBandwidth * 1.1 ) >= nBandwidthAvailable )
-				m_tBandwidthAtMax = tNow;
-			if ( ( nTotalBandwidthED2K * 1.1 ) >= nBandwidthAvailableED2K )
-				m_tBandwidthAtMaxED2K = tNow;
-		}
-
-		DownloadGroups.Save( FALSE );
+		m_nLimitGeneric = m_nLimitDonkey = Settings.Bandwidth.Downloads;
 	}
+	
+	DownloadGroups.Save( FALSE );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1081,7 +995,7 @@ void CDownloads::OnQueryHits(CQueryHit* pHits)
 //////////////////////////////////////////////////////////////////////
 // CDownloads push handler
 
-BOOL CDownloads::OnPush(const Hashes::Guid& oGUID, CConnection* pConnection)
+BOOL CDownloads::OnPush(GGUID* pGUID, CConnection* pConnection)
 {
 	CSingleLock pLock( &Transfers.m_pSection );
 	if ( ! pLock.Lock( 250 ) ) return FALSE;
@@ -1089,7 +1003,7 @@ BOOL CDownloads::OnPush(const Hashes::Guid& oGUID, CConnection* pConnection)
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = GetNext( pos );
-		if ( pDownload->OnAcceptPush( oGUID, pConnection ) ) return TRUE;
+		if ( pDownload->OnAcceptPush( pGUID, pConnection ) ) return TRUE;
 	}
 	
 	return FALSE;
@@ -1304,7 +1218,7 @@ void CDownloads::SerializeCompound(CArchive& ar)
 	ar >> nVersion;
 	if ( nVersion < 4 ) return;
 	
-	for ( DWORD_PTR nCount = ar.ReadCount() ; nCount > 0 ; nCount-- )
+	for ( int nCount = ar.ReadCount() ; nCount > 0 ; nCount-- )
 	{
 		CDownload* pDownload = new CDownload();
 		m_pList.AddTail( pDownload );
@@ -1317,7 +1231,7 @@ void CDownloads::SerializeCompound(CArchive& ar)
 
 void CDownloads::PurgeDeletes()
 {
-	CList< CString > pRemove;
+	CStringList pRemove;
 	HKEY hKey = NULL;
 	
 	if ( ERROR_SUCCESS != RegOpenKeyEx( HKEY_CURRENT_USER,

@@ -24,7 +24,6 @@
 #include "WndBaseMatch.h"
 #include "CtrlSearchPanel.h"
 #include "CtrlSearchDetailPanel.h"
-#include "QuerySearch.h"
 
 class CManagedSearch;
 
@@ -32,14 +31,14 @@ class CManagedSearch;
 class CSearchWnd : public CBaseMatchWnd
 {
 public:
-	CSearchWnd(auto_ptr< CQuerySearch > pSearch = auto_ptr< CQuerySearch >());
+	CSearchWnd(CQuerySearch* pSearch = NULL);
 	virtual ~CSearchWnd();
 
 	DECLARE_DYNCREATE(CSearchWnd)
 	friend class CRemote;
 
 // Attributes
-private:
+protected:
 	CSearchPanel		m_wndPanel;
 	BOOL				m_bPanel;
 	BOOL				m_bSetFocus;
@@ -47,26 +46,8 @@ private:
 	BOOL				m_bDetails;
 	int					m_nDetails;
 	int					m_nLastSearchHelp;
-	typedef boost::ptr_list< CManagedSearch > List;
-	List				m_oSearches;
 public:
-	typedef List::iterator iterator;
-	typedef List::const_iterator const_iterator;
-	typedef List::reverse_iterator reverse_iterator;
-	typedef List::const_reverse_iterator const_reverse_iterator;
-
-	iterator               begin()        { return m_oSearches.begin(); }
-	const_iterator         begin()  const { return m_oSearches.begin(); }
-	iterator               end()          { return m_oSearches.end(); }
-	const_iterator         end()    const { return m_oSearches.end(); }
-	reverse_iterator       rbegin()       { return m_oSearches.rbegin(); }
-	const_reverse_iterator rbegin() const { return m_oSearches.rbegin(); }
-	reverse_iterator       rend()         { return m_oSearches.rend(); }
-	const_reverse_iterator rend()   const { return m_oSearches.rend(); }
-
-	size_t size() const { return m_oSearches.size(); }
-	bool empty() const { return m_oSearches.empty(); }
-
+	CPtrList			m_pSearches;
 	DWORD				m_tSearch;
 	DWORD				m_nCacheHits;
 	DWORD				m_nCacheHubs;
@@ -97,7 +78,7 @@ protected:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnDestroy();
 	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
-	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg void OnTimer(UINT nIDEvent);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnPaint();
 	afx_msg void OnSelChangeMatches();

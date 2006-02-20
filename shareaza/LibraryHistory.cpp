@@ -42,15 +42,14 @@ CLibraryHistory::CLibraryHistory()
 {
 	LastSeededTorrent.m_sName.Empty();
 	LastSeededTorrent.m_sPath.Empty();
-
-	LastSeededTorrent.m_oBTH.clear();
+	ZeroMemory( &LastSeededTorrent.m_pBTH, sizeof(SHA1) );
 	LastSeededTorrent.m_tLastSeeded		= 0;
 	LastSeededTorrent.m_nUploaded		= 0;
 	LastSeededTorrent.m_nDownloaded		= 0;
 
 	LastCompletedTorrent.m_sName.Empty();
 	LastCompletedTorrent.m_sPath.Empty();
-	LastCompletedTorrent.m_oBTH.clear();
+	ZeroMemory( &LastCompletedTorrent.m_pBTH, sizeof(SHA1) );
 	LastCompletedTorrent.m_tLastSeeded	= 0;
 	LastCompletedTorrent.m_nUploaded	= 0;
 	LastCompletedTorrent.m_nDownloaded	= 0;
@@ -71,7 +70,12 @@ POSITION CLibraryHistory::GetIterator() const
 
 CLibraryRecent* CLibraryHistory::GetNext(POSITION& pos) const
 {
-	return m_pList.GetNext( pos );
+	return (CLibraryRecent*)m_pList.GetNext( pos );
+}
+
+int CLibraryHistory::GetCount() const
+{
+	return m_pList.GetCount();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -92,7 +96,7 @@ BOOL CLibraryHistory::Check(CLibraryRecent* pRecent, int nScope) const
 
 	for ( POSITION pos = m_pList.GetHeadPosition() ; pos && nScope > 0 ; )
 	{
-		CLibraryRecent* pExisting = m_pList.GetNext( pos );
+		CLibraryRecent* pExisting = (CLibraryRecent*)m_pList.GetNext( pos );
 		if ( pRecent == pExisting ) return TRUE;
 		if ( pExisting->m_pFile != NULL ) nScope--;
 	}
@@ -117,15 +121,15 @@ CLibraryRecent* CLibraryHistory::GetByPath(LPCTSTR pszPath) const
 //////////////////////////////////////////////////////////////////////
 // CLibraryHistory add new download
 
-CLibraryRecent* CLibraryHistory::Add(LPCTSTR pszPath, const Hashes::Sha1Hash& oSHA1, const Hashes::Ed2kHash& oED2K, LPCTSTR pszSources)
+CLibraryRecent* CLibraryHistory::Add(LPCTSTR pszPath, const SHA1* pSHA1, const MD4* pED2K, LPCTSTR pszSources)
 {
 	CSingleLock pLock( &Library.m_pSection );
 	if ( ! pLock.Lock( 500 ) ) return NULL;
 
 	CLibraryRecent* pRecent = GetByPath( pszPath );
 	if ( pRecent != NULL ) return pRecent;
-	
-	pRecent = new CLibraryRecent( pszPath, oSHA1, oED2K, pszSources );
+
+	pRecent = new CLibraryRecent( pszPath, pSHA1, pED2K, pszSources );
 	m_pList.AddHead( pRecent );
 
 	Prune();
@@ -174,7 +178,7 @@ int CLibraryHistory::Prune()
 	for ( POSITION pos = m_pList.GetTailPosition() ; pos ; )
 	{
 		POSITION posCur = pos;
-		CLibraryRecent* pRecent = m_pList.GetPrev( pos );
+		CLibraryRecent* pRecent = (CLibraryRecent*)m_pList.GetPrev( pos );
 
 		CopyMemory( &tRecent, &pRecent->m_tAdded, sizeof(LONGLONG) );
 
@@ -188,7 +192,7 @@ int CLibraryHistory::Prune()
 
 	while ( GetCount() > (int)Settings.Library.HistoryTotal )
 	{
-		delete m_pList.RemoveTail();
+		delete (CLibraryRecent*)m_pList.RemoveTail();
 		nCount++;
 	}
 
@@ -221,7 +225,7 @@ void CLibraryHistory::Serialize(CArchive& ar, int nVersion)
 {
 	if ( nVersion < 7 ) return;
 
-	DWORD_PTR nCount = 0;
+	int nCount = 0;
 	POSITION pos;
 
 	if ( ar.IsStoring() )
@@ -244,8 +248,7 @@ void CLibraryHistory::Serialize(CArchive& ar, int nVersion)
 		{
 			ar << LastSeededTorrent.m_sName;
 			ar << LastSeededTorrent.m_tLastSeeded;
-			Hashes::BtPureHash tmp( LastSeededTorrent.m_oBTH );
-			SerializeOut( ar, tmp );
+			ar.Write( &LastSeededTorrent.m_pBTH, sizeof(SHA1) );
 		}
 	}
 	else
@@ -274,9 +277,7 @@ void CLibraryHistory::Serialize(CArchive& ar, int nVersion)
 			{
 				ar >> LastSeededTorrent.m_sName;
 				ar >> LastSeededTorrent.m_tLastSeeded;
-				Hashes::BtPureHash tmp;
-				SerializeIn( ar, tmp, nVersion );
-				LastSeededTorrent.m_oBTH = tmp;
+				ar.Read( &LastSeededTorrent.m_pBTH, sizeof(SHA1) );
 			}
 		}
 	}
@@ -292,10 +293,11 @@ CLibraryRecent::CLibraryRecent()
 
 	m_bToday	= FALSE;
 	m_pFile		= NULL;
-//	m_bSHA1		= FALSE;
+	m_bSHA1		= FALSE;
+	m_bED2K		= FALSE;
 }
 
-CLibraryRecent::CLibraryRecent(LPCTSTR pszPath, const Hashes::Sha1Hash& oSHA1, const Hashes::Ed2kHash& oED2K, LPCTSTR pszSources)
+CLibraryRecent::CLibraryRecent(LPCTSTR pszPath, const SHA1* pSHA1, const MD4* pED2K, LPCTSTR pszSources)
 {
 	SYSTEMTIME pTime;
 	GetSystemTime( &pTime );
@@ -304,9 +306,11 @@ CLibraryRecent::CLibraryRecent(LPCTSTR pszPath, const Hashes::Sha1Hash& oSHA1, c
 	m_pFile		= NULL;
 	m_sPath		= pszPath;
 	m_sSources	= pszSources;
-	m_oSHA1		= oSHA1;
-	m_oED2K		= oED2K;
-	
+	m_bSHA1		= pSHA1 != NULL;
+	m_bED2K		= pED2K != NULL;
+
+	if ( m_bSHA1 ) m_pSHA1 = *pSHA1;
+	if ( m_bED2K ) m_pED2K = *pED2K;
 }
 
 CLibraryRecent::~CLibraryRecent()
@@ -321,14 +325,15 @@ void CLibraryRecent::RunVerify(CLibraryFile* pFile)
 	if ( m_pFile == NULL )
 	{
 		m_pFile = pFile;
-		m_pFile->OnVerifyDownload( m_oSHA1, m_oED2K, m_sSources );
+		m_pFile->OnVerifyDownload( m_bSHA1 ? &m_pSHA1 : NULL,
+			m_bED2K ? &m_pED2K : NULL, m_sSources );
 	}
 }
 
 //////////////////////////////////////////////////////////////////////
 // CLibraryRecent serialize
 
-void CLibraryRecent::Serialize(CArchive& ar, int /*nVersion*/)
+void CLibraryRecent::Serialize(CArchive& ar, int nVersion)
 {
 	if ( ar.IsStoring() )
 	{
@@ -344,11 +349,13 @@ void CLibraryRecent::Serialize(CArchive& ar, int /*nVersion*/)
 		ar.Read( &m_tAdded, sizeof(FILETIME) );
 		ar >> nIndex;
 
-		if ( ( m_pFile = Library.LookupFile( nIndex ) ) != NULL )
+		if ( m_pFile = Library.LookupFile( nIndex ) )
 		{
 			m_sPath = m_pFile->GetPath();
-			m_oSHA1 = m_pFile->m_oSHA1;
-			m_oED2K = m_pFile->m_oED2K;
+			m_bSHA1 = m_pFile->m_bSHA1;
+			m_bED2K = m_pFile->m_bED2K;
+			if ( m_bSHA1 ) m_pSHA1 = m_pFile->m_pSHA1;
+			if ( m_bED2K ) m_pED2K = m_pFile->m_pED2K;
 		}
 	}
 }

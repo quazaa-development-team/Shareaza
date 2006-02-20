@@ -24,8 +24,6 @@
 #include "Settings.h"
 #include "CoolInterface.h"
 #include "Network.h"
-#include "Firewall.h"
-#include "UPnPFinder.h"
 #include "Security.h"
 #include "HostCache.h"
 #include "DiscoveryServices.h"
@@ -78,8 +76,6 @@ CShareazaApp::CShareazaApp() : m_pMutex( FALSE, _T("Shareaza") )
 {
 	m_pSafeWnd	= NULL;
 	m_bLive		= FALSE;
-	m_bUPnPPortsForwarded = TS_UNKNOWN;
-	m_bUPnPDeviceConnected = TS_UNKNOWN;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -102,17 +98,13 @@ BOOL CShareazaApp::InitInstance()
 		return FALSE;
 	}
 
-	DDEServer.Create();
-	IEProtocol.Create();
+	// **********************
 
-	// Set Build Date
-	COleDateTime tCompileTime; 
-	tCompileTime.ParseDateTime( _T(__DATE__), LOCALE_NOUSEROVERRIDE, 1033 );
-	m_sBuildDate = tCompileTime.Format( _T("%Y%m%d") );
-	
-	// ***********
+
 	// Beta expiry. Remember to re-compile to update the time, and remove this 
 	// section for final releases and public betas.
+	COleDateTime tCompileTime; 
+	tCompileTime.ParseDateTime( _T(__DATE__), LOCALE_NOUSEROVERRIDE, 1033 );
 	COleDateTime tCurrent = COleDateTime::GetCurrentTime();
 	COleDateTimeSpan tTimeOut( 28, 0, 0, 0);
 	if ( ( tCompileTime + tTimeOut )  < tCurrent )
@@ -123,20 +115,17 @@ BOOL CShareazaApp::InitInstance()
 		//return FALSE;
 	}
 
-	// Alpha warning. Remember to remove this section for final releases and public betas.
-	if ( AfxMessageBox( 
-		L"WARNING: This is an ALPHA TEST version of Shareaza.\n\n"
-		L"It is NOT FOR GENERAL USE, and is only for testing specific features in a controlled "
-		L"environment. It will frequently stop running, or display debug information to assist testing.\n\n"
-		L"If you wish to actually use this software, you should download "
-		L"the current stable release from www.shareaza.com\n"
-		L"If you continue past this point, you may experience system instability, lose downloads, "
-		L"or corrupt system files. Corrupted downloads/files may not be recoverable. "
-		L"Do you wish to continue?", MB_SYSTEMMODAL|MB_ICONEXCLAMATION|MB_YESNO ) == IDNO )
+
+/*
+	// Alpha warning nag message. Remember to remove this section for final releases and public betas.
+	if ( AfxMessageBox( _T("WARNING: This is an ALPHA TEST version of Shareaza.\n\nIt it NOT FOR GENERAL USE, and is only for testing specific features in a controlled environment. It will frequently stop running, or display debug information to assist testing.\n\nIf you wish to actually use this software, you should download the current stable release from www.shareaza.com\nIf you continue past this point, you may experience system instability, lose downloads, or corrupt system files. Corrupted downloads/files may not be recoverable. Do you wish to continue?"), MB_SYSTEMMODAL|MB_ICONEXCLAMATION|MB_YESNO ) == IDNO )
 		return FALSE;
+*/
+	// **********************
 
-	// ***********
 
+
+	// Enable3dControls();
 	SetRegistryKey( _T("Shareaza") );
 	GetVersionNumber();
 	InitResources();
@@ -147,50 +136,13 @@ BOOL CShareazaApp::InitInstance()
 		AfxEnableControlContainer();
 	
 	CSplashDlg* dlgSplash = new CSplashDlg( 18, bSilentTray );
-
+	
 	dlgSplash->Step( _T("Winsock") );
 		WSADATA wsaData;
 		if ( WSAStartup( 0x0101, &wsaData ) ) return FALSE;
 	
 	dlgSplash->Step( _T("Settings Database") );
 		Settings.Load();
-
-	if ( m_lpCmdLine )
-	{
-		if ( _tcsistr( m_lpCmdLine, _T("-basic") ) != NULL )
-			Settings.General.GUIMode = GUI_BASIC;
-		else if ( _tcsistr( m_lpCmdLine, _T("-tabbed") ) != NULL )
-			Settings.General.GUIMode = GUI_TABBED;
-		else if ( _tcsistr( m_lpCmdLine, _T("-windowed") ) != NULL )
-			Settings.General.GUIMode = GUI_WINDOWED;
-	}
-
-	dlgSplash->Step( _T("Firewall/Router Setup") );
-	{
-		CFirewall firewall;
-		if ( firewall.AccessWindowsFirewall() && firewall.AreExceptionsAllowed() )
-		{
-			// Add to firewall exception list if necessary
-			// and enable UPnP Framework if disabled
-			CString strBinaryPath;
-			GetModuleFileName( NULL, strBinaryPath.GetBuffer( MAX_PATH ), MAX_PATH );
-			strBinaryPath.ReleaseBuffer( MAX_PATH );
-			firewall.SetupService( NET_FW_SERVICE_UPNP );
-			firewall.SetupProgram( strBinaryPath, theApp.m_pszAppName );
-		}
-	}
-	// We will run the UPnP discovery in the QuickStart Wizard
-	if ( Settings.Connection.EnableUPnP && !Settings.Live.FirstRun )
-	{
-		try
-		{
-			m_pUPnPFinder.reset( new CUPnPFinder );
-			m_pUPnPFinder->StartDiscovery();
-		}
-		catch ( CUPnPFinder::UPnPError& ) {}
-		catch ( CException* e ) { e->Delete(); }
-	}
-
 	dlgSplash->Step( _T("P2P URIs") );
 		CShareazaURL::Register( TRUE );
 	dlgSplash->Step( _T("Shell Icons") );
@@ -240,6 +192,10 @@ BOOL CShareazaApp::InitInstance()
 	dlgSplash->Step( _T("Upload Manager") );
 		UploadQueues.Load();
 
+	dlgSplash->Step( _T("IPC") );
+		DDEServer.Create();
+		IEProtocol.Create();
+
 	dlgSplash->Step( _T("Upgrade Manager") );
 	if ( VersionChecker.NeedToCheck() ) VersionChecker.Start( m_pMainWnd->GetSafeHwnd() );
 	
@@ -270,26 +226,7 @@ int CShareazaApp::ExitInstance()
 	Uploads.Clear( FALSE );
 	EDClients.Clear();
 	BTClients.Clear();
-
-	{
-		CFirewall firewall;
-		if ( firewall.AccessWindowsFirewall() )
-		{
-			// Remove application from the firewall exception list
-			CString strBinaryPath;
-			GetModuleFileName( NULL, strBinaryPath.GetBuffer( MAX_PATH ), MAX_PATH );
-			strBinaryPath.ReleaseBuffer( MAX_PATH );
-			firewall.SetupProgram( strBinaryPath, theApp.m_pszAppName, TRUE );
-		}
-	}
-	if ( m_pUPnPFinder )
-	{
-		m_pUPnPFinder->StopAsyncFind();
-		if ( Settings.Connection.DeleteUPnPPorts )
-			m_pUPnPFinder->DeletePorts();
-		m_pUPnPFinder.reset();
-	}
-
+	
 	if ( m_bLive )
 	{
 		Downloads.Save();
@@ -317,7 +254,7 @@ int CShareazaApp::ExitInstance()
 /////////////////////////////////////////////////////////////////////////////
 // CShareazaApp help (suppress F1)
 
-void CShareazaApp::WinHelp(DWORD /*dwData*/, UINT /*nCmd*/) 
+void CShareazaApp::WinHelp(DWORD dwData, UINT nCmd) 
 {
 }
 
@@ -326,12 +263,12 @@ void CShareazaApp::WinHelp(DWORD /*dwData*/, UINT /*nCmd*/)
 
 void CShareazaApp::GetVersionNumber()
 {
-	TCHAR szPath[MAX_PATH];
+	TCHAR szPath[128];
 	DWORD dwSize;
 
 	m_nVersion[0] = m_nVersion[1] = m_nVersion[2] = m_nVersion[3] = 0;
 
-	GetModuleFileName( NULL, szPath, MAX_PATH );
+	GetModuleFileName( NULL, szPath, 128 );
 	dwSize = GetFileVersionInfoSize( szPath, &dwSize );
 
 	if ( dwSize )
@@ -365,24 +302,18 @@ void CShareazaApp::GetVersionNumber()
 void CShareazaApp::InitResources()
 {
 	//Determine the version of Windows
-	OSVERSIONINFOEX pVersion;
-	pVersion.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-	GetVersionEx( (OSVERSIONINFO*)&pVersion );
+	OSVERSIONINFO pVersion;
+	pVersion.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
+	GetVersionEx( &pVersion );
 	
 	//Networking is poor under Win9x based operating systems. (95/98/Me)
 	m_bNT = ( pVersion.dwPlatformId == VER_PLATFORM_WIN32_NT );
 
-	// Determine if it's a server
-	m_bServer = m_bNT && pVersion.wProductType != VER_NT_WORKSTATION;
-
 	//Win 95/98/Me/NT (<5) do not support some functions
-	m_dwWindowsVersion = pVersion.dwMajorVersion;
+	m_dwWindowsVersion = pVersion.dwMajorVersion; 
 
 	//Win2000 = 0 WinXP = 1
 	m_dwWindowsVersionMinor = pVersion.dwMinorVersion; 
-
-	// Detect Windows ME
-	m_bWinME = ( m_dwWindowsVersion == 4 && m_dwWindowsVersionMinor == 90 );
 
 	m_bLimitedConnections = FALSE;
 	VER_PLATFORM_WIN32s;
@@ -407,7 +338,7 @@ void CShareazaApp::InitResources()
 
 	//Get the amount of installed memory.
 	m_nPhysicalMemory = 0;
-	if ( ( m_hUser32 = LoadLibrary( _T("User32.dll") ) ) != 0 )
+	if ( m_hUser32 = LoadLibrary( _T("User32.dll") ) )
 	{	//Use GlobalMemoryStatusEx if possible (WinXP)
 		void (WINAPI *m_pfnGlobalMemoryStatus)( LPMEMORYSTATUSEX );
 		MEMORYSTATUSEX pMemory;
@@ -430,7 +361,7 @@ void CShareazaApp::InitResources()
 	}
 	
 	//Get pointers to some functions that don't exist under 95/NT
-	if ( ( m_hUser32 = LoadLibrary( _T("User32.dll") ) ) != 0 )
+	if ( m_hUser32 = LoadLibrary( _T("User32.dll") ) )
 	{
 		(FARPROC&)m_pfnSetLayeredWindowAttributes = GetProcAddress(
 			m_hUser32, "SetLayeredWindowAttributes" );
@@ -452,7 +383,7 @@ void CShareazaApp::InitResources()
 		m_pfnMonitorFromWindow = NULL;
 	}
 
-	if ( ( m_hGDI32 = LoadLibrary( _T("gdi32.dll") ) ) != 0 )
+	if ( m_hGDI32 = LoadLibrary( _T("gdi32.dll") ) )
 		(FARPROC&)m_pfnSetLayout = GetProcAddress( m_hGDI32, "SetLayout" );
 	else
 		m_pfnSetLayout = NULL;
@@ -464,15 +395,15 @@ void CShareazaApp::InitResources()
 	theApp.m_nDefaultFontSize	= theApp.GetProfileInt( _T("Fonts"), _T("FontSize"), 11 );
 	
 	// Set up the default font
-	m_gdiFont.CreateFontW( -theApp.m_nDefaultFontSize, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+	m_gdiFont.CreateFont( -theApp.m_nDefaultFontSize, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		DEFAULT_PITCH|FF_DONTCARE, theApp.m_sDefaultFont );
 	
-	m_gdiFontBold.CreateFontW( -theApp.m_nDefaultFontSize, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+	m_gdiFontBold.CreateFont( -theApp.m_nDefaultFontSize, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		DEFAULT_PITCH|FF_DONTCARE, theApp.m_sDefaultFont );
 	
-	m_gdiFontLine.CreateFontW( -theApp.m_nDefaultFontSize, 0, 0, 0, FW_NORMAL, FALSE, TRUE, FALSE,
+	m_gdiFontLine.CreateFont( -theApp.m_nDefaultFontSize, 0, 0, 0, FW_NORMAL, FALSE, TRUE, FALSE,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		DEFAULT_PITCH|FF_DONTCARE, theApp.m_sDefaultFont );
 
@@ -497,7 +428,7 @@ CMainWnd* CShareazaApp::SafeMainWnd()
 
 TCHAR CShareazaApp::szMessageBuffer[16384];
 
-void CShareazaApp::Message(int nType, UINT nID, ...) throw()
+void CShareazaApp::Message(int nType, UINT nID, ...)
 {
 	if ( nType == MSG_DEBUG && ! Settings.General.Debug ) return;
 	if ( nType == MSG_TEMP && ! Settings.General.DebugLog ) return;
@@ -530,7 +461,7 @@ void CShareazaApp::Message(int nType, UINT nID, ...) throw()
 	va_end( pArgs );
 }
 
-void CShareazaApp::Message(int nType, LPCTSTR pszFormat, ...) throw()
+void CShareazaApp::Message(int nType, LPCTSTR pszFormat, ...)
 {
 	if ( nType == MSG_DEBUG && ! Settings.General.Debug ) return;
 	if ( nType == MSG_TEMP && ! Settings.General.DebugLog ) return;
@@ -601,7 +532,7 @@ void CShareazaApp::LogMessage(LPCTSTR pszLog)
 	}
 	else
 	{
-		pFile.Write( pszLog, static_cast< UINT >( sizeof(TCHAR) * _tcslen(pszLog) ) );
+		pFile.Write( pszLog, sizeof(TCHAR) * _tcslen(pszLog) );
 		pFile.Write( _T("\r\n"), sizeof(TCHAR) * 2 );
 	}
 	
@@ -782,7 +713,7 @@ CRuntimeClass* AfxClassForName(LPCTSTR pszClass)
 /////////////////////////////////////////////////////////////////////////////
 // String functions
 
-void Split(CString strSource, LPCTSTR pszDelimiter, CArray< CString >& pAddIt, BOOL bAddFirstEmpty)
+void Split(CString strSource, LPCTSTR pszDelimiter, CStringArray& pAddIt, BOOL bAddFirstEmpty)
 {
 	CString		strNew = strSource;
 	CString		strTemp = strSource;
@@ -810,7 +741,7 @@ void Split(CString strSource, LPCTSTR pszDelimiter, CArray< CString >& pAddIt, B
 			{
 				pAddIt.Add( strAdd.Trim() );
 			}
-			strNew = strTemp = strNew.Mid( nPos + static_cast< int >( _tcslen( pszDelimiter ) ) );
+			strNew = strTemp = strNew.Mid( nPos + _tcslen( pszDelimiter ) );
 		}
 		bFirstChecked = TRUE; // Allow only the first item empty and ignore trailing empty items 
 	} while ( nPos != -1 );
@@ -831,7 +762,7 @@ void Replace(CString& strBuffer, LPCTSTR pszFind, LPCTSTR pszReplace)
 		int nPos = strBuffer.Find( pszFind );
 		if ( nPos < 0 ) break;
 
-		strBuffer = strBuffer.Left( nPos ) + pszReplace + strBuffer.Mid( nPos + static_cast< int >( _tcslen( pszFind ) ) );
+		strBuffer = strBuffer.Left( nPos ) + pszReplace + strBuffer.Mid( nPos + _tcslen( pszFind ) );
 	}
 }
 
@@ -867,6 +798,15 @@ BOOL LoadSourcesString(CString& str, DWORD num)
 	}
 }
 
+void ToLower(CString& strSource)
+{
+	const int nLength = strSource.GetLength();
+	const LPTSTR str = strSource.GetBuffer() + nLength;
+	for ( int i = -nLength; i; ++i ) str[ i ] = ToLowerCase( str[ i ] );
+	if ( str[ -1 ] == 0x3C3 ) str[ -1 ]--; // last greek sigma fix
+	strSource.ReleaseBuffer( nLength );
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // Case independent string search
 
@@ -874,18 +814,18 @@ LPCTSTR _tcsistr(LPCTSTR pszString, LPCTSTR pszPattern)
 {
 	if ( !*pszString || !*pszPattern ) return NULL;
 
-	const TCHAR cFirstPatternChar = ToLower( *pszPattern );
+	const TCHAR cFirstPatternChar = ToLowerCase[ *pszPattern ];
 
 	for ( ; ; ++pszString )
 	{
-		while ( *pszString && ToLower( *pszString ) != cFirstPatternChar ) ++pszString;
+		while ( *pszString && ToLowerCase[ *pszString ] != cFirstPatternChar ) ++pszString;
 
 		if ( !*pszString ) return NULL;
 
 		int i = 0;
-		while ( const TCHAR cPatternChar = ToLower( pszPattern[ ++i ] ) )
+		while ( const TCHAR cPatternChar = ToLowerCase[ pszPattern[ ++i ] ] )
 		{
-			if ( const TCHAR cStringChar = ToLower( pszString[ i ] ) )
+			if ( const TCHAR cStringChar = ToLowerCase[ pszString[ i ] ] )
 			{
 				if ( cStringChar != cPatternChar ) break;
 			}
@@ -899,24 +839,24 @@ LPCTSTR _tcsistr(LPCTSTR pszString, LPCTSTR pszPattern)
 	}
 }
 
-LPCTSTR _tcsnistr(LPCTSTR pszString, LPCTSTR pszPattern, size_t plen)
+LPCTSTR _tcsnistr(LPCTSTR pszString, LPCTSTR pszPattern, DWORD plen)
 {
 	if ( !*pszString || !*pszPattern || !plen ) return NULL;
 
-	const TCHAR cFirstPatternChar = ToLower( *pszPattern );
+	const TCHAR cFirstPatternChar = ToLowerCase[ *pszPattern ];
 
 	for ( ; ; ++pszString )
 	{
-		while ( *pszString && ToLower( *pszString ) != cFirstPatternChar ) ++pszString;
+		while ( *pszString && ToLowerCase[ *pszString ] != cFirstPatternChar ) ++pszString;
 
 		if ( !*pszString ) return NULL;
 
 		DWORD i = 0;
 		while ( ++i < plen )
 		{
-			if ( const TCHAR cStringChar = ToLower( pszString[ i ] ) )
+			if ( const TCHAR cStringChar = ToLowerCase[ pszString[ i ] ] )
 			{
-				if ( cStringChar != ToLower( pszPattern[ i ] ) ) break;
+				if ( cStringChar != ToLowerCase[ pszPattern[ i ] ] ) break;
 			}
 			else
 			{
@@ -939,11 +879,12 @@ DWORD TimeFromString(LPCTSTR pszTime)
 	if ( pszTime[4] != '-' || pszTime[7] != '-' ) return 0;
 	if ( pszTime[10] != 'T' || pszTime[13] != ':' || pszTime[16] != 'Z' ) return 0;
 	
+	struct tm pTime;
 	LPCTSTR psz;
 	int nTemp;
 	
-	tm pTime = {};
-
+	ZeroMemory( &pTime, sizeof(pTime) );
+	
 	if ( _stscanf( pszTime, _T("%i"), &nTemp ) != 1 ) return 0;
 	pTime.tm_year = nTemp - 1900;
 	for ( psz = pszTime + 5 ; *psz == '0' ; psz++ );
@@ -975,12 +916,12 @@ DWORD TimeFromString(LPCTSTR pszTime)
 		return 0;
 	}
 	
-	return DWORD( 2 * tGMT - tSub );
+	return tGMT + ( tGMT - tSub );
 }
 
-CString TimeToString(time_t tVal)
+CString TimeToString(DWORD tVal)
 {
-	tm* pTime = gmtime( &tVal );
+	struct tm* pTime = gmtime( (time_t*)&tVal );
 	CString str;
 
 	str.Format( _T("%.4i-%.2i-%.2iT%.2i:%.2iZ"),
@@ -1001,25 +942,26 @@ BOOL TimeFromString(LPCTSTR pszTime, FILETIME* pTime)
 	if ( pszTime[4] != '-' || pszTime[7] != '-' ) return FALSE;
 	if ( pszTime[10] != 'T' || pszTime[13] != ':' || pszTime[16] != 'Z' ) return FALSE;
 	
+	SYSTEMTIME pOut;
 	LPCTSTR psz;
 	int nTemp;
 
-	SYSTEMTIME pOut = {};
+	ZeroMemory( &pOut, sizeof(pOut) );
 
 	if ( _stscanf( pszTime, _T("%i"), &nTemp ) != 1 ) return FALSE;
-	pOut.wYear = WORD( nTemp );
+	pOut.wYear = nTemp;
 	for ( psz = pszTime + 5 ; *psz == '0' ; psz++ );
 	if ( _stscanf( psz, _T("%i"), &nTemp ) != 1 ) return FALSE;
-	pOut.wMonth = WORD( nTemp );
+	pOut.wMonth = nTemp;
 	for ( psz = pszTime + 8 ; *psz == '0' ; psz++ );
 	if ( _stscanf( psz, _T("%i"), &nTemp ) != 1 ) return FALSE;
-	pOut.wDay = WORD( nTemp );
+	pOut.wDay = nTemp;
 	for ( psz = pszTime + 11 ; *psz == '0' ; psz++ );
 	if ( _stscanf( psz, _T("%i"), &nTemp ) != 1 ) return FALSE;
-	pOut.wHour = WORD( nTemp );
+	pOut.wHour = nTemp;
 	for ( psz = pszTime + 14 ; *psz == '0' ; psz++ );
 	if ( _stscanf( psz, _T("%i"), &nTemp ) != 1 ) return FALSE;
-	pOut.wMinute = WORD( nTemp );
+	pOut.wMinute = nTemp;
 
 	return SystemTimeToFileTime( &pOut, pTime );
 }

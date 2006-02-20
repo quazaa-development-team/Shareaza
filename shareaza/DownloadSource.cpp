@@ -1,11 +1,7 @@
 //
 // DownloadSource.cpp
 //
-//	Date:			"$Date: 2006/01/11 20:32:05 $"
-//	Revision:		"$Revision: 1.15 $"
-//  Last change by:	"$Author: spooky23 $"
-//
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -72,6 +68,7 @@ void CDownloadSource::Construct(CDownload* pDownload)
 	m_bSelected		= FALSE;
 	
 	m_nProtocol		= PROTOCOL_NULL;
+	m_bGUID			= FALSE;
 	m_nPort			= 0;
 	m_nServerPort	= 0;
 	
@@ -92,7 +89,6 @@ void CDownloadSource::Construct(CDownload* pDownload)
 	m_nColour		= -1;
 	m_tAttempt		= 0;
 	m_nFailures		= 0;
-	m_nRedirectionCount = 0;
 
 	SYSTEMTIME pTime;
 	GetSystemTime( &pTime );
@@ -116,19 +112,20 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, CQueryHit* pHit)
 	m_bPushOnly	= pHit->m_bPush == TS_TRUE ? TRUE : FALSE;
 	
 	m_sURL		= pHit->m_sURL;
-	m_pAddress	= pHit->m_pAddress;	// Not needed? , m_pAddress is set in ResolveURL() again
+	m_pAddress	= pHit->m_pAddress;	// Not needed?
 	m_nPort		= pHit->m_nPort;	// Not needed?
 	m_nSpeed	= pHit->m_bMeasured == TS_TRUE ? ( pHit->m_nSpeed * 128 ) : 0;
 	m_sServer	= pHit->m_pVendor->m_sName;
 	m_sName		= pHit->m_sName;
 	m_nIndex	= pHit->m_nIndex;
-	m_bSHA1		= bool( pHit->m_oSHA1 );
-	m_bTiger	= bool( pHit->m_oTiger );
-	m_bED2K		= bool( pHit->m_oED2K );
+	m_bSHA1		= pHit->m_bSHA1;
+	m_bTiger	= pHit->m_bTiger;
+	m_bED2K		= pHit->m_bED2K;
 	
 	if ( pHit->m_nProtocol == PROTOCOL_G1 || pHit->m_nProtocol == PROTOCOL_G2 )
 	{
-		m_oGUID = pHit->m_oClientID;
+		m_bGUID = TRUE;
+		m_pGUID = pHit->m_pClientID;
 		m_bClientExtended = TRUE;
 	}
 	else if ( pHit->m_nProtocol == PROTOCOL_ED2K )
@@ -146,26 +143,26 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, CQueryHit* pHit)
 //////////////////////////////////////////////////////////////////////
 // CDownloadSource construction from eDonkey source transfer
 
-CDownloadSource::CDownloadSource(CDownload* pDownload, DWORD nClientID, WORD nClientPort, DWORD nServerIP, WORD nServerPort, const Hashes::Guid& oGUID)
+CDownloadSource::CDownloadSource(CDownload* pDownload, DWORD nClientID, WORD nClientPort, DWORD nServerIP, WORD nServerPort, GGUID* pGUID)
 : m_oAvailable( pDownload->m_nSize ), m_oPastFragments( pDownload->m_nSize )
 {
 	Construct( pDownload );
 	
-	if ( ( m_bPushOnly = CEDPacket::IsLowID( nClientID ) ) != FALSE )
+	if ( m_bPushOnly = CEDPacket::IsLowID( nClientID ) )
 	{
 		m_sURL.Format( _T("ed2kftp://%lu@%s:%i/%s/%I64i/"),
 			nClientID,
 			(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)nServerIP ) ), nServerPort,
-            (LPCTSTR)m_pDownload->m_oED2K.toString(), m_pDownload->m_nSize );
+			(LPCTSTR)CED2K::HashToString( &m_pDownload->m_pED2K ), m_pDownload->m_nSize );
 	}
 	else
 	{
 		m_sURL.Format( _T("ed2kftp://%s:%i/%s/%I64i/"),
 			(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)nClientID ) ), nClientPort,
-            (LPCTSTR)m_pDownload->m_oED2K.toString(), m_pDownload->m_nSize );
+			(LPCTSTR)CED2K::HashToString( &m_pDownload->m_pED2K ), m_pDownload->m_nSize );
 	}
 	
-	m_oGUID = oGUID;
+	if ( m_bGUID = ( pGUID != NULL ) ) m_pGUID = *pGUID;
 	
 	m_bED2K		= TRUE;
 	m_sServer	= _T("eDonkey2000");
@@ -176,26 +173,26 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, DWORD nClientID, WORD nCl
 //////////////////////////////////////////////////////////////////////
 // CDownloadSource construction from BitTorrent
 
-CDownloadSource::CDownloadSource(CDownload* pDownload, const Hashes::BtGuid& oGUID, IN_ADDR* pAddress, WORD nPort)
+CDownloadSource::CDownloadSource(CDownload* pDownload, SHA1* pGUID, IN_ADDR* pAddress, WORD nPort)
 : m_oAvailable( pDownload->m_nSize ), m_oPastFragments( pDownload->m_nSize )
 {
 	Construct( pDownload );
 	
-	if ( oGUID )
+	if ( pGUID != NULL )
 	{
 		m_sURL.Format( _T("btc://%s:%i/%s/%s/"),
 			(LPCTSTR)CString( inet_ntoa( *pAddress ) ), nPort,
-            (LPCTSTR)oGUID.toString(),
-			(LPCTSTR)pDownload->m_oBTH.toString() );
+			(LPCTSTR)CSHA::HashToString( pGUID ),
+			(LPCTSTR)CSHA::HashToString( &pDownload->m_pBTH ) );
 	}
 	else
 	{
 		m_sURL.Format( _T("btc://%s:%i//%s/"),
 			(LPCTSTR)CString( inet_ntoa( *pAddress ) ), nPort,
-			(LPCTSTR)pDownload->m_oBTH.toString() );
+			(LPCTSTR)CSHA::HashToString( &pDownload->m_pBTH ) );
 	}
 	
-	m_oGUID	= transformGuid( oGUID );
+	m_bGUID		= pGUID != NULL;
 	m_sServer	= _T("BitTorrent");
 	
 	ResolveURL();
@@ -204,7 +201,7 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, const Hashes::BtGuid& oGU
 //////////////////////////////////////////////////////////////////////
 // CDownloadSource construction from URL
 
-CDownloadSource::CDownloadSource(CDownload* pDownload, LPCTSTR pszURL, BOOL /*bSHA1*/, BOOL bHashAuth, FILETIME* pLastSeen, int nRedirectionCount)
+CDownloadSource::CDownloadSource(CDownload* pDownload, LPCTSTR pszURL, BOOL bSHA1, BOOL bHashAuth, FILETIME* pLastSeen)
 : m_oAvailable( pDownload->m_nSize ), m_oPastFragments( pDownload->m_nSize )
 {
 	Construct( pDownload );
@@ -223,8 +220,6 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, LPCTSTR pszURL, BOOL /*bS
 		(LONGLONG&)tNow += 10000000;
 		if ( CompareFileTime( pLastSeen, &tNow ) <= 0 ) m_tLastSeen = *pLastSeen;
 	}
-
-	m_nRedirectionCount = nRedirectionCount;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -240,8 +235,8 @@ BOOL CDownloadSource::ResolveURL()
 		return FALSE;
 	}
 	
-	m_bSHA1		|= static_cast< BOOL >( bool( pURL.m_oSHA1 ) );
-	m_bED2K		|= static_cast< BOOL >( bool( pURL.m_oED2K ) );
+	m_bSHA1		|= pURL.m_bSHA1;
+	m_bED2K		|= pURL.m_bED2K;
 
 	m_nProtocol	= pURL.m_nProtocol;
 	m_pAddress	= pURL.m_pAddress;
@@ -255,10 +250,7 @@ BOOL CDownloadSource::ResolveURL()
 	}
 	else if ( m_nProtocol == PROTOCOL_BT )
 	{
-		if ( pURL.m_oBTC )
-		{
-			m_oGUID = transformGuid( pURL.m_oBTC );
-		}
+		if ( m_bGUID = pURL.m_bBTC ) CopyMemory( &m_pGUID, &pURL.m_pBTC, 16 );
 	}
 	
 	return TRUE;
@@ -274,7 +266,8 @@ void CDownloadSource::Serialize(CArchive& ar, int nVersion)
 		ar << m_sURL;
 		ar << m_nProtocol;
 		
-		SerializeOut( ar, m_oGUID );
+		ar << m_bGUID;
+		if ( m_bGUID ) ar.Write( &m_pGUID, sizeof(GGUID) );
 		
 		ar << m_nPort;
 		if ( m_nPort ) ar.Write( &m_pAddress, sizeof(m_pAddress) );
@@ -303,7 +296,8 @@ void CDownloadSource::Serialize(CArchive& ar, int nVersion)
 		ar >> m_sURL;
 		ar >> m_nProtocol;
 		
-		SerializeIn( ar, m_oGUID, nVersion);
+		ar >> m_bGUID;
+		if ( m_bGUID ) ar.Read( &m_pGUID, sizeof(GGUID) );
 		
 		ar >> m_nPort;
 		if ( m_nPort ) ar.Read( &m_pAddress, sizeof(m_pAddress) );
@@ -365,9 +359,9 @@ void CDownloadSource::Serialize(CArchive& ar, int nVersion)
 		if ( nVersion >= 7 ) ar >> m_bCloseConn;
 		if ( nVersion >= 12 ) ar.Read( &m_tLastSeen, sizeof(FILETIME) );
 		
-		ar.Read( &m_oGUID[ 0 ], Hashes::Guid::byteCount );
-		ar.Read( &m_oGUID[ 0 ], Hashes::Guid::byteCount );
-		m_oGUID.validate();
+		ar.Read( &m_pGUID, sizeof(GGUID) );
+		ar.Read( &m_pGUID, sizeof(GGUID) );
+		m_bGUID = m_pGUID != (GGUID&)GUID_NULL;
 		
         SerializeIn2( ar, m_oPastFragments, nVersion );
 		
@@ -429,7 +423,7 @@ void CDownloadSource::OnFailure(BOOL bNondestructive)
 		m_pTransfer = NULL;
 	}
 	
-	DWORD nDelay = Settings.Downloads.RetryDelay * ( 1u << m_nFailures );
+	DWORD nDelay = Settings.Downloads.RetryDelay * (DWORD)pow( 2, m_nFailures );
 	
 	if ( m_nFailures < 20 )
 	{
@@ -499,17 +493,18 @@ void CDownloadSource::SetGnutella(int nGnutella)
 //////////////////////////////////////////////////////////////////////
 // CDownloadSource hash check and learn
 
-BOOL CDownloadSource::CheckHash(const Hashes::Sha1Hash& oSHA1)
+BOOL CDownloadSource::CheckHash(const SHA1* pSHA1)
 {
-	if ( m_pDownload->m_oSHA1 && ! m_bHashAuth )
+	if ( m_pDownload->m_bSHA1 && ! m_bHashAuth )
 	{
-		if ( validAndUnequal( m_pDownload->m_oSHA1, oSHA1 ) ) return FALSE;
+		if ( m_pDownload->m_pSHA1 != *pSHA1 ) return FALSE;
 	}
 	else
 	{
 		if ( m_pDownload->m_pTorrent.IsAvailable() ) return TRUE;
 		
-		m_pDownload->m_oSHA1 = oSHA1;
+		m_pDownload->m_bSHA1 = TRUE;
+		m_pDownload->m_pSHA1 = *pSHA1;
 	}
 	
 	m_bSHA1 = TRUE;
@@ -518,17 +513,18 @@ BOOL CDownloadSource::CheckHash(const Hashes::Sha1Hash& oSHA1)
 	return TRUE;
 }
 
-BOOL CDownloadSource::CheckHash(const Hashes::TigerHash& oTiger)
+BOOL CDownloadSource::CheckHash(const TIGEROOT* pTiger)
 {
-    if ( m_pDownload->m_oTiger && ! m_bHashAuth )
+	if ( m_pDownload->m_bTiger && ! m_bHashAuth )
 	{
-		if ( validAndUnequal( m_pDownload->m_oTiger, oTiger ) ) return FALSE;
+		if ( m_pDownload->m_pTiger != *pTiger ) return FALSE;
 	}
 	else
 	{
 		if ( m_pDownload->m_pTorrent.IsAvailable() ) return TRUE;
 		
-		m_pDownload->m_oTiger = oTiger;
+		m_pDownload->m_bTiger = TRUE;
+		m_pDownload->m_pTiger = *pTiger;
 	}
 	
 	m_bTiger = TRUE;
@@ -537,17 +533,18 @@ BOOL CDownloadSource::CheckHash(const Hashes::TigerHash& oTiger)
 	return TRUE;
 }
 
-BOOL CDownloadSource::CheckHash(const Hashes::Ed2kHash& oED2K)
+BOOL CDownloadSource::CheckHash(const MD4* pED2K)
 {
-    if ( m_pDownload->m_oED2K && ! m_bHashAuth )
+	if ( m_pDownload->m_bED2K && ! m_bHashAuth )
 	{
-		if ( validAndUnequal( m_pDownload->m_oED2K, oED2K ) ) return FALSE;
+		if ( memcmp( &m_pDownload->m_pED2K, pED2K, sizeof(MD4) ) ) return FALSE;
 	}
 	else
 	{
 		if ( m_pDownload->m_pTorrent.IsAvailable() ) return TRUE;
 		
-		m_pDownload->m_oED2K = oED2K;
+		m_pDownload->m_bED2K = TRUE;
+		m_pDownload->m_pED2K = *pED2K;
 	}
 	
 	m_bED2K = TRUE;
@@ -571,7 +568,7 @@ BOOL CDownloadSource::PushRequest()
 		if ( EDClients.IsFull() ) return TRUE;
 		
 		CEDClient* pClient = EDClients.Connect( m_pAddress.S_un.S_addr, m_nPort,
-			&m_pServerAddress, m_nServerPort, m_oGUID );
+			&m_pServerAddress, m_nServerPort, m_bGUID ? &m_pGUID : NULL );
 		
 		if ( pClient != NULL && pClient->m_bConnected )
 		{
@@ -581,18 +578,18 @@ BOOL CDownloadSource::PushRequest()
 		
 		if ( Neighbours.PushDonkey( m_pAddress.S_un.S_addr, &m_pServerAddress, m_nServerPort ) )
 		{
-			theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_PUSH_SENT, (LPCTSTR)m_pDownload->m_sDisplayName );
+			theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_PUSH_SENT, (LPCTSTR)m_pDownload->m_sRemoteName );
 			m_tAttempt = GetTickCount() + Settings.Downloads.PushTimeout;
 			return TRUE;
 		}
 	}
 	else
 	{
-		if ( ! m_oGUID ) return FALSE;
+		if ( ! m_bGUID ) return FALSE;
 		
-		if ( Network.SendPush( m_oGUID, m_nIndex ) )
+		if ( Network.SendPush( &m_pGUID, m_nIndex ) )
 		{
-			theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_PUSH_SENT, (LPCTSTR)m_pDownload->m_sDisplayName );
+			theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_PUSH_SENT, (LPCTSTR)m_pDownload->m_sRemoteName );
 			m_tAttempt = GetTickCount() + Settings.Downloads.PushTimeout;
 			return TRUE;
 		}
@@ -601,16 +598,16 @@ BOOL CDownloadSource::PushRequest()
 	return FALSE;
 }
 
-BOOL CDownloadSource::CheckPush(const Hashes::Guid& oClientID)
+BOOL CDownloadSource::CheckPush(GGUID* pClientID)
 {
-	return validAndEqual( m_oGUID, oClientID );
+	return m_bGUID && ( m_pGUID == *pClientID );
 }
 
 BOOL CDownloadSource::CheckDonkey(CEDClient* pClient)
 {
 	if ( m_nProtocol != PROTOCOL_ED2K ) return FALSE;
 	
-	if ( m_oGUID && pClient->m_oGUID ) return m_oGUID == pClient->m_oGUID;
+	if ( m_bGUID && pClient->m_bGUID ) return m_pGUID == pClient->m_pGUID;
 	
 	if ( m_bPushOnly )
 	{
@@ -626,10 +623,10 @@ BOOL CDownloadSource::CheckDonkey(CEDClient* pClient)
 //////////////////////////////////////////////////////////////////////
 // CDownloadSource past fragments
 
-void CDownloadSource::AddFragment(QWORD nOffset, QWORD nLength, BOOL /*bMerge*/)
+void CDownloadSource::AddFragment(QWORD nOffset, QWORD nLength, BOOL bMerge)
 {
 	m_bReadContent = TRUE;
-	m_oPastFragments.insert( Fragments::Fragment( nOffset, nOffset + nLength ) );
+    m_oPastFragments.insert( FF::SimpleFragment( nOffset, nOffset + nLength ) );
 	m_pDownload->SetModified();
 }
 
@@ -656,14 +653,14 @@ void CDownloadSource::SetAvailableRanges(LPCTSTR pszRanges)
 		
 		QWORD nFirst = 0, nLast = 0;
 		
-		// 0 - 0 has special meaning
+        // ??????????????? nLast == nFirst has special meaning ?
 		if ( _stscanf( strRange, _T("%I64i-%I64i"), &nFirst, &nLast ) == 2 && nLast > nFirst )
 		{
             if( nFirst < m_oAvailable.limit() ) // Sanity check
             {
 				// perhaps the file size we expect is incorrect or the source is erronous
 				// in either case we make sure the range fits - so we chop off the end if necessary
-				m_oAvailable.insert( Fragments::Fragment( nFirst, min( nLast + 1, m_oAvailable.limit() ) ) );
+                m_oAvailable.insert( FF::SimpleFragment( nFirst, min( nLast + 1, m_oAvailable.limit() ) ) );
             }
 		}
 	}
@@ -697,7 +694,8 @@ BOOL CDownloadSource::TouchedRange(QWORD nOffset, QWORD nLength) const
 		}
 	}
 	
-	return m_oPastFragments.overlaps( Fragments::Fragment( nOffset, nOffset + nLength ) );
+    return overlaps( m_oPastFragments,
+        FF::SimpleFragment( nOffset, nOffset + nLength ) );
 }
 
 //////////////////////////////////////////////////////////////////////

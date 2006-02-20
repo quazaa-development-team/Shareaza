@@ -237,9 +237,7 @@ BOOL CHttpRequest::Execute(BOOL bBackground)
 	
 	if ( bBackground )
 	{
-		CWinThread* pThread = AfxBeginThread( (AFX_THREADPROC)ThreadStart, this, THREAD_PRIORITY_NORMAL, 0, 0, NULL );
-		m_hThread = pThread->m_hThread;
-		SetThreadName( pThread->m_nThreadID, "HTTPRequest" );
+		m_hThread = AfxBeginThread( (AFX_THREADPROC)ThreadStart, this, THREAD_PRIORITY_NORMAL, 0, 0, NULL )->m_hThread;
 		return TRUE;
 	}
 	else

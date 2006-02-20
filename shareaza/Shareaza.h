@@ -25,7 +25,6 @@
 #include "ComObject.h"
 #include "ShareazaOM.h"
 
-class CUPnPFinder;
 class CMainWnd;
 
 
@@ -41,15 +40,12 @@ public:
 	CMutex				m_pSection;
 	WORD				m_nVersion[4];
 	CString				m_sVersion;
-	CString				m_sBuildDate;
 	CFont				m_gdiFont;
 	CFont				m_gdiFontBold;
 	CFont				m_gdiFontLine;
 	CWnd*				m_pSafeWnd;
 	BOOL				m_bLive;
 	BOOL				m_bNT;						// NT based core. (NT, 2000, XP, etc)
-	BOOL				m_bServer;					// Server version
-	BOOL				m_bWinME;					// Windows Millennium
 	BOOL				m_bLimitedConnections;		// Networking is limited (XP SP2)
 	DWORD				m_dwWindowsVersion;			// Windows version
 	DWORD				m_dwWindowsVersionMinor;	// Windows minor version
@@ -61,11 +57,6 @@ public:
 	CString				m_sDefaultFont;				// Main font. (Tahoma)
 	CString				m_sPacketDumpFont;			// Packet Window. (Lucida Console)
 	CString				m_sSystemLogFont;			// System Window. (Courier New)
-
-	boost::scoped_ptr< CUPnPFinder > m_pUPnPFinder;
-	TRISTATE			m_bUPnPPortsForwarded;		// UPnP values are assigned when the discovery is complete
-	TRISTATE			m_bUPnPDeviceConnected;		// or when the service notifies
-	CString				m_sUPnPExternalIP;
 
 	HINSTANCE m_hUser32;
 	BOOL (WINAPI *m_pfnSetLayeredWindowAttributes)(HWND, COLORREF, BYTE, DWORD);
@@ -82,8 +73,8 @@ protected:
 // Operations
 public:
 	static CMainWnd* SafeMainWnd();
-	void		Message(int nType, UINT nID, ...) throw();
-	void		Message(int nType, LPCTSTR pszFormat, ...) throw();
+	void		Message(int nType, UINT nID, ...);
+	void		Message(int nType, LPCTSTR pszFormat, ...);
 	CString		GetErrorString();
 	BOOL		InternalURI(LPCTSTR pszURI);
 protected:
@@ -115,13 +106,14 @@ CRuntimeClass* AfxClassForName(LPCTSTR pszClass);
 
 BOOL LoadString(CString& str, UINT nID);
 LPCTSTR _tcsistr(LPCTSTR pszString, LPCTSTR pszPattern);
-LPCTSTR _tcsnistr(LPCTSTR pszString, LPCTSTR pszPattern, size_t plen);
+LPCTSTR _tcsnistr(LPCTSTR pszString, LPCTSTR pszPattern, DWORD plen);
+void ToLower(CString& strSource);
 void Replace(CString& strBuffer, LPCTSTR pszFind, LPCTSTR pszReplace);
-void Split(CString strSource, LPCTSTR strDelimiter, CArray< CString >& pAddIt, BOOL bAddFirstEmpty);
+void Split(CString strSource, LPCTSTR strDelimiter, CStringArray& pAddIt, BOOL bAddFirstEmpty);
 BOOL LoadSourcesString(CString& str, DWORD num);
 
 DWORD	TimeFromString(LPCTSTR psz);
-CString	TimeToString(time_t tVal);
+CString	TimeToString(DWORD tVal);
 BOOL	TimeFromString(LPCTSTR psz, FILETIME* pTime);
 CString	TimeToString(FILETIME* pTime);
 
@@ -135,58 +127,19 @@ HBITMAP	CreateMirroredBitmap(HBITMAP hbmOrig);
 #define MLOG(x)
 #endif
 
-typedef enum
+static inline bool IsCharacter(TCHAR nChar)
 {
-	sNone,
-	sRegular,
-	sKanji,
-	sHiragana,
-	sKatakana
-} ScriptType;
-
-inline bool IsCharacter(TCHAR nChar)
-{
-    WORD nCharType = 0;
-	
-	if ( GetStringTypeExW( LOCALE_NEUTRAL, CT_CTYPE3, &nChar, 1, &nCharType ) )
-		return ( ( nCharType & C3_ALPHA ) == C3_ALPHA ||
-				 ( ( nCharType & C3_KATAKANA ) == C3_KATAKANA ||
-				   ( nCharType & C3_HIRAGANA ) == C3_HIRAGANA ) && 
-				   !( ( nCharType & C3_SYMBOL ) == C3_SYMBOL )  ||
-				 ( nCharType & C3_IDEOGRAPH ) == C3_IDEOGRAPH ||
-				 _istdigit( nChar ) );
-
-	return false;
+	if ( nChar >= 0 && nChar <= 255 )
+	{
+		return ( _istalnum( nChar ) ) != 0;
+	}
+	else
+	{
+		return ( _istspace( nChar ) ) == 0;
+	}
 }
 
-inline bool IsHiragana(TCHAR nChar)
-{
-	WORD nCharType = 0;
-	
-	if ( GetStringTypeExW( LOCALE_NEUTRAL, CT_CTYPE3, &nChar, 1, &nCharType ) )
-		return ( ( nCharType & C3_HIRAGANA ) == C3_HIRAGANA );
-	return false;
-}
-
-inline bool IsKatakana(TCHAR nChar)
-{
-	WORD nCharType = 0;
-	
-	if ( GetStringTypeExW( LOCALE_NEUTRAL, CT_CTYPE3, &nChar, 1, &nCharType ) )
-		return ( ( nCharType & C3_KATAKANA ) == C3_KATAKANA );
-	return false;
-}
-
-inline bool IsKanji(TCHAR nChar)
-{
-	WORD nCharType = 0;
-	
-	if ( GetStringTypeExW( LOCALE_NEUTRAL, CT_CTYPE3, &nChar, 1, &nCharType ) )
-		return ( ( nCharType & C3_IDEOGRAPH ) == C3_IDEOGRAPH );
-	return false;
-}
-
-inline bool IsWord(LPCTSTR pszString, size_t nStart, size_t nLength)
+static inline bool IsWord(LPCTSTR pszString, int nStart, int nLength)
 {
 	for ( pszString += nStart ; *pszString && nLength ; pszString++, nLength-- )
 	{
@@ -211,7 +164,6 @@ inline bool IsWord(LPCTSTR pszString, size_t nStart, size_t nLength)
 #define WM_COLLECTION	(WM_USER+107)
 #define WM_OPENSEARCH	(WM_USER+108)
 #define WM_LOG			(WM_USER+109)
-#define WM_LIBRARYSEARCH (WM_USER+110)
 
 #define WM_AFX_SETMESSAGESTRING 0x0362
 #define WM_AFX_POPMESSAGESTRING 0x0375

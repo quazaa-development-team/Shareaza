@@ -79,7 +79,7 @@ CURLActionDlg::~CURLActionDlg()
 {
 	for ( POSITION pos = m_pURLs.GetHeadPosition() ; pos ; )
 	{
-		delete m_pURLs.GetNext( pos );
+		delete (CShareazaURL*)m_pURLs.GetNext( pos );
 	}
 }
 
@@ -146,7 +146,7 @@ void CURLActionDlg::AddURL(CShareazaURL* pURL)
 {
 	if ( IsWindowVisible() && m_pURLs.GetCount() > 0 )
 	{
-		CShareazaURL* pFirst = m_pURLs.GetHead();
+		CShareazaURL* pFirst = (CShareazaURL*)m_pURLs.GetHead();
 
 		if ( pFirst->m_nAction == pURL->m_nAction )
 		{
@@ -161,7 +161,7 @@ void CURLActionDlg::AddURL(CShareazaURL* pURL)
 
 void CURLActionDlg::Update()
 {
-	CShareazaURL* pURL = m_pURLs.GetHead();
+	CShareazaURL* pURL = (CShareazaURL*)m_pURLs.GetHead();
 
 	CString strMessage;
 
@@ -281,23 +281,23 @@ void CURLActionDlg::Update()
 		{
 			m_sHashValue.Format( _T("%i file(s)"), m_pURLs.GetCount() );
 		}
-		else if ( pURL->m_oTiger && pURL->m_oSHA1 )
+		else if ( pURL->m_bTiger && pURL->m_bSHA1 )
 		{
 			m_sHashValue	= _T("bitprint:")
-							+ pURL->m_oSHA1.toString() + _T(".")
-							+ pURL->m_oTiger.toString();
+							+ CSHA::HashToString( &pURL->m_pSHA1 ) + _T(".")
+							+ CTigerNode::HashToString( &pURL->m_pTiger );
 		}
-		else if ( pURL->m_oTiger )
+		else if ( pURL->m_bTiger )
 		{
-			m_sHashValue = pURL->m_oTiger.toShortUrn();
+			m_sHashValue = _T("tree:tiger/:") + CTigerNode::HashToString( &pURL->m_pTiger );
 		}
-		else if ( pURL->m_oSHA1 )
+		else if ( pURL->m_bSHA1 )
 		{
-			m_sHashValue = pURL->m_oSHA1.toShortUrn();
+			m_sHashValue = _T("sha1:") + CSHA::HashToString( &pURL->m_pSHA1 );
 		}
-		else if ( pURL->m_oED2K )
+		else if ( pURL->m_bED2K )
 		{
-			m_sHashValue = pURL->m_oED2K.toShortUrn();
+			m_sHashValue = _T("ed2k:") + CED2K::HashToString( &pURL->m_pED2K );
 		}
 		else
 		{
@@ -348,7 +348,7 @@ void CURLActionDlg::OnUrlDownload()
 
 	for ( POSITION pos = m_pURLs.GetHeadPosition() ; pos ; )
 	{
-		CShareazaURL* pURL = m_pURLs.GetNext( pos );
+		CShareazaURL* pURL = (CShareazaURL*)m_pURLs.GetNext( pos );
 
 		if ( pURL->m_nAction == CShareazaURL::uriDownload ||
 			 pURL->m_nAction == CShareazaURL::uriSource )
@@ -357,8 +357,8 @@ void CURLActionDlg::OnUrlDownload()
 
 			{
 				CSingleLock oLock( &Library.m_pSection, TRUE );
-				if ( ( pFile = LibraryMaps.LookupFileBySHA1( pURL->m_oSHA1 ) ) != NULL
-					|| ( pFile = LibraryMaps.LookupFileByED2K( pURL->m_oED2K ) ) != NULL )
+				if ( ( pURL->m_bSHA1 && ( pFile = LibraryMaps.LookupFileBySHA1( &pURL->m_pSHA1 ) ) ) ||
+					( pURL->m_bED2K && ( pFile = LibraryMaps.LookupFileByED2K( &pURL->m_pED2K ) ) ) )
 				{
 					CString strFormat, strMessage;
 					::Skin.LoadString( strFormat, IDS_URL_ALREADY_HAVE );
@@ -427,7 +427,7 @@ void CURLActionDlg::OnUrlSearch()
 
 	for ( POSITION pos = m_pURLs.GetHeadPosition() ; pos ; )
 	{
-		CShareazaURL* pURL = m_pURLs.GetNext( pos );
+		CShareazaURL* pURL = (CShareazaURL*)m_pURLs.GetNext( pos );
 
 		if ( pURL->m_nAction == CShareazaURL::uriHost )
 		{
@@ -447,7 +447,9 @@ void CURLActionDlg::OnUrlSearch()
 		{
 			if ( ! Network.IsWellConnected() ) Network.Connect( TRUE );
 
-			new CSearchWnd( pURL->ToQuery() );
+			CQuerySearch* pSearch = pURL->ToQuery();
+
+			new CSearchWnd( pSearch );
 		}
 	}
 

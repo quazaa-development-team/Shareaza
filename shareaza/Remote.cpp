@@ -99,7 +99,7 @@ BOOL CRemote::OnRun()
 /////////////////////////////////////////////////////////////////////////////
 // CRemote dropped event
 
-void CRemote::OnDropped(BOOL /*bError*/)
+void CRemote::OnDropped(BOOL bError)
 {
 	Close();
 	delete this;
@@ -442,9 +442,7 @@ void CRemote::PageLogin()
 		CSHA pSHA1;
 		pSHA1.Add( (LPCTSTR)strPassword, strPassword.GetLength() * sizeof(TCHAR) );
 		pSHA1.Finish();
-        Hashes::Sha1Hash tmp;
-        pSHA1.GetHash( tmp );
-        strPassword = tmp.toString();
+		strPassword = pSHA1.GetHashString( FALSE );
 	}
 	
 	if ( GetKey( _T("username") ) == Settings.Remote.Username &&
@@ -498,7 +496,7 @@ void CRemote::PageSearch()
 	Prepare();
 	Output( _T("searchHeader") );
 	
-	for ( CSearchWnd* pFindWnd = NULL ; ( pFindWnd = (CSearchWnd*)pMainWnd->m_pWindows.Find( RUNTIME_CLASS(CSearchWnd), pFindWnd ) ) != NULL ; )
+	for ( CSearchWnd* pFindWnd = NULL ; pFindWnd = (CSearchWnd*)pMainWnd->m_pWindows.Find( RUNTIME_CLASS(CSearchWnd), pFindWnd ) ; )
 	{
 		Prepare();
 		
@@ -659,7 +657,7 @@ void CRemote::PageSearch()
 		PageSearchRowColumn( MATCH_COL_SIZE, pFile, Settings.SmartVolume( pFile->m_nSize, FALSE ) );
 		
 		str.Empty();
-		for ( INT_PTR nStar = pFile->m_nRating / max( 1, pFile->m_nRated ) ; nStar > 1 ; nStar -- ) str += _T("*");
+		for ( int nStar = pFile->m_nRating / max( 1, pFile->m_nRated ) ; nStar > 1 ; nStar -- ) str += _T("*");
 		PageSearchRowColumn( MATCH_COL_RATING, pFile, str );
 		
 		str.Empty();
@@ -960,7 +958,7 @@ void CRemote::PageDownloads()
 		}
 		else if ( pDownload->GetSourceCount() > 0 )
 			LoadString( str, IDS_STATUS_PENDING );
-		else if ( pDownload->m_oBTH )
+		else if ( pDownload->m_bBTH )
 		{
 			if ( pDownload->IsTasking() )
 				LoadString( str, IDS_STATUS_CREATING );
@@ -1314,7 +1312,7 @@ void CRemote::PageNetworkNetwork(int nID, BOOL* pbConnect, LPCTSTR pszName)
 		
 		if ( pNeighbour->m_nProtocol == PROTOCOL_G1 )
 		{
-//			CG1Neighbour* pG1 = reinterpret_cast<CG1Neighbour*>(pNeighbour);
+			CG1Neighbour* pG1 = reinterpret_cast<CG1Neighbour*>(pNeighbour);
 			
 			switch ( pNeighbour->m_nNodeType )
 			{

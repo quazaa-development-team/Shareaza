@@ -40,11 +40,16 @@ public:
 public:
 	int			m_nAction;
 public:
-    Hashes::Sha1Hash m_oSHA1;
-    Hashes::TigerHash m_oTiger;
-    Hashes::Md5Hash m_oMD5;
-    Hashes::Ed2kHash m_oED2K;
-    Hashes::BtHash m_oBTH;
+	BOOL		m_bSHA1;
+	SHA1		m_pSHA1;
+	BOOL		m_bTiger;
+	TIGEROOT	m_pTiger;
+	BOOL		m_bMD5;
+	MD5			m_pMD5;
+	BOOL		m_bED2K;
+	MD4			m_pED2K;
+	BOOL		m_bBTH;
+	SHA1		m_pBTH;
 public:
 	CString		m_sName;
 	BOOL		m_bSize;
@@ -63,7 +68,7 @@ public:
 public:
 	void			Clear();
 	BOOL			Parse(LPCTSTR pszURL);
-	auto_ptr< CQuerySearch > ToQuery();
+	CQuerySearch*	ToQuery();
 protected:
 	BOOL	ParseMagnet(LPCTSTR pszURL);
 	BOOL	ParseShareaza(LPCTSTR pszURL);

@@ -66,7 +66,6 @@ public:
 		m_nUpdateCookie = GetTickCount();
 	}
 	void			Inhibit(BOOL bInhibit);
-	void			CheckDuplicates(LPCTSTR pszEd2kHash);
 
 // File and Folder Operations
 public:
@@ -75,12 +74,11 @@ public:
 protected:
 	void			AddFile(CLibraryFile* pFile);
 	void			RemoveFile(CLibraryFile* pFile);
-	void			OnFileDelete(CLibraryFile* pFile, BOOL bDeleteGhost = FALSE);
-	void			CheckDuplicates(CLibraryFile* pFile, bool bForce = false);
+	void			OnFileDelete(CLibraryFile* pFile);
 
 // General Operations
 public:
-	CList< CLibraryFile* >*	Search(CQuerySearch* pSearch, int nMaximum = 0, BOOL bLocal = FALSE);
+	CPtrList*		Search(CQuerySearch* pSearch, int nMaximum = 0, BOOL bLocal = FALSE);
 	void			Clear();
 	BOOL			Load();
 	void			Save();

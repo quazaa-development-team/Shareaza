@@ -36,8 +36,8 @@ public:
 // Attributes
 public:
 	CCriticalSection	m_pSection;
-	CMap< CString, const CString&, CTransferFile*, CTransferFile* > m_pMap;
-	CList< CTransferFile* > m_pDeferred;
+	CMapStringToPtr		m_pMap;
+	CPtrList			m_pDeferred;
 
 // Operations
 public:

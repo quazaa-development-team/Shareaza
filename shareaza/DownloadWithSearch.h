@@ -32,12 +32,12 @@ class CManagedSearch;
 class CDownloadWithSearch : public CDownloadWithTiger
 {
 // Construction
-protected:
+public:
 	CDownloadWithSearch();
 	virtual ~CDownloadWithSearch();
 
 // Attributes
-private:
+protected:
 	CManagedSearch*	m_pSearch;
 	DWORD			m_tSearchTime;		// Timer for manual search
 	DWORD			m_tSearchCheck;		// Limit auto searches

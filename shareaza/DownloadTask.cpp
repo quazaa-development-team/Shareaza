@@ -1,9 +1,9 @@
 //
 // DownloadTask.cpp
 //
-//	Date:			"$Date: 2005/12/28 09:17:52 $"
-//	Revision:		"$Revision: 1.24 $"
-//  Last change by:	"$Author: rolandas $"
+//	Date:			"$Date: 2005/07/20 19:06:38 $"
+//	Revision:		"$Revision: 1.20 $"
+//  Last change by:	"$Author: spooky23 $"
 //
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
@@ -47,11 +47,11 @@ BEGIN_MESSAGE_MAP(CDownloadTask, CWinThread)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
-//#define METHOD_BUFFERED				0x00000000
-//#define FILE_DEVICE_FILE_SYSTEM		0x00000009
-//#define CTL_CODE(DeviceType,Function,Method,Access) (((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method))
-//#define FSCTL_SET_SPARSE CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 49, METHOD_BUFFERED, FILE_WRITE_DATA)
-const DWORD BUFFER_SIZE = 2 * 1024 * 1024u;
+#define METHOD_BUFFERED				0x00000000
+#define FILE_DEVICE_FILE_SYSTEM		0x00000009
+#define CTL_CODE(DeviceType,Function,Method,Access) (((DeviceType) << 16) | ((Access) << 14) | ((Function) << 2) | (Method))
+#define FSCTL_SET_SPARSE CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 49, METHOD_BUFFERED, FILE_WRITE_DATA)
+#define BUFFER_SIZE					(2*1024*1024)
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -62,32 +62,29 @@ CDownloadTask::CDownloadTask(CDownload* pDownload, int nTask)
 	ASSERT( pDownload->m_pTask == NULL );
 	pDownload->m_pTask = this;
 	
-
-	CString strLocalName = pDownload->m_sDisplayName;
-	
 	m_nTask		= nTask;
 	m_pDownload	= pDownload;
 	m_bSuccess	= FALSE;
 	m_nTorrentFile = 0;
 	m_nSize		= pDownload->m_nSize;
-	m_sName		= pDownload->m_sDisplayName;
-	m_sFilename	= pDownload->m_sDiskName;
+	m_sName		= pDownload->m_sRemoteName;
+	m_sFilename	= pDownload->m_sLocalName;
 	m_sPath		= DownloadGroups.GetCompletedPath( pDownload );
 
-	int nExt = strLocalName.ReverseFind( '.' );
+	int nExt = m_sFilename.ReverseFind( '.' );
 	if ( nExt >= 2 )
 	{
-		CString sExtention = strLocalName.Mid( nExt );
+		CString sExtention = m_sFilename.Mid( nExt );
 		CharLower( sExtention.GetBuffer() );
 		sExtention.ReleaseBuffer();
 
-		if ( ( sExtention == ".collection" ) || ( sExtention == ".co" ) )
+		if( ( sExtention == ".collection" ) || ( sExtention == ".co" ) )
 		{
 			m_sPath	= Settings.Downloads.CollectionPath;
 			CreateDirectory( Settings.Downloads.CollectionPath, NULL );
 			LibraryFolders.AddFolder( Settings.Downloads.CollectionPath );
 		}
-		else if ( sExtention == ".torrent" )
+		else if( sExtention == ".torrent" )
 		{
 			m_sPath	= Settings.Downloads.TorrentPath;
 			CreateDirectory( Settings.Downloads.TorrentPath, NULL );
@@ -386,9 +383,6 @@ void CDownloadTask::RunCopyTorrent()
 		strPath.Format( _T("%s\\%s"), (LPCTSTR)m_sPath, (LPCTSTR)rFile.m_sPath );
 		CreatePathForFile( m_sPath, rFile.m_sPath );
 		
-		// Do nothing if it was an empty folder
-		if ( rFile.m_sPath.Right( 1 ) == L"\\" ) continue;
-
 		theApp.Message( MSG_DEBUG, _T("Extracting %s..."), (LPCTSTR)strPath );
 		
 		if ( !CopyFile( hSource, strPath, rFile.m_nSize ) )
@@ -431,7 +425,7 @@ BOOL CDownloadTask::CopyFile(HANDLE hSource, LPCTSTR pszTarget, QWORD nLength)
 	
 	while ( nLength )
 	{
-		DWORD nBuffer	= min( nLength, BUFFER_SIZE );
+		DWORD nBuffer	= (DWORD)min( nLength, QWORD(BUFFER_SIZE) );
 		DWORD nSuccess	= 0;
 		DWORD tStart	= GetTickCount();
 		
@@ -444,7 +438,7 @@ BOOL CDownloadTask::CopyFile(HANDLE hSource, LPCTSTR pszTarget, QWORD nLength)
 		
 		if ( m_pEvent != NULL ) break;
 		tStart = ( GetTickCount() - tStart ) / 2;
-		Sleep( min( tStart, 50u ) );
+		Sleep( min( tStart, DWORD(50) ) );
 		if ( m_pEvent != NULL ) break;
 	}
 	
@@ -493,7 +487,9 @@ CString CDownloadTask::SafeFilename(LPCTSTR pszName)
 	int nMaxFilenameLength = 256 - 1 - Settings.Downloads.IncompletePath.GetLength() - 47;	
 	if ( strName.GetLength() > nMaxFilenameLength )
 	{
-		int nExtLen = pszExt ? static_cast< int >( _tcslen( pszExt ) ) : 0;
+		int nExtLen;
+		if ( pszExt ) nExtLen = _tcslen( pszExt );
+		else nExtLen = 0;
 		strName = strName.Left( nMaxFilenameLength - nExtLen ) + strName.Right( nExtLen );
 	}
 	

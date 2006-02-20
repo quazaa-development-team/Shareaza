@@ -32,8 +32,6 @@
 #include "SharedFolder.h"
 #include "SharedFile.h"
 #include "AlbumFolder.h"
-#include "DlgExistingFile.h"
-#include "WndMain.h"
 
 #include "QuerySearch.h"
 #include "Application.h"
@@ -76,7 +74,7 @@ CLibrary::CLibrary()
 	m_pfnGFAEW		= NULL;
 	m_pfnGFAEA		= NULL;
 
-	if ( ( m_hKernel = LoadLibrary( _T("kernel32") ) ) != 0 )
+	if ( m_hKernel = LoadLibrary( _T("kernel32") ) )
 	{
 		(FARPROC&)m_pfnGFAEW = GetProcAddress( m_hKernel, "GetFileAttributesExW" );
 		(FARPROC&)m_pfnGFAEA = GetProcAddress( m_hKernel, "GetFileAttributesExA" );
@@ -116,33 +114,23 @@ void CLibrary::AddFile(CLibraryFile* pFile)
 {
 	LibraryMaps.OnFileAdd( pFile );
 
-	if ( pFile->m_oSHA1 )
+	if ( pFile->m_bSHA1 )
 	{
 		LibraryDictionary.Add( pFile );
 	}
 
 	if ( pFile->IsAvailable() )
 	{
-        if ( pFile->m_oSHA1 || pFile->m_oTiger || pFile->m_oMD5 || pFile->m_oED2K )
+		if ( pFile->m_bSHA1 || pFile->m_bTiger || pFile->m_bMD5 || pFile->m_bED2K )
 		{
 			LibraryHistory.Submit( pFile );
 			GetAlbumRoot()->OrganiseFile( pFile );
 		}
 
-        if ( !pFile->m_oSHA1 || !pFile->m_oTiger || !pFile->m_oMD5 || !pFile->m_oED2K )
+		if ( ! pFile->m_bSHA1 || ! pFile->m_bTiger || ! pFile->m_bMD5 || ! pFile->m_bED2K )
 		{
-			LibraryBuilder.Add( pFile ); // hash the file and add it again
-			Settings.Live.NewFile = TRUE;
-			return;
+			LibraryBuilder.Add( pFile );
 		}
-		else if ( Settings.Live.NewFile ) // the new file was hashed
-		{
-			CheckDuplicates( pFile ); // check for duplicates
-		}
-	}
-	else
-	{
-		GetAlbumRoot()->OrganiseFile( pFile );
 	}
 }
 
@@ -157,100 +145,25 @@ void CLibrary::RemoveFile(CLibraryFile* pFile)
 	}
 }
 
-void CLibrary::OnFileDelete(CLibraryFile* pFile, BOOL bDeleteGhost)
+void CLibrary::OnFileDelete(CLibraryFile* pFile)
 {
 	ASSERT( pFile != NULL );
 	
-	LibraryFolders.OnFileDelete( pFile, bDeleteGhost );
+	LibraryFolders.OnFileDelete( pFile );
 	LibraryHistory.OnFileDelete( pFile );
 	LibraryHashDB.DeleteAll( pFile->m_nIndex );
-}
-
-void CLibrary::CheckDuplicates(CLibraryFile* pFile, bool bForce)
-{
-	long nCount = 0;
-
-	// malicious software are usually small, we won't search duplicates
-	if ( pFile->m_nSize > Settings.Library.MaxMaliciousFileSize ) return;
-
-	int nDot = pFile->m_sName.ReverseFind( '.' );
-
-	if ( nDot == -1 ) return;
-	if ( _tcsistr( _T("|exe|com|zip|rar|ace|7z|cab|lzh|tar|tgz|bz2|wmv|"), 
-		pFile->m_sName.Mid( nDot + 1 ) ) == NULL ) return;
-
-	for ( POSITION pos = LibraryMaps.GetFileIterator() ; pos ; )
-	{
-		CLibraryFile* pExisting = LibraryMaps.GetNextFile( pos );
-		
-		if ( validAndEqual( pFile->m_oED2K, pExisting->m_oED2K ) )
-			nCount++;
-	}
-
-	if ( nCount >= 5 ) // if more than 4 the same files, it's suspicious
-	{
-		if ( Settings.Live.LastDuplicateHash == pFile->m_oED2K.toString() && !bForce )
-		{
-			// we already warned about the same file
-			Settings.Live.NewFile = FALSE;
-			return;
-		}
-		Settings.Live.LastDuplicateHash = pFile->m_oED2K.toString();
-		if ( !theApp.m_bLive ) return;
-
-		// warn the user
-		CExistingFileDlg dlg( pFile, NULL, true );
-		Settings.Live.MaliciousWarning = TRUE;
-
-		if ( dlg.DoModal() != IDOK )
-		{
-			Settings.Live.NewFile = FALSE;
-			Settings.Live.LastDuplicateHash.Empty();
-			dlg.m_nAction = 3;
-		}
-
-		if ( dlg.m_nAction == 0 )
-		{
-			CMainWnd* pMainWnd = (CMainWnd*)AfxGetMainWnd();
-			if ( pMainWnd )
-			{
-				CString strHash = L"urn:ed2k:" + Settings.Live.LastDuplicateHash;
-				int nLen = strHash.GetLength() + 1;
-				LPTSTR pszHash = new TCHAR[ nLen ];
-
-				CopyMemory( pszHash, strHash.GetBuffer(), sizeof(TCHAR) * nLen );
-				pMainWnd->PostMessage( WM_LIBRARYSEARCH, (WPARAM)pszHash );
-			}
-		}
-		Settings.Live.MaliciousWarning = FALSE;
-	}
-	else Settings.Live.LastDuplicateHash.Empty();
-}
-
-void CLibrary::CheckDuplicates(LPCTSTR pszED2KHash)
-{
-	Hashes::Ed2kHash oED2K;
-	oED2K.fromString( pszED2KHash );
-
-	if ( oED2K )
-	{
-		CSingleLock oLock( &m_pSection );
-		if ( !oLock.Lock( 50 ) ) return;
-		CLibraryFile* pFile = LibraryMaps.LookupFileByED2K( oED2K, FALSE, TRUE );
-		CheckDuplicates( pFile, true );
-	}
 }
 
 //////////////////////////////////////////////////////////////////////
 // CLibrary search
 
-CList< CLibraryFile* >* CLibrary::Search(CQuerySearch* pSearch, int nMaximum, BOOL bLocal)
+CPtrList* CLibrary::Search(CQuerySearch* pSearch, int nMaximum, BOOL bLocal)
 {
 	CSingleLock oLock( &m_pSection );
 
 	if ( !oLock.Lock( 50 ) ) return NULL;
 
-	CList< CLibraryFile* >* pHits = LibraryMaps.Search( pSearch, nMaximum, bLocal );
+	CPtrList* pHits = LibraryMaps.Search( pSearch, nMaximum, bLocal );
 
 	if ( pHits == NULL && pSearch != NULL )
 	{
@@ -436,7 +349,6 @@ void CLibrary::StartThread()
 	{
 		m_bThread = TRUE;
 		CWinThread* pThread = AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_BELOW_NORMAL );
-		SetThreadName( pThread->m_nThreadID, "Library" );
 		m_hThread = pThread->m_hThread;
 	}
 
@@ -496,9 +408,6 @@ void CLibrary::OnRun()
 
 BOOL CLibrary::ThreadScan()
 {
-	// Do not start scanning until app is loaded
-	if ( ! theApp.m_bLive ) return FALSE;
-
 	BOOL bChanged = LibraryFolders.ThreadScan( &m_bThread, FALSE );
 
 	CSingleLock pLock( &m_pSection, TRUE );

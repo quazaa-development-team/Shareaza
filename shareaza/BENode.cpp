@@ -85,7 +85,7 @@ void CBENode::Clear()
 //////////////////////////////////////////////////////////////////////
 // CBENode add a child node
 
-CBENode* CBENode::Add(const LPBYTE pKey, size_t nKey)
+CBENode* CBENode::Add(const LPBYTE pKey, int nKey)
 {
 	switch ( m_nType )
 	{
@@ -105,44 +105,43 @@ CBENode* CBENode::Add(const LPBYTE pKey, size_t nKey)
 		break;
 	}
 	
-	auto_ptr< CBENode > pNew( new CBENode );
-	CBENode* pNew_ = pNew.get();
+	CBENode* pNew = new CBENode();					// Possible memory leak while running
 	
 	if ( m_nType == beList )
 	{
-		auto_array< CBENode* > pList( new CBENode*[ (size_t)m_nValue + 1 ] );
+		CBENode** pList = new CBENode*[ (DWORD)m_nValue + 1 ];
 		
 		if ( m_pValue != NULL )
 		{
-			memcpy( pList.get(), m_pValue, (size_t)m_nValue * sizeof( CBENode* ) );
+			CopyMemory( pList, m_pValue, 4 * (DWORD)m_nValue );
 			delete [] (CBENode**)m_pValue;
 		}
 		
-		pList[ m_nValue++ ] = pNew.release();
-		m_pValue = pList.release();
+		pList[ m_nValue++ ] = pNew;
+		m_pValue = pList;
 	}
 	else
 	{
-		auto_array< CBENode* > pList( new CBENode*[ (size_t)m_nValue * 2 + 2 ] );
+		CBENode** pList = new CBENode*[ (DWORD)m_nValue * 2 + 2 ];
 		
 		if ( m_pValue != NULL )
 		{
-			memcpy( pList.get(), m_pValue, 2 * (size_t)m_nValue * sizeof( CBENode* ) );
+			CopyMemory( pList, m_pValue, 8 * (DWORD)m_nValue );
 			delete [] (CBENode**)m_pValue;
 		}
 		
-		auto_array< BYTE > pxKey( new BYTE[ nKey + 1 ] );
-		memcpy( pxKey.get(), pKey, nKey );
+		BYTE* pxKey = new BYTE[ nKey + 1 ];					// Possible memory leak while running
+		CopyMemory( pxKey, pKey, nKey );
 		pxKey[ nKey ] = 0;
 		
-		pList[ m_nValue * 2 ]		= pNew.release();
-		pList[ m_nValue * 2 + 1 ]	= (CBENode*)pxKey.release();
+		pList[ m_nValue * 2 ]		= pNew;
+		pList[ m_nValue * 2 + 1 ]	= (CBENode*)pxKey;
 		
-		m_pValue = pList.release();
+		m_pValue = pList;
 		m_nValue ++;
 	}
 	
-	return pNew_;
+	return pNew;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -188,14 +187,15 @@ CString CBENode::GetStringFromSubNode(LPCSTR pszKey, UINT nEncoding, BOOL* pEnco
 	if ( Settings.BitTorrent.TorrentExtraKeys )
 	{
 		// check for undocumented nodes
-		size_t	nUTF8Len = strlen( pszKey ) + 8;
+		char*	pszUTF8Key;
+		UINT	nUTF8Len = strlen( pszKey ) + 8;
 
-		auto_array< char > pszUTF8Key( new char[ nUTF8Len ] );
-		strncpy( pszUTF8Key.get(), pszKey, nUTF8Len );
-		strncat( pszUTF8Key.get(), ".utf-8", nUTF8Len );
+		pszUTF8Key = new char[ nUTF8Len ];
+		strncpy( pszUTF8Key, pszKey, nUTF8Len );
+		strncat( pszUTF8Key, ".utf-8", nUTF8Len );
 
 		// Open the supplied node + .utf-8
-		pSubNode = GetNode( pszUTF8Key.get() );
+		pSubNode = GetNode( pszUTF8Key );
 		// We found a back-up node
 		// If it exists and is a string, try reading it
 		if ( ( pSubNode ) && ( pSubNode->m_nType == CBENode::beString ) )
@@ -203,6 +203,7 @@ CString CBENode::GetStringFromSubNode(LPCSTR pszKey, UINT nEncoding, BOOL* pEnco
 			// Assumed to be UTF-8
 			strValue = pSubNode->GetString();
 		}
+		delete [] pszUTF8Key;
 	}
 
 	// Open the supplied sub-node
@@ -274,7 +275,7 @@ CString CBENode::GetStringFromSubNode(int nItem, UINT nEncoding, BOOL* pEncoding
 //////////////////////////////////////////////////////////////////////
 // CBENode SHA1 computation
 
-void CBENode::GetBth(Hashes::BtHash& oBTH) const
+void CBENode::GetSHA1(SHA1* pSHA1) const
 {
 	ASSERT( this != NULL );
 	
@@ -284,7 +285,7 @@ void CBENode::GetBth(Hashes::BtHash& oBTH) const
 	CSHA pSHA;
 	pSHA.Add( pBuffer.m_pBuffer, pBuffer.m_nLength );
 	pSHA.Finish();
-	pSHA.GetHash( oBTH );
+	pSHA.GetHash( pSHA1 );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -352,20 +353,22 @@ CBENode* CBENode::Decode(CBuffer* pBuffer)
 {
 	ASSERT( pBuffer != NULL );
 	
+	CBENode* pNode	= new CBENode();
+	LPBYTE pInput	= pBuffer->m_pBuffer;
+	DWORD nInput	= pBuffer->m_nLength;
+	
 	try
 	{
-		auto_ptr< CBENode > pNode( new CBENode() );
-		LPBYTE pInput	= pBuffer->m_pBuffer;
-		DWORD nInput	= pBuffer->m_nLength;
-	
 		pNode->Decode( pInput, nInput );
-		return pNode.release();
 	}
 	catch ( CException* pException )
 	{
 		pException->Delete();
-		return NULL;
+		delete pNode;
+		pNode = NULL;
 	}
+	
+	return pNode;
 }
 
 #define INC(x) { pInput += (x); nInput -= (x); }

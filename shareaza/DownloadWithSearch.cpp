@@ -150,7 +150,7 @@ void CDownloadWithSearch::StartAutomaticSearch()
 
 BOOL CDownloadWithSearch::CanSearch() const
 {
-	return m_pFile != NULL && ( m_oSHA1 || m_oTiger || m_oED2K || m_oBTH );
+	return ( ( m_pFile != NULL ) && ( m_bSHA1 || m_bTiger || m_bED2K || m_bBTH ) );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -159,40 +159,42 @@ BOOL CDownloadWithSearch::CanSearch() const
 void CDownloadWithSearch::PrepareSearch()
 {
 	if ( m_pSearch == NULL ) m_pSearch = new CManagedSearch();
-	CQuerySearch* pSearch = m_pSearch->m_pSearch.get();
+	CQuerySearch* pSearch = m_pSearch->m_pSearch;
 	
-	pSearch->m_bAndG1 = Settings.Gnutella1.EnableToday;
-
 	if ( pSearch->m_bAndG1 )
 	{
-		pSearch->m_sSearch = m_sDisplayName;
-		pSearch->BuildWordList( false );
+		pSearch->m_sSearch = m_sRemoteName;
+		pSearch->BuildWordList();
 	}
-
-	if ( m_oSHA1 )
+	
+	if ( m_bSHA1 )
 	{
-		pSearch->m_oSHA1 = m_oSHA1;
+		pSearch->m_bSHA1 = TRUE;
+		pSearch->m_pSHA1 = m_pSHA1;
 	}
-	if ( m_oTiger )
+	if ( m_bTiger )
 	{
-		pSearch->m_oTiger = m_oTiger;
+		pSearch->m_bTiger = TRUE;
+		pSearch->m_pTiger = m_pTiger;
 	}
-	if ( m_oED2K )
+	if ( m_bED2K )
 	{
-		pSearch->m_oED2K = m_oED2K;
+		pSearch->m_bED2K = TRUE;
+		pSearch->m_pED2K = m_pED2K;
 		m_pSearch->m_bAllowED2K = TRUE;
 	}
 	else
 	{
 		m_pSearch->m_bAllowED2K = FALSE;
 	}
-	if ( m_oBTH )
+	if ( m_bBTH )
 	{
-		pSearch->m_oBTH = m_oBTH;
+		pSearch->m_bBTH = TRUE;
+		pSearch->m_pBTH = m_pBTH;
 	}
 	
 	pSearch->m_bWantURL	= TRUE;
-	pSearch->m_bWantDN	= ( m_sDisplayName.GetLength() == 0 );
+	pSearch->m_bWantDN	= ( m_sRemoteName.GetLength() == 0 );
 	pSearch->m_bWantXML	= FALSE;
 	pSearch->m_bWantPFS	= TRUE;
 	pSearch->m_bWantCOM = FALSE;

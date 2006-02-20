@@ -57,7 +57,7 @@ CTextCtrl::CTextCtrl()
 	m_crText[3]		= RGB( 192, 192, 192 );
 	m_crText[4]		= RGB( 0, 0, 255 );
 
-	m_pFont.CreateFontW( -theApp.m_nDefaultFontSize, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+	m_pFont.CreateFont( -theApp.m_nDefaultFontSize, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		DEFAULT_PITCH|FF_DONTCARE, theApp.m_sSystemLogFont );
 	m_cCharacter = CSize( 0, 0 );
@@ -106,7 +106,7 @@ void CTextCtrl::AddLine(int nType, LPCTSTR pszLine)
 	{
 		for ( int nCount = 0 ; nCount < LINE_BUFFER_BLOCK ; nCount++ )
 		{
-			delete m_pLines.GetAt( 0 );
+			delete (CTextLine*)m_pLines.GetAt( 0 );
 			m_pLines.RemoveAt( 0 );
 		}
 		m_bProcess = TRUE;
@@ -122,7 +122,7 @@ void CTextCtrl::Clear(BOOL bInvalidate)
 
 	for ( int nLine = 0 ; nLine < m_pLines.GetSize() ; nLine++ )
 	{
-		delete m_pLines.GetAt( nLine );
+		delete (CTextLine*)m_pLines.GetAt( nLine );
 	}
 	m_pLines.RemoveAll();
 	
@@ -137,8 +137,9 @@ void CTextCtrl::Clear(BOOL bInvalidate)
 
 void CTextCtrl::UpdateScroll(BOOL bFull)
 {
-	SCROLLINFO si = {};
+	SCROLLINFO si;
 
+	ZeroMemory( &si, sizeof(si) );
 	si.cbSize = sizeof(si);
 
 	if ( bFull )
@@ -177,17 +178,18 @@ int CTextCtrl::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_bProcess = TRUE;
 	
 	// Try to get the number of lines to scroll when the mouse wheel is rotated
-	if ( !SystemParametersInfo ( SPI_GETWHEELSCROLLLINES, 0, &m_nScrollWheelLines, 0) )
+	if( !SystemParametersInfo ( SPI_GETWHEELSCROLLLINES, 0, &m_nScrollWheelLines, 0) )
 		m_nScrollWheelLines = 3;
 
 	return 0;
 }
 
-void CTextCtrl::OnVScroll(UINT nSBCode, UINT /*nPos*/, CScrollBar* /*pScrollBar*/) 
+void CTextCtrl::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar) 
 {
 	CSingleLock pLock( &m_pSection, TRUE );
-	SCROLLINFO si = {};
+	SCROLLINFO si;
 
+	ZeroMemory( &si, sizeof(si) );
 	si.cbSize	= sizeof(si);
 	si.fMask	= SIF_ALL;
 
@@ -225,7 +227,7 @@ void CTextCtrl::OnVScroll(UINT nSBCode, UINT /*nPos*/, CScrollBar* /*pScrollBar*
 	Invalidate();
 }
 
-BOOL CTextCtrl::OnEraseBkgnd(CDC* /*pDC*/) 
+BOOL CTextCtrl::OnEraseBkgnd(CDC* pDC) 
 {
 	return TRUE;
 }
@@ -251,7 +253,7 @@ void CTextCtrl::OnPaint()
 
 	for ( int nLine = 0 ; nLine < m_pLines.GetSize() ; nLine++ )
 	{
-		CTextLine* pLine = m_pLines.GetAt( nLine );
+		CTextLine* pLine = (CTextLine*)m_pLines.GetAt( nLine );
 
 		if ( m_bProcess || ! pLine->m_nLine )
 		{
@@ -272,9 +274,9 @@ void CTextCtrl::OnPaint()
 	rcLine.bottom += ( m_nTotal - m_nPosition ) * m_cCharacter.cy;
 	rcLine.top = rcLine.bottom - m_cCharacter.cy;
 
-	for ( INT_PTR nLine = m_pLines.GetSize() - 1 ; nLine >= 0 && rcLine.bottom > 0 ; nLine-- )
+	for ( int nLine = m_pLines.GetSize() - 1 ; nLine >= 0 && rcLine.bottom > 0 ; nLine-- )
 	{
-		CTextLine* pLine = m_pLines.GetAt( nLine );
+		CTextLine* pLine = (CTextLine*)m_pLines.GetAt( nLine );
 
 		dc.SetTextColor( m_crText[ pLine->m_nType ] );
 		pLine->Paint( &dc, &rcLine );
@@ -295,7 +297,7 @@ void CTextCtrl::OnSize(UINT nType, int cx, int cy)
 	m_bProcess = TRUE;
 }
 
-void CTextCtrl::OnLButtonDown(UINT /*nFlags*/, CPoint /*point*/)
+void CTextCtrl::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	SetFocus();
 }
@@ -307,17 +309,18 @@ BOOL CTextCtrl::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	if ( WHEEL_PAGESCROLL == m_nScrollWheelLines )
 	{
 		// scroll by page is activated
-		SCROLLINFO si = {};
+		SCROLLINFO si;
 
+		ZeroMemory( &si, sizeof( si ) );
 		si.cbSize	= sizeof( si );
 		si.fMask	= SIF_ALL;
 
 		GetScrollInfo( SB_VERT, &si );
 
-		nRows = short( nRows * ( si.nPage - 1 ) );
+		nRows *=( si.nPage - 1 );
 	}
 	else
-		nRows = short( nRows * m_nScrollWheelLines );
+		nRows *= m_nScrollWheelLines;
 
 	CSingleLock pLock( &m_pSection, TRUE );
 

@@ -52,7 +52,7 @@ protected:
 	DWORD				m_tLastKHL;
 	DWORD				m_tLastHAW;
 protected:
-	CList< CG2Packet* >	m_pOutbound;
+	CPtrList			m_pOutbound;
 
 protected:
 	int					m_nQueryLimiter;				// Counter for query limiting

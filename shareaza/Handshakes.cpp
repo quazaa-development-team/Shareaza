@@ -114,11 +114,9 @@ BOOL CHandshakes::Listen()
 		// If this is not our first attempt
 		if ( nAttempt )
 		{
-			if ( theApp.m_bUPnPPortsForwarded != TS_TRUE )
-			{
-				int nPort = Network.RandomPort();
-				Network.m_pHost.sin_port = saListen.sin_port = htons( u_short( nPort ) );
-			}
+			// Choose a port number randomly, and store it it Network and saListen
+			int nPort = Network.RandomPort();
+			Network.m_pHost.sin_port = saListen.sin_port = htons( nPort );
 		}
 		else // This is still our first time here in this loop
 		{
@@ -157,13 +155,12 @@ BOOL CHandshakes::Listen()
 		256 );		// Maximum length of the queue of pending connections, let 256 computers try to call us at once (do)
 
 	// Create a new thread to run the ThreadStart method, passing it a pointer to this C
-	CWinThread* pThread = // Save the new thread handle
+	m_hThread =			// Save the new thread handle
 		AfxBeginThread(	// Create a new thread
 		ThreadStart,	// Have it start running the ThreadStart method
 		this			// ThreadStart gets one parameter passed to it, a pointer to this CHandshakes object
-		);	// AfxBeginThread returns a pointer to the new thread object, copy the thread handle from within it
-	m_hThread = pThread->m_hThread;
-	SetThreadName( pThread->m_nThreadID, "Handshakes" );
+		)->m_hThread;	// AfxBeginThread returns a pointer to the new thread object, copy the thread handle from within it
+
 	// Report success
 	return TRUE;
 }
@@ -417,8 +414,7 @@ BOOL CHandshakes::AcceptConnection()
 		(SOCKADDR*)&pHost,	// Have WSAAccept tell us what it thinks the IP address and port number of the remote computer is
 		&nHost,				// The number of bytes it has to write there
 		AcceptCheck,		// Call this function, and it will tell you if we wish to accept this connection or not
-		0 ); // Note: as of now this parameter is unused - it's not safe to pass this here in a 64bit environment
-			// if we should need this in the future, a LUT needs to be used instead
+		(DWORD)this );		// Give the AcceptCheck function a pointer to this CHandshakes object as its parameter
 	if ( hSocket == INVALID_SOCKET ) return FALSE; // AcceptCheck refused the connection, or it didn't work, leave now
 
 	// We've listened for and accepted one more stable connection
@@ -467,14 +463,7 @@ void CHandshakes::CreateHandshake(SOCKET hSocket, SOCKADDR_IN* pHost)
 // This is the WSAAccept condition function, that's why it has so many weird parameters
 // Makes sure we know the remote IP address, and it's not on the security watch list
 // Returns CF_ACCEPT or CF_REJECT to tell WSAAccept what to do
-int CALLBACK CHandshakes::AcceptCheck(IN LPWSABUF lpCallerId,
-									  IN LPWSABUF /*lpCallerData*/,
-									  IN OUT LPQOS /*lpSQOS*/,
-									  IN OUT LPQOS /*lpGQOS*/,
-									  IN LPWSABUF /*lpCalleeId*/,
-									  IN LPWSABUF /*lpCalleeData*/,
-									  OUT GROUP FAR * /*g*/,
-									  IN DWORD_PTR /*dwCallbackData*/)
+int CALLBACK CHandshakes::AcceptCheck(IN LPWSABUF lpCallerId, IN LPWSABUF lpCallerData, IN OUT LPQOS lpSQOS, IN OUT LPQOS lpGQOS, IN LPWSABUF lpCalleeId, OUT LPWSABUF lpCalleeData, OUT GROUP FAR * g, IN DWORD dwCallbackData)
 {
 	// If the address of the remote computer is unknown or too short, reject the connection
 	if ( lpCallerId == NULL )                    return CF_REJECT; // WSAAccept didn't get the remote computer's IP and port

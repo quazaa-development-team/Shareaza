@@ -82,16 +82,20 @@ POSITION CMatchListView::GetIterator() const
 	return m_pSelection.GetHeadPosition();
 }
 
-// TODO
+int CMatchListView::GetCount() const
+{
+	return m_pSelection.GetCount();
+}
+
 void CMatchListView::GetNext(POSITION& pos, CMatchFile** ppFile, CQueryHit** ppHit) const
 {
 	LPVOID pItem = (LPVOID)( pos != NULL ? m_pSelection.GetNext( pos ) : NULL );
 
 	if ( ppFile != NULL )
 	{
-		if ( m_pList->m_pSelectedFiles.Find( static_cast< CMatchFile* >( pItem ) ) != NULL )
+		if ( m_pList->m_pSelectedFiles.Find( pItem ) != NULL )
 		{
-			*ppFile = static_cast< CMatchFile* >( pItem );
+			*ppFile = (CMatchFile*)pItem;
 		}
 	}
 	else
@@ -101,9 +105,9 @@ void CMatchListView::GetNext(POSITION& pos, CMatchFile** ppFile, CQueryHit** ppH
 
 	if ( ppHit != NULL )
 	{
-		if ( m_pList->m_pSelectedHits.Find( static_cast< CQueryHit* >( pItem ) ) != NULL )
+		if ( m_pList->m_pSelectedHits.Find( pItem ) != NULL )
 		{
-			*ppHit = static_cast< CQueryHit* >( pItem );
+			*ppHit = (CQueryHit*)pItem;
 		}
 	}
 	else
@@ -119,31 +123,44 @@ void CMatchListView::GetNext(POSITION& pos, VARIANT* pVar) const
 
 	GetNext( pos, &pFile, &pHit );
 	if ( pVar == NULL ) return;
-	
-    const Hashes::TigerHash& rTiger = pFile ? pFile->m_oTiger : pHit->m_oTiger;
-    const Hashes::Sha1Hash& rSHA1 = pFile ? pFile->m_oSHA1 : pHit->m_oSHA1;
-    const Hashes::Ed2kHash& rED2K = pFile ? pFile->m_oED2K : pHit->m_oED2K;
-	
+
+	TIGEROOT* pTiger = NULL;
+	SHA1* pSHA1 = NULL;
+	MD4* pED2K = NULL;
+
+	if ( pFile != NULL )
+	{
+		pTiger = pFile->m_bTiger ? &pFile->m_pTiger : NULL;
+		pSHA1 = pFile->m_bSHA1 ? &pFile->m_pSHA1 : NULL;
+		pED2K = pFile->m_bED2K ? &pFile->m_pED2K : NULL;
+	}
+	else
+	{
+		pTiger = pHit->m_bTiger ? &pHit->m_pTiger : NULL;
+		pSHA1 = pHit->m_bSHA1 ? &pHit->m_pSHA1 : NULL;
+		pED2K = pHit->m_bED2K ? &pHit->m_pED2K : NULL;
+	}
+
 	CString strURN;
 	VariantClear( pVar );
-	
-	if ( rSHA1 && rTiger )
+
+	if ( pSHA1 != NULL && pTiger != NULL )
 	{
 		strURN	= _T("urn:bitprint:")
-                + rSHA1.toString() + '.'
-				+ rTiger.toString();
+				+ CSHA::HashToString( pSHA1 ) + '.'
+				+ CTigerNode::HashToString( pTiger );
 	}
-	else if ( rSHA1 )
+	else if ( pSHA1 != NULL )
 	{
-		strURN = rSHA1.toUrn();
+		strURN = CSHA::HashToString( pSHA1, TRUE );
 	}
-	else if ( rTiger )
+	else if ( pTiger != NULL )
 	{
-		strURN = rTiger.toUrn();
+		strURN = CTigerNode::HashToString( pTiger, TRUE );
 	}
-	else if ( rED2K )
+	else if ( pED2K != NULL )
 	{
-		strURN = rED2K.toUrn();
+		strURN = CED2K::HashToString( pED2K, TRUE );
 	}
 	else
 	{
@@ -166,13 +183,13 @@ STDMETHODIMP CMatchListView::XGenericView::get_Name(BSTR FAR* psName)
 	return S_OK;
 }
 
-STDMETHODIMP CMatchListView::XGenericView::get_Unknown(IUnknown FAR* FAR* /*ppUnknown*/)
+STDMETHODIMP CMatchListView::XGenericView::get_Unknown(IUnknown FAR* FAR* ppUnknown)
 {
 	METHOD_PROLOGUE( CMatchListView, GenericView )
 	return E_NOTIMPL;
 }
 
-STDMETHODIMP CMatchListView::XGenericView::get_Param(LONG FAR* /*pnParam*/)
+STDMETHODIMP CMatchListView::XGenericView::get_Param(LONG FAR* pnParam)
 {
 	METHOD_PROLOGUE( CMatchListView, GenericView )
 	return E_NOTIMPL;
@@ -213,7 +230,7 @@ STDMETHODIMP CMatchListView::XGenericView::get_Item(VARIANT vIndex, VARIANT FAR*
 STDMETHODIMP CMatchListView::XGenericView::get_Count(LONG FAR* pnCount)
 {
 	METHOD_PROLOGUE( CMatchListView, GenericView )
-	*pnCount = static_cast< LONG >( pThis->GetCount() );
+	*pnCount = pThis->GetCount();
 	return S_OK;
 }
 
@@ -255,7 +272,7 @@ STDMETHODIMP CMatchListView::XEnumVARIANT::Reset()
     return S_OK;
 }
 
-STDMETHODIMP CMatchListView::XEnumVARIANT::Clone(IEnumVARIANT FAR* FAR* /*ppenum*/)
+STDMETHODIMP CMatchListView::XEnumVARIANT::Clone(IEnumVARIANT FAR* FAR* ppenum)
 {
     return E_NOTIMPL;
 }

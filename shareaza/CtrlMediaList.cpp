@@ -23,14 +23,12 @@
 #include "Shareaza.h"
 #include "Settings.h"
 #include "Library.h"
-#include "AlbumFolder.h"
 #include "SharedFile.h"
 #include "ShellIcons.h"
 #include "LiveList.h"
 #include "Skin.h"
 #include "Buffer.h"
 #include "CtrlMediaList.h"
-#include "DlgCollectionExport.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -43,16 +41,8 @@ IMPLEMENT_DYNAMIC(CMediaListCtrl, CListCtrl)
 BEGIN_MESSAGE_MAP(CMediaListCtrl, CListCtrl)
 	//{{AFX_MSG_MAP(CMediaListCtrl)
 	ON_WM_CREATE()
-	ON_WM_SIZE()
-	ON_WM_CONTEXTMENU()
-	ON_WM_MOUSEMOVE()
-	ON_WM_LBUTTONUP()
-	ON_WM_LBUTTONDOWN()
-	ON_WM_RBUTTONDOWN()
-	ON_NOTIFY_REFLECT(LVN_KEYDOWN, OnKeyDown)
-	ON_NOTIFY_REFLECT(LVN_BEGINDRAG, OnBeginDrag)
-	ON_NOTIFY_REFLECT(NM_CUSTOMDRAW, OnCustomDraw)
 	ON_NOTIFY_REFLECT(NM_DBLCLK, OnDoubleClick)
+	ON_WM_CONTEXTMENU()
 	ON_COMMAND(ID_MEDIA_ADD, OnMediaAdd)
 	ON_UPDATE_COMMAND_UI(ID_MEDIA_REMOVE, OnUpdateMediaRemove)
 	ON_COMMAND(ID_MEDIA_REMOVE, OnMediaRemove)
@@ -67,14 +57,20 @@ BEGIN_MESSAGE_MAP(CMediaListCtrl, CListCtrl)
 	ON_COMMAND(ID_MEDIA_PREVIOUS, OnMediaPrevious)
 	ON_UPDATE_COMMAND_UI(ID_MEDIA_NEXT, OnUpdateMediaNext)
 	ON_COMMAND(ID_MEDIA_NEXT, OnMediaNext)
+	ON_NOTIFY_REFLECT(LVN_KEYDOWN, OnKeyDown)
+	ON_WM_SIZE()
+	ON_NOTIFY_REFLECT(LVN_BEGINDRAG, OnBeginDrag)
+	ON_WM_MOUSEMOVE()
+	ON_WM_LBUTTONUP()
 	ON_UPDATE_COMMAND_UI(ID_MEDIA_REPEAT, OnUpdateMediaRepeat)
 	ON_COMMAND(ID_MEDIA_REPEAT, OnMediaRepeat)
 	ON_UPDATE_COMMAND_UI(ID_MEDIA_RANDOM, OnUpdateMediaRandom)
 	ON_COMMAND(ID_MEDIA_RANDOM, OnMediaRandom)
+	ON_WM_LBUTTONDOWN()
+	ON_WM_RBUTTONDOWN()
 	ON_COMMAND(ID_MEDIA_ADD_FOLDER, OnMediaAddFolder)
-	ON_UPDATE_COMMAND_UI(ID_MEDIA_EXPORT_COLLECTION, OnUpdateMediaCollection)
-	ON_COMMAND(ID_MEDIA_EXPORT_COLLECTION, OnMediaCollection)
 	//}}AFX_MSG_MAP
+	ON_NOTIFY_REFLECT(NM_CUSTOMDRAW, OnCustomDraw)
 END_MESSAGE_MAP()
 
 #define STATE_CURRENT	(1<<12)
@@ -233,11 +229,12 @@ int CMediaListCtrl::Add(LPCTSTR pszPath, int nItem)
 		}
 	}
 	
+	LV_ITEM pItem;
 	CString strTemp = (LPTSTR)pszFile;
 	int nDotPos = strTemp.ReverseFind( '.' );
 	if ( nDotPos != -1 ) strTemp = strTemp.Left( nDotPos );
 	LPTSTR pszFileTmp = strTemp.GetBuffer( strTemp.GetLength() );
-	LV_ITEM pItem = {};
+	ZeroMemory( &pItem, sizeof(pItem) );
 	pItem.mask		= LVIF_TEXT|LVIF_IMAGE|LVIF_PARAM;
 	pItem.iItem		= nItem >= 0 ? nItem : GetItemCount();
 	pItem.iImage	= ShellIcons.Get( pszFile, 16 );
@@ -394,8 +391,8 @@ void CMediaListCtrl::OnCustomDraw(NMLVCUSTOMDRAW* pNotify, LRESULT* pResult)
 	}
 	else if ( pNotify->nmcd.dwDrawStage == CDDS_ITEMPREPAINT )
 	{
-		if (	GetItemState( static_cast< int >( pNotify->nmcd.dwItemSpec ), LVIS_SELECTED ) == 0 &&
-				GetItemState( static_cast< int >( pNotify->nmcd.dwItemSpec ), STATE_CURRENT ) != 0 )
+		if (	GetItemState( pNotify->nmcd.dwItemSpec, LVIS_SELECTED ) == 0 &&
+				GetItemState( pNotify->nmcd.dwItemSpec, STATE_CURRENT ) != 0 )
 		{
 			pNotify->clrText	= RGB( 255, 255, 255 );
 			pNotify->clrTextBk	= RGB( 128, 0, 0 );
@@ -416,13 +413,13 @@ void CMediaListCtrl::OnCustomDraw(NMLVCUSTOMDRAW* pNotify, LRESULT* pResult)
 	}
 }
 
-void CMediaListCtrl::OnDoubleClick(NMHDR* /*pNMHDR*/, LRESULT* pResult) 
+void CMediaListCtrl::OnDoubleClick(NMHDR* pNMHDR, LRESULT* pResult) 
 {
 	OnMediaSelect();
 	*pResult = 0;
 }
 
-void CMediaListCtrl::OnContextMenu(CWnd* /*pWnd*/, CPoint point) 
+void CMediaListCtrl::OnContextMenu(CWnd* pWnd, CPoint point) 
 {
 	Skin.TrackPopupMenu( _T("CMediaList"), point, ID_MEDIA_SELECT );
 }
@@ -502,13 +499,13 @@ void CMediaListCtrl::OnMouseMove(UINT nFlags, CPoint point)
 	}
 	else
 	{
-		DWORD_PTR nFile = nHit >= 0 ? GetItemData( nHit ) : 0;
+		DWORD nFile = nHit >= 0 ? GetItemData( nHit ) : 0;
 
-		if ( nFile > 0 && ! Library.LookupFile( static_cast< DWORD >( nFile ) ) ) nFile = 0;
+		if ( nFile > 0 && ! Library.LookupFile( nFile ) ) nFile = 0;
 
 		if ( nFile > 0 )
 		{
-			m_wndTip.Show( (void*)nFile );
+			m_wndTip.Show( (LPVOID)nFile );
 		}
 		else
 		{
@@ -540,8 +537,8 @@ void CMediaListCtrl::OnLButtonUp(UINT nFlags, CPoint point)
 	else
 		m_nDragDrop = GetItemCount();
 
-	CArray< CString > pPaths;
-	CArray< UINT > pStates;
+	CStringArray pPaths;
+	CPtrArray pStates;
 
 	while ( TRUE )
 	{
@@ -549,7 +546,7 @@ void CMediaListCtrl::OnLButtonUp(UINT nFlags, CPoint point)
 		if ( nItem < 0 ) break;
 
 		pPaths.Add( GetItemText( nItem, 1 ) );
-		pStates.Add( GetItemState( nItem, 0xFFFFFFFF ) );
+		pStates.Add( (LPVOID)GetItemState( nItem, 0xFFFFFFFF ) );
 
 		DeleteItem( nItem );
 
@@ -559,7 +556,7 @@ void CMediaListCtrl::OnLButtonUp(UINT nFlags, CPoint point)
 	for ( int nItem = 0 ; nItem < pPaths.GetSize() ; nItem++ )
 	{
 		int nIndex = Add( pPaths.GetAt( nItem ), m_nDragDrop++ );
-		SetItemState( nIndex, pStates.GetAt( nItem ), 0xFFFFFFFF );
+		SetItemState( nIndex, (DWORD)pStates.GetAt( nItem ), 0xFFFFFFFF );
 	}
 }
 
@@ -628,8 +625,9 @@ void CMediaListCtrl::OnMediaAddFolder()
 	TCHAR szPath[MAX_PATH];
 	LPITEMIDLIST pPath;
 	LPMALLOC pMalloc;
-	BROWSEINFO pBI = {};
+	BROWSEINFO pBI;
 		
+	ZeroMemory( &pBI, sizeof(pBI) );
 	pBI.hwndOwner		= AfxGetMainWnd()->GetSafeHwnd();
 	pBI.pszDisplayName	= szPath;
 	pBI.lpszTitle		= _T("Select folder to add to playlist:");
@@ -717,7 +715,7 @@ void CMediaListCtrl::OnMediaSave()
 	USES_CONVERSION;
 	LPCSTR pszFile = T2CA( (LPCTSTR)strFile );
 	
-	pFile.Write( pszFile, static_cast< UINT >( strlen(pszFile) ) );
+	pFile.Write( pszFile, strlen(pszFile) );
 	pFile.Close();
 }
 
@@ -760,32 +758,4 @@ void CMediaListCtrl::OnUpdateMediaRandom(CCmdUI* pCmdUI)
 void CMediaListCtrl::OnMediaRandom() 
 {
 	Settings.MediaPlayer.Random = ! Settings.MediaPlayer.Random;
-}
-
-void CMediaListCtrl::OnUpdateMediaCollection(CCmdUI* pCmdUI)
-{
-	pCmdUI->Enable( GetItemCount() > 0 && GetItemCount() <= 200 );
-}
-void CMediaListCtrl::OnMediaCollection()
-{
-	// The album title name is a collection folder name
-	// We leave it empty to have the collection mounted under collections folder
-
-	CAlbumFolder* pCollection = new CAlbumFolder( NULL, NULL, _T(""), TRUE );
-
-	{
-		CQuickLock oLock( Library.m_pSection );
-		for ( int nItem = GetItemCount() - 1 ; nItem >= 0 ; nItem-- )
-		{
-			CString strPath = GetPath( nItem );
-			if ( CLibraryFile* pFile = LibraryMaps.LookupFileByPath( strPath, FALSE, TRUE ) )
-			{
-				pCollection->AddFile( pFile );
-			}
-		}
-	}
-
-	CCollectionExportDlg dlg( pCollection );
-	dlg.DoModal();
-	delete pCollection;
 }

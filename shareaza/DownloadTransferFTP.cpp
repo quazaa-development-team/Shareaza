@@ -1,9 +1,9 @@
 //
 // DownloadTransferFTP.cpp
 //
-//	Date:			"$Date: 2005/11/17 21:34:55 $"
-//	Revision:		"$Revision: 1.10 $"
-//  Last change by:	"$Author: thetruecamper $"
+//	Date:			"$Date: 2005/06/27 18:15:53 $"
+//	Revision:		"$Revision: 1.8 $"
+//  Last change by:	"$Author: spooky23 $"
 //
 // Copyright (c) Nikolay Raspopov, 2004-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
@@ -137,10 +137,7 @@ BOOL CDownloadTransferFTP::Initiate()
 		SetState( dtsConnecting );
 		
 		if ( !m_pDownload->IsBoosted() )
-		{
-			m_mInput.pLimit = &m_nBandwidth;
-			m_mOutput.pLimit = &Settings.Bandwidth.Request;
-		}
+			m_mInput.pLimit = m_mOutput.pLimit = &Downloads.m_nLimitGeneric;
 		
 		return TRUE;
 	}
@@ -260,13 +257,13 @@ BOOL CDownloadTransferFTP::StartNextFragment()
 //////////////////////////////////////////////////////////////////////
 // CDownloadTransferFTP subtract pending requests
 
-BOOL CDownloadTransferFTP::SubtractRequested(Fragments::List& ppFragments)
+BOOL CDownloadTransferFTP::SubtractRequested(FF::SimpleFragmentList& ppFragments)
 {
 	if ( m_nOffset < SIZE_UNKNOWN && m_nLength < SIZE_UNKNOWN )
 	{
 		if ( m_nState == dtsRequesting || m_nState == dtsDownloading )
 		{
-			ppFragments.erase( Fragments::Fragment( m_nOffset, m_nOffset + m_nLength ) );
+            ppFragments.erase( FF::SimpleFragment( m_nOffset, m_nOffset + m_nLength ) );
 			return TRUE;
 		}
 	}
@@ -345,7 +342,7 @@ BOOL CDownloadTransferFTP::OnRead()
 	CDownloadTransfer::OnRead();
 	
 	CString strLine;
-	while ( m_pInput->ReadLine( strLine ) )
+	while( m_pInput->ReadLine( strLine ) )
 	{
 		strLine.Trim( _T(" \t\r\n") );
 		if ( strLine.GetLength() > 256 )
@@ -668,7 +665,7 @@ BOOL CDownloadTransferFTP::OnHeaderLine( CString& strHeader, CString& strValue )
 		return FALSE;
 }
 
-BOOL CDownloadTransferFTP::SendCommand(LPCTSTR /*args*/)
+BOOL CDownloadTransferFTP::SendCommand (LPCTSTR args)
 {
 	CSourceURL pURL;
 	if ( !pURL.ParseFTP( m_pSource->m_sURL, TRUE ) )
@@ -785,7 +782,7 @@ BOOL CDownloadTransferFTP::SendCommand(LPCTSTR /*args*/)
 //////////////////////////////////////////////////////////////////////
 // CDownloadTransferFTP dropped connection handler
 
-void CDownloadTransferFTP::OnDropped(BOOL /*bError*/)
+void CDownloadTransferFTP::OnDropped(BOOL bError)
 {
 	if ( m_nState == dtsConnecting )
 	{

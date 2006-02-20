@@ -97,7 +97,7 @@ int CSearchPadWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndSearch.SetIcon( CoolInterface.ExtractIcon( ID_SEARCH_SEARCH ) );
 	m_wndSearch.SetHandCursor( TRUE );
 
-	m_pFont.CreateFontW( -(theApp.m_nDefaultFontSize + 9), 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+	m_pFont.CreateFont( -(theApp.m_nDefaultFontSize + 9), 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		DEFAULT_PITCH|FF_DONTCARE, theApp.m_sDefaultFont );
 
@@ -226,14 +226,14 @@ void CSearchPadWnd::OnPaint()
 /////////////////////////////////////////////////////////////////////////////
 // CSearchPadWnd search interface
 
-auto_ptr< CQuerySearch > CSearchPadWnd::GetSearch()
+CQuerySearch* CSearchPadWnd::GetSearch()
 {
-	auto_ptr< CQuerySearch > pSearch( new CQuerySearch() );
+	CQuerySearch* pSearch = new CQuerySearch();
 	
 	m_wndText.GetWindowText( pSearch->m_sSearch );
 	pSearch->m_sSearch.TrimLeft();
 	pSearch->m_sSearch.TrimRight();
-
+	
 	if ( CSchema* pSchema = m_wndSchema.GetSelected() )
 	{
 		pSearch->m_pSchema	= pSchema;
@@ -248,12 +248,13 @@ auto_ptr< CQuerySearch > CSearchPadWnd::GetSearch()
 	{
 		Settings.Search.LastSchemaURI.Empty();
 	}
-
+	
 	if ( ! pSearch->CheckValid() )
 	{
-		pSearch.reset();
+		delete pSearch;
+		return NULL;
 	}
-
+	
 	return pSearch;
 }
 
@@ -279,15 +280,14 @@ void CSearchPadWnd::OnSearchCreate()
 {
 	if ( ! Network.IsWellConnected() ) Network.Connect( TRUE );
 	
-	auto_ptr< CQuerySearch > pSearch( GetSearch() );
-	if ( pSearch.get() )
-	{
-		ClearSearch();
-		
-		new CSearchWnd( pSearch );
-		
-		PostMessage( WM_CLOSE );
-	}
+	CQuerySearch* pSearch = GetSearch();
+	if ( NULL == pSearch ) return;
+	
+	ClearSearch();
+	
+	new CSearchWnd( pSearch );
+	
+	PostMessage( WM_CLOSE );
 }
 
 void CSearchPadWnd::OnMDIActivate(BOOL bActivate, CWnd* pActivateWnd, CWnd* pDeactivateWnd) 

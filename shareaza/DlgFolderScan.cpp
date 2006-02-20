@@ -98,7 +98,7 @@ BOOL CFolderScanDlg::OnInitDialog()
 	return TRUE;
 }
 
-void CFolderScanDlg::OnTimer(UINT_PTR /*nIDEvent*/)
+void CFolderScanDlg::OnTimer(UINT nIDEvent)
 {
 	CSingleLock pLock( &Library.m_pSection );
 

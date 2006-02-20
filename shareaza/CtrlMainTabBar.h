@@ -58,7 +58,7 @@ public:
 
 // Attributes
 protected:
-	CList< TabItem* > m_pItems;
+	CPtrList		m_pItems;
 	CSkinWindow*	m_pSkin;
 	TabItem*		m_pHover;
 	TabItem*		m_pDown;
@@ -75,7 +75,7 @@ public:
 	virtual void	OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler);
 	virtual CSize	CalcFixedLayout(BOOL bStretch, BOOL bHorz);
 	TabItem*		HitTest(const CPoint& point) const;
-	virtual INT_PTR	OnToolHitTest(CPoint point, TOOLINFO* pTI) const;
+	virtual int		OnToolHitTest(CPoint point, TOOLINFO* pTI) const;
 	virtual void	DoPaint(CDC* pDC);
 
 // Implementation
@@ -87,7 +87,7 @@ protected:
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
-	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg void OnTimer(UINT nIDEvent);
 
 	DECLARE_MESSAGE_MAP()
 };

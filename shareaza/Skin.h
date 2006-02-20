@@ -67,7 +67,7 @@ protected:
 public:
 	CMenu*	GetMenu(LPCTSTR pszName);
 	UINT	TrackPopupMenu(LPCTSTR pszMenu, const CPoint& point, UINT nDefaultID = 0, UINT nFlags = 0);
-	CMap< CString, const CString&, CMenu*, CMenu* > m_pMenus;
+	CMapStringToPtr	m_pMenus;
 protected:
 	BOOL	LoadMenus(CXMLElement* pBase);
 	BOOL	LoadMenu(CXMLElement* pXML);
@@ -77,7 +77,7 @@ protected:
 // Toolbars
 public:
 	BOOL	CreateToolBar(LPCTSTR pszName, CCoolBarCtrl* pBar);
-	CMap< CString, const CString&, CCoolBarCtrl*, CCoolBarCtrl* > m_pToolbars;
+	CMapStringToPtr m_pToolbars;
 protected:
 	BOOL	LoadToolbars(CXMLElement* pBase);
 	BOOL	CreateToolBar(CXMLElement* pElement);
@@ -87,7 +87,7 @@ public:
 	CXMLElement*	GetDocument(LPCTSTR pszName);
 protected:
 	BOOL			LoadDocuments(CXMLElement* pBase);
-	CMap< CString, const CString&, CXMLElement*, CXMLElement* > m_pDocuments;
+	CMapStringToPtr	m_pDocuments;
 
 // Watermarks
 public:
@@ -95,14 +95,14 @@ public:
 	BOOL	GetWatermark(CBitmap* pBitmap, LPCTSTR pszName);
 protected:
 	BOOL	LoadWatermarks(CXMLElement* pSub, const CString& strPath);
-	CMap< CString, const CString&, CString, CString& > m_pWatermarks;
+	CMapStringToString m_pWatermarks;
 
 // Translate
 public:
 	BOOL	Translate(LPCTSTR pszName, CHeaderCtrl* pCtrl);
 protected:
 	BOOL	LoadListColumns(CXMLElement* pBase);
-	CMap< CString, const CString&, CString, CString& > m_pLists;
+	CMapStringToString m_pLists;
 
 // Dialogs
 public:
@@ -110,7 +110,7 @@ public:
 	CString	GetDialogCaption(LPCTSTR pszName);
 protected:
 	BOOL	LoadDialogs(CXMLElement* pBase);
-	CMap< CString, const CString&, CXMLElement*, CXMLElement* >	m_pDialogs;
+	CMapStringToPtr		m_pDialogs;
 
 // Window Skins
 public:
@@ -118,7 +118,7 @@ public:
 	CSkinWindow*	GetWindowSkin(CWnd* pWnd);
 protected:
 	BOOL			LoadWindowSkins(CXMLElement* pSub, const CString& strPath);
-	CList< CSkinWindow* > m_pSkins;
+	CPtrList		m_pSkins;
 
 // Colour Scheme
 public:
@@ -136,7 +136,7 @@ protected:
 
 // Fonts
 protected:
-	CList< CString >	m_pFontPaths;
+	CStringList	m_pFontPaths;
 protected:
 	BOOL		LoadFonts(CXMLElement* pBase, const CString& strPath);
 

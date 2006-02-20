@@ -86,11 +86,11 @@ void CDownloadGroup::SetCookie(int nCookie)
 //////////////////////////////////////////////////////////////////////
 // CDownloadGroup list copy
 
-void CDownloadGroup::CopyList(CList< CDownload* >& pList)
+void CDownloadGroup::CopyList(CPtrList* pList)
 {
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
-		pList.AddTail( GetNext( pos ) );
+		pList->AddTail( GetNext( pos ) );
 	}
 }
 
@@ -104,9 +104,9 @@ BOOL CDownloadGroup::Link(CDownload* pDownload)
 	for ( POSITION pos = m_pFilters.GetHeadPosition() ; pos ; )
 	{
 		CString strFilter = m_pFilters.GetNext( pos );
-		
-		if ( ( pDownload->m_oBTH && strFilter.CompareNoCase( _T("torrent") ) == 0 ) ||
-				CQuerySearch::WordMatch( pDownload->m_sDisplayName, strFilter ) )
+
+		if ( ( pDownload->m_bBTH && strFilter.CompareNoCase( _T("torrent") ) == 0 ) ||
+				CQuerySearch::WordMatch( pDownload->m_sRemoteName, strFilter ) )
 		{
 			Add( pDownload );
 			return TRUE;
@@ -192,7 +192,7 @@ void CDownloadGroup::Serialize(CArchive& ar, int nVersion)
 
 		if ( nVersion >= 3 )
 		{
-			for ( DWORD_PTR nCount = ar.ReadCount() ; nCount > 0 ; nCount-- )
+			for ( int nCount = ar.ReadCount() ; nCount > 0 ; nCount-- )
 			{
 				CString strFilter;
 				ar >> strFilter;
@@ -213,7 +213,7 @@ void CDownloadGroup::Serialize(CArchive& ar, int nVersion)
 			}
 		}
 
-		for ( DWORD_PTR nCount = ar.ReadCount() ; nCount > 0 ; nCount-- )
+		for ( int nCount = ar.ReadCount() ; nCount > 0 ; nCount-- )
 		{
 			DWORD nDownload;
 			ar >> nDownload;

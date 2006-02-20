@@ -80,7 +80,7 @@ CDownloadTabBar::~CDownloadTabBar()
 {
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		delete m_pItems.GetNext( pos );
+		delete (TabItem*)m_pItems.GetNext( pos );
 	}
 	
 	m_pItems.RemoveAll();
@@ -112,7 +112,7 @@ int CDownloadTabBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	return 0;
 }
 
-CSize CDownloadTabBar::CalcFixedLayout(BOOL /*bStretch*/, BOOL /*bHorz*/)
+CSize CDownloadTabBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 {
 	CSize size( 32767, 26 );
 	
@@ -144,7 +144,7 @@ void CDownloadTabBar::UpdateGroups(int nCookie)
 {
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		delete m_pItems.GetNext( pos );
+		delete (TabItem*)m_pItems.GetNext( pos );
 	}
 	
 	m_pItems.RemoveAll();
@@ -172,7 +172,7 @@ void CDownloadTabBar::UpdateStates(int nCookie)
 	for ( POSITION posNext = m_pItems.GetHeadPosition() ; posNext ; )
 	{
 		POSITION posThis	= posNext;
-		TabItem* pItem		= m_pItems.GetNext( posNext );
+		TabItem* pItem		= (TabItem*)m_pItems.GetNext( posNext );
 		
 		if ( DownloadGroups.Check( pItem->m_pGroup ) )
 		{
@@ -202,12 +202,12 @@ CDownloadTabBar::TabItem* CDownloadTabBar::HitTest(const CPoint& point, CRect* p
 	rc.bottom += m_cxRightBorder;
 	
 	CRect rcItem( rc.left + 3, rc.top + 1, 0, rc.bottom - 1 );
-	rcItem.right = static_cast< LONG >( ( rc.Width() - 3 * m_pItems.GetCount() ) / m_pItems.GetCount() + 3 );
-	rcItem.right = min( rcItem.right, m_nMaximumWidth );
+	rcItem.right = ( rc.Width() - 3 * m_pItems.GetCount() ) / m_pItems.GetCount() + 3;
+	rcItem.right = min( rcItem.right, LONG(m_nMaximumWidth) );
 	
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		TabItem* pItem = m_pItems.GetNext( pos );
+		TabItem* pItem = (TabItem*)m_pItems.GetNext( pos );
 		
 		if ( rcItem.PtInRect( point ) )
 		{
@@ -221,7 +221,7 @@ CDownloadTabBar::TabItem* CDownloadTabBar::HitTest(const CPoint& point, CRect* p
 	return NULL;
 }
 
-INT_PTR CDownloadTabBar::OnToolHitTest(CPoint point, TOOLINFO* pTI) const
+int CDownloadTabBar::OnToolHitTest(CPoint point, TOOLINFO* pTI) const
 {
 	CRect rcItem;
 	TabItem* pItem = HitTest( point, &rcItem );
@@ -231,11 +231,11 @@ INT_PTR CDownloadTabBar::OnToolHitTest(CPoint point, TOOLINFO* pTI) const
 	
 	pTI->uFlags		= 0;
 	pTI->hwnd		= GetSafeHwnd();
-	pTI->uId		= (UINT_PTR)pItem->m_pGroup;
+	pTI->uId		= (UINT)pItem->m_pGroup;
 	pTI->rect		= rcItem;
 	pTI->lpszText	= _tcsdup( pItem->m_sCaption );
 	
-	return static_cast< int >( pTI->uId ); // (TODO)
+	return pTI->uId;
 }
 
 void CDownloadTabBar::DoPaint(CDC* pDC)
@@ -250,8 +250,7 @@ void CDownloadTabBar::DoPaint(CDC* pDC)
 	
 	if ( m_bmImage.m_hObject != NULL )
 	{
-		CSize size = rc.Size();
-		pDC = CoolInterface.GetBuffer( *pDC, size );
+		pDC = CoolInterface.GetBuffer( *pDC, rc.Size() );
 		CoolInterface.DrawWatermark( pDC, &rc, &m_bmImage );
 	}
 	
@@ -259,15 +258,15 @@ void CDownloadTabBar::DoPaint(CDC* pDC)
 	
 	CFont* pOldFont = (CFont*)pDC->SelectObject( &CoolInterface.m_fntNormal );
 	
-	if ( !m_pItems.IsEmpty() )
+	if ( m_pItems.GetCount() )
 	{
 		CRect rcItem( rc.left + 3, rc.top + 1, 0, rc.bottom - 1 );
-		rcItem.right = static_cast< LONG >( ( rc.Width() - 3 * m_pItems.GetCount() ) / m_pItems.GetCount() + 3 );
-		rcItem.right = min( rcItem.right, m_nMaximumWidth );
+		rcItem.right = ( rc.Width() - 3 * m_pItems.GetCount() ) / m_pItems.GetCount() + 3;
+		rcItem.right = min( rcItem.right, LONG(m_nMaximumWidth) );
 		
 		for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 		{
-			TabItem* pItem = m_pItems.GetNext( pos );
+			TabItem* pItem = (TabItem*)m_pItems.GetNext( pos );
 			
 			pItem->Paint( this, pDC, &rcItem, m_pHot == pItem, pDC != pOutDC );
 			pDC->ExcludeClipRect( &rcItem );
@@ -332,7 +331,7 @@ void CDownloadTabBar::OnMouseMove(UINT nFlags, CPoint point)
 	CControlBar::OnMouseMove( nFlags, point );
 }
 
-void CDownloadTabBar::OnTimer(UINT_PTR nIDEvent) 
+void CDownloadTabBar::OnTimer(UINT nIDEvent) 
 {
 	if ( nIDEvent == 1 )
 	{
@@ -395,7 +394,7 @@ void CDownloadTabBar::OnLButtonDblClk(UINT nFlags, CPoint point)
 	OnLButtonDown( nFlags, point );
 }
 
-void CDownloadTabBar::OnRButtonUp(UINT /*nFlags*/, CPoint point) 
+void CDownloadTabBar::OnRButtonUp(UINT nFlags, CPoint point) 
 {
 	CRect rcItem;
 	
@@ -419,15 +418,15 @@ void CDownloadTabBar::OnRButtonUp(UINT /*nFlags*/, CPoint point)
 		return;
 	}
 	
-//	CControlBar::OnRButtonUp( nFlags, point );
+	CControlBar::OnRButtonUp( nFlags, point );
 }
 
-void CDownloadTabBar::OnMeasureItem(int /*nIDCtl*/, LPMEASUREITEMSTRUCT lpMeasureItemStruct) 
+void CDownloadTabBar::OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct) 
 {
 	CoolMenu.OnMeasureItem( lpMeasureItemStruct );
 }
 
-void CDownloadTabBar::OnDrawItem(int /*nIDCtl*/, LPDRAWITEMSTRUCT lpDrawItemStruct) 
+void CDownloadTabBar::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct) 
 {
 	CoolMenu.OnDrawItem( lpDrawItemStruct );
 }
@@ -438,7 +437,7 @@ BOOL CDownloadTabBar::Select(TabItem* pHit)
 	
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		TabItem* pItem = m_pItems.GetNext( pos );
+		TabItem* pItem = (TabItem*)m_pItems.GetNext( pos );
 		bChanged |= pItem->Select( pItem == pHit );
 	}
 	
@@ -451,7 +450,7 @@ int CDownloadTabBar::GetSelectedCount(BOOL bDownloads)
 	
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		TabItem* pItem = m_pItems.GetNext( pos );
+		TabItem* pItem = (TabItem*)m_pItems.GetNext( pos );
 		
 		if ( pItem->m_bSelected )
 		{
@@ -468,7 +467,7 @@ CDownloadTabBar::TabItem* CDownloadTabBar::GetSelectedItem()
 	
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		TabItem* pItem = m_pItems.GetNext( pos );
+		TabItem* pItem = (TabItem*)m_pItems.GetNext( pos );
 		
 		if ( pItem->m_bSelected )
 		{
@@ -488,17 +487,17 @@ CDownloadGroup* CDownloadTabBar::GetSelectedGroup()
 	return pItem ? pItem->m_pGroup : NULL;
 }
 
-void CDownloadTabBar::GetSelectedDownloads(CList< CDownload* >* pDownloads)
+void CDownloadTabBar::GetSelectedDownloads(CPtrList* pDownloads)
 {
 	CSingleLock pLock( &DownloadGroups.m_pSection, TRUE );
 	
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		TabItem* pItem = m_pItems.GetNext( pos );
+		TabItem* pItem = (TabItem*)m_pItems.GetNext( pos );
 		
 		if ( pItem->m_bSelected && DownloadGroups.Check( pItem->m_pGroup ) )
 		{
-			pItem->m_pGroup->CopyList( *pDownloads );
+			pItem->m_pGroup->CopyList( pDownloads );
 		}
 	}
 }
@@ -541,7 +540,7 @@ BOOL CDownloadTabBar::TabItem::Update(int nCookie)
 		bChanged = TRUE;
 	}
 	
-	int nCount = static_cast< int >( m_pGroup->GetCount() );
+	BOOL nCount = m_pGroup->GetCount();
 	
 	if ( m_nCount != nCount )
 	{
@@ -740,7 +739,7 @@ void CDownloadTabBar::OnUpdateDownloadGroupResume(CCmdUI* pCmdUI)
 void CDownloadTabBar::OnDownloadGroupResume() 
 {
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
-	CList< CDownload* > pDownloads;
+	CPtrList pDownloads;
 	
 	GetSelectedDownloads( &pDownloads );
 	
@@ -759,7 +758,7 @@ void CDownloadTabBar::OnUpdateDownloadGroupPause(CCmdUI* pCmdUI)
 void CDownloadTabBar::OnDownloadGroupPause() 
 {
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
-	CList< CDownload* > pDownloads;
+	CPtrList pDownloads;
 	
 	GetSelectedDownloads( &pDownloads );
 	
@@ -782,7 +781,7 @@ void CDownloadTabBar::OnDownloadGroupClear()
 	if ( AfxMessageBox( strMessage, MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 ) != IDYES ) return;
 	
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
-	CList< CDownload* > pDownloads;
+	CPtrList pDownloads;
 	
 	GetSelectedDownloads( &pDownloads );
 	
@@ -796,7 +795,7 @@ void CDownloadTabBar::OnDownloadGroupClear()
 /////////////////////////////////////////////////////////////////////////////
 // CDownloadTabBar drag and drop
 
-BOOL CDownloadTabBar::DropShowTarget(CList< CDownload* >* /*pList*/, const CPoint& ptScreen)
+BOOL CDownloadTabBar::DropShowTarget(CPtrList* pList, const CPoint& ptScreen)
 {
 	CPoint ptLocal( ptScreen );
 	ScreenToClient( &ptLocal );
@@ -814,7 +813,7 @@ BOOL CDownloadTabBar::DropShowTarget(CList< CDownload* >* /*pList*/, const CPoin
 	return pItem != NULL;
 }
 
-BOOL CDownloadTabBar::DropObjects(CList< CDownload* >* pList, const CPoint& ptScreen)
+BOOL CDownloadTabBar::DropObjects(CPtrList* pList, const CPoint& ptScreen)
 {
 	CPoint ptLocal( ptScreen );
 	ScreenToClient( &ptLocal );

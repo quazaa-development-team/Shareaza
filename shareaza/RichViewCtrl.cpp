@@ -143,7 +143,7 @@ BOOL CRichViewCtrl::GetElementRect(CRichElement* pElement, RECT* prc)
 {
 	for ( int nFragment = 0 ; nFragment < m_pFragments.GetCount() ; nFragment ++ )
 	{
-		CRichFragment* pFragment = m_pFragments.GetAt( nFragment );
+		CRichFragment* pFragment = (CRichFragment*)m_pFragments.GetAt( nFragment );
 
 		if ( pFragment->m_pElement == pElement )
 		{
@@ -187,7 +187,7 @@ void CRichViewCtrl::OnSize(UINT nType, int cx, int cy)
 	Invalidate();
 }
 
-BOOL CRichViewCtrl::OnEraseBkgnd(CDC* /*pDC*/)
+BOOL CRichViewCtrl::OnEraseBkgnd(CDC* pDC)
 {
 	return TRUE;
 }
@@ -227,7 +227,7 @@ void CRichViewCtrl::OnPaint()
 
 	for ( int nFragment = 0 ; nFragment < m_pFragments.GetSize() ; nFragment++ )
 	{
-		CRichFragment* pFragment = m_pFragments.GetAt( nFragment );
+		CRichFragment* pFragment = (CRichFragment*)m_pFragments.GetAt( nFragment );
 
 		if ( pFragment->m_pElement != pElement )
 		{
@@ -407,7 +407,7 @@ void CRichViewCtrl::OnLButtonUp(UINT nFlags, CPoint point)
 	}
 }
 
-void CRichViewCtrl::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* /*pScrollBar*/)
+void CRichViewCtrl::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 {
 	SCROLLINFO pInfo;
 
@@ -450,7 +450,7 @@ void CRichViewCtrl::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* /*pScrollBar*
 	Invalidate();
 }
 
-void CRichViewCtrl::OnTimer(UINT_PTR /*nIDEvent*/)
+void CRichViewCtrl::OnTimer(UINT nIDEvent)
 {
 	CPoint point;
 	CRect rect;
@@ -469,10 +469,9 @@ void CRichViewCtrl::OnTimer(UINT_PTR /*nIDEvent*/)
 	}
 }
 
-BOOL CRichViewCtrl::OnMouseWheel(UINT /*nFlags*/, short zDelta, CPoint /*pt*/)
+BOOL CRichViewCtrl::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
-	OnVScroll( SB_THUMBPOSITION, (int)( GetScrollPos( SB_VERT ) - 
-		zDelta / WHEEL_DELTA * m_nScrollWheelLines * 16 ), NULL );
+	OnVScroll( SB_THUMBPOSITION, (int)( GetScrollPos( SB_VERT ) - zDelta / WHEEL_DELTA * m_nScrollWheelLines * 16 ), NULL );
 	return TRUE;
 }
 
@@ -483,7 +482,7 @@ void CRichViewCtrl::ClearFragments()
 {
 	for ( int nFragment = 0 ; nFragment < m_pFragments.GetSize() ; nFragment++ )
 	{
-		delete m_pFragments.GetAt( nFragment );
+		delete (CRichFragment*)m_pFragments.GetAt( nFragment );
 	}
 
 	m_pFragments.RemoveAll();
@@ -519,7 +518,7 @@ void CRichViewCtrl::Layout(CDC* pDC, CRect* pRect)
 	int nAlign			= reaLeft;
 
 	CRichFragment* pFrag = NULL;
-	CList< CRichFragment* > pLine;
+	CPtrList pLine;
 
 	for ( POSITION pos = m_pDocument->GetIterator() ; pos ; )
 	{
@@ -580,7 +579,7 @@ void CRichViewCtrl::Layout(CDC* pDC, CRect* pRect)
 
 			if ( pElement->m_nType != retGap )
 			{
-				nLineHeight = max( nLineHeight, pFrag->m_sz.cy );
+				nLineHeight = max( nLineHeight, int(pFrag->m_sz.cy) );
 				pLine.AddTail( pFrag );
 			}
 
@@ -634,7 +633,7 @@ void CRichViewCtrl::Layout(CDC* pDC, CRect* pRect)
 					pszLast = pszWord;
 
 					pt.x += pFrag->m_sz.cx;
-					nLineHeight = max( nLineHeight, pFrag->m_sz.cy );
+					nLineHeight = max( nLineHeight, int(pFrag->m_sz.cy) );
 
 					m_pFragments.Add( pFrag );
 					pLine.AddTail( pFrag );
@@ -679,11 +678,11 @@ void CRichViewCtrl::Layout(CDC* pDC, CRect* pRect)
 	OnLayoutComplete();
 }
 
-void CRichViewCtrl::WrapLineHelper(CList< CRichFragment* >& pLine, CPoint& pt, int& nLineHeight, int nWidth, int nAlign)
+void CRichViewCtrl::WrapLineHelper(CPtrList& pLine, CPoint& pt, int& nLineHeight, int nWidth, int nAlign)
 {
 	if ( pLine.GetCount() == 0 ) return;
 
-	int nLeft = pLine.GetHead()->m_pt.x;
+	int nLeft = ((CRichFragment*)pLine.GetHead())->m_pt.x;
 	int nHorz = 0;
 
 	if ( nAlign == reaCenter )
@@ -727,9 +726,9 @@ CRichFragment* CRichViewCtrl::PointToFrag(CPoint& pt)
 
 	pt.y += GetScrollPos( SB_VERT );
 
-	for ( INT_PTR nFragment = m_pFragments.GetSize() - 1 ; nFragment >= 0 ; nFragment-- )
+	for ( int nFragment = m_pFragments.GetSize() - 1 ; nFragment >= 0 ; nFragment-- )
 	{
-		CRichFragment* pFragment = m_pFragments.GetAt( nFragment );
+		CRichFragment* pFragment = (CRichFragment*)m_pFragments.GetAt( nFragment );
 
 		if ( pt.x >= pFragment->m_pt.x && pt.y >= pFragment->m_pt.y &&
 			 pt.x < pFragment->m_pt.x + pFragment->m_sz.cx &&
@@ -755,7 +754,7 @@ RICHPOSITION CRichViewCtrl::PointToPosition(CPoint& pt)
 
 	for ( int nFragment = 0 ; nFragment < m_pFragments.GetSize() ; nFragment++ )
 	{
-		CRichFragment* pFragment = m_pFragments.GetAt( nFragment );
+		CRichFragment* pFragment = (CRichFragment*)m_pFragments.GetAt( nFragment );
 
 		if ( pt.x >= pFragment->m_pt.x && pt.y >= pFragment->m_pt.y &&
 			 pt.x < pFragment->m_pt.x + pFragment->m_sz.cx &&
@@ -803,7 +802,7 @@ CPoint CRichViewCtrl::PositionToPoint(RICHPOSITION& pos)
 
 	BOOL bOverload = pos.nFragment >= m_pFragments.GetSize();
 
-	CRichFragment* pFragment = m_pFragments.GetAt(
+	CRichFragment* pFragment = (CRichFragment*)m_pFragments.GetAt(
 								bOverload ? m_pFragments.GetSize() - 1 : pos.nFragment );
 
 	pt.x = pFragment->m_pt.x;
@@ -871,7 +870,7 @@ void CRichViewCtrl::CopySelection()
 
 	for ( int nFragment = m_pSelAbsStart.nFragment ; nFragment <= m_pSelAbsEnd.nFragment ; nFragment++ )
 	{
-		CRichFragment* pFragment = m_pFragments.GetAt( nFragment );
+		CRichFragment* pFragment = (CRichFragment*)m_pFragments.GetAt( nFragment );
 
 		if ( pFragment->m_nLength == 0 )
 		{
@@ -913,7 +912,7 @@ void CRichViewCtrl::CopySelection()
 
 		if ( nFragment < m_pSelAbsEnd.nFragment )
 		{
-			CRichFragment* pNextFrag = m_pFragments.GetAt( nFragment + 1 );
+			CRichFragment* pNextFrag = (CRichFragment*)m_pFragments.GetAt( nFragment + 1 );
 
 			if ( pFragment->m_pElement != pNextFrag->m_pElement )
 			{
@@ -948,7 +947,7 @@ void CRichViewCtrl::CopySelection()
 			LPCSTR pszASCII = T2CA( (LPCTSTR)str );
 			HANDLE hMem = GlobalAlloc( GMEM_MOVEABLE|GMEM_DDESHARE, strlen(pszASCII) + 1 );
 			LPVOID pMem = GlobalLock( hMem );
-			strcpy( (char*)pMem, pszASCII );
+			CopyMemory( pMem, pszASCII, strlen(pszASCII) + 1 );
 			GlobalUnlock( hMem );
 			SetClipboardData( CF_TEXT, hMem );
 		}

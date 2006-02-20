@@ -100,8 +100,8 @@ void CQueryHashMaster::Add(CQueryHashTable* pTable)
 void CQueryHashMaster::Remove(CQueryHashTable* pTable)
 {
 	ASSERT( pTable != NULL );
-	if ( pTable->m_pGroup == NULL ) return;
-	
+	if( pTable->m_pGroup == NULL ) return;
+
 	CQueryHashGroup* pGroup = pTable->m_pGroup;
 	pGroup->Remove( pTable );
 
@@ -153,21 +153,21 @@ void CQueryHashMaster::Build()
 		for ( POSITION pos = Downloads.GetIterator() ; pos ; )
 		{
 			CDownload* pDownload = Downloads.GetNext( pos );
-			
-			if ( pDownload->m_oSHA1 )
+
+			if ( pDownload->m_bSHA1 )
 			{
-				AddString( pDownload->m_oSHA1.toUrn() );
+				AddString( CSHA::HashToString( &pDownload->m_pSHA1, TRUE ) );
 			}
-			
-			if ( pDownload->m_oED2K )
+
+			if ( pDownload->m_bED2K )
 			{
-                AddString( pDownload->m_oED2K.toUrn() );
+				AddString( CED2K::HashToString( &pDownload->m_pED2K, TRUE ) );
 			}
-			
-			if ( pDownload->m_oBTH )
+
+			if ( pDownload->m_bBTH )
 			{
 				AddString( _T("BTIH") );
-				AddString( pDownload->m_oBTH.toUrn() );
+				AddString( _T("urn:btih:") + CSHA::HashToString( &pDownload->m_pBTH, FALSE ) );
 			}
 		}
 

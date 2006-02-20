@@ -55,7 +55,6 @@ CLibraryView::CLibraryView()
 	m_nCommandID	= ID_LIBRARY_VIEW;
 	m_pszToolBar	= NULL;
 	m_bAvailable	= FALSE;
-	m_bGhostFolder	= FALSE;
 }
 
 CLibraryView::~CLibraryView()
@@ -72,7 +71,7 @@ BOOL CLibraryView::Create(CWnd* pParentWnd)
 	return CWnd::Create( NULL, NULL, WS_CHILD, rect, pParentWnd, IDC_LIBRARY_VIEW, NULL );
 }
 
-BOOL CLibraryView::CheckAvailable(CLibraryTreeItem* /*pSel*/)
+BOOL CLibraryView::CheckAvailable(CLibraryTreeItem* pSel)
 {
 	return ( m_bAvailable = FALSE );
 }
@@ -88,8 +87,8 @@ void CLibraryView::GetHeaderContent(int& nImage, CString& str)
 	if ( nCount == 1 )
 	{
         CLibraryTreeItem* pItem = GetFolderSelection();
-		for ( ; pItem->parent() ;
-			pItem = pItem->parent() )
+		for ( ; pItem->m_pParent ;
+			pItem = pItem->m_pParent )
 		{
 			if ( str.GetLength() ) str = '\\' + str;
 			str = pItem->m_sText + str;
@@ -120,7 +119,7 @@ void CLibraryView::Update()
 {
 }
 
-BOOL CLibraryView::Select(DWORD /*nObject*/)
+BOOL CLibraryView::Select(DWORD nObject)
 {
 	return FALSE;
 }
@@ -170,7 +169,7 @@ CAlbumFolder* CLibraryView::GetSelectedAlbum(CLibraryTreeItem* pSel) const
 void CLibraryView::DragObjects(CImageList* pImage, const CPoint& ptMouse)
 {
 	CLibraryFrame* pFrame	= (CLibraryFrame*)GetOwner();
-	CLibraryList* pList		= new CLibraryList( static_cast< int >( GetSelectedCount() ) );
+	CLibraryList* pList		= new CLibraryList( GetSelectedCount() );
 
 	for ( POSITION pos = m_pSelection.GetHeadPosition() ; pos ; )
 		pList->AddTail( m_pSelection.GetNext( pos ) );
@@ -195,9 +194,9 @@ BOOL CLibraryView::SelAdd(DWORD nObject, BOOL bNotify)
 	return TRUE;
 }
 
-BOOL CLibraryView::SelRemove(DWORD_PTR nObject, BOOL bNotify)
+BOOL CLibraryView::SelRemove(DWORD nObject, BOOL bNotify)
 {
-	POSITION pos = m_pSelection.Find( static_cast< DWORD >( nObject ) );
+	POSITION pos = m_pSelection.Find( nObject );
 	if ( pos == NULL ) return FALSE;
 	m_pSelection.RemoveAt( pos );
 
@@ -224,7 +223,7 @@ BOOL CLibraryView::SelClear(BOOL bNotify)
 	return TRUE;
 }
 
-INT_PTR CLibraryView::GetSelectedCount() const
+int CLibraryView::GetSelectedCount() const
 {
 	return m_pSelection.GetCount();
 }

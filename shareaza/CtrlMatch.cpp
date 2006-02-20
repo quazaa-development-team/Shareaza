@@ -194,7 +194,7 @@ void CMatchCtrl::DestructiveUpdate()
 	m_wndTip.Hide();
 }
 
-void CMatchCtrl::SelectSchema(CSchema* pSchema, CList< CSchemaMember* >* pColumns)
+void CMatchCtrl::SelectSchema(CSchema* pSchema, CPtrList* pColumns)
 {
 	SaveColumnState();
 	
@@ -210,7 +210,7 @@ void CMatchCtrl::SelectSchema(CSchema* pSchema, CList< CSchemaMember* >* pColumn
 		
 		for ( POSITION pos = m_pColumns.GetHeadPosition() ; pos ; nColumn++ )
 		{
-			CSchemaMember* pMember = m_pColumns.GetNext( pos );
+			CSchemaMember* pMember = (CSchemaMember*)m_pColumns.GetNext( pos );
 			InsertColumn( nColumn, pMember->m_sTitle, pMember->m_nColumnAlign, pMember->m_nColumnWidth );
 		}
 	}
@@ -313,7 +313,7 @@ void CMatchCtrl::InsertColumn(int nColumn, LPCTSTR pszCaption, int nFormat, int 
 	HDITEM pItem = { HDI_TEXT|HDI_FORMAT|HDI_WIDTH };
 	
 	pItem.pszText		= (LPTSTR)pszCaption;
-	pItem.cchTextMax	= static_cast< int >( _tcslen( pszCaption ) );
+	pItem.cchTextMax	= _tcslen( pszCaption );
 	pItem.fmt			= nFormat;
 	pItem.cxy			= nWidth;
 	
@@ -438,7 +438,7 @@ void CMatchCtrl::UpdateScroll(DWORD nScroll)
 	}
 }
 
-void CMatchCtrl::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* /*pScrollBar*/) 
+void CMatchCtrl::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar) 
 {
 	switch ( nSBCode )
 	{
@@ -467,7 +467,7 @@ void CMatchCtrl::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* /*pScrollBar*/)
 	}
 }
 
-void CMatchCtrl::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* /*pScrollBar*/) 
+void CMatchCtrl::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar) 
 {
 	SCROLLINFO pInfo;
 
@@ -514,7 +514,7 @@ void CMatchCtrl::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* /*pScrollBar*/)
 	RedrawWindow( NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW );
 }
 
-BOOL CMatchCtrl::OnMouseWheel(UINT /*nFlags*/, short zDelta, CPoint /*pt*/) 
+BOOL CMatchCtrl::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt) 
 {
 	ScrollBy( zDelta / WHEEL_DELTA * -m_nScrollWheelLines );
 
@@ -574,7 +574,7 @@ void CMatchCtrl::ScrollTo(DWORD nIndex)
 /////////////////////////////////////////////////////////////////////////////
 // CMatchCtrl painting
 
-BOOL CMatchCtrl::OnEraseBkgnd(CDC* /*pDC*/) 
+BOOL CMatchCtrl::OnEraseBkgnd(CDC* pDC) 
 {
 	return TRUE;
 }
@@ -679,7 +679,7 @@ void CMatchCtrl::DrawItem(CDC& dc, CRect& rcRow, CMatchFile* pFile, CQueryHit* p
 	
 	LPCTSTR pszName	= pHit ? pHit->m_sName : pFile->m_pBest->m_sName;
 	LPCTSTR pszType	= _tcsrchr( pszName, '.' );
-	int nNameLen	= static_cast< int >( pszType ? pszType - pszName : _tcslen( pszName ) );
+	int nNameLen	= pszType ? pszType - pszName : _tcslen( pszName );
 	
 	BOOL bSelected	= pHit ? pHit->m_bSelected : pFile->m_bSelected;
 	BOOL bGrayed	= FALSE;
@@ -688,29 +688,13 @@ void CMatchCtrl::DrawItem(CDC& dc, CRect& rcRow, CMatchFile* pFile, CQueryHit* p
 	COLORREF crBack	= crWnd;
 	
 	if ( pFile->m_bCollection )
-	{	// Pale blue background for collections
+	{
 		crWnd = crBack = CCoolInterface::CalculateColour( crBack, RGB( 0, 0, 255 ), 25 );
 	}
-	else if ( Settings.BitTorrent.AdvancedInterface && pFile->m_bTorrent )
-	{	// Pale red background for torrents, if the extra torrent options are enabled
-		crWnd = crBack = CCoolInterface::CalculateColour( crBack, RGB( 255, 0, 0 ), 10 );
-	}/*
-	else if ( pFile->m_bDRM )
-	{	// Pale gree background if DRM
-		crWnd = crBack = CCoolInterface::CalculateColour( crBack, RGB( 0, 255, 0 ), 10 );
-	}*/
-	else if ( ( pFile->m_nRated > 1 ) && ( ( pFile->m_nRating / pFile->m_nRated ) >= 5 ) )
-	{	// Gold highlight for highly rated files
-		crWnd = crBack = CCoolInterface::CalculateColour( crBack, RGB( 255, 255, 0 ), 20 );
-	}
-
+	
 	if ( pFile->m_bExisting == 1 )
 	{
 		crText = pHit ? RGB( 0, 64, 0 ) : RGB( 0, 127, 0 );
-	}
-	else if ( pFile->m_bExisting == 2 )
-	{
-		crText = RGB( 200, 90, 0 );
 	}
 	else if ( pFile->m_bDownload || ( pHit && pHit->m_bDownload ) )
 	{
@@ -722,10 +706,10 @@ void CMatchCtrl::DrawItem(CDC& dc, CRect& rcRow, CMatchFile* pFile, CQueryHit* p
 		crBack = CoolInterface.m_crBackSel;
 	}
 	else if ( ( pHit && ( pHit->m_bBogus || pHit->m_sURL.IsEmpty() || ! pHit->m_bMatched ) ) ||
-			  ( ! pHit && ! pFile->m_bOneValid ) ||
+				pFile->m_bExisting == 2 || ( ! pHit && ! pFile->m_bOneValid ) ||
 			  ( pHit && pHit->m_bPush == TS_TRUE && Network.IsStable() == FALSE ) )
 	{
-		crText = pFile->m_bExisting == 2 ? RGB( 150, 90, 0 ) : GetSysColor( COLOR_3DSHADOW );
+		crText = GetSysColor( COLOR_3DSHADOW );
 		bGrayed = TRUE;
 	}
 	
@@ -881,7 +865,7 @@ void CMatchCtrl::DrawItem(CDC& dc, CRect& rcRow, CMatchFile* pFile, CQueryHit* p
 						pszText = ppHit->m_sNick;
 					}
 				}
-				else if ( ( ppHit->m_nProtocol == PROTOCOL_ED2K ) && ( ppHit->m_bPush == TS_TRUE ) )
+				else if( ( ppHit->m_nProtocol == PROTOCOL_ED2K ) && ( ppHit->m_bPush == TS_TRUE ) )
 				{
 					if ( ppHit->m_nSources > 1 )
 					{
@@ -889,7 +873,7 @@ void CMatchCtrl::DrawItem(CDC& dc, CRect& rcRow, CMatchFile* pFile, CQueryHit* p
 							(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)ppHit->m_pClientID.w[0] ) ), 
 							ppHit->m_nSources - 1 );*/
 						_sntprintf( szBuffer, sizeof( szBuffer ) / sizeof( TCHAR ), _T("(%s)+%u"),
-							(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)*ppHit->m_oClientID.begin() ) ), ppHit->m_nSources - 1 );
+							(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)ppHit->m_pClientID.w[0] ) ), ppHit->m_nSources - 1 );
 						szBuffer[ sizeof( szBuffer ) / sizeof( TCHAR ) - 1 ] = 0;
 					}
 					else
@@ -897,7 +881,7 @@ void CMatchCtrl::DrawItem(CDC& dc, CRect& rcRow, CMatchFile* pFile, CQueryHit* p
 						/*_stprintf( szBuffer, _T("%lu@%s"), ppHit->m_pClientID.w[2], 
 							(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)ppHit->m_pClientID.w[0] ) ) );*/
 						_sntprintf( szBuffer, sizeof( szBuffer ) / sizeof( TCHAR ), _T("(%s)"),
-							(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)*ppHit->m_oClientID.begin() ) ) );
+							(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)ppHit->m_pClientID.w[0] ) ) );
 						szBuffer[ sizeof( szBuffer ) / sizeof( TCHAR ) - 1 ] = 0;
 					}
 					pszText = szBuffer;
@@ -976,13 +960,13 @@ void CMatchCtrl::DrawItem(CDC& dc, CRect& rcRow, CMatchFile* pFile, CQueryHit* p
 		default:
 			if ( pFile->m_pColumns == NULL ) break;
 			pszText = pFile->m_pColumns[ nColumn - MATCH_COL_MAX ];
-			nText = static_cast< int >( _tcslen( pszText ) );
+			nText = _tcslen( pszText );
 			nText = min( nText, 128 );
 			break;
 
 		}
 
-		if ( nText < 0 ) nText = static_cast< int >( _tcslen( pszText ) );
+		if ( nText < 0 ) nText = _tcslen( pszText );
 		int nWidth = 0;
 		int nTrail = 0;
 
@@ -1043,7 +1027,7 @@ void CMatchCtrl::DrawStatus(CDC& dc, CRect& rcCol, CMatchFile* pFile, CQueryHit*
 	int nPos = nLeft;
 	TRISTATE bState;
 	
-	if ( ( bState = pHit ? pHit->m_bBusy : pFile->m_bBusy ) != FALSE )
+	if ( bState = pHit ? pHit->m_bBusy : pFile->m_bBusy )
 	{
 		ImageList_DrawEx( ShellIcons.GetHandle( 16 ),
 			bState == TS_TRUE ? SHI_BUSY : SHI_TICK, dc.GetSafeHdc(), nPos,
@@ -1056,7 +1040,7 @@ void CMatchCtrl::DrawStatus(CDC& dc, CRect& rcCol, CMatchFile* pFile, CQueryHit*
 	
 	nPos += 16;
 	
-	if ( ( bState = pHit ? pHit->m_bPush : pFile->m_bPush ) != FALSE )
+	if ( bState = pHit ? pHit->m_bPush : pFile->m_bPush )
 	{
 		ImageList_DrawEx( ShellIcons.GetHandle( 16 ),
 			bState == TS_TRUE ? SHI_FIREWALL : SHI_TICK, dc.GetSafeHdc(), nPos,
@@ -1069,7 +1053,7 @@ void CMatchCtrl::DrawStatus(CDC& dc, CRect& rcCol, CMatchFile* pFile, CQueryHit*
 	
 	nPos += 16;
 	
-	if ( ( bState = pHit ? pHit->m_bStable : pFile->m_bStable ) != FALSE )
+	if ( bState = pHit ? pHit->m_bStable : pFile->m_bStable )
 	{
 		ImageList_DrawEx( ShellIcons.GetHandle( 16 ),
 			bState == TS_TRUE ? SHI_TICK : SHI_UNSTABLE, dc.GetSafeHdc(), nPos,
@@ -1424,7 +1408,7 @@ void CMatchCtrl::OnLButtonDown(UINT nFlags, CPoint point)
 	Update();
 }
 
-void CMatchCtrl::OnMouseMove(UINT /*nFlags*/, CPoint point) 
+void CMatchCtrl::OnMouseMove(UINT nFlags, CPoint point) 
 {
 	CRect rcCol;
 	
@@ -1475,7 +1459,7 @@ BOOL CMatchCtrl::PixelTest(const CPoint& point)
 	return FALSE;
 }
 
-void CMatchCtrl::OnLButtonUp(UINT /*nFlags*/, CPoint point) 
+void CMatchCtrl::OnLButtonUp(UINT nFlags, CPoint point) 
 {
 	ReleaseCapture();
 	
@@ -1748,7 +1732,7 @@ void CMatchCtrl::NotifySelection()
 /////////////////////////////////////////////////////////////////////////////
 // CMatchCtrl header interaction
 
-void CMatchCtrl::OnClickHeader(NMHDR* pNotifyStruct, LRESULT* /*pResult*/)
+void CMatchCtrl::OnClickHeader(NMHDR* pNotifyStruct, LRESULT* pResult)
 {
 	HD_NOTIFY* pNotify = (HD_NOTIFY*)pNotifyStruct;
 	
@@ -1769,12 +1753,12 @@ void CMatchCtrl::OnClickHeader(NMHDR* pNotifyStruct, LRESULT* /*pResult*/)
 	}
 }
 
-void CMatchCtrl::OnChangeHeader(NMHDR* /*pNotifyStruct*/, LRESULT* /*pResult*/)
+void CMatchCtrl::OnChangeHeader(NMHDR* pNotifyStruct, LRESULT* pResult)
 {
 	Invalidate();
 }
 
-void CMatchCtrl::OnTimer(UINT_PTR /*nIDEvent*/) 
+void CMatchCtrl::OnTimer(UINT nIDEvent) 
 {
 	Invalidate();
 }

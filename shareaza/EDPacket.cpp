@@ -64,13 +64,13 @@ void CEDPacket::WriteEDString(LPCTSTR psz, DWORD ServerFlags)
 	if ( ServerFlags & ED2K_SERVER_TCP_UNICODE )
 	{
 		nLen = GetStringLenUTF8( psz );
-		WriteShortLE( WORD( nLen ) );
+		WriteShortLE( nLen );
 		WriteStringUTF8( psz, FALSE );
 	}
 	else
 	{
 		nLen = GetStringLen( psz );
-		WriteShortLE( WORD( nLen ) );
+		WriteShortLE( nLen );
 		WriteString( psz, FALSE );
 	}
 	ASSERT( nLen <= 0xFFFF );
@@ -91,13 +91,13 @@ void CEDPacket::WriteEDString(LPCTSTR psz, BOOL bUnicode)
 	if ( bUnicode )
 	{
 		nLen = GetStringLenUTF8( psz );
-		WriteShortLE( WORD( nLen ) );
+		WriteShortLE( nLen );
 		WriteStringUTF8( psz, FALSE );
 	}
 	else
 	{
 		nLen = GetStringLen( psz );
-		WriteShortLE( WORD( nLen ) );
+		WriteShortLE( nLen );
 		WriteString( psz, FALSE );
 	}
 	ASSERT( nLen <= 0xFFFF );
@@ -155,12 +155,12 @@ void CEDPacket::ToBufferUDP(CBuffer* pBuffer) const
 
 CEDPacket* CEDPacket::ReadBuffer(CBuffer* pBuffer, BYTE nEdProtocol)
 {
-	if ( pBuffer->m_nLength < sizeof( ED2K_TCP_HEADER ) ) return NULL;
 	ED2K_TCP_HEADER* pHeader = reinterpret_cast<ED2K_TCP_HEADER*>(pBuffer->m_pBuffer);
+	if ( pBuffer->m_nLength < sizeof(*pHeader) ) return NULL;
 	if ( pHeader->nProtocol != ED2K_PROTOCOL_EDONKEY &&
 		 pHeader->nProtocol != ED2K_PROTOCOL_EMULE &&
 		 pHeader->nProtocol != ED2K_PROTOCOL_PACKED ) return NULL;
-	if ( pBuffer->m_nLength - sizeof(*pHeader) + 1 < pHeader->nLength ) return NULL;
+	if ( pBuffer->m_nLength < sizeof(*pHeader) + pHeader->nLength - 1 ) return NULL;
 	CEDPacket* pPacket = CEDPacket::New( pHeader );
 	pBuffer->Remove( sizeof(*pHeader) + pHeader->nLength - 1 );
 	if ( pPacket->InflateOrRelease( nEdProtocol ) ) return NULL;
@@ -176,20 +176,29 @@ BOOL CEDPacket::Deflate()
 		 m_nEdProtocol != ED2K_PROTOCOL_EMULE ) return FALSE;
 
 	DWORD nOutput = 0;
-	auto_array< BYTE > pOutput( CZLib::Compress( m_pBuffer, m_nLength, &nOutput ) );
+	BYTE* pOutput = CZLib::Compress( m_pBuffer, m_nLength, &nOutput );
 
-	if ( pOutput.get() == NULL )
+	if ( pOutput != NULL )
+	{
+		if ( nOutput >= m_nLength )
+		{
+			delete [] pOutput;
+			return FALSE;
+		}
+
+		m_nEdProtocol = ED2K_PROTOCOL_PACKED;
+
+		CopyMemory( m_pBuffer, pOutput, nOutput );
+		m_nLength = nOutput;
+
+		delete [] pOutput;
+
+		return TRUE;
+	}
+	else
+	{
 		return FALSE;
-
-	if ( nOutput >= m_nLength )
-		return FALSE;
-
-	m_nEdProtocol = ED2K_PROTOCOL_PACKED;
-
-	memcpy( m_pBuffer, pOutput.get(), nOutput );
-	m_nLength = nOutput;
-
-	return TRUE;
+	}
 }
 
 BOOL CEDPacket::InflateOrRelease(BYTE nEdProtocol)
@@ -197,21 +206,22 @@ BOOL CEDPacket::InflateOrRelease(BYTE nEdProtocol)
 	if ( m_nEdProtocol != ED2K_PROTOCOL_PACKED ) return FALSE;
 
 	DWORD nOutput = 0;
-	auto_array< BYTE > pOutput( CZLib::Decompress( m_pBuffer, m_nLength, &nOutput ) );
+	BYTE* pOutput = CZLib::Decompress( m_pBuffer, m_nLength, &nOutput );
 
-	if ( pOutput.get() != NULL )
+	if ( pOutput != NULL )
 	{
 		m_nEdProtocol = nEdProtocol;
 
 		if ( m_nBuffer >= nOutput )
 		{
-			CopyMemory( m_pBuffer, pOutput.get(), nOutput );
+			CopyMemory( m_pBuffer, pOutput, nOutput );
 			m_nLength = nOutput;
+			delete [] pOutput;
 		}
 		else
 		{
 			delete [] m_pBuffer;
-			m_pBuffer = pOutput.release();
+			m_pBuffer = pOutput;
 			m_nLength = nOutput;
 			m_nBuffer = nOutput;
 		}
@@ -254,8 +264,7 @@ void CEDPacket::Debug(LPCTSTR pszReason) const
 	CString strOutput;
 	strOutput.Format( L"[ED2K]: '%s' %s %s", pszReason, GetType(), (LPCTSTR)ToASCII() );
 	CPacket::Debug( strOutput );
-#else
-	pszReason;
+
 #endif
 }
 
@@ -357,7 +366,7 @@ void CEDTag::Write(CEDPacket* pPacket, DWORD ServerFlags)
 			{
 				// We should use a 'short' string tag
 				// Correct the packet type
-				pPacket->m_pBuffer[nPos] = BYTE( 0x80 | ( ( ED2K_TAG_SHORTSTRING - 1 ) + nLength ) );
+				(BYTE)pPacket->m_pBuffer[nPos] = 0x80 | ( ( ED2K_TAG_SHORTSTRING - 1 ) + nLength ) ;
 
 				// Write the string
 				if ( bUnicode ) pPacket->WriteStringUTF8( m_sValue, FALSE );
@@ -366,7 +375,7 @@ void CEDTag::Write(CEDPacket* pPacket, DWORD ServerFlags)
 			else
 			{	// We should use a normal string tag
 				// Correct the packet type
-				pPacket->m_pBuffer[nPos] = 0x80 | ED2K_TAG_STRING ;
+				(BYTE)pPacket->m_pBuffer[nPos] = 0x80 | ED2K_TAG_STRING ;
 
 				// Write the string
 				pPacket->WriteEDString( m_sValue, ServerFlags );
@@ -384,19 +393,19 @@ void CEDTag::Write(CEDPacket* pPacket, DWORD ServerFlags)
 		{	// Use a short tag
 			if ( m_nValue <= 0xFF)
 			{	// Correct type - to byte
-				pPacket->m_pBuffer[nPos] = 0x80 | ED2K_TAG_UINT8;
+				(BYTE)pPacket->m_pBuffer[nPos] = 0x80 | ED2K_TAG_UINT8;
 				// Write a byte
 				pPacket->WriteByte( (BYTE)m_nValue );
 			}
 			else if ( m_nValue <= 0xFFFF)
 			{	// Correct type - to word
-				pPacket->m_pBuffer[nPos] = 0x80 | ED2K_TAG_UINT16;
+				(BYTE)pPacket->m_pBuffer[nPos] = 0x80 | ED2K_TAG_UINT16;
 				// Write a word
 				pPacket->WriteShortLE( (WORD)m_nValue );
 			}
 			else
 			{	// Use a normal int
-				pPacket->m_pBuffer[nPos] = 0x80 | ED2K_TAG_INT;
+				(BYTE)pPacket->m_pBuffer[nPos] = 0x80 | ED2K_TAG_INT;
 				// Write a DWORD
 				pPacket->WriteLongLE( m_nValue );
 			}
@@ -525,12 +534,6 @@ BOOL CEDTag::Read(CFile* pFile)
 	{
 		LPSTR psz = new CHAR[ nLen + 1 ];
 
-		if ( psz == NULL )
-		{
-			theApp.Message( MSG_ERROR, _T("Memory allocation error in CEDTag::Read()") );
-			return FALSE;
-		}
-
 		if ( pFile->Read( psz, nLen ) == nLen )
 		{
 			psz[ nLen ] = 0;
@@ -550,18 +553,16 @@ BOOL CEDTag::Read(CFile* pFile)
 
 		LPSTR psz = new CHAR[ nLen + 1 ];
 
-		if ( psz == NULL )
-		{
-			theApp.Message( MSG_ERROR, _T("Memory allocation error in CEDTag::Read()") );
-			return FALSE;
-		}
-
 		if ( pFile->Read( psz, nLen ) == nLen )
 		{
+
 			int nWide = MultiByteToWideChar( CP_UTF8, 0, psz, nLen, NULL, 0 );
 			MultiByteToWideChar( CP_UTF8, 0, psz, nLen, m_sValue.GetBuffer( nWide ), nWide );
 			m_sValue.ReleaseBuffer( nWide );
 
+/*
+			psz[ nLen ] = 0;
+			m_sValue = psz;*/
 			delete [] psz;
 		}
 		else

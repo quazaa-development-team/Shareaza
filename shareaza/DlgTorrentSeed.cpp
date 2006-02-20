@@ -46,7 +46,7 @@ BEGIN_MESSAGE_MAP(CTorrentSeedDlg, CSkinDialog)
 	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
-const unsigned BUFFER_SIZE = 2 * 1024 * 1024u;
+#define BUFFER_SIZE				(2*1024*1024)
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -98,7 +98,7 @@ BOOL CTorrentSeedDlg::OnInitDialog()
 
 void CTorrentSeedDlg::OnDownload()
 {
-	/*CWnd* pWnd =*/ AfxGetMainWnd();
+	CWnd* pWnd = AfxGetMainWnd();
 	CBTInfo* pTorrent = new CBTInfo();
 	
 	if ( pTorrent->LoadTorrentFile( m_sTorrent ) )
@@ -114,8 +114,8 @@ void CTorrentSeedDlg::OnDownload()
 		
 
 		CSingleLock oLibraryLock( &Library.m_pSection, TRUE );
-		if ( ( pFile = LibraryMaps.LookupFileBySHA1( pURL->m_oSHA1 ) ) != NULL
-			|| ( pFile = LibraryMaps.LookupFileByED2K( pURL->m_oED2K ) ) != NULL )
+		if ( ( pURL->m_bSHA1 && ( pFile = LibraryMaps.LookupFileBySHA1( &pURL->m_pSHA1 ) ) ) ||
+			 ( pURL->m_bED2K && ( pFile = LibraryMaps.LookupFileByED2K( &pURL->m_pED2K ) ) )  )
 		{
 			CString strFormat, strMessage;
 			LoadString( strFormat, IDS_URL_ALREADY_HAVE );
@@ -185,7 +185,8 @@ void CTorrentSeedDlg::OnSeed()
 				return;
 			}
 		}
-		if ( Downloads.FindByBTH( m_pInfo.m_oInfoBTH ) == NULL )
+
+		if ( Downloads.FindByBTH( &m_pInfo.m_pInfoSHA1 ) == NULL )
 		{
 			// Connect if (we aren't)
 			if ( ! Network.IsConnected() ) Network.Connect();
@@ -195,23 +196,21 @@ void CTorrentSeedDlg::OnSeed()
 			if ( pLock.Lock( 250 ) )
 			{
 				LibraryHistory.LastSeededTorrent.m_sName		= m_pInfo.m_sName.Left( 40 );
-				LibraryHistory.LastSeededTorrent.m_sPath = m_sTorrent;
-				LibraryHistory.LastSeededTorrent.m_tLastSeeded = static_cast< DWORD >( time( NULL ) );
+				LibraryHistory.LastSeededTorrent.m_sPath		= m_sTorrent;
+				LibraryHistory.LastSeededTorrent.m_tLastSeeded	= time( NULL );
 
 				// If it's a 'new' torrent, reset the counters
-				if ( !validAndEqual( LibraryHistory.LastSeededTorrent.m_oBTH, m_pInfo.m_oInfoBTH ) )
+				if ( LibraryHistory.LastSeededTorrent.m_pBTH != m_pInfo.m_pInfoSHA1 )
 				{
 					LibraryHistory.LastSeededTorrent.m_nUploaded	= 0;
 					LibraryHistory.LastSeededTorrent.m_nDownloaded	= 0;
-					LibraryHistory.LastSeededTorrent.m_oBTH 		= m_pInfo.m_oInfoBTH;
+					LibraryHistory.LastSeededTorrent.m_pBTH			= m_pInfo.m_pInfoSHA1;
 				}
 			}
 
 			// Start the torrent seed process
-			CWinThread* pThread = AfxBeginThread( ThreadStart, this,
-				THREAD_PRIORITY_NORMAL );
-			m_hThread = pThread->m_hThread;
-			SetThreadName( pThread->m_nThreadID, "DlgTorrentSeed" );
+			m_hThread = AfxBeginThread( ThreadStart, this,
+				THREAD_PRIORITY_NORMAL )->m_hThread;
 		}
 		else	// We are already seeding the torrent
 		{
@@ -257,7 +256,7 @@ void CTorrentSeedDlg::OnDestroy()
 	CSkinDialog::OnDestroy();
 }
 
-void CTorrentSeedDlg::OnTimer(UINT_PTR nIDEvent)
+void CTorrentSeedDlg::OnTimer(UINT nIDEvent)
 {
 	CSkinDialog::OnTimer( nIDEvent );
 	
@@ -362,10 +361,10 @@ CString CTorrentSeedDlg::FindFile(LPVOID pVoid)
 	int nSlash = strPath.ReverseFind( '\\' );
 	if ( nSlash >= 0 ) strPath = strPath.Left( nSlash + 1 );
 
-	if ( pFile->m_oSHA1 )
+	if ( pFile->m_bSHA1 )
 	{
 		CSingleLock oLibraryLock( &Library.m_pSection, TRUE );
-		if ( CLibraryFile* pShared = LibraryMaps.LookupFileBySHA1( pFile->m_oSHA1, FALSE, TRUE ) )
+		if ( CLibraryFile* pShared = LibraryMaps.LookupFileBySHA1( &pFile->m_pSHA1, FALSE, TRUE ) )
 		{
 			strFile = pShared->GetPath();
 			oLibraryLock.Unlock();
@@ -418,7 +417,7 @@ BOOL CTorrentSeedDlg::VerifySingle()
 	
 	for ( m_nVolume = 0 ; m_nVolume < m_nTotal ; )
 	{
-		DWORD nBuffer	= min( ( m_nTotal - m_nVolume ), BUFFER_SIZE );
+		DWORD nBuffer	= (DWORD)min( ( m_nTotal - m_nVolume ), QWORD(BUFFER_SIZE) );
 		DWORD tStart	= GetTickCount();
 		
 		ReadFile( hTarget, pBuffer, nBuffer, &nBuffer, NULL );
@@ -430,7 +429,7 @@ BOOL CTorrentSeedDlg::VerifySingle()
 		
 		if ( m_bCancel ) break;
 		tStart = ( GetTickCount() - tStart ) / 2;
-		Sleep( min( tStart, 50u ) );
+		Sleep( min( tStart, DWORD(50) ) );
 		if ( m_bCancel ) break;
 	}
 	
@@ -443,7 +442,7 @@ BOOL CTorrentSeedDlg::VerifySingle()
 HANDLE CTorrentSeedDlg::CreateTarget()
 {
 	m_sTarget = Settings.Downloads.IncompletePath + '\\';
-	m_sTarget += m_pInfo.m_oInfoBTH.toString< Hashes::base16Encoding >();
+	m_sTarget += CSHA::HashToHexString( &m_pInfo.m_pInfoSHA1, FALSE );
 	
 	HANDLE hTarget = CreateFile(	m_sTarget, GENERIC_WRITE, 0, NULL, CREATE_NEW,
 									FILE_ATTRIBUTE_NORMAL, NULL );
@@ -524,7 +523,7 @@ BOOL CTorrentSeedDlg::CopyFile(HANDLE hTarget, HANDLE hSource, QWORD nLength, LP
 	
 	while ( nLength )
 	{
-		DWORD nBuffer	= min( nLength, BUFFER_SIZE );
+		DWORD nBuffer	= (DWORD)min( nLength, QWORD(BUFFER_SIZE) );
 		DWORD nSuccess	= 0;
 		DWORD tStart	= GetTickCount();
 		
@@ -553,7 +552,7 @@ BOOL CTorrentSeedDlg::CopyFile(HANDLE hTarget, HANDLE hSource, QWORD nLength, LP
 		
 		if ( m_bCancel ) break;
 		tStart = ( GetTickCount() - tStart ) / 2;
-		Sleep( min( tStart, 50u ) );
+		Sleep( min( tStart, DWORD(50) ) );
 		if ( m_bCancel ) break;
 	}
 	
@@ -621,7 +620,7 @@ BOOL CTorrentSeedDlg::CreateDownload()
 	CSingleLock pTransfersLock( &Transfers.m_pSection );
 	if ( ! pTransfersLock.Lock( 2000 ) ) return FALSE;
 	
-	if ( Downloads.FindByBTH( m_pInfo.m_oInfoBTH ) != NULL )
+	if ( Downloads.FindByBTH( &m_pInfo.m_pInfoSHA1 ) != NULL )
 	{
 		CString strFormat;
 		LoadString(strFormat, IDS_BT_SEED_ALREADY );

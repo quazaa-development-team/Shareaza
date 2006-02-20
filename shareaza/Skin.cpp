@@ -75,34 +75,34 @@ void CSkin::Clear()
 	for ( pos = m_pMenus.GetStartPosition() ; pos ; )
 	{
 		CMenu* pMenu;
-		m_pMenus.GetNextAssoc( pos, strName, pMenu );
+		m_pMenus.GetNextAssoc( pos, strName, (void*&)pMenu );
 		delete pMenu;
 	}
 	
 	for ( pos = m_pToolbars.GetStartPosition() ; pos ; )
 	{
 		CCoolBarCtrl* pBar;
-		m_pToolbars.GetNextAssoc( pos, strName, pBar );
+		m_pToolbars.GetNextAssoc( pos, strName, (void*&)pBar );
 		delete pBar;
 	}
 	
 	for ( pos = m_pDialogs.GetStartPosition() ; pos ; )
 	{
 		CXMLElement* pXML;
-		m_pDialogs.GetNextAssoc( pos, strName, pXML );
+		m_pDialogs.GetNextAssoc( pos, strName, (void*&)pXML );
 		delete pXML;
 	}
 	
 	for ( pos = m_pDocuments.GetStartPosition() ; pos ; )
 	{
 		CXMLElement* pXML;
-		m_pDocuments.GetNextAssoc( pos, strName, pXML );
+		m_pDocuments.GetNextAssoc( pos, strName, (void*&)pXML );
 		delete pXML;
 	}
 	
 	for ( pos = m_pSkins.GetHeadPosition() ; pos ; )
 	{
-		delete m_pSkins.GetNext( pos );
+		delete (CSkinWindow*)m_pSkins.GetNext( pos );
 	}
 	
 	for ( pos = m_pFontPaths.GetHeadPosition() ; pos ; )
@@ -407,7 +407,7 @@ CMenu* CSkin::GetMenu(LPCTSTR pszName)
 	
 	for ( int nModeTry = 0 ; pszModeSuffix[ nModeTry ] ; nModeTry++ )
 	{
-		if ( m_pMenus.Lookup( strName + pszModeSuffix[ nModeTry ], pMenu ) )
+		if ( m_pMenus.Lookup( strName + pszModeSuffix[ nModeTry ], (void*&)pMenu ) )
 			return pMenu;
 		
 		for ( UINT nItem = 0 ; nItem < m_mnuDefault.GetMenuItemCount() ; nItem++ )
@@ -444,7 +444,7 @@ BOOL CSkin::LoadMenu(CXMLElement* pXML)
 	
 	CMenu* pMenu = NULL;
 	
-	if ( m_pMenus.Lookup( strName, pMenu ) )
+	if ( m_pMenus.Lookup( strName, (void*&)pMenu ) )
 	{
 		delete pMenu;
 		m_pMenus.RemoveKey( strName );
@@ -504,7 +504,7 @@ BOOL CSkin::CreateMenu(CXMLElement* pRoot, HMENU hMenu)
 				return FALSE;
 			}
 			
-			AppendMenu( hMenu, MF_STRING|MF_POPUP, (UINT_PTR)hSubMenu, strText );
+			AppendMenu( hMenu, MF_STRING|MF_POPUP, (UINT)hSubMenu, strText );
 		}
 		else if ( pXML->IsNamed( _T("separator") ) )
 		{
@@ -549,7 +549,7 @@ BOOL CSkin::CreateToolBar(LPCTSTR pszName, CCoolBarCtrl* pBar)
 	
 	for ( int nModeTry = 0 ; pszModeSuffix[ nModeTry ] ; nModeTry++ )
 	{
-		if ( m_pToolbars.Lookup( strName + pszModeSuffix[ nModeTry ], pBase ) ) break;
+		if ( m_pToolbars.Lookup( strName + pszModeSuffix[ nModeTry ], (void*&)pBase ) ) break;
 	}
 	
 	if ( pBase != NULL )
@@ -611,7 +611,7 @@ BOOL CSkin::CreateToolBar(CXMLElement* pBase)
 		}
 		else if ( pXML->IsNamed( _T("rightalign") ) )
 		{
-			pBar->Add( UINT( ID_RIGHTALIGN ) );
+			pBar->Add( ID_RIGHTALIGN );
 		}
 		else if ( pXML->IsNamed( _T("control") ) )
 		{
@@ -642,7 +642,7 @@ BOOL CSkin::CreateToolBar(CXMLElement* pBase)
 	CString strName = pBase->GetAttributeValue( _T("name") );
 	
 	CCoolBarCtrl* pOld = NULL;
-	if ( m_pToolbars.Lookup( strName, pOld ) && pOld ) delete pOld;
+	if ( m_pToolbars.Lookup( strName, (void*&)pOld ) && pOld ) delete pOld;
 	
 	m_pToolbars.SetAt( strName, pBar );
 	
@@ -662,7 +662,7 @@ BOOL CSkin::LoadDocuments(CXMLElement* pBase)
 		CString strName = pDoc->GetAttributeValue( _T("name") );
 		
 		CXMLElement* pOld = NULL;
-		if ( m_pDocuments.Lookup( strName, pOld ) ) delete pOld;
+		if ( m_pDocuments.Lookup( strName, (void*&)pOld ) ) delete pOld;
 		
 		m_pDocuments.SetAt( strName, pDoc->Detach() );
 	}
@@ -674,7 +674,7 @@ CXMLElement* CSkin::GetDocument(LPCTSTR pszName)
 {
 	CXMLElement* pXML = NULL;
 
-	if ( m_pDocuments.Lookup( pszName, pXML ) ) return pXML;
+	if ( m_pDocuments.Lookup( pszName, (void*&)pXML ) ) return pXML;
 	
 	return NULL;
 }
@@ -928,7 +928,7 @@ BOOL CSkin::Apply(LPCTSTR pszName, CDialog* pDialog, UINT nIconID)
 	}
 	
 	CXMLElement* pBase = NULL;
-	if ( ! m_pDialogs.Lookup( strName, pBase ) ) return FALSE;
+	if ( ! m_pDialogs.Lookup( strName, (void*&)pBase ) ) return FALSE;
 	
 	if ( strCaption != pBase->GetAttributeValue( _T("cookie") ) ) return FALSE;
 	
@@ -963,7 +963,7 @@ BOOL CSkin::Apply(LPCTSTR pszName, CDialog* pDialog, UINT nIconID)
 				}
 				else
 				{
-					CArray< CString > pItems;
+					CStringArray pItems;
 					CString strTemp;
 					int nNum;
 
@@ -994,7 +994,7 @@ CString CSkin::GetDialogCaption(LPCTSTR pszName)
 	CXMLElement* pBase = NULL;
 	CString strCaption;
 	
-	if ( m_pDialogs.Lookup( pszName, pBase ) )
+	if ( m_pDialogs.Lookup( pszName, (void*&)pBase ) )
 	{
 		strCaption = pBase->GetAttributeValue( _T("caption") );
 	}
@@ -1013,7 +1013,7 @@ BOOL CSkin::LoadDialogs(CXMLElement* pBase)
 			CString strName = pXML->GetAttributeValue( _T("name") );
 			CXMLElement* pOld;
 
-			if ( m_pDialogs.Lookup( strName, pOld ) ) delete pOld;
+			if ( m_pDialogs.Lookup( strName, (void*&)pOld ) ) delete pOld;
 
 			pXML->Detach();
 			m_pDialogs.SetAt( strName, pXML );
@@ -1033,7 +1033,7 @@ CSkinWindow* CSkin::GetWindowSkin(LPCTSTR pszWindow, LPCTSTR pszAppend)
 	
 	for ( POSITION pos = m_pSkins.GetHeadPosition() ; pos ; )
 	{
-		CSkinWindow* pSkin = m_pSkins.GetNext( pos );
+		CSkinWindow* pSkin = (CSkinWindow*)m_pSkins.GetNext( pos );
 		if ( pSkin->m_sTargets.Find( strWindow ) >= 0 ) return pSkin;
 	}
 	
@@ -1247,49 +1247,44 @@ BOOL CSkin::LoadFonts(CXMLElement* pBase, const CString& strPath)
 		if ( pXML->IsNamed( _T("font") ) )
 		{
 			CString strName		= pXML->GetAttributeValue( _T("name") );
-			CString strLanguage	= pXML->GetAttributeValue( _T("language") );
 			CString strFace		= pXML->GetAttributeValue( _T("face") );
 			CString strSize		= pXML->GetAttributeValue( _T("size") );
 			CString strWeight	= pXML->GetAttributeValue( _T("weight") );
 			
-			if ( ( Settings.General.Language.CompareNoCase( strLanguage ) == 0 ) ||
-				 strLanguage.IsEmpty() )
+			CFont* pFont = NULL;
+
+			if ( strName.CompareNoCase( _T("system.plain") ) == 0 )
 			{
-				CFont* pFont = NULL;
-
-				if ( strName.CompareNoCase( _T("system.plain") ) == 0 )
-				{
-					pFont = &CoolInterface.m_fntNormal;
-				}
-				else if ( strName.CompareNoCase( _T("system.bold") ) == 0 )
-				{
-					pFont = &CoolInterface.m_fntBold;
-				}
-				else if ( strName.CompareNoCase( _T("panel.caption") ) == 0 )
-				{
-					pFont = &CoolInterface.m_fntCaption;
-				}
-				else
-				{
-					continue;
-				}
-				
-				if ( pFont->m_hObject ) pFont->DeleteObject();
-
-				if ( strWeight.CompareNoCase( _T("bold") ) == 0 )
-					strWeight = _T("700");
-				else
-					strWeight = _T("400");
-
-				int nFontSize = theApp.m_nDefaultFontSize, nFontWeight = FW_NORMAL;
-
-				_stscanf( strSize, _T("%i"), &nFontSize );
-				_stscanf( strWeight, _T("%i"), &nFontWeight );
-
-				pFont->CreateFontW( -nFontSize, 0, 0, 0, nFontWeight, FALSE, FALSE, FALSE,
-					DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
-					DEFAULT_PITCH|FF_DONTCARE, strFace );
+				pFont = &CoolInterface.m_fntNormal;
 			}
+			else if ( strName.CompareNoCase( _T("system.bold") ) == 0 )
+			{
+				pFont = &CoolInterface.m_fntBold;
+			}
+			else if ( strName.CompareNoCase( _T("panel.caption") ) == 0 )
+			{
+				pFont = &CoolInterface.m_fntCaption;
+			}
+			else
+			{
+				continue;
+			}
+			
+			if ( pFont->m_hObject ) pFont->DeleteObject();
+
+			if ( strWeight.CompareNoCase( _T("bold") ) == 0 )
+				strWeight = _T("700");
+			else if ( strWeight.CompareNoCase( _T("normal") ) == 0 )
+				strWeight = _T("400");
+
+			int nFontSize = 11, nFontWeight = FW_NORMAL;
+
+			_stscanf( strSize, _T("%i"), &nFontSize );
+			_stscanf( strWeight, _T("%i"), &nFontWeight );
+
+			pFont->CreateFont( -nFontSize, 0, 0, 0, nFontWeight, FALSE, FALSE, FALSE,
+				DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+				DEFAULT_PITCH|FF_DONTCARE, strFace );
 		}
 		else if ( pXML->IsNamed( _T("import") ) )
 		{
@@ -1422,8 +1417,8 @@ BOOL CSkin::LoadCommandBitmap(CXMLElement* pBase, const CString& strPath)
 		for ( int nName = 0 ; pszNames[ nName ] ; nName++ )
 		{
 			UINT nID = LookupCommandID( pXML, pszNames[ nName ] );
-			if ( nID ) CoolInterface.m_pImageMap.SetAt( nID, 
-				theApp.m_bRTL ? nIndexRev : nIndex );
+			if ( nID ) CoolInterface.m_pImageMap.SetAt( (LPVOID)nID, 
+				theApp.m_bRTL ? (LPVOID)nIndexRev : (LPVOID)nIndex );
 			if ( nName && ! nID ) break;
 		}
 		nIndexRev--;	
@@ -1550,6 +1545,7 @@ int CSkin::GetTextFlowChange(LPCTSTR pszText, BOOL* bIsRTL)
 {
 	TRISTATE bTextIsRTL = TS_UNKNOWN;
 	BOOL bChangeFound   = FALSE;
+	unsigned short nLength = _tcslen( pszText );
 	LPCTSTR pszWord = pszText;
 	LPCTSTR pszScan = pszText;
 
@@ -1561,7 +1557,7 @@ int CSkin::GetTextFlowChange(LPCTSTR pszText, BOOL* bIsRTL)
 
 		if ( pszWord < pszScan )
 		{
-			int nLen = static_cast< int >( pszScan - pszWord );
+			int nLen = pszScan - pszWord;
 			WORD* nCharType = new WORD[ nLen + 1 ];
 
 			TCHAR* pszTestWord = new TCHAR[ nLen + 1 ];
@@ -1621,7 +1617,7 @@ void CSkin::DrawWrappedText(CDC* pDC, CRect* pBox, LPCTSTR pszText, CPoint ptSta
 	UINT nAlignOptionsOld = pDC->GetTextAlign(); // backup settings
 	UINT nFlags = ETO_CLIPPED | ( bExclude ? ETO_OPAQUE : 0 );
 
-	unsigned short nLenFull = static_cast< unsigned short >( _tcslen( pszText ) );
+	unsigned short nLenFull = _tcslen( pszText );
 
 	// Collect stats about the text from the start
 	BOOL bIsRTLStart, bNormalFlow;
@@ -1657,7 +1653,7 @@ void CSkin::DrawWrappedText(CDC* pDC, CRect* pBox, LPCTSTR pszText, CPoint ptSta
 			}
 			_tcsncpy( pszSource, str.GetBuffer( nTestStart ), nTestStart );
 		}
-		nLenFull = static_cast< unsigned short >( nTestStart );
+		nLenFull = nTestStart;
 		pszText += nTestStart;
 	}
 	else 
@@ -1666,7 +1662,7 @@ void CSkin::DrawWrappedText(CDC* pDC, CRect* pBox, LPCTSTR pszText, CPoint ptSta
 	pszWord = pszSource;
 	pszScan = pszSource;
 
-	if ( !bNormalFlow ) 
+	if ( ! bNormalFlow ) 
 	{
 		if ( bIsRTLStart != theApp.m_bRTL ) pDC->SetTextAlign( TA_RTLREADING );
 		pszScan += nLenFull - 1;
@@ -1678,7 +1674,7 @@ void CSkin::DrawWrappedText(CDC* pDC, CRect* pBox, LPCTSTR pszText, CPoint ptSta
 
 			if ( pszWord >= pszScan )
 			{
-				int nLen = static_cast< int >( pszWord - pszScan );
+				int nLen = pszWord - pszScan;
 				CSize sz;
 				GetTextExtentPoint32( pDC->m_hAttribDC, pszScan, nLen, &sz );
 
@@ -1711,7 +1707,7 @@ void CSkin::DrawWrappedText(CDC* pDC, CRect* pBox, LPCTSTR pszText, CPoint ptSta
 			
 			if ( pszWord <= pszScan )
 			{
-				int nLen = static_cast< int >( pszScan - pszWord + ( *pszScan ? 1 : 0 ) );
+				int nLen = pszScan - pszWord + ( *pszScan ? 1 : 0 );
 				CSize sz = pDC->GetTextExtent( pszWord, nLen );
 
 				if ( ptStart.x > pBox->left && ptStart.x + sz.cx > pBox->right )

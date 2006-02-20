@@ -52,8 +52,8 @@ protected:
 // Operations
 public:
 	virtual void OnSkinChange();
-private:
-	auto_ptr< CQuerySearch > GetSearch();
+protected:
+	CQuerySearch*	GetSearch();
 	void			ClearSearch();
 
 // Overrides

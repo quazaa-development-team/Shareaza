@@ -58,7 +58,7 @@ CEmoticons::~CEmoticons()
 LPCTSTR CEmoticons::FindNext(LPCTSTR pszText, int* pnIndex)
 {
 	LPCTSTR pszBest = NULL;
-	int nIndex = 0, nBest = 0;
+	int nIndex = 0, nBest;
 
 	if ( m_pTokens == NULL ) return NULL;
 

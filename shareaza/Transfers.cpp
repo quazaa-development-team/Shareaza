@@ -59,7 +59,7 @@ CTransfers::~CTransfers()
 //////////////////////////////////////////////////////////////////////
 // CTransfers list tests
 
-INT_PTR CTransfers::GetActiveCount() const
+int CTransfers::GetActiveCount() const
 {
 	return Downloads.GetCount( TRUE ) + Uploads.GetTransferCount();
 }
@@ -89,7 +89,6 @@ BOOL CTransfers::StartThread()
 	m_bThread	= TRUE;
 
 	CWinThread* pThread = AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_NORMAL );
-	SetThreadName( pThread->m_nThreadID, "Transfers" );
 	m_hThread = pThread->m_hThread;
 
 	return TRUE;
@@ -138,16 +137,14 @@ void CTransfers::Add(CTransfer* pTransfer)
 	ASSERT( pos == NULL );
 	if ( pos == NULL ) m_pList.AddHead( pTransfer );
 
-	//if ( Settings.General.Debug && Settings.General.DebugLog ) 
-	//	theApp.Message( MSG_DEBUG, _T("CTransfers::Add(): %x"), pTransfer );
+	if ( Settings.General.Debug && Settings.General.DebugLog ) theApp.Message( MSG_DEBUG, _T("CTransfers::Add(): %x"), pTransfer );
 
 	StartThread();
 }
 
 void CTransfers::Remove(CTransfer* pTransfer)
 {
-	//if ( Settings.General.Debug && Settings.General.DebugLog ) 
-	//	theApp.Message( MSG_DEBUG, _T("CTransfers::Remove(): %x"), pTransfer );
+	if ( Settings.General.Debug && Settings.General.DebugLog ) theApp.Message( MSG_DEBUG, _T("CTransfers::Remove(): %x"), pTransfer );
 
 	if ( pTransfer->m_hSocket != INVALID_SOCKET )
 		WSAEventSelect( pTransfer->m_hSocket, m_pWakeup, 0 );
@@ -197,9 +194,9 @@ void CTransfers::OnRunTransfers()
 	++m_nRunCookie;
 
 	while ( !m_pList.IsEmpty()
-		&& m_pList.GetHead()->m_nRunCookie != m_nRunCookie )
+		&& static_cast< CTransfer* >( m_pList.GetHead() )->m_nRunCookie != m_nRunCookie )
 	{
-		CTransfer* pTransfer = m_pList.RemoveHead();
+		CTransfer* pTransfer = static_cast< CTransfer* >( m_pList.RemoveHead() );
 		m_pList.AddTail( pTransfer );
 		pTransfer->m_nRunCookie = m_nRunCookie;
 		pTransfer->DoRun();

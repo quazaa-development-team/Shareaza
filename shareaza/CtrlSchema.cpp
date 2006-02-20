@@ -110,7 +110,7 @@ void CSchemaCtrl::OnSize(UINT nType, int cx, int cy)
 
 void CSchemaCtrl::SetSchema(CSchema* pSchema, BOOL bPromptOnly)
 {
-	CArray< CWnd* > pRemove;
+	CObArray pRemove;
 	pRemove.Append( m_pControls );
 	
 	m_pControls.RemoveAll();
@@ -125,7 +125,7 @@ void CSchemaCtrl::SetSchema(CSchema* pSchema, BOOL bPromptOnly)
 	
 	m_nScroll = 0;
 	
-	if ( ( m_pSchema = pSchema ) == NULL )
+	if ( ! ( m_pSchema = pSchema ) )
 	{
 		Layout();
 		Invalidate();
@@ -171,7 +171,7 @@ void CSchemaCtrl::SetSchema(CSchema* pSchema, BOOL bPromptOnly)
 		m_pCaptions.Add( strCaption );
 		m_pControls.Add( pControl );
 		
-		SetWindowLongPtr( pControl->GetSafeHwnd(), GWLP_USERDATA, (LONG_PTR_ARG)(LONG_PTR)pMember );
+		SetWindowLong( pControl->GetSafeHwnd(), GWL_USERDATA, (LONG)pMember );
 		pControl->SetFont( &theApp.m_gdiFont );
 	}
 	
@@ -190,16 +190,16 @@ BOOL CSchemaCtrl::UpdateData(CXMLElement* pBase, BOOL bSaveAndValidate)
 	
 	POSITION pos = m_pSchema->GetMemberIterator();
 	
-	for ( INT_PTR nControl = 0 ; nControl < m_pControls.GetSize() && pos ; nControl++ )
+	for ( int nControl = 0 ; nControl < m_pControls.GetSize() && pos ; nControl++ )
 	{
-		CWnd* pControl = m_pControls.GetAt( nControl );
+		CWnd* pControl = (CWnd*)m_pControls.GetAt( nControl );
 		CSchemaMember* pMember = NULL;
 		CString strValue;
 		
 		while ( pos )
 		{
 			pMember = m_pSchema->GetNextMember( pos );
-			if ( (LONG_PTR)pMember == GetWindowLongPtr( pControl->GetSafeHwnd(), GWLP_USERDATA ) ) break;
+			if ( (LONG)pMember == GetWindowLong( pControl->GetSafeHwnd(), GWL_USERDATA ) ) break;
 			pMember = NULL;
 		}
 		
@@ -236,22 +236,23 @@ BOOL CSchemaCtrl::UpdateData(CXMLElement* pBase, BOOL bSaveAndValidate)
 void CSchemaCtrl::Layout()
 {
 	CRect rcClient, rcNew;
+	SCROLLINFO pScroll;
 	
 	GetClientRect( &rcClient );
 
-	SCROLLINFO pScroll = {};
+	ZeroMemory( &pScroll, sizeof(pScroll) );
 	pScroll.cbSize	= sizeof(pScroll);
 	pScroll.fMask	= SIF_PAGE|SIF_POS|SIF_RANGE;
 	pScroll.nPage	= rcClient.Height();
 	pScroll.nPos	= m_nScroll;
 
-	HDWP hDWP = BeginDeferWindowPos( static_cast< int >( m_pControls.GetSize() ) );
+	HDWP hDWP = BeginDeferWindowPos( m_pControls.GetSize() );
 
 	int nTop = -m_nScroll;
 
-	for ( INT_PTR nControl = 0 ; nControl < m_pControls.GetSize() ; nControl++ )
+	for ( int nControl = 0 ; nControl < m_pControls.GetSize() ; nControl++ )
 	{
-		CWnd* pControl	= m_pControls.GetAt( nControl );
+		CWnd* pControl	= (CWnd*)m_pControls.GetAt( nControl );
 
 		if ( m_nCaptionWidth )
 		{
@@ -304,9 +305,9 @@ void CSchemaCtrl::Disable()
 	
 	POSITION pos = m_pSchema->GetMemberIterator();
 	
-	for ( INT_PTR nControl = 0 ; nControl < m_pControls.GetSize() && pos ; nControl++ )
+	for ( int nControl = 0 ; nControl < m_pControls.GetSize() && pos ; nControl++ )
 	{
-		m_pControls.GetAt( nControl )->EnableWindow( FALSE );
+		((CWnd *)m_pControls.GetAt( nControl ))->EnableWindow( FALSE );
 	}
 	
 	return;
@@ -322,9 +323,9 @@ void CSchemaCtrl::Enable()
 	
 	POSITION pos = m_pSchema->GetMemberIterator();
 	
-	for ( INT_PTR nControl = 0 ; nControl < m_pControls.GetSize() && pos ; nControl++ )
+	for ( int nControl = 0 ; nControl < m_pControls.GetSize() && pos ; nControl++ )
 	{
-		m_pControls.GetAt( nControl )->EnableWindow( TRUE );
+		((CWnd *)m_pControls.GetAt( nControl ))->EnableWindow( TRUE );
 	}
 	
 	return;
@@ -334,10 +335,11 @@ void CSchemaCtrl::Enable()
 /////////////////////////////////////////////////////////////////////////////
 // CSchemaCtrl scrolling
 
-void CSchemaCtrl::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* /*pScrollBar*/) 
+void CSchemaCtrl::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar) 
 {
-	SCROLLINFO pScroll = {};
+	SCROLLINFO pScroll;
 
+	ZeroMemory( &pScroll, sizeof(pScroll) );
 	pScroll.cbSize	= sizeof(pScroll);
 	pScroll.fMask	= SIF_ALL;
 
@@ -393,22 +395,21 @@ void CSchemaCtrl::ScrollBy(int nDelta)
 	UpdateWindow();
 }
 
-void CSchemaCtrl::OnLButtonDown(UINT /*nFlags*/, CPoint /*point*/)
+void CSchemaCtrl::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	SetFocus();
 }
 
-BOOL CSchemaCtrl::OnMouseWheel(UINT /*nFlags*/, short zDelta, CPoint /*pt*/)
+BOOL CSchemaCtrl::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
-	OnVScroll( SB_THUMBPOSITION, (int)( GetScrollPos( SB_VERT ) - 
-		zDelta / WHEEL_DELTA * m_nScrollWheelLines * 8 ), NULL );
+	OnVScroll( SB_THUMBPOSITION, (int)( GetScrollPos( SB_VERT ) - zDelta / WHEEL_DELTA * m_nScrollWheelLines * 8 ), NULL );
 	return TRUE;
 }
 
 /////////////////////////////////////////////////////////////////////////////
 // CSchemaCtrl painting
 
-BOOL CSchemaCtrl::OnEraseBkgnd(CDC* /*pDC*/) 
+BOOL CSchemaCtrl::OnEraseBkgnd(CDC* pDC) 
 {
 	return TRUE;
 }
@@ -450,7 +451,7 @@ void CSchemaCtrl::OnPaint()
 
 	nOffset = nOffset / 2 - dc.GetTextExtent( _T("Xg") ).cy / 2 - 1;
 	
-	for ( INT_PTR nControl = 0 ; nControl < m_pControls.GetSize() ; nControl++ )
+	for ( int nControl = 0 ; nControl < m_pControls.GetSize() ; nControl++ )
 	{
 		// dc.SetBkColor( nControl & 1 ? RGB( 240, 240, 255 ) : RGB( 255, 255, 255 ) );
 		dc.SetBkColor( Skin.m_crSchemaRow[ nControl & 1 ] );
@@ -487,9 +488,9 @@ BOOL CSchemaCtrl::OnTab()
 		bNext = TRUE;
 	}
 	
-	for ( INT_PTR nControl = 0 ; nControl < m_pControls.GetSize() ; nControl++ )
+	for ( int nControl = 0 ; nControl < m_pControls.GetSize() ; nControl++ )
 	{
-		CWnd* pControl = m_pControls.GetAt( nControl );
+		CWnd* pControl = (CWnd*)m_pControls.GetAt( nControl );
 		
 		if ( bNext )
 		{
@@ -562,7 +563,7 @@ BOOL CSchemaCtrl::OnCommand(WPARAM wParam, LPARAM lParam)
 	CEdit* pEdit = (CEdit*)CWnd::FromHandle( (HWND)lParam );
 	if ( ! pEdit->IsKindOf( RUNTIME_CLASS(CEdit) ) ) return TRUE;
 
-	CSchemaMember* pMember = (CSchemaMember*)(LONG_PTR)GetWindowLongPtr( (HWND)lParam, GWLP_USERDATA );
+	CSchemaMember* pMember = (CSchemaMember*)GetWindowLong( (HWND)lParam, GWL_USERDATA );
 
 	if ( pMember->m_bNumeric )
 	{
@@ -602,9 +603,9 @@ void CSchemaCtrl::OnSetFocus(CWnd* pOldWnd)
 {
 	CWnd::OnSetFocus( pOldWnd );
 	
-	if ( !m_pControls.IsEmpty() )
+	if ( m_pControls.GetSize() > 0 )
 	{
-		CWnd* pWnd = m_pControls.GetAt( 0 );
+		CWnd* pWnd = (CWnd*)m_pControls.GetAt( 0 );
 		SetFocusTo( pWnd );
 	}
 }

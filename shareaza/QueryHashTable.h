@@ -70,10 +70,10 @@ public:
 protected:
 	BOOL	OnReset(CPacket* pPacket);
 	BOOL	OnPatch(CPacket* pPacket);
-	int		Add(LPCTSTR pszString, size_t nStart, size_t nLength);
+	int		Add(LPCTSTR pszString, int nStart, int nLength);
 	BOOL	PatchToOldShareaza(CQueryHashTable* pTarget, CNeighbour* pNeighbour);
 protected:
-	static inline DWORD	HashWord(LPCTSTR pszString, size_t nStart, size_t nLength, DWORD nBits);
+	static inline DWORD	HashWord(LPCTSTR pszString, int nStart, int nLength, int nBits);
 	static inline DWORD	HashNumber(DWORD nNumber, int nBits);
 
 };

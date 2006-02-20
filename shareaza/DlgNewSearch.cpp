@@ -52,14 +52,18 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CNewSearchDlg dialog
 
-CNewSearchDlg::CNewSearchDlg(CWnd* pParent, auto_ptr< CQuerySearch > pSearch, BOOL bLocal, BOOL bAgain)
-: CSkinDialog( CNewSearchDlg::IDD, pParent ),
-  m_pSearch( pSearch )
+CNewSearchDlg::CNewSearchDlg(CWnd* pParent, CQuerySearch* pSearch, BOOL bLocal, BOOL bAgain) : CSkinDialog( CNewSearchDlg::IDD, pParent )
 {
 	//{{AFX_DATA_INIT(CNewSearchDlg)
 	//}}AFX_DATA_INIT
+	m_pSearch	= pSearch;
 	m_bLocal	= bLocal;
 	m_bAgain	= bAgain;
+}
+
+CNewSearchDlg::~CNewSearchDlg()
+{
+	if ( m_pSearch ) delete m_pSearch;
 }
 
 void CNewSearchDlg::DoDataExchange(CDataExchange* pDX)
@@ -92,13 +96,13 @@ BOOL CNewSearchDlg::OnInitDialog()
 	m_wndSchemas.m_sNoSchemaText = strText;
 	m_wndSchemas.Load( Settings.Search.LastSchemaURI );
 
-	if ( m_pSearch.get() )
+	if ( m_pSearch != NULL )
 	{
 		m_wndSchemas.Select( m_pSearch->m_pSchema );
 	}
 	else
 	{
-		m_pSearch.reset( new CQuerySearch() );
+		m_pSearch = new CQuerySearch();
 	}
 
 	OnSelChangeSchemas();
@@ -111,10 +115,10 @@ BOOL CNewSearchDlg::OnInitDialog()
 	Settings.LoadWindow( _T("NewSearch"), this );
 
 	OnCloseUpSchemas();
-	
-	if ( m_pSearch->m_oSHA1 )
+
+	if ( m_pSearch->m_bSHA1 )
 	{
-		m_wndSearch.SetWindowText( m_pSearch->m_oSHA1.toUrn() );
+		m_wndSearch.SetWindowText( CSHA::HashToString( &m_pSearch->m_pSHA1, TRUE ) );
 		m_wndSchema.ShowWindow( SW_HIDE );
 	}
 	else
@@ -198,14 +202,14 @@ void CNewSearchDlg::OnChangeSearch()
 	m_wndSearch.GetWindowText( strSearch );
 
 	BOOL bHash = FALSE;
-    Hashes::TigerHash oTiger;
-    Hashes::Sha1Hash oSHA1;
-    Hashes::Ed2kHash oED2K;
-	
-	bHash |= static_cast< BOOL >( oSHA1.fromUrn( strSearch ) );
-	bHash |= static_cast< BOOL >( oTiger.fromUrn( strSearch ) );
-	bHash |= static_cast< BOOL >( oED2K.fromUrn( strSearch ) );
-	
+	TIGEROOT pTiger;
+	SHA1 pSHA1;
+	MD4 pED2K;
+
+	bHash |= CSHA::HashFromURN( strSearch, &pSHA1 );
+	bHash |= CTigerNode::HashFromURN( strSearch, &pTiger );
+	bHash |= CED2K::HashFromURN( strSearch, &pED2K );
+
 	if ( m_wndSchema.IsWindowVisible() == bHash )
 	{
 		m_wndSchema.ShowWindow( bHash ? SW_HIDE : SW_SHOW );
@@ -216,7 +220,7 @@ BOOL CNewSearchDlg::PreTranslateMessage(MSG* pMsg)
 {
 	if ( pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_TAB )
 	{
-		/*CWnd* pFocus =*/ GetFocus();
+		CWnd* pFocus = GetFocus();
 		if ( m_wndSchema.OnTab() ) return TRUE;
 	}
 
@@ -257,5 +261,12 @@ void CNewSearchDlg::OnOK()
 	}
 
 	CSkinDialog::OnOK();
+}
+
+CQuerySearch* CNewSearchDlg::GetSearch()
+{
+	CQuerySearch* pSearch = m_pSearch;
+	m_pSearch = NULL;
+	return pSearch;
 }
 

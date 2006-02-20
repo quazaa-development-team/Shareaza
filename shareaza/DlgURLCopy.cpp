@@ -54,10 +54,9 @@ CURLCopyDlg::CURLCopyDlg(CWnd* pParent) : CSkinDialog(CURLCopyDlg::IDD, pParent)
 	//{{AFX_DATA_INIT(CURLCopyDlg)
 	m_sHost = _T("");
 	m_sMagnet = _T("");
-	m_sGnutella = _T("");
 	m_sED2K = _T("");
 	//}}AFX_DATA_INIT
-	m_bSize = FALSE;
+	m_bSHA1 = m_bTiger = m_bED2K = m_bSize = FALSE;
 }
 
 void CURLCopyDlg::DoDataExchange(CDataExchange* pDX)
@@ -68,7 +67,6 @@ void CURLCopyDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_MESSAGE, m_wndMessage);
 	DDX_Text(pDX, IDC_URL_HOST, m_sHost);
 	DDX_Text(pDX, IDC_URL_MAGNET, m_sMagnet);
-	DDX_Text(pDX, IDC_URL_GNUTELLA, m_sGnutella);
 	DDX_Text(pDX, IDC_URL_ED2K, m_sED2K);
 	//}}AFX_DATA_MAP
 }
@@ -82,7 +80,7 @@ BOOL CURLCopyDlg::OnInitDialog()
 
 	SkinMe( NULL, IDI_WEB_URL );
 
-	m_wndIncludeSelf.ShowWindow( ( Network.IsListening() && m_sHost.IsEmpty() )
+	m_wndIncludeSelf.ShowWindow( ( Network.IsListening() && m_bSHA1 && m_sHost.IsEmpty() )
 		? SW_SHOW : SW_HIDE );
 
 	OnIncludeSelf();
@@ -92,33 +90,21 @@ BOOL CURLCopyDlg::OnInitDialog()
 
 void CURLCopyDlg::OnIncludeSelf()
 {
-	CString strURN = _T("");
-	
-	if ( m_oTiger && m_oSHA1 )
+	CString strURN;
+
+	if ( m_bTiger && m_bSHA1 )
 	{
 		strURN	= _T("urn:bitprint:")
-                + m_oSHA1.toString() + '.'
-				+ m_oTiger.toString();
+				+ CSHA::HashToString( &m_pSHA1 ) + '.'
+				+ CTigerNode::HashToString( &m_pTiger );
 	}
-
-	if ( m_oSHA1 && ! strURN.GetLength() )
+	else if ( m_bSHA1 )
 	{
-		strURN = m_oSHA1.toUrn();
+		strURN = CSHA::HashToString( &m_pSHA1, TRUE );
 	}
-
-	if ( m_oTiger && ! strURN.GetLength() )
+	else if ( m_bED2K )
 	{
-		strURN = m_oTiger.toUrn();
-	}
-
-	if ( m_oED2K )
-	{
-		if ( strURN.GetLength() )
-		{
-			strURN	+= _T("&xt=");
-		}
-
-		strURN += m_oED2K.toUrn();
+		strURN = CED2K::HashToString( &m_pED2K, TRUE );
 	}
 
 	m_sMagnet = _T("magnet:?");
@@ -142,16 +128,6 @@ void CURLCopyDlg::OnIncludeSelf()
 		}
 	}
 
-	if ( m_bSize )
-	{
-		CString strSize;
-
-		strSize.Format( _T("&xl=%I64i"),
-			m_nSize );
-
-		m_sMagnet += strSize;
-	}
-
 	if ( m_wndIncludeSelf.GetCheck() && strURN.GetLength() )
 	{
 		CString strURL;
@@ -164,37 +140,12 @@ void CURLCopyDlg::OnIncludeSelf()
 		m_sMagnet += _T("&xs=") + CTransfer::URLEncode( strURL );
 	}
 
-	if ( m_oSHA1 )
-	{
-		m_sGnutella.Format( _T("gnutella://%s/"),
-			(LPCTSTR)m_oSHA1.toUrn() );
-
-		if ( m_sName.GetLength() )
-		{
-			m_sGnutella += CTransfer::URLEncode( m_sName )
-						+ _T("/");
-		}
-	}
-
-	if ( m_oED2K && m_bSize && m_sName.GetLength() )
+	if ( m_bED2K && m_bSize && m_sName.GetLength() )
 	{
 		m_sED2K.Format( _T("ed2k://|file|%s|%I64i|%s|/"),
 			(LPCTSTR)CConnection::URLEncode( m_sName ),
 			m_nSize,
-			(LPCTSTR)m_oED2K.toString() );
-
-		if ( m_wndIncludeSelf.GetCheck() )
-		{
-			CString strURL2;
-
-			strURL2.Format ( _T("%s:%i"),
-					(LPCTSTR)CString( inet_ntoa( Network.m_pHost.sin_addr ) ),
-					htons( Network.m_pHost.sin_port ) );
-
-			m_sED2K += _T("|sources,")
-					+ strURL2
-					+ _T("|/");
-		}
+			(LPCTSTR)CED2K::HashToString( &m_pED2K ) );
 	}
 
 	UpdateData( FALSE );

@@ -108,7 +108,6 @@ BOOL CVersionChecker::Start(HWND hWndNotify)
 	m_bUpgrade		= FALSE;
 	
 	CWinThread* pThread = AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_IDLE );
-	SetThreadName( pThread->m_nThreadID, "VersionChecker" );
 	m_hThread = pThread->m_hThread;
 	
 	return TRUE;
@@ -289,11 +288,11 @@ void CVersionChecker::SetNextCheck(int nDays)
 //////////////////////////////////////////////////////////////////////
 // CVersionChecker check if a download is an upgrade
 
-BOOL CVersionChecker::CheckUpgradeHash(const Hashes::Sha1Hash& oHash, LPCTSTR pszPath)
+BOOL CVersionChecker::CheckUpgradeHash(const SHA1* pHash, LPCTSTR pszPath)
 {
 	if ( ! m_bUpgrade ) return FALSE;
 
-    if ( oHash.toString() != m_sUpgradeSHA1 ) return FALSE;
+	if ( CSHA::HashToString( pHash ) != m_sUpgradeSHA1 ) return FALSE;
 
 	if ( _tcsstr( pszPath, _T(".exe") ) == NULL ) return FALSE;
 

@@ -48,11 +48,13 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CFileSharingPage property page
 
-CFileSharingPage::CFileSharingPage() : 
-	CFilePropertiesPage(CFileSharingPage::IDD), m_bOverride( -1 ), 
-	m_bShare( FALSE ), m_sTags()
+CFileSharingPage::CFileSharingPage() : CFilePropertiesPage(CFileSharingPage::IDD)
 {
-	m_psp.dwFlags |= PSP_USETITLE;
+	//{{AFX_DATA_INIT(CFileSharingPage)
+	m_bOverride = -1;
+	m_bShare = FALSE;
+	m_sTags = _T("");
+	//}}AFX_DATA_INIT
 }
 
 CFileSharingPage::~CFileSharingPage()
@@ -83,7 +85,7 @@ BOOL CFileSharingPage::OnInitDialog()
 
 	if ( UploadQueues.m_pSection.Lock() )
 	{
-		CList< CString > pAdded;
+		CStringList pAdded;
 
 		for ( POSITION pos = UploadQueues.GetIterator() ; pos ; )
 		{

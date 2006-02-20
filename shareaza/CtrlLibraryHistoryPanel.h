@@ -47,7 +47,7 @@ protected:
 		CRect			m_rect;
 	};
 protected:
-	CArray< Item* > m_pList;
+	CPtrArray	m_pList;
 	Item*		m_pHover;
 	int			m_nColumns;
 	int			m_nScrollWheelLines;

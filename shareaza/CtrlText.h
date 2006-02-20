@@ -24,7 +24,6 @@
 
 #pragma once
 
-class CTextLine;
 
 class CTextCtrl : public CWnd
 {
@@ -35,7 +34,7 @@ public:
 
 // Attributes
 protected:
-	CArray< CTextLine* > m_pLines;
+	CPtrArray			m_pLines;
 	int					m_nPosition;
 	int					m_nTotal;
 	CSize				m_cCharacter;

@@ -75,7 +75,7 @@ int CMonitorBarCtrl::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if ( lpCreateStruct->dwExStyle & WS_EX_LAYOUTRTL )
 	{
 		lpCreateStruct->dwExStyle ^= WS_EX_LAYOUTRTL;
-		SetWindowLongPtr( this->m_hWnd, GWL_EXSTYLE, lpCreateStruct->dwExStyle );
+		SetWindowLong( this->m_hWnd, GWL_EXSTYLE, lpCreateStruct->dwExStyle );
 	}
 
 	m_hTab = (HICON)LoadImage( AfxGetResourceHandle(),
@@ -97,7 +97,7 @@ void CMonitorBarCtrl::OnDestroy()
 /////////////////////////////////////////////////////////////////////////////
 // CMonitorBarCtrl layout message handlers
 
-CSize CMonitorBarCtrl::CalcFixedLayout(BOOL /*bStretch*/, BOOL /*bHorz*/)
+CSize CMonitorBarCtrl::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 {
 	CSize size( 128, 30 );
 
@@ -122,7 +122,7 @@ void CMonitorBarCtrl::OnSize(UINT nType, int cx, int cy)
 /////////////////////////////////////////////////////////////////////////////
 // CMonitorBarCtrl timer
 
-void CMonitorBarCtrl::OnTimer(UINT_PTR /*nIDEvent*/)
+void CMonitorBarCtrl::OnTimer(UINT nIDEvent)
 {
 	if ( m_nCount++ & 1 )
 	{
@@ -157,8 +157,7 @@ void CMonitorBarCtrl::DoPaint(CDC* pDC)
 	CRect rcClient;
 	GetClientRect( &rcClient );
 
-	CSize size = rcClient.Size();
-	CDC* pMemDC = CoolInterface.GetBuffer( *pDC, size );
+	CDC* pMemDC = CoolInterface.GetBuffer( *pDC, rcClient.Size() );
 	if ( theApp.m_bRTL ) theApp.m_pfnSetLayout( pMemDC->m_hDC, 0 );
 
 	if ( ! CoolInterface.DrawWatermark( pMemDC, &rcClient, &m_bmWatermark ) )

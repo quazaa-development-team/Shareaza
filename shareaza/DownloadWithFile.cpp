@@ -32,8 +32,6 @@
 
 #include "ID3.h"
 #include "SHA.h"
-#include "TigerTree.h"
-#include "ED2K.h"
 #include "XML.h"
 #include "Schema.h"
 #include "LibraryBuilderInternals.h"
@@ -65,37 +63,37 @@ CDownloadWithFile::~CDownloadWithFile()
 
 BOOL CDownloadWithFile::OpenFile()
 {
-	if ( m_pFile == NULL || m_sDisplayName.IsEmpty() || m_nSize == SIZE_UNKNOWN ) return FALSE;
+	if ( m_pFile == NULL || m_sRemoteName.IsEmpty() || m_nSize == SIZE_UNKNOWN ) return FALSE;
 	if ( m_pFile->IsOpen() ) return TRUE;
 	
 	SetModified();
 	
 	if ( m_pFile->IsValid() )
 	{
-		if ( m_pFile->Open( m_sDiskName ) ) return TRUE;
-		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_FILE_OPEN_ERROR, (LPCTSTR)m_sDiskName );
+		if ( m_pFile->Open( m_sLocalName ) ) return TRUE;
+		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_FILE_OPEN_ERROR, (LPCTSTR)m_sLocalName );
 	}
 	else if ( ! Downloads.IsSpaceAvailable( m_nSize, Downloads.dlPathIncomplete ) )
 	{
 		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_DISK_SPACE,
-			(LPCTSTR)m_sDisplayName,
+			(LPCTSTR)m_sRemoteName,
 			(LPCTSTR)Settings.SmartVolume( m_nSize, FALSE ) );
 	}
 	else
 	{
-		CString strLocalName = m_sDiskName;
-		m_sDiskName.Empty();
+		CString strLocalName = m_sLocalName;
+		m_sLocalName.Empty();
 		
-		GenerateDiskName();
+		GenerateLocalName();
 		
 		for ( int nTry = 0 ; nTry < 5 ; nTry++ )
 		{
 			CString strName;
 
 			if ( nTry == 0 )
-				strName = m_sDiskName;
+				strName = m_sLocalName;
 			else
-				strName.Format( _T("%s.x%i"), (LPCTSTR)m_sDiskName, rand() % 128 );
+				strName.Format( _T("%s.x%i"), (LPCTSTR)m_sLocalName, rand() % 128 );
 			
             theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_FILE_CREATE, (LPCTSTR)strName );
 			
@@ -103,14 +101,14 @@ BOOL CDownloadWithFile::OpenFile()
 			{
 				theApp.WriteProfileString( _T("Delete"), strName, NULL );
 				MoveFile( strLocalName + _T(".sd"), strName + _T(".sd") );
-				m_sDiskName = strName;
+				m_sLocalName = strName;
 				return TRUE;
 			}
 			
 			theApp.Message( MSG_ERROR, IDS_DOWNLOAD_FILE_CREATE_ERROR, (LPCTSTR)strName );
 		}
 		
-		m_sDiskName = strLocalName;
+		m_sLocalName = strLocalName;
 	}
 	
 	m_bDiskFull = TRUE;
@@ -141,33 +139,33 @@ void CDownloadWithFile::DeleteFile(BOOL bForce)
 {
 	if ( m_pFile != NULL && m_pFile->IsValid() == FALSE ) return;
 	
-	Uploads.OnRename( m_sDiskName, NULL, bForce );
+	Uploads.OnRename( m_sLocalName, NULL );
 	
-	int nPos = m_sDiskName.ReverseFind( '\\' );
+	int nPos = m_sLocalName.ReverseFind( '\\' );
 	CString strMetadata;
 	
 	if ( nPos > 0 )
 	{
-		strMetadata = m_sDiskName.Left( nPos ) + _T("\\Metadata") + m_sDiskName.Mid( nPos ) + _T(".xml");
+		strMetadata = m_sLocalName.Left( nPos ) + _T("\\Metadata") + m_sLocalName.Mid( nPos ) + _T(".xml");
 	}
 	
 	if ( m_pFile != NULL )
 	{
 		if ( GetVolumeComplete() == 0 || ( GetAsyncKeyState( VK_SHIFT ) & 0x8000 ) == 0 )
 		{
-			if ( ! ::DeleteFile( m_sDiskName ) )
-				theApp.WriteProfileString( _T("Delete"), m_sDiskName, _T("") );
+			if ( ! ::DeleteFile( m_sLocalName ) )
+				theApp.WriteProfileString( _T("Delete"), m_sLocalName, _T("") );
 			if ( strMetadata.GetLength() ) ::DeleteFile( strMetadata );
 		}
 		else
 		{
-			MoveFile( m_sDiskName, m_sDiskName + _T(".aborted") );
+			MoveFile( m_sLocalName, m_sLocalName + _T(".aborted") );
 		}
 	}
 	else if ( bForce )
 	{
-		if ( ! ::DeleteFile( m_sDiskName ) )
-			theApp.WriteProfileString( _T("Delete"), m_sDiskName, _T("") );
+		if ( ! ::DeleteFile( m_sLocalName ) )
+			theApp.WriteProfileString( _T("Delete"), m_sLocalName, _T("") );
 		if ( strMetadata.GetLength() ) ::DeleteFile( strMetadata );
 	}
 	
@@ -221,16 +219,12 @@ DWORD CDownloadWithFile::GetTimeRemaining() const
 
 CString CDownloadWithFile::GetDisplayName() const
 {
-	if ( m_sDisplayName.GetLength() ) return m_sDisplayName;
+	if ( m_sRemoteName.GetLength() ) return m_sRemoteName;
 	
 	CString strName;
 	
-	if ( m_oSHA1 )
-		strName = m_oSHA1.toShortUrn();
-	else if ( m_oTiger )
-		strName = m_oTiger.toShortUrn();
-	else if ( m_oED2K )
-		strName = m_oED2K.toShortUrn();
+	if ( m_bSHA1 )
+		strName = _T("sha1:") + CSHA::HashToString( &m_pSHA1 );
 	else
 		strName = _T("Unknown File");
 	
@@ -240,79 +234,73 @@ CString CDownloadWithFile::GetDisplayName() const
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithFile get the first empty fragment
 
-const Fragments::List& CDownloadWithFile::GetEmptyFragmentList() const
+const FF::SimpleFragmentList& CDownloadWithFile::GetEmptyFragmentList() const
 {
-	static const Fragments::List dummy( 0 );
+    static const FF::SimpleFragmentList dummy( 0 );
     return m_pFile ? m_pFile->GetEmptyFragmentList() : dummy;
 }
 
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithFile get a list of possible download fragments
 
-Fragments::List CDownloadWithFile::GetPossibleFragments(
-	const Fragments::List& oAvailable, Fragments::Fragment& oLargest)
+FF::SimpleFragmentList CDownloadWithFile::GetPossibleFragments(
+    const FF::SimpleFragmentList& oAvailable, FF::SimpleFragment& oLargest)
 {
-	if ( !PrepareFile() ) return Fragments::List( oAvailable.limit() );
-	Fragments::List oPossible( oAvailable );
+	if ( !PrepareFile() ) return FF::SimpleFragmentList( oAvailable.limit() );
+    FF::SimpleFragmentList oPossible( oAvailable );
 
-	if ( oAvailable.empty() )
-	{
-		oPossible = m_pFile->GetEmptyFragmentList();
-	}
-	else
-	{
-		Fragments::List tmp( inverse( m_pFile->GetEmptyFragmentList() ) );
-		oPossible.erase( tmp.begin(), tmp.end() );
-	}
+    if( oAvailable.empty() )
+    {
+        oPossible = m_pFile->GetEmptyFragmentList();
+    }
+    else
+    {
+        // ToDo: add a function to FF::detail::List<...> to do that more efficiently
+        FF::SimpleFragmentList tmp( inverse( m_pFile->GetEmptyFragmentList() ) );
+        oPossible.erase( tmp.begin(), tmp.end() );
+    }
+	
+    if ( oPossible.empty() ) return oPossible;
 
-	if ( oPossible.empty() ) return oPossible;
-
-	oLargest = *oPossible.largest_range();
+    oLargest = *largestFragment( oPossible );
 
 	for ( CDownloadTransfer* pTransfer = GetFirstTransfer();
-		!oPossible.empty() && pTransfer;
-		pTransfer = pTransfer->m_pDlNext )
+        !oPossible.empty() && pTransfer;
+        pTransfer = pTransfer->m_pDlNext )
 	{
 		pTransfer->SubtractRequested( oPossible );
 	}
-
+	
 	return oPossible;
 }
 
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithFile select a fragment for a transfer
 
-inline DWORD CalcChunkSize(QWORD nSize)
-{
-    if ( nSize <= 268435456 ) return 1024 * 1024; // try to keep chunk size reasonably large
-    DWORD nChunk = DWORD( ( nSize - 1 ) / 256 ), nTemp; // default treeheight of 9
-    while ( nTemp = nChunk & ( nChunk - 1 ) ) nChunk = nTemp;
-    return nChunk * 2;
-}
-
 BOOL CDownloadWithFile::GetFragment(CDownloadTransfer* pTransfer)
 {
 	if ( ! PrepareFile() ) return NULL;
 	
-	Fragments::Fragment oLargest( SIZE_UNKNOWN, SIZE_UNKNOWN );
+    FF::SimpleFragment oLargest( SIZE_UNKNOWN, SIZE_UNKNOWN );
 
-	Fragments::List oPossible = GetPossibleFragments(
-		pTransfer->m_pSource->m_oAvailable, oLargest );
-
+    FF::SimpleFragmentList oPossible = GetPossibleFragments(
+        pTransfer->m_pSource->m_oAvailable, oLargest );
+	
 	if ( oLargest.begin() == SIZE_UNKNOWN )
 	{
 		ASSERT( oPossible.empty() );
 		return FALSE;
 	}
-
+	
 	if ( !oPossible.empty() )
 	{
-		Fragments::List::const_iterator pRandom = oPossible.begin()->begin() == 0
-			? oPossible.begin()
-			: oPossible.random_range();
+         FF::SimpleFragmentList::ConstIterator pRandom
+             = oPossible.begin()->begin() == 0
+                 ? oPossible.begin()
+                 : randomFragment( oPossible );
 
-		pTransfer->m_nOffset = pRandom->begin();
-		pTransfer->m_nLength = pRandom->size();
+        pTransfer->m_nOffset = pRandom->begin();
+        pTransfer->m_nLength = pRandom->length();
 		
 		return TRUE;
 	}
@@ -339,24 +327,25 @@ BOOL CDownloadWithFile::GetFragment(CDownloadTransfer* pTransfer)
 		if ( pExisting == NULL )
 		{
 			pTransfer->m_nOffset = oLargest.begin();
-			pTransfer->m_nLength = oLargest.size();
+			pTransfer->m_nLength = oLargest.length();
 			return TRUE;
 		}
 		
-		if ( oLargest.size() < 32 ) return FALSE;
+		if ( oLargest.length() < 32 ) return FALSE;
 		
 		DWORD nOldSpeed	= pExisting->GetAverageSpeed();
 		DWORD nNewSpeed	= pTransfer->GetAverageSpeed();
-		QWORD nLength	= oLargest.size() / 2;
+		QWORD nLength	= oLargest.length() / 2;
 		
 		if ( nOldSpeed > 5 && nNewSpeed > 5 )
 		{
-			nLength = oLargest.size() * nNewSpeed / ( nNewSpeed + nOldSpeed );
+			nLength = (QWORD)( (double)oLargest.length() * nNewSpeed / ( nNewSpeed + nOldSpeed ) );
+			nLength = min( nLength, oLargest.length() );
 			
-			if ( oLargest.size() > 102400 )
+			if ( oLargest.length() > 102400 )
 			{
-				nLength = max( nLength, 51200u );
-				nLength = min( nLength, oLargest.size() - 51200u );
+				nLength = max( nLength, 51200ULL );
+				nLength = min( nLength, oLargest.length() - 51200ULL );
 			}
 		}
 		
@@ -389,16 +378,17 @@ BOOL CDownloadWithFile::IsPositionEmpty(QWORD nOffset)
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithFile check if a range would "help"
 
-BOOL CDownloadWithFile::AreRangesUseful(const Fragments::List& oAvailable)
+BOOL CDownloadWithFile::AreRangesUseful(const FF::SimpleFragmentList& oAvailable)
 {
 	if ( m_pFile == NULL || ! m_pFile->IsValid() ) return FALSE;
-	return m_pFile->GetEmptyFragmentList().overlaps( oAvailable );
+    return overlaps( m_pFile->GetEmptyFragmentList(), oAvailable );
 }
 
 BOOL CDownloadWithFile::IsRangeUseful(QWORD nOffset, QWORD nLength)
 {
 	if ( m_pFile == NULL || ! m_pFile->IsValid() ) return FALSE;
-	return m_pFile->GetEmptyFragmentList().overlaps( Fragments::Fragment( nOffset, nOffset + nLength ) );
+    return overlaps( m_pFile->GetEmptyFragmentList(),
+        FF::SimpleFragment( nOffset, nOffset + nLength ) );
 }
 
 // like IsRangeUseful( ) but take the amount of useful ranges relative to the amount of garbage
@@ -414,8 +404,8 @@ BOOL CDownloadWithFile::IsRangeUsefulEnough(CDownloadTransfer* pTransfer, QWORD 
 		if ( !pTransfer->m_bRecvBackwards ) nOffset += nLength - nLength2;
 		nLength = nLength2;
 	}
-    return m_pFile->GetEmptyFragmentList().overlaps(
-		Fragments::Fragment( nOffset, nOffset + nLength ) );
+    return overlaps( m_pFile->GetEmptyFragmentList(),
+		FF::SimpleFragment( nOffset, nOffset + nLength ) );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -427,24 +417,24 @@ CString CDownloadWithFile::GetAvailableRanges() const
 	
 	if ( m_pFile == NULL || ! m_pFile->IsValid() ) return strRanges;
 	
-	const Fragments::List oAvailable = inverse( m_pFile->GetEmptyFragmentList() );
+    const FF::SimpleFragmentList oAvailable = inverse( m_pFile->GetEmptyFragmentList() );
 
-	for ( Fragments::List::const_iterator pFragment = oAvailable.begin();
-		pFragment != oAvailable.end(); ++pFragment )
-	{
+    for( FF::SimpleFragmentList::ConstIterator pFragment = oAvailable.begin();
+        pFragment != oAvailable.end(); ++pFragment )
+    {
 		if ( strRanges.IsEmpty() )
-		{
+        {
 			strRanges = _T("bytes ");
-		}
+        }
 		else
-		{
+        {
 			strRanges += ',';
-		}
+        }
 		
 		strRange.Format( _T("%I64i-%I64i"), pFragment->begin(), pFragment->end() - 1 );
 		strRanges += strRange;
-	}
-
+    }
+	
 	return strRanges;
 }
 
@@ -458,19 +448,20 @@ BOOL CDownloadWithFile::ClipUploadRange(QWORD nOffset, QWORD& nLength) const
 	
 	if ( m_pFile->IsPositionRemaining( nOffset ) ) return FALSE;
 	
-	if ( nOffset + nLength > m_nSize ) nLength = m_nSize - nOffset;
+    if ( nOffset + nLength > m_nSize ) nLength = m_nSize - nOffset;
 
-	Fragments::List::const_iterator_pair match( m_pFile->GetEmptyFragmentList().equal_range(
-		Fragments::Fragment( nOffset, nOffset + nLength ) ) );
+    FF::SimpleFragmentList::ConstIteratorPair match
+        = m_pFile->GetEmptyFragmentList().overlappingRange(
+            FF::SimpleFragment( nOffset, nOffset + nLength ) );
 
-	if ( match.first != match.second )
-	{
-		if ( match.first->begin() <= nOffset ) return ( nLength = 0 ) > 0;
-		nLength = match.first->end() - nOffset;
-		return TRUE;
-	}
+    if ( match.first != match.second )
+    {
+        if ( match.first->begin() <= nOffset ) return ( nLength = 0 ) > 0;
+        nLength = match.first->end() - nOffset;
+        return TRUE;
+    }
 
-	return nLength > 0;
+    return nLength > 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -480,15 +471,15 @@ BOOL CDownloadWithFile::GetRandomRange(QWORD& nOffset, QWORD& nLength) const
 {
 	if ( m_pFile == NULL || ! m_pFile->IsValid() ) return FALSE;
 	
-	if ( m_pFile->GetEmptyFragmentList().missing() == 0 ) return FALSE;
+    if ( m_pFile->GetEmptyFragmentList().missing() == 0 ) return FALSE;
 
-	Fragments::List oFilled = inverse( m_pFile->GetEmptyFragmentList() );
-	Fragments::List::const_iterator pRandom = oFilled.random_range();
+    FF::SimpleFragmentList oFilled = inverse( m_pFile->GetEmptyFragmentList() );
+    FF::SimpleFragmentList::ConstIterator pRandom = randomFragment( oFilled );
 
-	nOffset = pRandom->begin();
-	nLength = pRandom->size();
+    nOffset = pRandom->begin();
+    nLength = pRandom->length();
 
-	return TRUE;
+    return TRUE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -499,7 +490,7 @@ BOOL CDownloadWithFile::SubmitData(QWORD nOffset, LPBYTE pData, QWORD nLength)
 	SetModified();
 	m_tReceived = GetTickCount();
 	
-	if ( m_oBTH )	// Hack: Only do this for BitTorrent
+	if ( m_bBTH )	// Hack: Only do this for BitTorrent
 	{
 		for ( CDownloadTransfer* pTransfer = GetFirstTransfer() ; pTransfer ; pTransfer = pTransfer->m_pDlNext )
 		{
@@ -526,7 +517,7 @@ QWORD CDownloadWithFile::EraseRange(QWORD nOffset, QWORD nLength)
 
 BOOL CDownloadWithFile::MakeComplete()
 {
-	if ( m_sDiskName.IsEmpty() ) return FALSE;
+	if ( m_sLocalName.IsEmpty() ) return FALSE;
 	if ( ! PrepareFile() ) return FALSE;
 	return m_pFile->MakeComplete();
 }
@@ -534,7 +525,7 @@ BOOL CDownloadWithFile::MakeComplete()
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithFile run the file
 
-BOOL CDownloadWithFile::RunFile(DWORD /*tNow*/)
+BOOL CDownloadWithFile::RunFile(DWORD tNow)
 {
 	if ( m_pFile->IsOpen() )
 	{
@@ -561,7 +552,7 @@ BOOL CDownloadWithFile::WriteMetadata(LPCTSTR pszPath)
 	CreateDirectory( strMetadata, NULL );
 	SetFileAttributes( strMetadata, FILE_ATTRIBUTE_HIDDEN );
 	
-	strMetadata += m_sDiskName.Mid( m_sDiskName.ReverseFind( '\\' ) );
+	strMetadata += m_sLocalName.Mid( m_sLocalName.ReverseFind( '\\' ) );
 	strMetadata += _T(".xml");
 	
 	HANDLE hFile = CreateFile( strMetadata, GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS,
@@ -593,7 +584,7 @@ BOOL CDownloadWithFile::AppendMetadata()
 	CXMLElement* pXML = m_pXML->GetFirstElement();
 	if ( pXML == NULL ) return FALSE;
 	
-	HANDLE hFile = CreateFile( m_sDiskName, GENERIC_READ|GENERIC_WRITE,
+	HANDLE hFile = CreateFile( m_sLocalName, GENERIC_READ|GENERIC_WRITE,
 		FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
 	if ( hFile == INVALID_HANDLE_VALUE ) return FALSE;
 	
@@ -602,7 +593,7 @@ BOOL CDownloadWithFile::AppendMetadata()
 	
 	if ( strURI == CSchema::uriAudio )
 	{
-		if ( _tcsistr( m_sDiskName, _T(".mp3") ) != NULL )
+		if ( _tcsistr( m_sLocalName, _T(".mp3") ) != NULL )
 		{
 			bSuccess |= AppendMetadataID3v1( hFile, pXML );
 		}
@@ -618,8 +609,9 @@ BOOL CDownloadWithFile::AppendMetadataID3v1(HANDLE hFile, CXMLElement* pXML)
 	USES_CONVERSION;
 	DWORD nBytes;
 	CString str;
+	ID3V1 pID3;
 	
-	ID3V1 pID3 = {};
+	ZeroMemory( &pID3, sizeof(pID3) );
 	SetFilePointer( hFile, 0, NULL, FILE_BEGIN );
 	ReadFile( hFile, &pID3, 3, &nBytes, NULL );
 	if ( memcmp( pID3.szTag, ID3V2_TAG, 3 ) == 0 ) return FALSE;
@@ -630,7 +622,7 @@ BOOL CDownloadWithFile::AppendMetadataID3v1(HANDLE hFile, CXMLElement* pXML)
 	if ( memcmp( pID3.szTag, ID3V1_TAG, 3 ) == 0 ) return FALSE;
 	
 	ZeroMemory( &pID3, sizeof(pID3) );
-	std::memcpy( pID3.szTag, ID3V1_TAG, 3 );
+	memcpy( pID3.szTag, ID3V1_TAG, 3 );
 	
 	str = pXML->GetAttributeValue( _T("title") );
 	if ( str.GetLength() > 0 ) strncpy( pID3.szSongname, T2CA( (LPCTSTR)str ), 30 );
@@ -647,7 +639,7 @@ BOOL CDownloadWithFile::AppendMetadataID3v1(HANDLE hFile, CXMLElement* pXML)
 	{
 		if ( str.CompareNoCase( CLibraryBuilderInternals::pszID3Genre[ nGenre ] ) == 0 )
 		{
-			pID3.nGenre = BYTE( nGenre );
+			pID3.nGenre = nGenre;
 			break;
 		}
 	}
@@ -679,13 +671,13 @@ void CDownloadWithFile::Serialize(CArchive& ar, int nVersion)
 			
 			if ( strLocalName.GetLength() )
 			{
-				if ( m_sDiskName.GetLength() )
-					MoveFile( m_sDiskName + _T(".sd"), strLocalName + _T(".sd") );
-				m_sDiskName = strLocalName;
+				if ( m_sLocalName.GetLength() )
+					MoveFile( m_sLocalName + _T(".sd"), strLocalName + _T(".sd") );
+				m_sLocalName = strLocalName;
 			}
 			else
 			{
-				GenerateDiskName();
+				GenerateLocalName();
 			}
 		}
 		

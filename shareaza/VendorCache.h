@@ -41,13 +41,13 @@ public:
 	CVendor*		m_pShareaza;
 	CVendor*		m_pED2K;
 protected:
-	CMap< CString, const CString&, CVendor*, CVendor* > m_pMap;
+	CMapStringToPtr	m_pMap;
 
 // Operations
 public:
 	POSITION		GetIterator() const;
 	CVendor*		GetNext(POSITION& pos) const;
-	INT_PTR			GetCount() const;
+	int				GetCount() const;
 	CVendor*		Lookup(LPCSTR pszCode, BOOL bCreate = TRUE);
 	CVendor*		Lookup(LPCWSTR pszCode, BOOL bCreate = TRUE);
 	CVendor*		LookupByName(LPCTSTR pszName) const;

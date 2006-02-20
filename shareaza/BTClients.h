@@ -38,16 +38,18 @@ public:
 
 // Attributes
 protected:
-	CList< CBTClient* >	m_pList;
+	CPtrList	m_pList;
+	//SHA1		m_pGUID;
 protected:
 	CCriticalSection	m_pSection;
 	CEvent				m_pShutdown;
 	BOOL				m_bShutdown;
-	CList< CBTTrackerRequest* > m_pRequests;
+	CPtrList			m_pRequests;
 
 // Operations
 public:
 	void		Clear();
+	//SHA1*		GetGUID();
 	BOOL		OnAccept(CConnection* pConnection);
 	void		ShutdownRequests();
 protected:
@@ -65,10 +67,10 @@ public:
 
 	inline CBTClient* GetNext(POSITION& pos) const
 	{
-		return m_pList.GetNext( pos );
+		return (CBTClient*)m_pList.GetNext( pos );
 	}
 
-	inline INT_PTR GetCount() const
+	inline int GetCount() const
 	{
 		return m_pList.GetCount();
 	}

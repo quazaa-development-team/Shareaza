@@ -41,7 +41,7 @@ public:
 	CUploadQueue*		m_pTorrentQueue;
 	CUploadQueue*		m_pHistoryQueue;
 protected:
-	CList< CUploadQueue* > m_pList;
+	CPtrList			m_pList;
 
 	BOOL				m_bDonkeyLimited;
 
@@ -61,9 +61,9 @@ public:
 public:
 	int		GetTotalBandwidthPoints( BOOL ActiveOnly = FALSE );
 	int		GetQueueCapacity();
-	INT_PTR	GetQueuedCount();
-	INT_PTR	GetQueueRemaining();
-	INT_PTR	GetTransferCount();
+	int		GetQueuedCount();
+	int		GetQueueRemaining();
+	int		GetTransferCount();
 	BOOL	IsTransferAvailable();
 	DWORD	GetMinimumDonkeyBandwidth();
 	DWORD	GetCurrentDonkeyBandwidth();
@@ -88,10 +88,10 @@ public:
 
 	inline CUploadQueue* GetNext(POSITION& pos) const
 	{
-		return m_pList.GetNext( pos );
+		return (CUploadQueue*)m_pList.GetNext( pos );
 	}
 
-	inline INT_PTR GetCount() const
+	inline int GetCount() const
 	{
 		return m_pList.GetCount();
 	}

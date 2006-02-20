@@ -39,7 +39,7 @@
 #define SWAP_64(x) ( ( SWAP_LONG( (x) & 0xFFFFFFFF ) << 32 ) | SWAP_LONG( (x) >> 32 ) )
 
 // When the allocated block of memory needs to be bigger, make it 128 bytes bigger
-const uchar PACKET_GROW = 128u;
+#define PACKET_GROW 128
 
 // Sizes of buffers that hold 128 ASCII and 128 wide characters so MultiByteToWideChar can convert short text quickly
 #define PACKET_BUF_SCHAR 127
@@ -119,7 +119,7 @@ public:
 	virtual int GetStringLenUTF8(LPCTSTR pszString) const; // Takes a string, and determines how long it would be as ASCII text converted UTF8
 
 	// Data compression
-	auto_array< BYTE > ReadZLib(DWORD nLength, DWORD* pnOutput, DWORD nSuggest = 0); // Read compressed data from the packet, decompress it, and return it
+	LPBYTE ReadZLib(DWORD nLength, DWORD* pnOutput, DWORD nSuggest = 0); // Read compressed data from the packet, decompress it, and return it
 	void   WriteZLib(LPCVOID pData, DWORD nLength);                      // Compress the given data and write it into the packet
 
 	// Insert data into the packet
@@ -143,11 +143,11 @@ public:
 public:
 
 	// Compute the SHA hash of the bytes of the packet
-    virtual BOOL	GetRazaHash(Hashes::Sha1Hash& oHash, DWORD nLength = 0xFFFFFFFF) const;
+	virtual BOOL GetRazaHash(SHA1* pHash, DWORD nLength = 0xFFFFFFFF) const;
 
 	// Does nothing (do)
-	void			RazaSign();
-	BOOL			RazaVerify() const;
+	void RazaSign();
+	BOOL RazaVerify() const;
 
 public:
 
@@ -160,7 +160,7 @@ public:
 
 	// Takes a pointer to a buffer, and the number of bytes we want written there
 	// Copies this number of bytes from the packet, and moves the packet's position beyond them
-    inline void Read(LPVOID pData, int nLength)
+	inline void Read(LPVOID pData, int nLength)
 	{
 		// Make sure the requested length doesn't poke beyond the end of the packet
 		if ( m_nPosition + nLength > m_nLength ) AfxThrowUserException();
@@ -184,21 +184,6 @@ public:
 
 		// Read one byte, return it, and move our position in this packet beyond it
 		return m_pBuffer[ m_nPosition++ ];
-	}
-	
-	// Read any Hash directly from a packet
-	template
-	<
-		typename Descriptor,
-		template< typename > class StoragePolicy,
-		template< typename > class CheckingPolicy,
-		template< typename > class ValidationPolicy
-	>
-	void Read(Hashes::Hash< Descriptor, StoragePolicy,
-			CheckingPolicy, ValidationPolicy >& oHash)
-	{
-		Read( &oHash[ 0 ], oHash.byteCount );
-		oHash.validate();
 	}
 
 	// Get the next byte in the packet, not moving the position beyond it
@@ -289,65 +274,38 @@ public:
 
 	// Takes a length of bytes we would like to add to the packet
 	// Ensures the allocated block of memory is big enough for them, making it bigger if necessary
-	inline BOOL Ensure(DWORD nLength)
+	inline void Ensure(int nLength)
 	{
 		// If the buffer isn't big enough to hold that many more new bytes
 		if ( m_nLength + nLength > m_nBuffer )
 		{
 			// Switch to a new bigger one
-			m_nBuffer += max( nLength, PACKET_GROW );	// Size the buffer larger by the requested amount, or the packet grow size of 128 bytes
-			LPBYTE pNew = new BYTE[ m_nBuffer ];		// Allocate a new block of memory of that size
-			if ( pNew == NULL )							// Check for out of memory error
-			{
-				theApp.Message( MSG_ERROR, _T("Memory allocation error in CPacket::Ensure()") );
-				return FALSE;
-			}
-			CopyMemory( pNew, m_pBuffer, m_nLength );	// Copy the packet data from the old buffer to the new one
-			if ( m_pBuffer ) delete [] m_pBuffer;		// If there is an old buffer, free it
-			m_pBuffer = pNew;							// Point the packet object's member variable pointer at the new buffer
+			m_nBuffer += max( nLength, PACKET_GROW ); // Size the buffer larger by the requested amount, or the packet grow size of 128 bytes
+			LPBYTE pNew = new BYTE[ m_nBuffer ];      // Allocate a new block of memory of that size
+			CopyMemory( pNew, m_pBuffer, m_nLength ); // Copy the packet data from the old buffer to the new one
+			if ( m_pBuffer ) delete [] m_pBuffer;     // If there is an old buffer, free it
+			m_pBuffer = pNew;                         // Point the packet object's member variable pointer at the new buffer
 		}
-		return TRUE;
 	}
 
 	// Takes a pointer to data and the number of bytes there
 	// Adds them to the end of the buffer
-	inline BOOL Write(LPCVOID pData, DWORD nLength)
+	inline void Write(LPCVOID pData, int nLength)
 	{
 		// If the allocated block of memory doesn't have enough extra space to hold the new data
 		if ( m_nLength + nLength > m_nBuffer )
 		{
 			// Make it bigger
-			m_nBuffer += max( nLength, PACKET_GROW );	// Calculate the new size to be nLength or 128 bytes bigger
-			LPBYTE pNew = new BYTE[ m_nBuffer ];		// Allocate a new buffer of that size
-			if ( pNew == NULL )							// Check for out of memory error
-			{
-				theApp.Message( MSG_ERROR, _T("Memory allocation error in CPacket::Write()") );
-				return FALSE;
-			}
-			CopyMemory( pNew, m_pBuffer, m_nLength );	// Copy the data from the old buffer to the new one
-			if ( m_pBuffer ) delete [] m_pBuffer;		// Delete the old buffer
-			m_pBuffer = pNew;							// Point m_pBuffer at the new, bigger buffer
+			m_nBuffer += max( nLength, PACKET_GROW ); // Calculate the new size to be nLength or 128 bytes bigger
+			LPBYTE pNew = new BYTE[ m_nBuffer ];      // Allocate a new buffer of that size
+			CopyMemory( pNew, m_pBuffer, m_nLength ); // Copy the data from the old buffer to the new one
+			if ( m_pBuffer ) delete [] m_pBuffer;     // Delete the old buffer
+			m_pBuffer = pNew;                         // Point m_pBuffer at the new, bigger buffer
 		}
 
 		// Add the given data to the end of the packet
 		CopyMemory( m_pBuffer + m_nLength, pData, nLength ); // Copy the data into the end
 		m_nLength += nLength;                                // Record that the new bytes are stored here
-		return TRUE;
-	}
-	
-	// Write any Hash directly into a packet ( just the raw data )
-	template
-	<
-		typename Descriptor,
-		template< typename > class StoragePolicy,
-		template< typename > class CheckingPolicy,
-		template< typename > class ValidationPolicy
-	>
-	void Write(const Hashes::Hash< Descriptor, StoragePolicy,
-			CheckingPolicy, ValidationPolicy >& oHash)
-	{
-		if ( !oHash.isValid() ) AfxThrowUserException();
-		Write( &oHash[ 0 ], oHash.byteCount );
 	}
 
 	// Takes a byte
@@ -355,10 +313,7 @@ public:
 	inline void WriteByte(BYTE nValue)
 	{
 		// Make sure there is room for the byte
-		if ( m_nLength + sizeof( nValue ) > m_nBuffer ) 
-		{
-			if ( ! Ensure( sizeof( nValue ) ) ) return;
-		}
+		if ( m_nLength + sizeof(nValue) > m_nBuffer ) Ensure( sizeof(nValue) );
 
 		// Write it at the end of the packet, and record that it is there
 		m_pBuffer[ m_nLength++ ] = nValue;
@@ -369,10 +324,7 @@ public:
 	inline void WriteShortLE(WORD nValue)
 	{
 		// Make sure there is room for the 2 bytes
-		if ( m_nLength + sizeof(nValue) > m_nBuffer ) 		
-		{
-			if ( ! Ensure( sizeof( nValue ) ) ) return;
-		}
+		if ( m_nLength + sizeof(nValue) > m_nBuffer ) Ensure( sizeof(nValue) );
 
 		// Write the two bytes as a word at the end of the packet, and record that it is there
 		*(WORD*)( m_pBuffer + m_nLength ) = nValue;
@@ -384,10 +336,7 @@ public:
 	inline void WriteShortBE(WORD nValue)
 	{
 		// Make sure there is room for the 2 bytes
-		if ( m_nLength + sizeof(nValue) > m_nBuffer ) 
-		{
-			if ( ! Ensure( sizeof( nValue ) ) ) return;
-		}
+		if ( m_nLength + sizeof(nValue) > m_nBuffer ) Ensure( sizeof(nValue) );
 
 		// Write the 2 bytes as a word at the end of the packet, and record that it is there
 		*(WORD*)( m_pBuffer + m_nLength ) = m_bBigEndian ? SWAP_SHORT( nValue ) : nValue; // Reverse their order if necessary
@@ -399,10 +348,7 @@ public:
 	inline void WriteLongLE(DWORD nValue)
 	{
 		// Make sure there is room for the 4 bytes
-		if ( m_nLength + sizeof(nValue) > m_nBuffer ) 
-		{
-			if ( ! Ensure( sizeof( nValue ) ) ) return;
-		}
+		if ( m_nLength + sizeof(nValue) > m_nBuffer ) Ensure( sizeof(nValue) );
 
 		// Write the 4 bytes as a DWORD at the end of the packet, and record that it is there
 		*(DWORD*)( m_pBuffer + m_nLength ) = nValue;
@@ -414,10 +360,7 @@ public:
 	inline void WriteLongBE(DWORD nValue)
 	{
 		// Make sure there is room for the 4 bytes
-		if ( m_nLength + sizeof(nValue) > m_nBuffer ) 
-		{
-			if ( ! Ensure( sizeof( nValue ) ) ) return;
-		}
+		if ( m_nLength + sizeof(nValue) > m_nBuffer ) Ensure( sizeof(nValue) );
 
 		// Write the 4 bytes as a DWORD at the end of the packet, and record that it is there
 		*(DWORD*)( m_pBuffer + m_nLength ) = m_bBigEndian ? SWAP_LONG( nValue ) : nValue; // Reverse their order if necessary
@@ -429,10 +372,7 @@ public:
 	inline void WriteInt64(QWORD nValue)
 	{
 		// Make sure there is room for the 8 bytes
-		if ( m_nLength + sizeof(nValue) > m_nBuffer )
-		{
-			if ( ! Ensure( sizeof( nValue ) ) ) return;
-		}
+		if ( m_nLength + sizeof(nValue) > m_nBuffer ) Ensure( sizeof(nValue) );
 
 		// Write the 8 bytes as a QWORD at the end of the packet, and record that it is there
 		*(QWORD*)( m_pBuffer + m_nLength ) = m_bBigEndian ? SWAP_64( nValue ) : nValue; // Reverse their order if necessary
@@ -499,7 +439,7 @@ protected:
 	CCriticalSection m_pSection;
 
 	// An array of pointers, each of which points to an array of 256 packets
-	CArray< CPacket* > m_pPools;
+	CPtrArray m_pPools;
 
 protected:
 

@@ -1,8 +1,8 @@
 //
 // CtrlMediaFrame.cpp
 //
-//	Date:			"$Date: 2006/02/19 14:12:47 $"
-//	Revision:		"$Revision: 1.40 $"
+//	Date:			"$Date: 2005/10/25 18:30:37 $"
+//	Revision:		"$Revision: 1.31 $"
 //  Last change by:	"$Author: rolandas $"
 //
 // Copyright (c) Shareaza Development Team, 2002-2005.
@@ -300,14 +300,15 @@ void CMediaFrame::SetFullScreen(BOOL bFullScreen)
 	ShowWindow( SW_HIDE );
 	m_tBarTime = GetTickCount();
 	
-	if ( ( m_bFullScreen = bFullScreen ) != FALSE )
+	if ( m_bFullScreen = bFullScreen )
 	{
 		ModifyStyle( WS_CHILD, 0 );
 		SetParent( NULL );
 		
 		if ( theApp.m_pfnGetMonitorInfoA != NULL ) //If GetMonitorInfo() is available
 		{
-			MONITORINFO oMonitor = {};
+			MONITORINFO oMonitor;
+			ZeroMemory( &oMonitor, sizeof(oMonitor) );
 			oMonitor.cbSize = sizeof(oMonitor);
 			theApp.m_pfnGetMonitorInfoA( theApp.m_pfnMonitorFromWindow( AfxGetMainWnd()->GetSafeHwnd(), MONITOR_DEFAULTTOPRIMARY ), &oMonitor );
 			
@@ -497,7 +498,7 @@ void CMediaFrame::OnPaint()
 	dc.SelectObject( pOldFont );
 }
 
-void CMediaFrame::PaintSplash(CDC& dc, CRect& /*rcBar*/)
+void CMediaFrame::PaintSplash(CDC& dc, CRect& rcBar)
 {
 	if ( m_bmLogo.m_hObject == NULL )
 	{
@@ -644,8 +645,7 @@ BOOL CMediaFrame::PaintStatusMicro(CDC& dc, CRect& rcBar)
 	CRect rcPart( &rcBar );
 	CString str;
 	CSize sz;
-	CSize size = rcBar.Size();
-	CDC* pMemDC = CoolInterface.GetBuffer( dc, size );
+	CDC* pMemDC = CoolInterface.GetBuffer( dc, rcBar.Size() );
 
 	DWORD dwOptions = theApp.m_bRTL ? DT_RTLREADING : 0;
 	if ( m_nState >= smsOpen )
@@ -704,13 +704,13 @@ BOOL CMediaFrame::PaintStatusMicro(CDC& dc, CRect& rcBar)
 /////////////////////////////////////////////////////////////////////////////
 // CMediaFrame interaction message handlers
 
-void CMediaFrame::OnContextMenu(CWnd* /*pWnd*/, CPoint point) 
+void CMediaFrame::OnContextMenu(CWnd* pWnd, CPoint point) 
 {
 	Skin.TrackPopupMenu( _T("CMediaFrame"), point,
 		m_nState == smsPlaying ? ID_MEDIA_PAUSE : ID_MEDIA_PLAY );
 }
 
-void CMediaFrame::OnTimer(UINT_PTR nIDEvent) 
+void CMediaFrame::OnTimer(UINT nIDEvent) 
 {
 	if ( nIDEvent == 1 )
 	{
@@ -878,7 +878,7 @@ BOOL CMediaFrame::DoSizeList()
 		nSplit += nOffset;
 
 		nSplit = max( nSplit, 0 );
-		nSplit = min( nSplit, rcClient.right - SPLIT_SIZE );
+		nSplit = min( nSplit, int(rcClient.right - SPLIT_SIZE) );
 
 		if ( nSplit < 8 )
 			nSplit = 0;
@@ -899,13 +899,10 @@ BOOL CMediaFrame::DoSizeList()
 	return TRUE;
 }
 
-LRESULT CMediaFrame::OnMediaKey(WPARAM wParam, LPARAM lParam)
+LONG CMediaFrame::OnMediaKey(WPARAM wParam, LPARAM lParam)
 {
-	if ( wParam != 1 && !IsTopParentActive() ) return 0;
+	if ( wParam != 1 ) return 0;
 	
-	int nVolumeTick = 0;
-	int nVolumeDir = ( lParam == 0x90000 ? -1 : 1 );
-
 	switch ( lParam )
 	{
 	case 0xB0000:
@@ -916,23 +913,6 @@ LRESULT CMediaFrame::OnMediaKey(WPARAM wParam, LPARAM lParam)
 		return 1;
 	case 0xD0000:
 		GetOwner()->PostMessage( WM_COMMAND, ID_MEDIA_STOP );
-		return 1;
-	case 0x80000:
-		GetOwner()->PostMessage( WM_COMMAND, ID_MEDIA_MUTE );
-		return 1;
-	case 0x90000:
-	case 0xA0000:
-		m_bMute = TRUE;
-		nVolumeTick = m_wndVolume.GetPos() + nVolumeDir;
-		if ( nVolumeDir == -1 && nVolumeTick >= 0 ||
-			 nVolumeDir == 1 && nVolumeTick <= 100 )
-			 m_wndVolume.SetPos( nVolumeTick );
-		else
-			nVolumeTick = nVolumeDir == -1 ? 0 : 100;
-		Settings.MediaPlayer.Volume = (double)nVolumeTick / 100.0f;
-		if ( m_pPlayer != NULL )
-			m_pPlayer->SetVolume( Settings.MediaPlayer.Volume );
-		m_bMute = FALSE;
 		return 1;
 	case 0xE0000:
 		GetOwner()->PostMessage( WM_COMMAND, m_nState == smsPlaying ? ID_MEDIA_PAUSE : ID_MEDIA_PLAY );
@@ -1317,8 +1297,7 @@ void CMediaFrame::OnFileDelete(LPCTSTR pszFile)
 {
 	if ( m_sFile.CompareNoCase( pszFile ) == 0 )
 	{
-		// Only remove from the list, the player cleans up itself
-		m_wndList.Remove( pszFile );
+		if ( m_pPlayer ) m_pPlayer->Close();
 	}
 }
 
@@ -1391,7 +1370,6 @@ BOOL CMediaFrame::Prepare()
 		AfxMessageBox( strMessage, MB_ICONEXCLAMATION );
 		return FALSE;
 	}
-	CoLockObjectExternal( m_pPlayer, TRUE, TRUE );
 	ModifyStyleEx( WS_EX_LAYOUTRTL, 0, 0 );
 	m_pPlayer->Create( GetSafeHwnd() );
 	if ( theApp.m_bRTL ) ModifyStyleEx( 0, WS_EX_LAYOUTRTL, 0 );
@@ -1545,7 +1523,7 @@ HRESULT CMediaFrame::PluginPlay(BSTR bsFilePath)
 		hr = m_pPlayer->Stop();
 		hr = m_pPlayer->Open( bsFilePath );
 	} 
-	__except( GetExceptionCode() != EXCEPTION_CONTINUE_EXECUTION )
+	__except( GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION )
 	{ 
 		theApp.Message( MSG_ERROR, _T("Media Player failed to open file: %s"), bsFilePath );
 		Cleanup(); 
@@ -1564,7 +1542,7 @@ void CMediaFrame::Cleanup()
 		HINSTANCE hRes = AfxGetResourceHandle();
 		m_pPlayer->Close();
 		m_pPlayer->Destroy();
-		CoLockObjectExternal( m_pPlayer, FALSE, TRUE );
+		m_pPlayer->Release();
 		m_pPlayer = NULL;
 		AfxSetResourceHandle( hRes );
 	}
@@ -1643,7 +1621,7 @@ void CMediaFrame::UpdateState()
 	}
 }
 
-void CMediaFrame::OnNewCurrent(NMHDR* /*pNotify*/, LRESULT* pResult)
+void CMediaFrame::OnNewCurrent(NMHDR* pNotify, LRESULT* pResult)
 {
 	int nCurrent = m_wndList.GetCurrent();
 	m_wndList.UpdateWindow();
@@ -1700,7 +1678,7 @@ void CMediaFrame::OnNewCurrent(NMHDR* /*pNotify*/, LRESULT* pResult)
 		{
 			nCurrent = m_wndList.GetNext( FALSE );
 			if ( m_wndList.GetItemCount() != 1 ) 
-			m_wndList.SetCurrent( nCurrent );
+				m_wndList.SetCurrent( nCurrent );
 			else if ( m_pPlayer ) 
 				Cleanup(); //cleanup when no exception happened but the file couldn't be opened (png files)
 		}
@@ -1721,7 +1699,7 @@ void CMediaFrame::OnNewCurrent(NMHDR* /*pNotify*/, LRESULT* pResult)
 		{
 			if ( ! m_bRepeat ) 
 				m_bStopFlag = TRUE;
-	else
+			else
 				nCurrent = m_wndList.GetNext( FALSE );
 			if ( ! m_bEnqueue ) 
 				m_wndList.SetCurrent( nCurrent );

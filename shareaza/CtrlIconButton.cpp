@@ -30,8 +30,6 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-IMPLEMENT_DYNAMIC(CIconButtonCtrl, CWnd)
-
 BEGIN_MESSAGE_MAP(CIconButtonCtrl, CWnd)
 	//{{AFX_MSG_MAP(CIconButtonCtrl)
 	ON_WM_MOUSEMOVE()
@@ -114,7 +112,7 @@ BOOL CIconButtonCtrl::RemoveStyle()
 /////////////////////////////////////////////////////////////////////////////
 // CIconButtonCtrl mouse message handlers
 
-void CIconButtonCtrl::OnMouseMove(UINT /*nFlags*/, CPoint point)
+void CIconButtonCtrl::OnMouseMove(UINT nFlags, CPoint point)
 {
 	if ( ! IsWindowEnabled() ) return;
 
@@ -145,7 +143,7 @@ void CIconButtonCtrl::OnMouseMove(UINT /*nFlags*/, CPoint point)
 	Invalidate();
 }
 
-void CIconButtonCtrl::OnLButtonDown(UINT /*nFlags*/, CPoint /*point*/)
+void CIconButtonCtrl::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	if ( ! IsWindowEnabled() ) return;
 
@@ -156,7 +154,7 @@ void CIconButtonCtrl::OnLButtonDown(UINT /*nFlags*/, CPoint /*point*/)
 	Invalidate();
 }
 
-void CIconButtonCtrl::OnLButtonUp(UINT /*nFlags*/, CPoint /*point*/)
+void CIconButtonCtrl::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	if ( m_bDown )
 	{
@@ -182,12 +180,12 @@ void CIconButtonCtrl::OnLButtonDblClk(UINT nFlags, CPoint point)
 	OnLButtonDown( nFlags, point );
 }
 
-void CIconButtonCtrl::OnRButtonDown(UINT /*nFlags*/, CPoint /*point*/)
+void CIconButtonCtrl::OnRButtonDown(UINT nFlags, CPoint point)
 {
 
 }
 
-void CIconButtonCtrl::OnRButtonUp(UINT /*nFlags*/, CPoint /*point*/)
+void CIconButtonCtrl::OnRButtonUp(UINT nFlags, CPoint point)
 {
 
 }
@@ -195,7 +193,7 @@ void CIconButtonCtrl::OnRButtonUp(UINT /*nFlags*/, CPoint /*point*/)
 /////////////////////////////////////////////////////////////////////////////
 // CIconButtonCtrl paint message handlers
 
-BOOL CIconButtonCtrl::OnEraseBkgnd(CDC* /*pDC*/)
+BOOL CIconButtonCtrl::OnEraseBkgnd(CDC* pDC)
 {
 	return TRUE;
 }

@@ -67,13 +67,13 @@ CUploadQueue::~CUploadQueue()
 {
 	for ( POSITION pos = m_pActive.GetHeadPosition() ; pos ; )
 	{
-		CUploadTransfer* pUpload = m_pActive.GetNext( pos );
+		CUploadTransfer* pUpload = (CUploadTransfer*)m_pActive.GetNext( pos );
 		pUpload->m_pQueue = NULL;
 	}
 	
 	for ( int nPosition = 0 ; nPosition < m_pQueued.GetSize() ; nPosition++ )
 	{
-		CUploadTransfer* pUpload = m_pQueued.GetAt( nPosition );
+		CUploadTransfer* pUpload = (CUploadTransfer*)m_pQueued.GetAt( nPosition );
 		pUpload->m_pQueue = NULL;
 	}
 }
@@ -290,7 +290,7 @@ BOOL CUploadQueue::Start(CUploadTransfer* pUpload, BOOL bPeek)
 	ASSERT( pUpload->m_pQueue == this );
 	ASSERT( m_pActive.Find( pUpload ) == NULL );
 	
-	INT_PTR nTransfers = GetTransferCount();
+	int nTransfers = GetTransferCount();
 	if ( nTransfers >= m_nMaxTransfers ) return FALSE;
 	
 	if ( nTransfers < m_nMinTransfers )
@@ -328,7 +328,7 @@ void CUploadQueue::StartImpl(CUploadTransfer* pUpload)
 //////////////////////////////////////////////////////////////////////
 // CUploadQueue bandwidth limiting
 
-INT_PTR CUploadQueue::GetBandwidthPoints(INT_PTR nTransfers) const
+int CUploadQueue::GetBandwidthPoints(int nTransfers) const
 {
 	if ( nTransfers < 0 ) nTransfers = GetTransferCount();
 	
@@ -338,12 +338,12 @@ INT_PTR CUploadQueue::GetBandwidthPoints(INT_PTR nTransfers) const
 	return m_nBandwidthPoints * nTransfers / max( 1, m_nMinTransfers );
 }
 
-DWORD CUploadQueue::GetBandwidthLimit(INT_PTR nTransfers) const
+DWORD CUploadQueue::GetBandwidthLimit(int nTransfers) const
 {
-	INT_PTR nLocalPoints = GetBandwidthPoints( nTransfers );
+	int nLocalPoints = GetBandwidthPoints( nTransfers );
 	if ( nLocalPoints == 0 ) return 0;
 	
-	INT_PTR nTotalPoints = nLocalPoints;
+	int nTotalPoints = nLocalPoints;
 	
 	for ( POSITION pos = UploadQueues.GetIterator() ; pos ; )
 	{
@@ -358,19 +358,17 @@ DWORD CUploadQueue::GetBandwidthLimit(INT_PTR nTransfers) const
 	// Limit if torrents are active
 	if ( Uploads.m_nTorrentSpeed > 0 ) nLimit = ( nLimit * ( 100 - Settings.BitTorrent.BandwidthPercentage ) ) / 100;
 	
-	return static_cast< DWORD >( nLimit
-			* ( nLocalPoints + Settings.Uploads.ThrottleMode )
-			/ max( 1, nTotalPoints ) );
+	return nLimit * ( nLocalPoints + Settings.Uploads.ThrottleMode ) / max( 1, nTotalPoints );
 }
 
 DWORD CUploadQueue::GetAvailableBandwidth() const
 {
-	INT_PTR nTransfers = GetTransferCount();
+	int nTransfers = GetTransferCount();
 	
 	if ( nTransfers < m_nMinTransfers )
 	{
 		nTransfers ++;
-		return static_cast< DWORD >( GetBandwidthLimit( nTransfers ) / nTransfers );
+		return GetBandwidthLimit( nTransfers ) / nTransfers;
 	}
 	
 	DWORD nTotal = GetBandwidthLimit();
@@ -378,7 +376,7 @@ DWORD CUploadQueue::GetAvailableBandwidth() const
 	
 	for ( POSITION pos = m_pActive.GetHeadPosition() ; pos ; )
 	{
-		CUploadTransfer* pActive = m_pActive.GetNext( pos );
+		CUploadTransfer* pActive = (CUploadTransfer*)m_pActive.GetNext( pos );
 		nUsed += pActive->m_nBandwidth;
 	}
 	
@@ -395,7 +393,7 @@ DWORD CUploadQueue::GetAvailableBandwidth() const
 DWORD CUploadQueue::GetPredictedBandwidth() const
 {
 	// This could be more accurate
-	return GetBandwidthLimit( m_nMinTransfers ) / DWORD( min( max( m_nMinTransfers, 1 ), GetTransferCount() + 1 ) );
+	return GetBandwidthLimit( m_nMinTransfers ) / min( max( m_nMinTransfers, 1 ), GetTransferCount() + 1 );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -409,8 +407,8 @@ void CUploadQueue::SpreadBandwidth()
 	
 	for ( POSITION pos = m_pActive.GetHeadPosition() ; pos ; )
 	{
-		CUploadTransfer* pActive = m_pActive.GetNext( pos );
-		pActive->SetSpeedLimit( static_cast< DWORD >( nTotal / GetTransferCount() ) );
+		CUploadTransfer* pActive = (CUploadTransfer*)m_pActive.GetNext( pos );
+		pActive->SetSpeedLimit( nTotal / GetTransferCount() );
 	}
 }
 
@@ -429,7 +427,7 @@ void CUploadQueue::RescaleBandwidth()
 	
 	for ( POSITION pos = m_pActive.GetHeadPosition() ; pos ; )
 	{
-		CUploadTransfer* pActive = m_pActive.GetNext( pos );
+		CUploadTransfer* pActive = (CUploadTransfer*)m_pActive.GetNext( pos );
 		nAllocated += pActive->m_nBandwidth;
 	}
 	
@@ -437,7 +435,7 @@ void CUploadQueue::RescaleBandwidth()
 	
 	for ( POSITION pos = m_pActive.GetHeadPosition() ; pos ; )
 	{
-		CUploadTransfer* pActive = m_pActive.GetNext( pos );
+		CUploadTransfer* pActive = (CUploadTransfer*)m_pActive.GetNext( pos );
 		pActive->SetSpeedLimit( (DWORD)( nScale * pActive->m_nBandwidth ) );
 	}
 }

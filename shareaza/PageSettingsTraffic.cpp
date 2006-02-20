@@ -106,10 +106,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Connection.DetectConnectionReset, 1, 0, 1 );
 	AddSetting( &Settings.Connection.ForceConnectedState, 1, 0, 1 );
 	AddSetting( &Settings.Connection.SlowConnect, 1, 0, 1 );
-	AddSetting( &Settings.Connection.DeleteUPnPPorts, 1, 0, 1 );
-	AddSetting( &Settings.Connection.SkipWANPPPSetup, 1, 0, 1 );
-	AddSetting( &Settings.Connection.SkipWANIPSetup, 1, 0, 1 );
-
+	
 	AddSetting( &Settings.Gnutella.ConnectFactor, 1, 1, 20, _T("x") );
 	AddSetting( &Settings.Gnutella.MaxResults, 1, 1, 1000 );
 	AddSetting( &Settings.Gnutella.MaxHits, 1, 0, 4096 );
@@ -163,7 +160,6 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Gnutella2.QueryLimit, 1, 0, 10000 );
 
 	AddSetting( &Settings.eDonkey.FastConnect, 1, 0, 1 );
-	AddSetting( &Settings.eDonkey.ForceHighID, 1, 0, 1 );
 	AddSetting( &Settings.eDonkey.MaxShareCount, 1, 0, 20000 );
 	AddSetting( &Settings.eDonkey.StatsGlobalThrottle, 60*1000, 30, 120, _T(" m") );
 	AddSetting( &Settings.eDonkey.QueryGlobalThrottle, 1, 1000, 20000, _T(" ms") );
@@ -181,8 +177,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.eDonkey.FrameSize, 1024, 1, 500, _T(" KB") );
 	AddSetting( &Settings.eDonkey.ReAskTime, 60, 20, 360, _T(" m") );
 	AddSetting( &Settings.eDonkey.DequeueTime, 60, 2, 512, _T(" m") );
-	AddSetting( &Settings.eDonkey.ExtendedRequest, 1, 0, 2 );
-	AddSetting( &Settings.eDonkey.SendPortServer, 1, 0, 1 );
+	AddSetting( &Settings.eDonkey.ExtendedRequest, 1, 0, 1 );
 	AddSetting( &Settings.eDonkey.MagnetSearch, 1, 0, 1 );
 	AddSetting( &Settings.eDonkey.MinServerFileSize, 1, 0, 50, _T(" MB") );
 	AddSetting( &Settings.eDonkey.TagNames, 1, 0, 1 );
@@ -277,9 +272,6 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Library.ThumbSize, 1, 16, 256 );
 	AddSetting( &Settings.Library.VirtualFiles, 1, 0, 1);
 	AddSetting( &Settings.Library.HashWindow, 1, 0, 1);
-	AddSetting( &Settings.Library.MaxMaliciousFileSize, 1, 1024, 1024*5, _T(" B") );
-
-	AddSetting( &Settings.MediaPlayer.ShortPaths, 1, 0, 1 );
 	
 	AddSetting( &Settings.Bandwidth.Request, 128, 0, 8192, _T(" Kb/s") );
 	AddSetting( &Settings.Bandwidth.HubIn, 128, 0, 8192, _T(" Kb/s") );
@@ -305,8 +297,10 @@ void CAdvancedSettingsPage::AddSetting(LPVOID pValue, DWORD nScale, DWORD nMin, 
 	
 	EditItem* pEdit = new EditItem( pItem, nScale, nMin, nMax, pszSuffix );
 	
-	LV_ITEM pList = {};
+	LV_ITEM pList;
 	
+	ZeroMemory( &pList, sizeof(pList) );
+
 	pList.mask		= LVIF_PARAM|LVIF_TEXT|LVIF_IMAGE;
 	pList.iItem		= m_wndList.GetItemCount();
 	pList.lParam	= (LPARAM)pEdit;
@@ -338,9 +332,9 @@ void CAdvancedSettingsPage::UpdateItem(int nItem)
 	m_wndList.SetItemText( nItem, 1, strValue );
 }
 
-void CAdvancedSettingsPage::OnItemChangedProperties(NMHDR* /*pNMHDR*/, LRESULT* pResult) 
+void CAdvancedSettingsPage::OnItemChangedProperties(NMHDR* pNMHDR, LRESULT* pResult) 
 {
-//	NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
+	NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
 	
 	int nItem = m_wndList.GetNextItem( -1, LVNI_SELECTED );
 	

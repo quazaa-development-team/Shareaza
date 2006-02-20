@@ -1,11 +1,7 @@
 //
 // DownloadTransferHTTP.cpp
 //
-//	Date:			"$Date: 2006/01/11 20:32:05 $"
-//	Revision:		"$Revision: 1.22 $"
-//  Last change by:	"$Author: spooky23 $"
-//
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -64,7 +60,6 @@ CDownloadTransferHTTP::CDownloadTransferHTTP(CDownloadSource* pSource) : CDownlo
 	m_bTigerIgnore	= FALSE;
 	m_bMetaFetch	= FALSE;
 	m_bMetaIgnore	= FALSE;
-	m_bRedirect		= FALSE;
 	
 	m_nRetryDelay	= Settings.Downloads.RetryDelay;
 }
@@ -87,7 +82,7 @@ BOOL CDownloadTransferHTTP::Initiate()
 		SetState( dtsConnecting );
 		
 		if ( ! m_pDownload->IsBoosted() )
-			m_mInput.pLimit = m_mOutput.pLimit = &m_nBandwidth;
+			m_mInput.pLimit = m_mOutput.pLimit = &Downloads.m_nLimitGeneric;
 		
 		return TRUE;
 	}
@@ -110,7 +105,7 @@ BOOL CDownloadTransferHTTP::AcceptPush(CConnection* pConnection)
 		(LPCTSTR)m_pDownload->GetDisplayName() );
 	
 	if ( ! m_pDownload->IsBoosted() )
-		m_mInput.pLimit = m_mOutput.pLimit = &m_nBandwidth;
+		m_mInput.pLimit = m_mOutput.pLimit = &Downloads.m_nLimitGeneric;
 	
 	if ( StartNextFragment() ) return TRUE;
 	
@@ -171,6 +166,15 @@ BOOL CDownloadTransferHTTP::OnConnected()
 //////////////////////////////////////////////////////////////////////
 // CDownloadTransferHTTP fragment allocation
 
+bool VerifySelection(CDownloadTransferHTTP* pTransfer)
+{
+	FF::SimpleFragment oFragment( pTransfer->m_nOffset, pTransfer->m_nOffset + pTransfer->m_nLength );
+	FF::SimpleFragmentList::IteratorPair p = pTransfer->m_pSource->m_oAvailable.overlappingRange( oFragment );
+	return pTransfer->m_pSource->m_oAvailable.empty()
+		|| p.first != p.second && p.first->begin() <= pTransfer->m_nOffset
+			&& p.first->end() >= pTransfer->m_nOffset + pTransfer->m_nLength;
+}
+
 BOOL CDownloadTransferHTTP::StartNextFragment()
 {
 	ASSERT( this != NULL );
@@ -226,7 +230,9 @@ BOOL CDownloadTransferHTTP::StartNextFragment()
 	}
 	else if ( m_pDownload->GetFragment( this ) )
 	{
+		ASSERT( VerifySelection( this ) );
 		ChunkifyRequest( &m_nOffset, &m_nLength, Settings.Downloads.ChunkSize, TRUE );
+		ASSERT( VerifySelection( this ) );
 		
 		theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_FRAGMENT_REQUEST,
 			m_nOffset, m_nOffset + m_nLength - 1,
@@ -248,13 +254,13 @@ BOOL CDownloadTransferHTTP::StartNextFragment()
 //////////////////////////////////////////////////////////////////////
 // CDownloadTransferHTTP subtract pending requests
 
-BOOL CDownloadTransferHTTP::SubtractRequested(Fragments::List& ppFragments)
+BOOL CDownloadTransferHTTP::SubtractRequested(FF::SimpleFragmentList& ppFragments)
 {
 	if ( m_nOffset < SIZE_UNKNOWN && m_nLength < SIZE_UNKNOWN )
 	{
 		if ( m_nState == dtsRequesting || m_nState == dtsDownloading )
 		{
-			ppFragments.erase( Fragments::Fragment( m_nOffset, m_nOffset + m_nLength ) );
+            ppFragments.erase( FF::SimpleFragment( m_nOffset, m_nOffset + m_nLength ) );
 			return TRUE;
 		}
 	}
@@ -369,7 +375,7 @@ BOOL CDownloadTransferHTTP::SendRequest()
 	
 	if ( m_pSource->m_bSHA1 && Settings.Library.SourceMesh && ! m_bTigerFetch && ! m_bMetaFetch )
 	{
-		CString strURN = m_pDownload->m_oSHA1.toUrn();
+		CString strURN = CSHA::HashToString( &m_pDownload->m_pSHA1, TRUE );
 		
 		m_pOutput->Print( "X-Content-URN: " );
 		m_pOutput->Print( strURN + _T("\r\n") );
@@ -391,7 +397,7 @@ BOOL CDownloadTransferHTTP::SendRequest()
 				(LPCTSTR)CString( inet_ntoa( Network.m_pHost.sin_addr ) ),
 				htons( Network.m_pHost.sin_port ),
 				(LPCTSTR)strURN );
-			strLine += TimeToString( static_cast< DWORD >( time( NULL ) - 180 ) );
+			strLine += TimeToString( time( NULL ) - 180 );
 			m_pOutput->Print( "Alt-Location: " );
 			m_pOutput->Print( strLine + _T("\r\n") );
 		}
@@ -577,10 +583,9 @@ BOOL CDownloadTransferHTTP::ReadResponseLine()
 		m_bRangeFault = TRUE;
 		SetState( dtsHeaders );
 	}
-	else if ( strCode == _T("301") || strCode == _T("302") )
+	else if ( FALSE && ( strCode == _T("301") || strCode == _T("302") ) )
 	{
-		m_bRedirect = TRUE;
-		SetState( dtsHeaders );
+		// TODO: Read "Location:" header and re-request
 	}
 	else
 	{
@@ -704,39 +709,64 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 				strHeader.CompareNoCase( _T("X-Content-URN") ) == 0 ||
 				strHeader.CompareNoCase( _T("Content-URN") ) == 0 )
 	{
-		Hashes::Sha1Hash oSHA1;
-		Hashes::TigerHash oTiger;
-		Hashes::Ed2kHash oED2K;
-		CString strURNs = strValue + ',';
-		for ( int nPos = strURNs.Find( ',' ); nPos >= 0; nPos = strURNs.Find( ',' ) )
+		for ( CString strURNs = strValue + ',' ; ; )
 		{
-			strValue = strURNs.Left( nPos ).TrimLeft();
-			strURNs = strURNs.Mid( nPos + 1 );
+			int nPos = strURNs.Find( ',' );
+			if ( nPos < 0 ) break;
 			
-			if (   ( !oSHA1 .fromUrn( strValue ) || m_pSource->CheckHash( oSHA1  ) )
-				&& ( !oTiger.fromUrn( strValue ) || m_pSource->CheckHash( oTiger ) )
-				&& ( !oED2K .fromUrn( strValue ) || m_pSource->CheckHash( oED2K  ) ) )
+			strValue	= strURNs.Left( nPos );
+			strURNs		= strURNs.Mid( nPos + 1 );
+			strValue.TrimLeft();
+			
+			SHA1 pSHA1;
+			if ( CSHA::HashFromURN( strValue, &pSHA1 ) )
 			{
-				if ( oTiger && Settings.Downloads.VerifyTiger && !m_bTigerIgnore && m_sTigerTree.IsEmpty()
-					&& (   _tcsistr( m_sUserAgent, L"shareaza 2.1.4" ) != NULL
-						|| _tcsistr( m_sUserAgent, L"shareaza 2.2.0" ) != NULL ) )
+				if ( m_pSource->CheckHash( &pSHA1 ) )
 				{
-					// Converting urn containing tiger tree root to
-					// "/gnutella/thex/v1?urn:tree:tiger/:{TIGER_ROOT}&depth={TIGER_HEIGHT}&ed2k={0/1}"
-					// in case if "X-Thex-URI" and "X-TigerTree-Path" headers
-					// will be absent (perfect workaround for "silent" Sareaza 2.2.0.0)
-					m_sTigerTree.Format( L"/gnutella/thex/v1?%s&depth=%d&ed2k=%d",
-						oTiger.toUrn(),
-						Settings.Library.TigerHeight,
-						Settings.Downloads.VerifyED2K );
+					m_bHashMatch = TRUE;
 				}
-				m_bHashMatch = m_bHashMatch || oSHA1 || oTiger || oED2K;
-				continue;
+				else
+				{
+					theApp.Message( MSG_ERROR, IDS_DOWNLOAD_WRONG_HASH, (LPCTSTR)m_sAddress,
+						(LPCTSTR)m_pDownload->GetDisplayName() );
+					Close( TS_FALSE );
+					return FALSE;
+				}
 			}
-			theApp.Message( MSG_ERROR, IDS_DOWNLOAD_WRONG_HASH, (LPCTSTR)m_sAddress,
-				(LPCTSTR)m_pDownload->GetDisplayName() );
-			Close( TS_FALSE );
-			return FALSE;
+			
+			// TODO: Remove " ! m_bHashMatch "
+			
+			TIGEROOT pTiger;
+			if ( ! m_bHashMatch && CTigerNode::HashFromURN( strValue, &pTiger ) )
+			{
+				if ( m_pSource->CheckHash( &pTiger ) )
+				{
+					m_bHashMatch = TRUE;
+				}
+				else
+				{
+					theApp.Message( MSG_ERROR, IDS_DOWNLOAD_WRONG_HASH, (LPCTSTR)m_sAddress,
+						(LPCTSTR)m_pDownload->GetDisplayName() );
+					Close( TS_FALSE );
+					return FALSE;
+				}
+			}
+			
+			MD4 pED2K;
+			if ( CED2K::HashFromURN( strValue, &pED2K ) )
+			{
+				if ( m_pSource->CheckHash( &pED2K ) )
+				{
+					m_bHashMatch = TRUE;
+				}
+				else
+				{
+					theApp.Message( MSG_ERROR, IDS_DOWNLOAD_WRONG_HASH, (LPCTSTR)m_sAddress,
+						(LPCTSTR)m_pDownload->GetDisplayName() );
+					Close( TS_FALSE );
+					return FALSE;
+				}
+			}
 		}
 		m_pSource->SetGnutella( 1 );
 	}
@@ -806,7 +836,7 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		nPos = strValue.Find( _T("length=") );
 		if ( nPos >= 0 ) _stscanf( strValue.Mid( nPos + 7 ), _T("%i"), &m_nQueueLen );
 		
-		DWORD nLimit = 0;
+		DWORD nLimit;
 		
 		nPos = strValue.Find( _T("pollmin=") );
 		if ( nPos >= 0 && _stscanf( strValue.Mid( nPos + 8 ), _T("%u"), &nLimit ) == 1 )
@@ -864,10 +894,6 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		if ( _tcsistr( strValue, _T("gnutella2/") ) != NULL ) m_pSource->SetGnutella( 2 );
 		m_pSource->SetGnutella( 1 );
 	}
-	else if ( strHeader.CompareNoCase( _T("Location") ) == 0 )
-	{
-		m_sRedirectionURL = strValue;
-	}
 	
 	return CTransfer::OnHeaderLine( strHeader, strValue );
 }
@@ -879,13 +905,6 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 {
 	if ( m_bBadResponse )
 	{
-		Close( TS_FALSE );
-		return FALSE;
-	}
-	else if ( m_bRedirect )
-	{
-		int nRedirectionCount = m_pSource->m_nRedirectionCount;
-		m_pDownload->AddSourceURL( m_sRedirectionURL, m_bHashMatch, NULL, nRedirectionCount + 1 );
 		Close( TS_FALSE );
 		return FALSE;
 	}
@@ -1044,8 +1063,6 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 		(LPCTSTR)m_pSource->m_sServer );
 	
 	SetState( dtsDownloading );
-	if ( ! m_pDownload->IsBoosted() )
-		m_mInput.pLimit = m_mOutput.pLimit = &m_nBandwidth;
 	m_nPosition = 0;
 	m_tContent = m_mInput.tLast = GetTickCount();
 	
@@ -1061,7 +1078,7 @@ BOOL CDownloadTransferHTTP::ReadContent()
 	{
 		m_pSource->SetValid();
 		
-		DWORD nLength	= min( m_pInput->m_nLength, m_nLength - m_nPosition );
+		DWORD nLength	= (DWORD)min( (QWORD)m_pInput->m_nLength, m_nLength - m_nPosition );
 		BOOL bSubmit	= FALSE;
 		
 		if ( m_bRecvBackwards )
@@ -1218,7 +1235,7 @@ BOOL CDownloadTransferHTTP::ReadFlush()
 {
 	if ( m_nContentLength == SIZE_UNKNOWN ) m_nContentLength = 0;
 	
-	DWORD nRemove = min( m_pInput->m_nLength, m_nContentLength );
+	DWORD nRemove = min( m_pInput->m_nLength, (DWORD)m_nContentLength );
 	m_nContentLength -= nRemove;
 	
 	m_pInput->Remove( nRemove );
@@ -1228,8 +1245,6 @@ BOOL CDownloadTransferHTTP::ReadFlush()
 		if ( m_bQueueFlag )
 		{
 			SetState( dtsQueued );
-			if ( ! m_pDownload->IsBoosted() )
-				m_mInput.pLimit = m_mOutput.pLimit = &Settings.Bandwidth.Request;
 			m_tRequest = GetTickCount() + m_nRetryDelay;
 
 			theApp.Message( MSG_ERROR, IDS_DOWNLOAD_QUEUED,
@@ -1265,7 +1280,7 @@ BOOL CDownloadTransferHTTP::ReadFlush()
 //////////////////////////////////////////////////////////////////////
 // CDownloadTransferHTTP dropped connection handler
 
-void CDownloadTransferHTTP::OnDropped(BOOL /*bError*/)
+void CDownloadTransferHTTP::OnDropped(BOOL bError)
 {
 	if ( m_nState == dtsConnecting )
 	{

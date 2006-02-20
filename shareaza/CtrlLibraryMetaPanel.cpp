@@ -87,7 +87,7 @@ CLibraryMetaPanel::~CLibraryMetaPanel()
 /////////////////////////////////////////////////////////////////////////////
 // CLibraryMetaPanel operations
 
-BOOL CLibraryMetaPanel::CheckAvailable(CLibraryTreeItem* pFolders, CLibraryList* /*pObjects*/)
+BOOL CLibraryMetaPanel::CheckAvailable(CLibraryTreeItem* pFolders, CLibraryList* pObjects)
 {
 	m_bAvailable = FALSE;
 	
@@ -97,17 +97,10 @@ BOOL CLibraryMetaPanel::CheckAvailable(CLibraryTreeItem* pFolders, CLibraryList*
 		
 		if ( pFolders->m_pSelNext == NULL && pFolders->m_pVirtual != NULL )
 		{
-			// Do not display meta panel for the collection folder
-			if ( pFolders->m_pVirtual->m_oCollSHA1 &&
-				 pFolders->m_pVirtual->GetBestView().Find( _T("Collection") ) > 0 ||
-				 pFolders->m_pVirtual->m_sSchemaURI == CSchema::uriCollectionsFolder )
-			{
+			if ( pFolders->m_pVirtual->m_bCollSHA1 &&
+				 pFolders->m_pVirtual->GetBestView().Find( _T("Collection") ) > 0 )
 				 m_bAvailable = FALSE;
-				 return FALSE;
-			}
-
-			INT_PTR nFileCount = pFolders->m_pVirtual->GetFileCount();
-			m_bAvailable = ( nFileCount != 0 );
+			if ( pFolders->m_pVirtual->GetFolderCount() > 0 ) m_bAvailable = FALSE;
 		}
 	}
 	
@@ -120,7 +113,7 @@ void CLibraryMetaPanel::Update()
 	CSingleLock pLock2( &m_pSection, TRUE );
 	
 	CLibraryList* pSel = GetViewSelection();
-	m_nSelected = static_cast< int >( pSel->GetCount() );
+	m_nSelected = pSel->GetCount();
 	
 	CLibraryFile* pFirst = m_nSelected ? Library.LookupFile( pSel->GetHead() ) : NULL;
 	if ( pFirst == NULL ) m_nSelected = 0;
@@ -132,12 +125,9 @@ void CLibraryMetaPanel::Update()
 		m_nIndex	= pFirst->m_nIndex;
 		m_sName		= pFirst->m_sName;
 		CString strNewFile( pFirst->GetPath() );
-		m_bNewFile = ( m_sPath != strNewFile || pFirst->IsGhost() );
+		m_bNewFile = ( m_sPath != strNewFile );
 		if ( m_bNewFile ) m_sPath = strNewFile;
-		if ( pFirst->m_pFolder != NULL )
-			m_sFolder = pFirst->m_pFolder->m_sPath;
-		else
-			m_sFolder.Empty();
+		if ( pFirst->m_pFolder != NULL ) m_sFolder = pFirst->m_pFolder->m_sPath;
 		m_sSize		= Settings.SmartVolume( pFirst->GetSize(), FALSE );
 		m_sType		= ShellIcons.GetTypeString( m_sName );
 		m_nIcon32	= ShellIcons.Get( m_sName, 32 );
@@ -244,7 +234,6 @@ void CLibraryMetaPanel::Update()
 		{
 			m_bThread = TRUE;
 			CWinThread* pThread = AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_IDLE );
-			SetThreadName( pThread->m_nThreadID, "CtrlLibraryMetaPanel" );
 			m_hThread = pThread->m_hThread;
 		}
 		
@@ -418,10 +407,10 @@ void CLibraryMetaPanel::OnPaint()
 void CLibraryMetaPanel::DrawText(CDC* pDC, int nX, int nY, LPCTSTR pszText, RECT* pRect)
 {
 	DWORD dwFlags = ( theApp.m_bRTL ? ETO_RTLREADING : 0 );
-	CSize sz = pDC->GetTextExtent( pszText, static_cast< int >( _tcslen( pszText ) ) );
+	CSize sz = pDC->GetTextExtent( pszText, _tcslen( pszText ) );
 	CRect rc( nX - 2, nY - 2, nX + sz.cx + 2, nY + sz.cy + 2 );
 	
-	pDC->ExtTextOut( nX, nY, ETO_CLIPPED|ETO_OPAQUE|dwFlags, &rc, pszText, static_cast< UINT >( _tcslen( pszText ) ), NULL );
+	pDC->ExtTextOut( nX, nY, ETO_CLIPPED|ETO_OPAQUE|dwFlags, &rc, pszText, _tcslen( pszText ), NULL );
 	pDC->ExcludeClipRect( &rc );
 	
 	if ( pRect != NULL ) CopyMemory( pRect, &rc, sizeof(RECT) );
@@ -498,10 +487,11 @@ void CLibraryMetaPanel::DrawThumbnail(CDC* pDC, CRect& rcThumb)
 /////////////////////////////////////////////////////////////////////////////
 // CLibraryMetaPanel scrolling
 
-void CLibraryMetaPanel::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* /*pScrollBar*/) 
+void CLibraryMetaPanel::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar) 
 {
-	SCROLLINFO pScroll = {};
+	SCROLLINFO pScroll;
 	
+	ZeroMemory( &pScroll, sizeof(pScroll) );
 	pScroll.cbSize	= sizeof(pScroll);
 	pScroll.fMask	= SIF_ALL;
 	
@@ -613,12 +603,12 @@ void CLibraryMetaPanel::OnLButtonUp(UINT nFlags, CPoint point)
 	CLibraryPanel::OnLButtonUp( nFlags, point );
 }
 
-void CLibraryMetaPanel::OnLButtonDown(UINT /*nFlags*/, CPoint /*point*/)
+void CLibraryMetaPanel::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	SetFocus();
 }
 
-BOOL CLibraryMetaPanel::OnMouseWheel(UINT /*nFlags*/, short zDelta, CPoint /*pt*/)
+BOOL CLibraryMetaPanel::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
 	OnVScroll( SB_THUMBPOSITION, (int)( GetScrollPos( SB_VERT ) - zDelta / WHEEL_DELTA * m_nScrollWheelLines * 8 ), NULL );
 	return TRUE;

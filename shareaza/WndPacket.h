@@ -26,7 +26,6 @@
 
 #include "WndPanel.h"
 
-class CLiveItem;
 class CNeighbour;
 class CPacket;
 class CCoolMenu;
@@ -54,7 +53,7 @@ protected:
 	CLiveListSizer		m_pSizer;
 	CFont				m_pFont;
 	CCoolMenu*			m_pCoolMenu;
-	CList< CLiveItem* >	m_pQueue;
+	CPtrList			m_pQueue;
 	CCriticalSection	m_pSection;
 
 	static LPCSTR m_pszG2[];
@@ -82,7 +81,7 @@ protected:
 	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 	afx_msg void OnUpdateSystemClear(CCmdUI* pCmdUI);
 	afx_msg void OnDestroy();
-	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg void OnTimer(UINT nIDEvent);
 	//}}AFX_MSG
 	afx_msg void OnUpdateBlocker(CCmdUI* pCmdUI);
 	DECLARE_MESSAGE_MAP()

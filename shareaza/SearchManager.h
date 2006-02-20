@@ -39,9 +39,9 @@ public:
 // Attributes
 public:
 	CMutex			m_pSection;
-	Hashes::Guid	m_oLastED2KSearch;
+	GGUID			m_pLastED2KSearch;
 protected:
-	CList< CManagedSearch* > m_pList;
+	CPtrList		m_pList;
 	DWORD			m_tLastTick;
 	int				m_nPriorityClass;
 	int				m_nPriorityCount;
@@ -50,12 +50,12 @@ protected:
 public:
 	POSITION		GetIterator() const;
 	CManagedSearch*	GetNext(POSITION& pos) const;
-	INT_PTR			GetCount() const;
-	CManagedSearch*	Find(const Hashes::Guid& oGUID);
+	int				GetCount() const;
+	CManagedSearch*	Find(GGUID* pGUID);
 	void			OnRun();
-	BOOL			OnQueryAck(CG2Packet* pPacket, SOCKADDR_IN* pHost, Hashes::Guid& oGUID);
+	BOOL			OnQueryAck(CG2Packet* pPacket, SOCKADDR_IN* pHost, GGUID* pGUID);
 	BOOL			OnQueryHits(CQueryHit* pHits);
-	WORD			OnQueryStatusRequest(const Hashes::Guid& oGUID);
+	WORD			OnQueryStatusRequest(GGUID* pGUID);
 protected:
 	void			Add(CManagedSearch* pSearch);
 	void			Remove(CManagedSearch* pSearch);

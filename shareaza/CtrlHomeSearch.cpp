@@ -104,7 +104,7 @@ int CHomeSearchCtrl::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	CRect rc( 0, 0, 0, 0 );
 
-	if ( ! m_wndText.Create( WS_CHILD|WS_VISIBLE|WS_TABSTOP|WS_GROUP|WS_VSCROLL|CBS_AUTOHSCROLL|CBS_DROPDOWN,
+	if ( ! m_wndText.Create( WS_CHILD|WS_VISIBLE|WS_TABSTOP|WS_GROUP|CBS_AUTOHSCROLL|CBS_DROPDOWN,
 		rc, this, IDC_SEARCH_TEXT ) ) return -1;
 
 	m_wndText.SetFont( &theApp.m_gdiFont );
@@ -160,7 +160,7 @@ void CHomeSearchCtrl::FillHistory()
 		int nIndex = m_wndText.InsertString( 0, theApp.GetProfileString( _T("Search"), strEntry ) );
 		strEntry.Format( _T("Recent.%.2i.SchemaURI"), nItem + 1 );
 		CSchema* pSchema = SchemaCache.Get( theApp.GetProfileString( _T("Search"), strEntry ) );
-		m_wndText.SetItemData( nIndex, (DWORD_PTR)pSchema );
+		m_wndText.SetItemData( nIndex, (DWORD)pSchema );
 	}
 
 	CString strClear;
@@ -287,10 +287,10 @@ void CHomeSearchCtrl::OnSearchCreate()
 		theApp.WriteProfileString( _T("Search"), strEntry, strText );
 		strEntry.Format( _T("Recent.%.2i.SchemaURI"), nItem + 1 );
 		theApp.WriteProfileString( _T("Search"), strEntry, strURI );
-		m_wndText.SetItemData( m_wndText.InsertString( 0, strText ), (DWORD_PTR)pSchema );
+		m_wndText.SetItemData( m_wndText.InsertString( 0, strText ), (DWORD)pSchema );
 	}
 
-	auto_ptr< CQuerySearch > pSearch( new CQuerySearch() );
+	CQuerySearch* pSearch	= new CQuerySearch();
 	pSearch->m_sSearch		= strText;
 	pSearch->m_pSchema		= pSchema;
 
@@ -298,10 +298,13 @@ void CHomeSearchCtrl::OnSearchCreate()
 	{								//Adult search blocked, open help window
 		CHelpDlg::Show( _T("SearchHelp.AdultSearch") );
 	}
-	else if ( !CQuerySearch::OpenWindow( pSearch ) )
+	else if ( NULL == pSearch->OpenWindow() )
 	{								//Invalid search, open help window
 		CHelpDlg::Show( _T("SearchHelp.BadSearch") );
+		delete pSearch;
 	}
+
+
 
 	m_wndText.SetWindowText( _T("") );
 }

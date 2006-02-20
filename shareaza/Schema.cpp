@@ -63,7 +63,7 @@ POSITION CSchema::GetMemberIterator() const
 
 CSchemaMember* CSchema::GetNextMember(POSITION& pos) const
 {
-	return m_pMembers.GetNext( pos );
+	return (CSchemaMember*)m_pMembers.GetNext( pos );
 }
 
 CSchemaMember* CSchema::GetMember(LPCTSTR pszName) const
@@ -78,7 +78,7 @@ CSchemaMember* CSchema::GetMember(LPCTSTR pszName) const
 	return NULL;
 }
 
-INT_PTR CSchema::GetMemberCount() const
+int CSchema::GetMemberCount() const
 {
 	return m_pMembers.GetCount();
 }
@@ -87,7 +87,7 @@ CString CSchema::GetFirstMemberName() const
 {
 	if ( m_pMembers.GetCount() )
 	{
-		CSchemaMember* pMember = m_pMembers.GetHead();
+		CSchemaMember* pMember = (CSchemaMember*)m_pMembers.GetHead();
 		return pMember->m_sName;
 	}
 
@@ -107,12 +107,12 @@ void CSchema::Clear()
 
 	for ( POSITION pos = m_pContains.GetHeadPosition() ; pos ; )
 	{
-		delete m_pContains.GetNext( pos );
+		delete (CSchemaChild*)m_pContains.GetNext( pos );
 	}
 
 	for ( POSITION pos = m_pBitziMap.GetHeadPosition() ; pos ; )
 	{
-		delete m_pBitziMap.GetNext( pos );
+		delete (CSchemaBitzi*)m_pBitziMap.GetNext( pos );
 	}
 
 	m_pMembers.RemoveAll();
@@ -151,7 +151,49 @@ BOOL CSchema::Load(LPCTSTR pszFile)
 	if ( m_sTitle.IsEmpty() )
 	{
 		m_sTitle = m_sSingular;
-		m_sTitle.SetAt( 0, TCHAR( toupper( m_sTitle.GetAt( 0 ) ) ) );
+		m_sTitle.SetAt( 0, toupper( m_sTitle.GetAt( 0 ) ) );
+	}
+
+	
+	if( m_nType == stFile )
+	{
+		//Bit of a hack - Should probably save this info as part of schema. Do that in 2.2
+		if ( m_sURI == CSchema::uriAudio )
+			m_sDonkeyType = _T("Audio");
+		else if ( m_sURI == CSchema::uriVideo)
+			m_sDonkeyType = _T("Video");
+		else if ( m_sURI == CSchema::uriImage )
+			m_sDonkeyType = _T("Image");
+		else if ( m_sURI == CSchema::uriApplication )
+			m_sDonkeyType = _T("Pro");
+		else if ( m_sURI == CSchema::uriBook )
+			m_sDonkeyType = _T("Doc");
+		else if ( m_sURI == CSchema::uriPresentation )
+			m_sDonkeyType = _T("Doc");
+		else if ( m_sURI == CSchema::uriSpreadsheet )
+			m_sDonkeyType = _T("Doc");
+		else if ( m_sURI == CSchema::uriDocument )
+			m_sDonkeyType = _T("Doc");
+		/*
+		//Bit of a hack - Should probably save this info as part of schema. Do that in 2.2
+		if ( m_sURI == _T("http://www.limewire.com/schemas/audio.xsd") )
+			m_sDonkeyType = _T("Audio");
+		else if ( m_sURI == _T("http://www.limewire.com/schemas/video.xsd") )
+			m_sDonkeyType = _T("Video");
+		else if ( m_sURI == _T("http://www.shareaza.com/schemas/image.xsd") )
+			m_sDonkeyType = _T("Image");
+		else if ( m_sURI == _T("http://www.shareaza.com/schemas/application.xsd") )
+			m_sDonkeyType = _T("Pro");
+		else if ( m_sURI == _T("http://www.limewire.com/schemas/book.xsd") )
+			m_sDonkeyType = _T("Doc");
+		else if ( m_sURI == _T("http://www.shareaza.com/schemas/presentation.xsd") )
+			m_sDonkeyType = _T("Doc");
+		else if ( m_sURI == _T("http://www.shareaza.com/schemas/spreadsheet.xsd") )
+			m_sDonkeyType = _T("Doc");
+		else if ( m_sURI == CSchema::uriDocument )
+			m_sDonkeyType = _T("Doc");
+		*/
+
 	}
 
 	return TRUE;
@@ -171,7 +213,7 @@ BOOL CSchema::LoadSchema(LPCTSTR pszFile)
 
 	m_sURI = pRoot->GetAttributeValue( _T("targetNamespace"), _T("") );
 
-	CXMLElement* pPlural = pRoot->GetElementByName( _T("element") );
+	CXMLElement* pPlural = pRoot->GetFirstElement();
 
 	if ( pPlural && m_sURI.GetLength() )
 	{
@@ -198,28 +240,6 @@ BOOL CSchema::LoadSchema(LPCTSTR pszFile)
 				}
 
 				if ( m_sSingular.IsEmpty() ) bResult = FALSE;
-			}
-		}
-	}
-	
-	CXMLElement* pMapping = pRoot->GetElementByName( _T("mapping") );
-	if ( pMapping )
-	{
-		for ( POSITION pos = pMapping->GetElementIterator() ; pos ; )
-		{
-			CXMLElement* pNetwork = pMapping->GetNextElement( pos );
-			if ( pNetwork )
-			{
-				BOOL bFound = pNetwork->IsNamed( _T("network") );
-
-				CString strName = pNetwork->GetAttributeValue( _T("name") );
-				if ( ! bFound || strName != _T("ed2k") )
-					continue;
-				else
-				{
-					m_sDonkeyType = pNetwork->GetAttributeValue( _T("value") );
-					break;
-				}
 			}
 		}
 	}
@@ -621,7 +641,7 @@ CSchemaChild* CSchema::GetContained(LPCTSTR pszURI) const
 {
 	for ( POSITION pos = m_pContains.GetHeadPosition() ; pos ; )
 	{
-		CSchemaChild* pChild = m_pContains.GetNext( pos );
+		CSchemaChild* pChild = (CSchemaChild*)m_pContains.GetNext( pos );
 		if ( pChild->m_sURI.CompareNoCase( pszURI ) == 0 ) return pChild;
 	}
 	return NULL;
@@ -631,7 +651,7 @@ CString CSchema::GetContainedURI(int nType) const
 {
 	for ( POSITION pos = m_pContains.GetHeadPosition() ; pos ; )
 	{
-		CSchemaChild* pChild = m_pContains.GetNext( pos );
+		CSchemaChild* pChild = (CSchemaChild*)m_pContains.GetNext( pos );
 
 		if ( pChild->m_nType == nType ) return pChild->m_sURI;
 	}
@@ -674,7 +694,7 @@ BOOL CSchema::Validate(CXMLElement* pXML, BOOL bFix)
 		
 		if ( pMember->m_bNumeric )
 		{
-			float nNumber = 0.0f;
+			float nNumber;
 			if ( str.GetLength() && _stscanf( str, _T("%f"), &nNumber ) != 1 ) return FALSE;
 			if ( nNumber < pMember->m_nMinOccurs || nNumber > pMember->m_nMaxOccurs ) return FALSE;
 		}
@@ -717,7 +737,7 @@ CString CSchema::GetIndexedWords(CXMLElement* pXML) const
 			}
 		}
 	}
-	ToLower( str );	
+	
 	return str;
 }
 
@@ -813,5 +833,3 @@ LPCTSTR	CSchema::uriVideoMusicCollection	= _T("http://www.shareaza.com/schemas/v
 
 LPCTSTR	CSchema::uriDocumentRoot			= _T("http://www.shareaza.com/schemas/documentRoot.xsd");
 LPCTSTR	CSchema::uriDocumentAll				= _T("http://www.shareaza.com/schemas/documentAll.xsd");
-
-LPCTSTR	CSchema::uriGhostFolder				= _T("http://www.shareaza.com/schemas/ghostFolder.xsd");

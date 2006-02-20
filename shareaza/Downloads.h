@@ -43,12 +43,6 @@ public:
 
 // Attributes
 public:
-	DWORD			m_tBandwidthLastCalc;		// The last time the bandwidth was calculated
-	DWORD			m_tBandwidthAtMax;			// The last time download bandwidth was all in use
-	DWORD			m_tBandwidthAtMaxED2K;		// The last time all ed2k bandwidth was used
-
-	DWORD			m_nLimitNew;				// Bandwidth assigned to new transfers
-
 	DWORD			m_nLimitGeneric;
 	DWORD			m_nLimitDonkey;
 	DWORD			m_nTransfers;
@@ -59,8 +53,8 @@ public:
 	BOOL			m_bClosing;
 	DWORD			m_tLastConnect;
 protected:
-	CList< CDownload* > m_pList;
-	CMap< ULONG, ULONG, int, int > m_pHostLimits;
+	CPtrList		m_pList;
+	CMapPtrToPtr	m_pHostLimits;
 	int				m_nRunCookie;
 public:
 	enum
@@ -82,7 +76,7 @@ public:
 public:
 	int			GetSeedCount() const;
 	int			GetActiveTorrentCount() const;
-	INT_PTR		GetCount(BOOL bActiveOnly = FALSE) const;
+	int			GetCount(BOOL bActiveOnly = FALSE) const;
 	int			GetTransferCount() const;
 	int			GetTryingCount(BOOL bTorrentsOnly = FALSE) const;
 	int			GetConnectingTransferCount() const;
@@ -92,10 +86,10 @@ public:
 	BOOL		Reorder(CDownload* pDownload, CDownload* pBefore);
 	BOOL		Swap(CDownload* p1, CDownload* p2);
 	CDownload*	FindByURN(LPCTSTR pszURN, BOOL bSharedOnly = FALSE) const;
-    CDownload*	FindBySHA1(const Hashes::Sha1Hash& oSHA1, BOOL bSharedOnly = FALSE) const;
-    CDownload*	FindByTiger(const Hashes::TigerHash& oTiger, BOOL bSharedOnly = FALSE) const;
-    CDownload*	FindByED2K(const Hashes::Ed2kHash& oED2K, BOOL bSharedOnly = FALSE) const;
-    CDownload*	FindByBTH(const Hashes::BtHash& oBTH, BOOL bSharedOnly = FALSE) const;
+	CDownload*	FindBySHA1(const SHA1* pHash, BOOL bSharedOnly = FALSE) const;
+	CDownload*	FindByTiger(const TIGEROOT* pHash, BOOL bSharedOnly = FALSE) const;
+	CDownload*	FindByED2K(const MD4* pED2K, BOOL bSharedOnly = FALSE) const;
+	CDownload*	FindByBTH(const SHA1* pHash, BOOL bSharedOnly = FALSE) const;
 	CDownload*	FindBySID(DWORD nSerID) const;
 	DWORD		GetFreeSID();
 	QWORD		GetAmountDownloadedFrom(IN_ADDR* pAddress);
@@ -104,7 +98,7 @@ public:
 	void		Load();
 	void		Save(BOOL bForce = TRUE);
 	void		OnRun();
-	BOOL		OnPush(const Hashes::Guid& oGUID, CConnection* pConnection);
+	BOOL		OnPush(GGUID* pGUID, CConnection* pConnection);
 	BOOL		OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept = NULL);
 	void		OnQueryHits(CQueryHit* pHits);
 	void		OnVerify(LPCTSTR pszPath, BOOL bVerified);
@@ -136,12 +130,12 @@ public:
 
 	inline CDownload* CDownloads::GetNext(POSITION& pos) const
 	{
-		return m_pList.GetNext( pos );
+		return (CDownload*)m_pList.GetNext( pos );
 	}
 
 	inline CDownload* CDownloads::GetPrevious(POSITION& pos) const
 	{
-		return m_pList.GetPrev( pos );
+		return (CDownload*)m_pList.GetPrev( pos );
 	}
 
 	inline BOOL CDownloads::Check(CDownload* pDownload) const

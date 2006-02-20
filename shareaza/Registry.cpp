@@ -135,7 +135,7 @@ BOOL CRegistry::SetString(LPCTSTR pszSection, LPCTSTR pszName, LPCTSTR pszValue)
 	if ( nErrorCode == ERROR_SUCCESS )
 	{
 		nErrorCode = RegSetValueEx( hKey, pszName, 0, REG_SZ, (const BYTE *)pszValue,
-								static_cast< DWORD >( _tcslen(pszValue) * sizeof(TCHAR) + sizeof(TCHAR) ) );
+								_tcslen(pszValue) * sizeof(TCHAR) + sizeof(TCHAR) );
 
 		RegCloseKey( hKey );
 	}
@@ -198,8 +198,5 @@ void CRegistry::DisplayErrorMessageBox(LPCTSTR pszName, DWORD nErrorCode)
 	sMessage.Format( _T("%s returned error: %s"), pszName, (LPCTSTR)lpMsgBuf );
 	LocalFree( lpMsgBuf );
 	MessageBox( NULL, sMessage, _T("Warning"), MB_OK | MB_ICONINFORMATION );
-#else
-	pszName;
-	nErrorCode; // sink
 #endif
 }

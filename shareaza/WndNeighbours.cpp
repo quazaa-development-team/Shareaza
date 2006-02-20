@@ -229,7 +229,7 @@ void CNeighboursWnd::Update()
 		{
 			if ( pNeighbour->m_nProtocol == PROTOCOL_G1 )
 			{
-//				CG1Neighbour* pG1 = reinterpret_cast<CG1Neighbour*>(pNeighbour);
+				CG1Neighbour* pG1 = reinterpret_cast<CG1Neighbour*>(pNeighbour);
 				
 				switch ( pNeighbour->m_nNodeType )
 				{
@@ -334,7 +334,7 @@ CNeighbour* CNeighboursWnd::GetItem(int nItem)
 {
 	if ( m_wndList.GetItemState( nItem, LVIS_SELECTED ) )
 	{
-		return Neighbours.Get( static_cast< DWORD >( m_wndList.GetItemData( nItem ) ) );
+		return Neighbours.Get( m_wndList.GetItemData( nItem ) );
 	}
 	
 	return NULL;
@@ -371,7 +371,7 @@ void CNeighboursWnd::OnSize(UINT nType, int cx, int cy)
 	if ( bSized && m_wndList.GetItemCount() == 0 ) m_wndList.Invalidate();
 }
 
-void CNeighboursWnd::OnTimer(UINT_PTR nIDEvent) 
+void CNeighboursWnd::OnTimer(UINT nIDEvent) 
 {
 	if ( nIDEvent == 1 ) 
 	{
@@ -387,7 +387,7 @@ void CNeighboursWnd::OnSortList(NMHDR* pNotifyStruct, LRESULT *pResult)
 	*pResult = 0;
 }
 
-void CNeighboursWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point) 
+void CNeighboursWnd::OnContextMenu(CWnd* pWnd, CPoint point) 
 {
 	TrackPopupMenu( _T("CNeighboursWnd"), point );
 }
@@ -470,7 +470,7 @@ void CNeighboursWnd::OnNeighboursChat()
 		{
 			if ( pNeighbour->m_nProtocol != PROTOCOL_ED2K )
 			{
-				ChatWindows.OpenPrivate( pNeighbour->m_oGUID,
+				ChatWindows.OpenPrivate( pNeighbour->m_bGUID ? &pNeighbour->m_pGUID : NULL,
 					&pNeighbour->m_pHost, FALSE, pNeighbour->m_nProtocol );
 			}
 		}
@@ -526,11 +526,12 @@ void CNeighboursWnd::OnBrowseLaunch()
 		if ( pNeighbour->m_nProtocol != PROTOCOL_ED2K )
 		{
 			SOCKADDR_IN pAddress = pNeighbour->m_pHost;
-			Hashes::Guid oGUID = pNeighbour->m_oGUID;
+			BOOL bGUID = pNeighbour->m_bGUID;
+			GGUID pGUID = pNeighbour->m_pGUID;
 			
 			pLock.Unlock();
 			
-			new CBrowseHostWnd( &pAddress, oGUID );
+			new CBrowseHostWnd( &pAddress, bGUID ? &pGUID : NULL );
 		}
 	}
 }
@@ -577,7 +578,7 @@ void CNeighboursWnd::OpenPacketWnd(BOOL bIncoming, BOOL bOutgoing)
 	CWindowManager* pManager = GetManager();
 	CPacketWnd* pWnd = NULL;
 	
-	while ( ( pWnd = (CPacketWnd*)pManager->Find( RUNTIME_CLASS(CPacketWnd), pWnd ) ) != NULL )
+	while ( pWnd = (CPacketWnd*)pManager->Find( RUNTIME_CLASS(CPacketWnd), pWnd ) )
 	{
 		if ( pWnd->m_pOwner == this ) break;
 	}
@@ -612,7 +613,7 @@ void CNeighboursWnd::OnCustomDrawList(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 	else if ( pDraw->nmcd.dwDrawStage == CDDS_ITEMPREPAINT )
 	{
-		LV_ITEM pItem = { LVIF_IMAGE, static_cast< int >( pDraw->nmcd.dwItemSpec ) };
+		LV_ITEM pItem = { LVIF_IMAGE, pDraw->nmcd.dwItemSpec };
 		m_wndList.GetItem( &pItem );
 				
 		switch ( pItem.iImage )

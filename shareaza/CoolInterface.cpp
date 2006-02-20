@@ -76,13 +76,13 @@ void CCoolInterface::Clear()
 
 void CCoolInterface::NameCommand(UINT nID, LPCTSTR pszName)
 {
-	m_pNameMap.SetAt( pszName, nID );
+	m_pNameMap.SetAt( pszName, (LPVOID)nID );
 }
 
 UINT CCoolInterface::NameToID(LPCTSTR pszName)
 {
 	UINT nID = 0;
-	if ( m_pNameMap.Lookup( pszName, nID ) ) return nID;
+	if ( m_pNameMap.Lookup( pszName, (void*&)nID ) ) return nID;
 	if ( _stscanf( pszName, _T("%u"), &nID ) == 1 ) return nID;
 	return 0;
 }
@@ -93,7 +93,7 @@ UINT CCoolInterface::NameToID(LPCTSTR pszName)
 int CCoolInterface::ImageForID(UINT nID)
 {
 	int nImage;
-	if ( m_pImageMap.Lookup( nID, nImage ) ) return nImage;
+	if ( m_pImageMap.Lookup( (LPVOID)nID, (void*&)nImage ) ) return nImage;
 	return -1;
 }
 
@@ -101,14 +101,14 @@ void CCoolInterface::AddIcon(UINT nID, HICON hIcon)
 {
 	ConfirmImageList();
 	int nImage = m_pImages.Add( hIcon );
-	m_pImageMap.SetAt( nID, nImage );
+	m_pImageMap.SetAt( (LPVOID)nID, (LPVOID)nImage );
 }
 
 void CCoolInterface::CopyIcon(UINT nFromID, UINT nToID)
 {
 	int nImage;
-	if ( m_pImageMap.Lookup( nFromID, nImage ) )
-		m_pImageMap.SetAt( nToID, nImage );
+	if ( m_pImageMap.Lookup( (LPVOID)nFromID, (void*&)nImage ) )
+		m_pImageMap.SetAt( (LPVOID)nToID, (LPVOID)nImage );
 }
 
 HICON CCoolInterface::ExtractIcon(UINT nID)
@@ -147,7 +147,8 @@ BOOL CCoolInterface::AddImagesFromToolbar(UINT nIDToolBar, COLORREF crBack)
 	{
 		if ( pData->items()[ nItem ] != ID_SEPARATOR )
 		{
-			m_pImageMap.SetAt( pData->items()[ nItem ], nBase );
+			m_pImageMap.SetAt( (LPVOID)(DWORD)pData->items()[ nItem ],
+				(LPVOID)nBase );
 			nBase++;
 		}
 	}
@@ -243,27 +244,27 @@ void CCoolInterface::CreateFonts(LPCTSTR pszFace, int nSize)
 	if ( m_fntItalic.m_hObject ) m_fntItalic.DeleteObject();
 	if ( m_fntBoldItalic.m_hObject ) m_fntBoldItalic.DeleteObject();
 	
-	m_fntNormal.CreateFontW( -nSize, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+	m_fntNormal.CreateFont( -nSize, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		DEFAULT_PITCH|FF_DONTCARE, pszFace );
 	
-	m_fntBold.CreateFontW( -nSize, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+	m_fntBold.CreateFont( -nSize, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		DEFAULT_PITCH|FF_DONTCARE, pszFace );
 	
-	m_fntUnder.CreateFontW( -nSize, 0, 0, 0, FW_NORMAL, FALSE, TRUE, FALSE,
+	m_fntUnder.CreateFont( -nSize, 0, 0, 0, FW_NORMAL, FALSE, TRUE, FALSE,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		DEFAULT_PITCH|FF_DONTCARE, pszFace );
 	
-	m_fntCaption.CreateFontW( -nSize - 2, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+	m_fntCaption.CreateFont( -nSize - 2, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		DEFAULT_PITCH|FF_DONTCARE, pszFace );
 
-	m_fntItalic.CreateFontW( -nSize, 0, 0, 0, FW_NORMAL, TRUE, FALSE, FALSE,
+	m_fntItalic.CreateFont( -nSize, 0, 0, 0, FW_NORMAL, TRUE, FALSE, FALSE,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		DEFAULT_PITCH|FF_DONTCARE, pszFace );
 
-	m_fntBoldItalic.CreateFontW( -nSize, 0, 0, 0, FW_BOLD, TRUE, FALSE, FALSE,
+	m_fntBoldItalic.CreateFont( -nSize, 0, 0, 0, FW_BOLD, TRUE, FALSE, FALSE,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		DEFAULT_PITCH|FF_DONTCARE, pszFace );
 }
@@ -273,7 +274,7 @@ void CCoolInterface::CreateFonts(LPCTSTR pszFace, int nSize)
 
 void CCoolInterface::CalculateColours(BOOL bCustom)
 {
-	if ( ( m_bCustom = bCustom ) == FALSE )
+	if ( ! ( m_bCustom = bCustom ) )
 	{
 		m_crWindow		= GetSysColor( COLOR_WINDOW );
 		m_crMidtone		= GetSysColor( COLOR_BTNFACE );

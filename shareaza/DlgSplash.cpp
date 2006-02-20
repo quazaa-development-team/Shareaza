@@ -94,7 +94,7 @@ BOOL CSplashDlg::OnInitDialog()
 	SetWindowPos( NULL, 0, 0, SPLASH_WIDTH, SPLASH_HEIGHT, SWP_NOMOVE );
 	CenterWindow();
 
-	if ( theApp.m_bNT && ( m_hUser32 = LoadLibrary( _T("User32.dll") ) ) != 0 )
+	if ( theApp.m_bNT && ( m_hUser32 = LoadLibrary( _T("User32.dll") ) ) )
 	{
 		(FARPROC&)m_pfnAnimateWindow = GetProcAddress( m_hUser32, "AnimateWindow" );
 
@@ -141,9 +141,9 @@ void CSplashDlg::Hide()
 	delete this;
 }
 
-LRESULT CSplashDlg::OnPrintClient(WPARAM wParam, LPARAM /*lParam*/)
+LONG CSplashDlg::OnPrintClient(WPARAM wParam, LPARAM lParam)
 {
-	LRESULT lResult = Default();
+	LONG lResult = Default();
 
 	CDC* pDC = CDC::FromHandle( (HDC)wParam );
 	DoPaint( pDC );

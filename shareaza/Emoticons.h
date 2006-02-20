@@ -38,9 +38,9 @@ public:
 // Attributes
 public:
 	CImageList		m_pImage;
-	CArray< CString >	m_pIndex;
+	CStringArray	m_pIndex;
 	LPTSTR			m_pTokens;
-	CArray< UINT >		m_pButtons;
+	CUIntArray		m_pButtons;
 
 // Operations
 public:

@@ -1,7 +1,7 @@
 //
 // LibraryBuilderInternals.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -55,7 +55,7 @@ public:
 // Operations
 public:
 	void		LoadSettings();
-    BOOL		ExtractMetadata( CString& strPath, HANDLE hFile, Hashes::Sha1Hash& oSHA1);
+	BOOL		ExtractMetadata( CString& strPath, HANDLE hFile, SHA1* pSHA1);
 protected:
 	BOOL		SubmitMetadata( LPCTSTR pszSchemaURI, CXMLElement* pXML);
 	BOOL		SubmitCorrupted();
@@ -84,11 +84,10 @@ protected:		// General Media
 	BOOL		ReadOGGString(BYTE*& pOGG, DWORD& nOGG, CString& str);
 	BOOL		ReadAPE( HANDLE hFile);
 	BOOL		ReadPDF( HANDLE hFile, LPCTSTR pszPath);
-	CString		ReadLine(HANDLE hFile, LPCTSTR pszSeparators = NULL);
-	CString		ReadLineReverse(HANDLE hFile, LPCTSTR pszSeparators = NULL);
-    BOOL		ReadCollection( HANDLE hFile, const Hashes::Sha1Hash& oSHA1);
+	CString		ReadLine(HANDLE hFile);
+	CString		ReadLineReverse(HANDLE hFile);
+	BOOL		ReadCollection( HANDLE hFile, SHA1* pSHA1);
 	BOOL		ReadCHM(HANDLE hFile, LPCTSTR pszPath);
-	CString		DecodePDFText(CString& strInput);
 };
 
 #endif // !defined(AFX_LIBRARYBUILDERINTERNALS_H__5CAE40BD_1963_4A30_A333_89DBB6899803__INCLUDED_)

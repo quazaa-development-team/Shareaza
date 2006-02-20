@@ -46,11 +46,12 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CFileCommentsPage property page
 
-CFileCommentsPage::CFileCommentsPage() :
-	CFilePropertiesPage( CFileCommentsPage::IDD ),
-	m_sComments(), m_nRating( -1 )
+CFileCommentsPage::CFileCommentsPage() : CFilePropertiesPage( CFileCommentsPage::IDD )
 {
-	m_psp.dwFlags |= PSP_USETITLE;
+	//{{AFX_DATA_INIT(CFileCommentsPage)
+	m_sComments = _T("");
+	m_nRating = -1;
+	//}}AFX_DATA_INIT
 }
 
 CFileCommentsPage::~CFileCommentsPage()
@@ -108,13 +109,13 @@ BOOL CFileCommentsPage::OnInitDialog()
 	return TRUE;
 }
 
-void CFileCommentsPage::OnMeasureItem(int /*nIDCtl*/, LPMEASUREITEMSTRUCT lpMeasureItemStruct)
+void CFileCommentsPage::OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct)
 {
 	lpMeasureItemStruct->itemWidth	= 1024;
 	lpMeasureItemStruct->itemHeight	= 18;
 }
 
-void CFileCommentsPage::OnDrawItem(int /*nIDCtl*/, LPDRAWITEMSTRUCT lpDrawItemStruct)
+void CFileCommentsPage::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 {
 	if ( lpDrawItemStruct->itemID == (UINT)-1 ) return;
 	if ( ( lpDrawItemStruct->itemAction & ODA_SELECT ) == 0 &&

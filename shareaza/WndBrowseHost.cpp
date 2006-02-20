@@ -63,15 +63,15 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CBrowseHostWnd construction
 
-CBrowseHostWnd::CBrowseHostWnd(SOCKADDR_IN* pAddress, const Hashes::Guid& oClientID)
+CBrowseHostWnd::CBrowseHostWnd(SOCKADDR_IN* pAddress, GGUID* pClientID)
 {
-	m_pBrowser = new CHostBrowser( this, &pAddress->sin_addr, htons( pAddress->sin_port ), FALSE, oClientID );
+	m_pBrowser = new CHostBrowser( this, &pAddress->sin_addr, htons( pAddress->sin_port ), FALSE, pClientID );
 	Create( IDR_BROWSEHOSTFRAME );
 }
 
-CBrowseHostWnd::CBrowseHostWnd(IN_ADDR* pAddress, WORD nPort, BOOL bMustPush, const Hashes::Guid& oClientID)
+CBrowseHostWnd::CBrowseHostWnd(IN_ADDR* pAddress, WORD nPort, BOOL bMustPush, GGUID* pClientID)
 {
-	m_pBrowser = new CHostBrowser( this, pAddress, nPort, bMustPush, oClientID );
+	m_pBrowser = new CHostBrowser( this, pAddress, nPort, bMustPush, pClientID );
 	Create( IDR_BROWSEHOSTFRAME );
 }
 
@@ -89,7 +89,7 @@ int CBrowseHostWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	if ( CSchema* pSchema = SchemaCache.Get( Settings.Search.BlankSchemaURI ) )
 	{
-		CList< CSchemaMember* > pColumns;
+		CPtrList pColumns;
 		CSchemaColumnsDlg::LoadColumns( pSchema, &pColumns );
 		m_wndList.SelectSchema( pSchema, &pColumns );
 	}
@@ -241,7 +241,7 @@ void CBrowseHostWnd::OnSearchChat()
 {
 	if ( m_pBrowser != NULL )
 	{
-		ChatWindows.OpenPrivate( m_pBrowser->m_oClientID,
+		ChatWindows.OpenPrivate( &m_pBrowser->m_pClientID,
 			&m_pBrowser->m_pAddress, m_pBrowser->m_nPort, m_pBrowser->m_bMustPush, m_pBrowser->m_nProtocol );
 	}
 }
@@ -254,7 +254,7 @@ void CBrowseHostWnd::OnSelChangeMatches()
 /////////////////////////////////////////////////////////////////////////////
 // CBrowseHostWnd event handlers
 
-void CBrowseHostWnd::UpdateMessages(BOOL /*bActive*/)
+void CBrowseHostWnd::UpdateMessages(BOOL bActive)
 {
 	CString strCaption, strOld;
 
@@ -369,7 +369,7 @@ void CBrowseHostWnd::OnVirtualTree(CG2Packet* pPacket)
 	m_wndFrame.OnVirtualTree( pPacket );
 }
 
-BOOL CBrowseHostWnd::OnPush(const Hashes::Guid& oClientID, CConnection* pConnection)
+BOOL CBrowseHostWnd::OnPush(GGUID* pClientID, CConnection* pConnection)
 {
-	return m_pBrowser != NULL && m_pBrowser->OnPush( oClientID, pConnection );
+	return m_pBrowser != NULL && m_pBrowser->OnPush( pClientID, pConnection );
 }

@@ -39,7 +39,7 @@ public:
 public:
 	CMutex		m_pSection;
 protected:
-	CList< CChatSession* > m_pSessions;
+	CPtrList	m_pSessions;
 	HANDLE		m_hThread;
 	BOOL		m_bThread;
 	CEvent		m_pWakeup;
@@ -48,11 +48,11 @@ protected:
 public:
 	POSITION		GetIterator() const;
 	CChatSession*	GetNext(POSITION& pos) const;
-	INT_PTR			GetCount() const { return m_pSessions.GetCount(); }
+	int				GetCount() const;
 	BOOL			Check(CChatSession* pSession) const;
 	void			Close();
 	void			OnAccept(CConnection* pConnection, PROTOCOLID nProtocol = PROTOCOL_NULL);
-	BOOL			OnPush(const Hashes::Guid& oGUID, CConnection* pConnection);
+	BOOL			OnPush(GGUID* pGUID, CConnection* pConnection);
 	void			OnED2KMessage(CEDClient* pClient, CEDPacket* pPacket);
 	CChatSession*	FindSession(CEDClient* pClient);
 	void			StopThread();

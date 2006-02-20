@@ -38,7 +38,7 @@ public:
 
 // Attributes
 protected:
-	CList< CDiscoveryService* > m_pList;
+	CPtrList			m_pList;
 	HANDLE				m_hThread;
 	HINTERNET			m_hInternet;
 	HINTERNET			m_hRequest;

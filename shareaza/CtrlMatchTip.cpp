@@ -75,7 +75,7 @@ CMatchTipCtrl::CMatchTipCtrl()
 	m_tOpen		= 0;
 	m_nIcon		= 0;
 
-	if ( ( m_hUser32 = LoadLibrary( _T("User32.dll") ) ) != 0 )
+	if ( m_hUser32 = LoadLibrary( _T("User32.dll") ) )
 	{
 		(FARPROC&)m_pfnSetLayeredWindowAttributes = GetProcAddress(
 			m_hUser32, "SetLayeredWindowAttributes" );
@@ -183,7 +183,7 @@ void CMatchTipCtrl::OnDestroy()
 /////////////////////////////////////////////////////////////////////////////
 // CMatchTipCtrl show logic message handlers
 
-void CMatchTipCtrl::OnTimer(UINT_PTR /*nIDEvent*/)
+void CMatchTipCtrl::OnTimer(UINT nIDEvent)
 {
 	CPoint point;
 	GetCursorPos( &point );
@@ -315,18 +315,32 @@ void CMatchTipCtrl::LoadFromFile()
 	m_sName = m_pFile->m_pBest->m_sName;
 	m_sSize = m_pFile->m_sSize;
 	LoadTypeInfo();
-	
-	if ( Settings.General.GUIMode == GUI_BASIC )
+
+	if ( m_pFile->m_bSHA1 && Settings.General.GUIMode != GUI_BASIC)
 	{
-		m_sSHA1.Empty();
-		m_sTiger.Empty();
-		m_sED2K.Empty();
+		m_sSHA1 = _T("sha1:") + CSHA::HashToString( &m_pFile->m_pSHA1 );
 	}
 	else
 	{
-		m_sSHA1 = m_pFile->m_oSHA1.toShortUrn();
-		m_sTiger = m_pFile->m_oTiger.toShortUrn();
-		m_sED2K = m_pFile->m_oED2K.toShortUrn();
+		m_sSHA1.Empty();
+	}
+
+	if ( m_pFile->m_bTiger && Settings.General.GUIMode != GUI_BASIC)
+	{
+		m_sTiger = _T("tree:tiger/:") + CTigerNode::HashToString( &m_pFile->m_pTiger );
+	}
+	else
+	{
+		m_sTiger.Empty();
+	}
+
+	if ( m_pFile->m_bED2K && Settings.General.GUIMode != GUI_BASIC)
+	{
+		m_sED2K = _T("ed2k:") + CED2K::HashToString( &m_pFile->m_pED2K );
+	}
+	else
+	{
+		m_sED2K.Empty();
 	}
 
 	if ( m_pFile->m_nFiltered == 1 && m_pFile->m_pBest->m_nPartial )
@@ -385,13 +399,13 @@ void CMatchTipCtrl::LoadFromFile()
 		CLibraryFile* pExisting = NULL;
 
 		CQuickLock oLock( Library.m_pSection );
-		if ( pExisting == NULL && m_pFile->m_oSHA1 )
-			pExisting = LibraryMaps.LookupFileBySHA1( m_pFile->m_oSHA1 );
-		if ( pExisting == NULL && m_pFile->m_oTiger )
-			pExisting = LibraryMaps.LookupFileByTiger( m_pFile->m_oTiger );
-		if ( pExisting == NULL && m_pFile->m_oED2K )
-			pExisting = LibraryMaps.LookupFileByED2K( m_pFile->m_oED2K );
-		
+		if ( pExisting == NULL && m_pFile->m_bSHA1 == TRUE )
+			pExisting = LibraryMaps.LookupFileBySHA1( &m_pFile->m_pSHA1 );
+		if ( pExisting == NULL && m_pFile->m_bTiger == TRUE )
+			pExisting = LibraryMaps.LookupFileByTiger( &m_pFile->m_pTiger );
+		if ( pExisting == NULL && m_pFile->m_bED2K == TRUE )
+			pExisting = LibraryMaps.LookupFileByED2K( &m_pFile->m_pED2K );
+
 		if ( pExisting != NULL )
 		{
 			if ( pExisting->IsAvailable() )
@@ -404,7 +418,7 @@ void CMatchTipCtrl::LoadFromFile()
 				LoadString( m_sStatus, IDS_TIP_EXISTS_DELETED );
 				m_crStatus = RGB( 255, 0, 0 );
 
-				if ( pExisting->m_sComments.GetLength() && pExisting->m_nRating == 1 )
+				if ( pExisting->m_sComments.GetLength() )
 				{
 					LoadString( m_sStatus, IDS_TIP_EXISTS_BLACKLISTED );
 					m_sStatus += pExisting->m_sComments;
@@ -435,10 +449,10 @@ void CMatchTipCtrl::LoadFromFile()
 		}
 		else
 		{
-			if ( ( m_pFile->m_pBest->m_nProtocol == PROTOCOL_ED2K ) && ( m_pFile->m_pBest->m_bPush == TS_TRUE ) )
+			if( ( m_pFile->m_pBest->m_nProtocol == PROTOCOL_ED2K ) && ( m_pFile->m_pBest->m_bPush == TS_TRUE ) )
 			{
-				m_sUser.Format( _T("%lu@%s - %s"), m_pFile->m_pBest->m_oClientID.begin()[2], 
-					(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)*m_pFile->m_pBest->m_oClientID.begin() ) ),
+				m_sUser.Format( _T("%lu@%s - %s"), m_pFile->m_pBest->m_pClientID.w[2],
+					(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)m_pFile->m_pBest->m_pClientID.w[0]) ),
 					(LPCTSTR)m_pFile->m_pBest->m_pVendor->m_sName );
 			}
 			else
@@ -485,18 +499,32 @@ void CMatchTipCtrl::LoadFromHit()
 	m_sName = m_pHit->m_sName;
 	m_sSize = Settings.SmartVolume( m_pHit->m_nSize, FALSE );
 	LoadTypeInfo();
-	
-	if ( Settings.General.GUIMode == GUI_BASIC )
+
+	if ( m_pHit->m_bSHA1 && Settings.General.GUIMode != GUI_BASIC)
 	{
-		m_sSHA1.Empty();
-		m_sTiger.Empty();
-		m_sED2K.Empty();
+		m_sSHA1 = _T("sha1:") + CSHA::HashToString( &m_pHit->m_pSHA1 );
 	}
 	else
 	{
-		m_sSHA1 = m_pHit->m_oSHA1.toShortUrn();
-		m_sTiger = m_pHit->m_oTiger.toShortUrn();
-		m_sED2K = m_pHit->m_oED2K.toShortUrn();
+		m_sSHA1.Empty();
+	}
+
+	if ( m_pHit->m_bTiger && Settings.General.GUIMode != GUI_BASIC)
+	{
+		m_sTiger = _T("tree:tiger/:") + CTigerNode::HashToString( &m_pHit->m_pTiger );
+	}
+	else
+	{
+		m_sTiger.Empty();
+	}
+
+	if ( m_pHit->m_bED2K && Settings.General.GUIMode != GUI_BASIC)
+	{
+		m_sED2K = _T("ed2k:") + CED2K::HashToString( &m_pHit->m_pED2K );
+	}
+	else
+	{
+		m_sED2K.Empty();
 	}
 
 	if ( m_pHit->m_nPartial )
@@ -539,7 +567,7 @@ void CMatchTipCtrl::LoadFromHit()
 
 	m_sStatus.Empty();
 
-	if ( m_pFile->m_bExisting == 1 )
+	if ( m_pFile->m_bExisting )
 	{
 		LoadString( m_sStatus, IDS_TIP_EXISTS_LIBRARY );
 		m_crStatus = RGB( 0, 128, 0 );
@@ -554,13 +582,6 @@ void CMatchTipCtrl::LoadFromHit()
 		LoadString( m_sStatus, IDS_TIP_BOGUS );
 		m_crStatus = RGB( 255, 0, 0 );
 	}
-	else if ( m_pHit->m_sComments.GetLength() )
-	{
-		if ( m_pHit->m_nRating == 1 ) 
-			LoadString( m_sStatus, IDS_TIP_EXISTS_BLACKLISTED );
-		m_sStatus += m_pHit->m_sComments;
-		m_crStatus = RGB( 255, 0, 0 );
-	}
 
 	if ( m_pHit->m_sNick.GetLength() )
 	{
@@ -571,11 +592,11 @@ void CMatchTipCtrl::LoadFromHit()
 	}
 	else
 	{
-		if ( ( m_pHit->m_nProtocol == PROTOCOL_ED2K ) && ( m_pHit->m_bPush == TS_TRUE ) )
+		if( ( m_pHit->m_nProtocol == PROTOCOL_ED2K ) && ( m_pHit->m_bPush == TS_TRUE ) )
 		{
 			m_sUser.Format( _T("%lu@%s - %s"),
-				m_pHit->m_oClientID.begin()[2], 
-				(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)*m_pHit->m_oClientID.begin() ) ),
+				m_pHit->m_pClientID.w[2],
+				(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)m_pHit->m_pClientID.w[0]) ),
 				(LPCTSTR)m_pHit->m_pVendor->m_sName );
 		}
 		else
@@ -717,8 +738,8 @@ CSize CMatchTipCtrl::ComputeSize()
 		m_pMetadata.ComputeWidth( &dc, m_nKeyWidth, nValueWidth );
 
 		if ( m_nKeyWidth ) m_nKeyWidth += TIP_MARGIN;
-		sz.cx = max( sz.cx, m_nKeyWidth + nValueWidth );
-		sz.cy += LONG( TIP_TEXTHEIGHT * m_pMetadata.GetCount() );
+		sz.cx = max( sz.cx, LONG(m_nKeyWidth + nValueWidth) );
+		sz.cy += TIP_TEXTHEIGHT * m_pMetadata.GetCount();
 	}
 
 	// Busy/Firewalled/unstable warnings. Queue info.
@@ -780,7 +801,7 @@ CSize CMatchTipCtrl::ComputeSize()
 
 void CMatchTipCtrl::ExpandSize(CDC& dc, CSize& sz, LPCTSTR pszText, int nBase)
 {
-	CSize szText = dc.GetTextExtent( pszText, static_cast< int >( _tcslen( pszText ) ) );
+	CSize szText = dc.GetTextExtent( pszText, _tcslen( pszText ) );
 	szText.cx += nBase;
 	sz.cx = max( sz.cx, szText.cx );
 }
@@ -788,7 +809,7 @@ void CMatchTipCtrl::ExpandSize(CDC& dc, CSize& sz, LPCTSTR pszText, int nBase)
 /////////////////////////////////////////////////////////////////////////////
 // CMatchTipCtrl painting
 
-BOOL CMatchTipCtrl::OnEraseBkgnd(CDC* /*pDC*/)
+BOOL CMatchTipCtrl::OnEraseBkgnd(CDC* pDC)
 {
 	return TRUE;
 }
@@ -1018,15 +1039,15 @@ void CMatchTipCtrl::DrawText(CDC& dc, CPoint& pt, LPCTSTR pszText)
 {
 	DWORD dwFlags = ( theApp.m_bRTL ? ETO_RTLREADING : 0 );
 	short nExtraPoint = ( theApp.m_bRTL ? 1 : 0 );
-	CSize sz = dc.GetTextExtent( pszText, static_cast< int >( _tcslen( pszText ) ) );
+	CSize sz = dc.GetTextExtent( pszText, _tcslen( pszText ) );
 	CRect rc( pt.x, pt.y, pt.x + sz.cx + nExtraPoint, pt.y + sz.cy );
 
 	dc.SetBkColor( m_crBack );
-	dc.ExtTextOut( pt.x, pt.y, ETO_CLIPPED|ETO_OPAQUE|dwFlags, &rc, pszText, static_cast< UINT >( _tcslen( pszText ) ), NULL );
+	dc.ExtTextOut( pt.x, pt.y, ETO_CLIPPED|ETO_OPAQUE|dwFlags, &rc, pszText, _tcslen( pszText ), NULL );
 	dc.ExcludeClipRect( &rc );
 }
 
-void CMatchTipCtrl::OnMouseMove(UINT /*nFlags*/, CPoint /*point*/)
+void CMatchTipCtrl::OnMouseMove(UINT nFlags, CPoint point)
 {
 	Hide();
 }

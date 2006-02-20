@@ -47,8 +47,8 @@ protected:
 	CLineGraph*		m_pGraph;
 	CGraphItem*		m_pItem;
 protected:
-	CArray< CString >	m_pHeaderName;
-	CArray< CString >	m_pHeaderValue;
+	CStringArray	m_pHeaderName;
+	CStringArray	m_pHeaderValue;
 	int				m_nHeaderWidth;
 
 // Operations
@@ -69,7 +69,7 @@ public:
 // Implementation
 protected:
 	//{{AFX_MSG(CUploadTipCtrl)
-	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg void OnTimer(UINT nIDEvent);
 	//}}AFX_MSG
 
 	DECLARE_MESSAGE_MAP()

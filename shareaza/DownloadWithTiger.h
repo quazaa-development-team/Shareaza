@@ -32,7 +32,7 @@
 class CDownloadWithTiger : public CDownloadWithTorrent
 {
 // Construction
-protected:
+public:
 	CDownloadWithTiger();
 	virtual ~CDownloadWithTiger();
 
@@ -58,30 +58,32 @@ private:
 
 // Operations
 public:
+	DWORD		GetValidationCookie() const;
+	QWORD		GetVerifyLength(int nHash = HASH_NULL) const;
 	BOOL		GetNextVerifyRange(QWORD& nOffset, QWORD& nLength, BOOL& bSuccess, int nHash = HASH_NULL) const;
 	BOOL		IsFullyVerified();
+public:
 	BOOL		NeedTigerTree() const;
 	BOOL		SetTigerTree(BYTE* pTiger, DWORD nTiger);
 	CTigerTree*	GetTigerTree();
 	BOOL		NeedHashset() const;
 	BOOL		SetHashset(BYTE* pSource, DWORD nSource);
 	CED2K*		GetHashset();
-	virtual CString	GetAvailableRanges() const;
-	void		ResetVerification();
-	void		ClearVerification();
 protected:
-	QWORD		GetVerifyLength(int nHash = HASH_NULL) const;
-	BOOL		ValidationCanFinish() const;
-	void		RunValidation(BOOL bSeeding);
-	virtual void	Serialize(CArchive& ar, int nVersion);
+	BOOL	ValidationCanFinish() const;
+	void	RunValidation(BOOL bSeeding);
 private:
-	DWORD		GetValidationCookie() const;
-	BOOL		FindNewValidationBlock(int nHash);
-	void		ContinueValidation();
-	void		FinishValidation();
-	void		SubtractHelper(Fragments::List& ppCorrupted, BYTE* pBlock, QWORD nBlock, QWORD nSize);
-	
-	friend class CEDClient; // AddSourceED2K && m_nHashsetBlock && m_pHashsetBlock
+	BOOL	FindNewValidationBlock(int nHash);
+	void	ContinueValidation();
+	void	FinishValidation();
+    void	SubtractHelper(FF::SimpleFragmentList& ppCorrupted, BYTE* pBlock, QWORD nBlock, QWORD nSize);
+public:
+	virtual CString	GetAvailableRanges() const;
+	virtual void	ResetVerification();
+	virtual void	ClearVerification();
+	virtual void	Serialize(CArchive& ar, int nVersion);
+
+	friend class CEDClient;
 	friend class CDownloadTipCtrl;
 };
 

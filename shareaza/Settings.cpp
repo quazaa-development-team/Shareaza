@@ -92,10 +92,9 @@ void CSettings::Setup()
 	Add( _T("Library.SafeExecute"), &Library.SafeExecute, _T("|ace|ape|asf|avi|bmp|gif|iso|jpg|jpeg|mid|mov|m1v|m2v|m3u|mp2|mp3|mpa|mpe|mpg|mpeg|ogg|pdf|png|qt|rar|rm|sks|tar|tgz|torrent|txt|wav|wma|wmv|zip|") );
 	Add( _T("Library.PrivateTypes"), &Library.PrivateTypes, _T("|vbs|js|dat|part|partial|getright|pif|lnk|sd|url|") );
 	Add( _T("Library.ThumbSize"), &Library.ThumbSize, 96 );
-	Add( _T("Library.BitziAgent"), &Library.BitziAgent, _T(".") );
-	Add( _T("Library.BitziWebView"), &Library.BitziWebView, _T("http://bitzi.com/lookup/(URN)?v=detail&ref=shareaza") );
-	Add( _T("Library.BitziWebSubmit"), &Library.BitziWebSubmit, _T("http://bitzi.com/lookup/(SHA1).(TTH)?fl=(SIZE)&ff=(FIRST20)&fn=(NAME)&tag.ed2k.ed2khash=(ED2K)&(INFO)&a=(AGENT)&v=Q0.4&ref=shareaza") );
-	Add( _T("Library.BitziXML"), &Library.BitziXML, _T("http://ticket.bitzi.com/rdf/(SHA1).(TTH)") );
+	Add( _T("Library.BitziWebView"), &Library.BitziWebView, _T("http://bitzi.com/lookup/(SHA1)?detail&ref=shareaza") );
+	Add( _T("Library.BitziWebSubmit"), &Library.BitziWebSubmit, _T("http://bitzi.com/lookup/(SHA1).(TTH)?fl=(SIZE)&ff=(FIRST20)&fn=(NAME)&a=(AGENT)&v=Q0.4&ref=shareaza") );
+	Add( _T("Library.BitziXML"), &Library.BitziXML, _T("http://ticket.bitzi.com/rdf/(SHA1)") );
 	Add( _T("Library.BitziOkay"), &Library.BitziOkay, FALSE );
 	Add( _T("Library.HighPriorityHash"), &Library.HighPriorityHash, FALSE );
 	Add( _T("Library.HashWindow"), &Library.HashWindow, FALSE );
@@ -103,7 +102,6 @@ void CSettings::Setup()
 	Add( _T("Library.BufferSize"), &Library.BufferSize, 0 );
 	Add( _T("Library.Parallel"), &Library.Parallel, 0 );
 	Add( _T("Library.LowPriorityHashing"), &Library.LowPriorityHashing, 5 );
-	Add( _T("Library.MaxMaliciousFileSize"), &Library.MaxMaliciousFileSize, 1024 );
 	
 	Add( _T("Search.LastSchemaURI"), &Search.LastSchemaURI, _T("") );
 	Add( _T("Search.BlankSchemaURI"), &Search.BlankSchemaURI, CSchema::uriAudio );
@@ -137,17 +135,9 @@ void CSettings::Setup()
 	Add( _T("MediaPlayer.ListVisible"), &MediaPlayer.ListVisible, TRUE );
 	Add( _T("MediaPlayer.ListSize"), &MediaPlayer.ListSize, 240 );
 	Add( _T("MediaPlayer.StatusVisible"), &MediaPlayer.StatusVisible, TRUE );
-	Add( _T("MediaPlayer.MediaServicesCLSID"), &MediaPlayer.MediaServicesCLSID, _T("{3DC28AA6-A597-4E03-96DF-ADA19155B0BE}") );
-	Add( _T("MediaPlayer.Mpeg1PreviewCLSID"), &MediaPlayer.Mpeg1PreviewCLSID, _T("{9AA8DF47-B8FE-47da-AB1A-2DAA0DA0B646}") );
-	Add( _T("MediaPlayer.Mp3PreviewCLSID"), &MediaPlayer.Mp3PreviewCLSID, _T("{BF00DBCC-90A2-4f46-8171-7D4F929D035F}") );
-	Add( _T("MediaPlayer.AviPreviewCLSID"), &MediaPlayer.AviPreviewCLSID, _T("{394011F0-6D5C-42a3-96C6-24B9AD6B010C}") );
-	Add( _T("MediaPlayer.VisWrapperCLSID"), &MediaPlayer.VisWrapperCLSID, _T("{C3B7B25C-6B8B-481A-BC48-59F9A6F7B69A}") );
-	Add( _T("MediaPlayer.VisSoniqueCLSID"), &MediaPlayer.VisSoniqueCLSID, _T("{D07E630D-A850-4f11-AD29-3D3848B67EFE}") );
 	Add( _T("MediaPlayer.VisCLSID"), &MediaPlayer.VisCLSID, _T("{591A5CFF-3172-4020-A067-238542DDE9C2}") );
 	Add( _T("MediaPlayer.VisPath"), &MediaPlayer.VisPath, _T("") );
 	Add( _T("MediaPlayer.VisSize"), &MediaPlayer.VisSize, 1 );
-	Add( _T("MediaPlayer.ServicePath"), &MediaPlayer.ServicePath, _T("") );
-	Add( _T("MediaPlayer.ShortPaths"), &MediaPlayer.ShortPaths, FALSE );
 	
 	Add( _T("Web.Magnet"), &Web.Magnet, TRUE );
 	Add( _T("Web.Gnutella"), &Web.Gnutella, TRUE );
@@ -161,7 +151,6 @@ void CSettings::Setup()
 	Add( _T("Connection.InHost"), &Connection.InHost, NULL );
 	Add( _T("Connection.InPort"), &Connection.InPort, GNUTELLA_DEFAULT_PORT );
 	Add( _T("Connection.InBind"), &Connection.InBind, FALSE );
-	Add( _T("Connection.RandomPort"), &Connection.RandomPort, FALSE );
 	Add( _T("Connection.InSpeed"), &Connection.InSpeed, 56 );
 	Add( _T("Connection.OutSpeed"), &Connection.OutSpeed, 56 );
 	Add( _T("Connection.IgnoreLocalIP"), &Connection.IgnoreLocalIP, TRUE );
@@ -177,11 +166,7 @@ void CSettings::Setup()
 	Add( _T("Connection.DetectConnectionReset"), &Connection.DetectConnectionReset, FALSE );
 	Add( _T("Connection.ForceConnectedState"), &Connection.ForceConnectedState, TRUE );
 	Add( _T("Connection.SlowConnect"), &Connection.SlowConnect, FALSE );
-	Add( _T("Connection.EnableUPnP"), &Connection.EnableUPnP, TRUE );
-	Add( _T("Connection.DeleteUPnPPorts"), &Connection.DeleteUPnPPorts, TRUE );
-	Add( _T("Connection.SkipWANPPPSetup"), &Connection.SkipWANPPPSetup, FALSE );
-	Add( _T("Connection.SkipWANIPSetup"), &Connection.SkipWANIPSetup, FALSE );
-
+	
 	Add( _T("Bandwidth.Request"), &Bandwidth.Request, 4096 );
 	Add( _T("Bandwidth.HubIn"), &Bandwidth.HubIn, 0 );
 	Add( _T("Bandwidth.HubOut"), &Bandwidth.HubOut, 0 );
@@ -284,7 +269,6 @@ void CSettings::Setup()
 	
 	Add( _T("eDonkey.EnableAlways"), &eDonkey.EnableAlways, FALSE );
 	Add( _T("eDonkey.FastConnect"), &eDonkey.FastConnect, TRUE );
-	Add( _T("eDonkey.ForceHighID"), &eDonkey.ForceHighID, FALSE );
 	Add( _T("eDonkey.NumServers"), &eDonkey.NumServers, 1 );
 	Add( _T("eDonkey.MaxLinks"), &eDonkey.MaxLinks, 200 );
 	Add( _T("eDonkey.MaxResults"), &eDonkey.MaxResults, 100 );
@@ -309,13 +293,11 @@ void CSettings::Setup()
 	Add( _T("eDonkey.ReAskTime"), &eDonkey.ReAskTime, 1740 );
 	Add( _T("eDonkey.DequeueTime"), &eDonkey.DequeueTime, 3610 );
 	Add( _T("eDonkey.TagNames"), &eDonkey.TagNames, TRUE );
-	Add( _T("eDonkey.ExtendedRequest"), &eDonkey.ExtendedRequest, 1 );
-	Add( _T("eDonkey.SendPortServer"), &eDonkey.SendPortServer, TRUE );
+	Add( _T("eDonkey.ExtendedRequest"), &eDonkey.ExtendedRequest, TRUE );
 	Add( _T("eDonkey.MagnetSearch"), &eDonkey.MagnetSearch, TRUE );
 	Add( _T("eDonkey.MinServerFileSize"), &eDonkey.MinServerFileSize, 0 );
 	Add( _T("eDonkey.DefaultServerFlags"), &eDonkey.DefaultServerFlags, 0xFFFFFFFF );	
 	Add( _T("eDonkey.Endgame"), &eDonkey.Endgame, TRUE );
-	Add( _T("eDonkey.LargeFileSupport"), &eDonkey.LargeFileSupport, FALSE );
 	
 	Add( _T("BitTorrent.AdvancedInterface"), &BitTorrent.AdvancedInterface, FALSE );
 	Add( _T("BitTorrent.AdvancedInterfaceSet"), &BitTorrent.AdvancedInterfaceSet, FALSE );
@@ -327,7 +309,7 @@ void CSettings::Setup()
 	Add( _T("BitTorrent.TorrentExtraKeys"), &BitTorrent.TorrentExtraKeys, TRUE );
 	Add( _T("BitTorrent.TorrentIgnoreErrors"), &BitTorrent.TorrentIgnoreErrors, FALSE );
 	Add( _T("BitTorrent.LinkTimeout"), &BitTorrent.LinkTimeout, 180000 );
-	Add( _T("BitTorrent.LinkPing"), &BitTorrent.LinkPing, 120000 );
+	Add( _T("BitTorrent.LinkPing"), &BitTorrent.LinkPing, 45000 );
 	Add( _T("BitTorrent.RequestPipe"), &BitTorrent.RequestPipe, 4 );
 	Add( _T("BitTorrent.RequestSize"), &BitTorrent.RequestSize, 16384 );
 	Add( _T("BitTorrent.RequestLimit"), &BitTorrent.RequestLimit, 131072 );
@@ -456,9 +438,6 @@ CSettings::CSettings()
 	Live.LoadWindowState	= FALSE;
 	Live.AutoClose			= FALSE;
 	Live.FirstRun			= FALSE;
-	Live.LastDuplicateHash	= L"";
-	Live.NewFile			= FALSE;
-	Live.MaliciousWarning	= FALSE;
 
 	// Add all settings
 	Setup();
@@ -468,7 +447,7 @@ CSettings::~CSettings()
 {
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		delete m_pItems.GetNext( pos );
+		delete (Item*)m_pItems.GetNext( pos );
 	}
 }
 
@@ -502,7 +481,7 @@ void CSettings::Add(LPCTSTR pszName, CString* pString, LPCTSTR pszDefault)
 //////////////////////////////////////////////////////////////////////
 // CSettings load
 
-#define SMART_VERSION	34
+#define SMART_VERSION	31
 
 void CSettings::Load()
 {
@@ -510,11 +489,8 @@ void CSettings::Load()
 	
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		Item* pItem = m_pItems.GetNext( pos );
+		Item* pItem = (Item*)m_pItems.GetNext( pos );
 		pItem->Load();
-		ASSERT( pItem->m_pDword && !pItem->m_pFloat && !pItem->m_pString \
-			|| !pItem->m_pDword && pItem->m_pFloat && !pItem->m_pString \
-			|| !pItem->m_pDword && !pItem->m_pFloat && pItem->m_pString );
 	}
 	
 	if ( pRegistry.GetInt( _T("Settings"), _T("FirstRun"), TRUE ) )
@@ -560,11 +536,11 @@ void CSettings::Load()
 	BitTorrent.DownloadTorrents = min( BitTorrent.DownloadTorrents, (int)( ( GetOutgoingBandwidth() / 2 ) + 2 ) );
 
 	// Enforce a few sensible values to avoid being banned/dropped/etc (in case of registry fiddling)
-	Downloads.SearchPeriod		= min( Downloads.SearchPeriod, 4*60*1000u );
-	Downloads.StarveTimeout		= max( Downloads.StarveTimeout, 45*60u );
-	eDonkey.QueryGlobalThrottle = max( eDonkey.QueryGlobalThrottle, 1000u );
-	Gnutella1.RequeryDelay		= max( Gnutella1.RequeryDelay, 45*60u );
-	Gnutella2.RequeryDelay		= max( Gnutella2.RequeryDelay, 60*60u );
+	Downloads.SearchPeriod		= min( Downloads.SearchPeriod, DWORD(4*60*1000) );
+	Downloads.StarveTimeout		= max( Downloads.StarveTimeout, DWORD(45*60) );
+	eDonkey.QueryGlobalThrottle = max( eDonkey.QueryGlobalThrottle, DWORD(1000) );
+	Gnutella1.RequeryDelay		= max( Gnutella1.RequeryDelay, DWORD(45*60) );
+	Gnutella2.RequeryDelay		= max( Gnutella2.RequeryDelay, DWORD(60*60) );
 	Downloads.ConnectThrottle	= max( Downloads.ConnectThrottle, Connection.ConnectThrottle + 50 );
 	Downloads.MaxFiles			= min( Downloads.MaxFiles, 100 );
 
@@ -583,17 +559,7 @@ void CSettings::Load()
 	}
 
 	//Temporary- until G1 ultrapeer has been updated
-	Gnutella1.ClientMode		= MODE_LEAF;
-
-	// UPnP is not supported in servers and Win9x
-	if ( theApp.m_bServer || theApp.m_dwWindowsVersion < 5 && !theApp.m_bWinME )
-		Connection.EnableUPnP = FALSE;
-
-	// UPnP will setup a random port, so we need to reset values after it sets Connection.InPort
-	if ( Connection.RandomPort )
-		Connection.InPort = 0;
-	else if ( Connection.InPort == 0 )
-		Connection.RandomPort = TRUE;
+	Gnutella1.ClientMode		= MODE_LEAF; 
 }
 
 void CSettings::Save(BOOL bShutdown)
@@ -604,7 +570,7 @@ void CSettings::Save(BOOL bShutdown)
 	
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		Item* pItem = m_pItems.GetNext( pos );
+		Item* pItem = (Item*)m_pItems.GetNext( pos );
 		if ( pItem->m_sName != _T(".Path") ) pItem->Save();
 	}
 	
@@ -619,8 +585,8 @@ void CSettings::SmartUpgrade()
 {	//This function resets certain values when upgrading, depending on version.
 	CRegistry pRegistry;
 	int nVersion = pRegistry.GetInt( _T("Settings"), _T("SmartVersion"), SMART_VERSION );
-	
-/*	// Set next update check
+
+	// Set next update check
 	if ( nVersion < SMART_VERSION )
 	{
 		// Don't check for a week if we've just upgraded
@@ -628,7 +594,7 @@ void CSettings::SmartUpgrade()
 		CTime tNextCheck = CTime::GetCurrentTime() + tPeriod;
 		theApp.WriteProfileInt( _T("VersionCheck"), _T("NextCheck"), (DWORD)tNextCheck.GetTime() );
 	}
-*/	
+	
 	// Add OGG handling if needed
 	if ( ( nVersion < SMART_VERSION || Live.FirstRun ) &&
 		_tcsistr( MediaPlayer.FileTypes, _T("|ogg|") ) == NULL )
@@ -643,9 +609,6 @@ void CSettings::SmartUpgrade()
 		}
 	}
 	
-	if ( nVersion < 34 )
-		BitTorrent.LinkPing				= 120 * 1000;
-
 	// 'SmartUpgrade' settings updates- change any settings that were mis-set in previous versions
 	if ( nVersion < 20 )
 	{
@@ -653,15 +616,13 @@ void CSettings::SmartUpgrade()
 		Gnutella2.UdpOutResend			= 6000;
 		Gnutella2.UdpOutExpire			= 26000;
 		Library.TigerHeight		= 9;
-		
+		Library.BitziWebSubmit	= _T("http://bitzi.com/lookup/(SHA1).(TTH)?fl=(SIZE)&ff=(FIRST20)&fn=(NAME)&a=(AGENT)&v=Q0.4&ref=shareaza");
 		Downloads.MaxFiles				= max( Downloads.MaxFiles, 8 );
 		Downloads.MaxFileTransfers		= max( Downloads.MaxFileTransfers, 16 );
 		Downloads.AutoExpand			= FALSE;
-		
 		Uploads.SharePartials			= TRUE;
 		Uploads.MaxPerHost				= 2;
 		Uploads.ShareTiger				= TRUE;
-		
 		Replace( Library.PrivateTypes, _T("|nfo|"), _T("|") );
 		Replace( Library.SafeExecute, _T("|."), _T("|") );
 	}
@@ -670,26 +631,21 @@ void CSettings::SmartUpgrade()
 	{
 		Library.ThumbSize				= 96;
 		Library.SourceExpire			= 86400;
-		
 		Gnutella1.TranslateTTL			= 2;
 	}
 	
 	if ( nVersion < 24 )
 	{
 		General.CloseMode				= 0;
-		
 		Connection.TimeoutConnect		= 16000;
 		Connection.TimeoutHandshake		= 45000;
-		
 		Downloads.RetryDelay			= 10*60000;
-		
 		Uploads.FilterMask				= 0xFFFFFFFD;
 	}
 	
 	if ( nVersion < 25 )
 	{
 		Connection.TimeoutTraffic		= 140000;
-		
 		Gnutella2.NumHubs				= 2;
 		Gnutella2.NumLeafs				= 300;
 		Gnutella2.NumPeers				= 6;
@@ -697,14 +653,13 @@ void CSettings::SmartUpgrade()
 	
 	if ( nVersion < 26 )
 	{
-		Downloads.ConnectThrottle		= max( Downloads.ConnectThrottle, 200u );
+		Downloads.ConnectThrottle		= max( Downloads.ConnectThrottle, DWORD(200) );
 		Downloads.MaxTransfers			= min( Downloads.MaxTransfers, 128 );
 	}
 	
 	if ( nVersion < 28 )
 	{
-		Library.VirtualFiles	= TRUE;		// Virtual files (stripping) on
-		
+		Library.VirtualFiles	= TRUE;		// Virtual files (stripping) on	
 		BitTorrent.Endgame		= TRUE;		// Endgame on
 	}
 
@@ -712,9 +667,7 @@ void CSettings::SmartUpgrade()
 	{
 		Downloads.MinSources	= 1;		// Lower Max value- should reset it in case  
 		Downloads.StarveTimeout = 2700;		// Increased due to ed2k queues (Tripping too often)
-		
 		Gnutella.MaxResults		= 100;		// No longer includes ed2k max files
-		
 		Gnutella2.RequeryDelay	= 4*3600;	// Longer delay between sending same search to G2 hub
 	}
 
@@ -725,30 +678,14 @@ void CSettings::SmartUpgrade()
 
 	if ( nVersion < 31 )
 	{
-		Downloads.SearchPeriod			= 120000;
-		
-		Gnutella1.MaximumTTL			= 10;
-		
-		Gnutella2.QueryGlobalThrottle	= 125;
-		
+		Downloads.SearchPeriod	= 120000;
+		Gnutella1.MaximumTTL	= 10;
+		Gnutella2.QueryGlobalThrottle = 125;
 		Uploads.QueuePollMin	= 45000;	// Lower values for re-ask times- a dynamic multiplier
-		Uploads.QueuePollMax	= 120000;	//  Is now applied based on Q# (from 1x to 5x)
+		Uploads.QueuePollMax	= 120000;	// Is now applied based on Q# (from 1x to 5x)
 		eDonkey.PacketThrottle	= 500;		// Second throttle added for finer control
 	}
 
-	if ( nVersion < 32 )
-	{
-		Library.BitziWebView	= _T("http://bitzi.com/lookup/(URN)?v=detail&ref=shareaza");
-		Library.BitziWebSubmit	= _T("http://bitzi.com/lookup/(SHA1).(TTH)?fl=(SIZE)&ff=(FIRST20)&fn=(NAME)&tag.ed2k.ed2khash=(ED2K)&(INFO)&a=(AGENT)&v=Q0.4&ref=shareaza");
-		Library.BitziXML		= _T("http://ticket.bitzi.com/rdf/(SHA1).(TTH)");
-		
-		theApp.WriteProfileString( _T("Interface"), _T("SchemaColumns.audio"), _T("(EMPTY)") );
-	}
-
-	if ( nVersion < 33 )
-	{
-		RegDeleteKey( HKEY_CURRENT_USER, _T("Software\\Shareaza\\Shareaza\\Plugins\\LibraryBuilder") );
-	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -758,7 +695,7 @@ CSettings::Item* CSettings::GetSetting(LPCTSTR pszName) const
 {
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		Item* pItem = m_pItems.GetNext( pos );
+		Item* pItem = (Item*)m_pItems.GetNext( pos );
 		if ( pItem->m_sName.CompareNoCase( pszName ) == 0 ) return pItem;
 	}
 	
@@ -769,7 +706,7 @@ CSettings::Item* CSettings::GetSetting(LPVOID pValue) const
 {
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		Item* pItem = m_pItems.GetNext( pos );
+		Item* pItem = (Item*)m_pItems.GetNext( pos );
 		if ( pItem->m_pDword == pValue ||
 			 pItem->m_pFloat == pValue ||
 			 pItem->m_pString == pValue ) return pItem;
@@ -783,6 +720,7 @@ CSettings::Item* CSettings::GetSetting(LPVOID pValue) const
 
 BOOL CSettings::LoadWindow(LPCTSTR pszName, CWnd* pWindow)
 {
+	WINDOWPLACEMENT pPos;
 	CRegistry pRegistry;
 	CString strEntry;
 	
@@ -794,7 +732,7 @@ BOOL CSettings::LoadWindow(LPCTSTR pszName, CWnd* pWindow)
 	int nShowCmd = pRegistry.GetInt( _T("Windows"), strEntry + _T(".ShowCmd"), -1 );
 	if ( nShowCmd == -1 ) return FALSE;
 	
-	WINDOWPLACEMENT pPos = {};
+	ZeroMemory( &pPos, sizeof(pPos) );
 	pPos.length = sizeof(pPos);
 
 	pPos.rcNormalPosition.left		= pRegistry.GetInt( _T("Windows"), strEntry + _T(".Left"), 0 );
@@ -883,7 +821,7 @@ BOOL CSettings::LoadList(LPCTSTR pszName, CListCtrl* pCtrl, int nSort)
 		bSuccess = TRUE;
 	}
 
-	SetWindowLongPtr( pCtrl->GetSafeHwnd(), GWLP_USERDATA, nSort );
+	SetWindowLong( pCtrl->GetSafeHwnd(), GWL_USERDATA, nSort );
 
 	CHeaderCtrl* pHeader = (CHeaderCtrl*)pCtrl->GetWindow( GW_CHILD );
 	if ( pHeader ) Skin.Translate( pszName, pHeader );
@@ -916,7 +854,7 @@ void CSettings::SaveList(LPCTSTR pszName, CListCtrl* pCtrl)
 	
 	delete [] pOrdering;
 	
-	int nSort = (int)GetWindowLongPtr( pCtrl->GetSafeHwnd(), GWLP_USERDATA );
+	int nSort = GetWindowLong( pCtrl->GetSafeHwnd(), GWL_USERDATA );
 	
 	strItem.Format( _T("%s.Ordering"), pszName );
 	pRegistry.SetString( _T("ListStates"), strItem, strOrdering);
@@ -980,7 +918,7 @@ CString CSettings::SmartAgent()
 	CString strAgent = _T( CLIENT_NAME ); 
 	strAgent += _T(" ");
 	strAgent += theApp.m_sVersion;
-
+		
 	return strAgent;
 }
 

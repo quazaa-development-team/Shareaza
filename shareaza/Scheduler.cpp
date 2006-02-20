@@ -22,6 +22,7 @@
 
 
 #include "StdAfx.h"
+#include "atltime.h"
 #include "Shareaza.h"
 #include "Settings.h"
 #include "DlgHelp.h"
@@ -35,7 +36,7 @@ CScheduler Schedule;
 
 CScheduler::CScheduler()
 {
-	FillMemory( m_pSchedule , sizeof m_pSchedule, SCHEDULE_FULL_SPEED );
+	FillMemory( m_pSchedule , 7 * 24, SCHEDULE_FULL_SPEED );
 	m_nCurrentHour = 0xFF;
 	m_tLastCheck = 0;
 }
@@ -149,7 +150,7 @@ void CScheduler::Update()
 		if ( m_nCurrentHour != nHour )
 		{
 			SetVariables( m_pSchedule[nDay][nHour] );
-			m_nCurrentHour = BYTE( nHour );
+			m_nCurrentHour = nHour;
 		}
 	}
 }

@@ -49,14 +49,15 @@ public:
 		void		Copy(CBTFile* pSource);
 		void		Serialize(CArchive& ar, int nVersion);
 	public:
-		CString	m_sPath;
-		QWORD	m_nSize;
-        Hashes::Sha1Hash m_oSHA1;
-		Hashes::Ed2kHash m_oED2K;
-		Hashes::TigerHash m_oTiger;
-		int		nFilePriority;
+		CString		m_sPath;
+		QWORD		m_nSize;
+		BOOL		m_bSHA1;
+		SHA1		m_pSHA1;
+		BOOL		m_bED2K;
+		MD4			m_pED2K;
+		BOOL		m_bTiger;
+		TIGEROOT	m_pTiger;
 	};
-	enum { prNotWanted, prLow, prNormal, prHigh };
 
 // Subclass
 public:
@@ -79,17 +80,20 @@ public:
 	
 // Attributes
 public:
+	BOOL		m_bValid;
 	BOOL		m_bEncodingError;
-    Hashes::BtHash m_oInfoBTH;
-    Hashes::Sha1Hash m_oDataSHA1;
-	Hashes::Ed2kHash m_oDataED2K;
-	Hashes::TigerHash m_oDataTiger;
+	SHA1		m_pInfoSHA1;
+	BOOL		m_bDataSHA1;
+	SHA1		m_pDataSHA1;
+	BOOL		m_bDataED2K;
+	MD4			m_pDataED2K;
+	BOOL		m_bDataTiger;
+	TIGEROOT	m_pDataTiger;
 public:
 	QWORD		m_nTotalSize;
 	DWORD		m_nBlockSize;
 	DWORD		m_nBlockCount;
-    Hashes::BtPureHash* m_pBlockBTH;
-	QWORD		m_nTotalUpload;					// Total amount uploaded
+	SHA1*		m_pBlockSHA1;
 public:
 	CString		m_sName;						// Name of the torrent
 	int			m_nFiles;						// Number of files
@@ -98,17 +102,13 @@ public:
 	CString		m_sTracker;						// Address of tracker we are using
 
 	CBTTracker*	m_pAnnounceTracker;				// Tracker in the announce key
-	CArray< CBTTracker* > m_pTrackerList;		// Multi-tracker list
+	CPtrArray	m_pTrackerList;					// Multi-tracker list
 	int			m_nTrackerIndex;				// The tracker we are currently using
-	int			m_nTrackerMode;					// The current tracker situation
 public:
 	UINT		m_nEncoding;
 	CString		m_sComment;
 	DWORD		m_tCreationDate;
 	CString		m_sCreatedBy;
-	BOOL		m_bPrivate;
-
-	int			m_nStartDownloads;				// When do we start downloads for this torrent
 private:
 	CSHA		m_pTestSHA1;
 	DWORD		m_nTestByte;
@@ -128,19 +128,13 @@ public:
 	void		BeginBlockTest();
 	void		AddToTest(LPCVOID pInput, DWORD nLength);
 	BOOL		FinishBlockTest(DWORD nBlock);
-public:
-	void		SetTrackerAccess(DWORD tNow);
-	void		SetTrackerSucceeded(DWORD tNow);
-	void		SetTrackerFailed(DWORD tNow);
-	void		SetTrackerNext();
-	DWORD		GetTrackerFailures();
 protected:
 	BOOL		CheckFiles();
 
 // Inlines
 public:
-	bool        IsAvailable() const { return m_oInfoBTH; }
-	BOOL		HasEncodingError() const { return m_bEncodingError; }
+	inline BOOL IsAvailable() const { return m_bValid; }
+	inline BOOL HasEncodingError() const { return m_bEncodingError; }
 
 	// Check if a string is a valid path/file name.
 	inline BOOL IsValid(LPCTSTR psz) const
@@ -152,15 +146,7 @@ public:
 		return TRUE;
 	}
 
-	BOOL		IsMultiTracker() const { return (m_pTrackerList.GetCount() > 0 ); }
 };
 
-// Tracker status/types
-enum { tNull, tCustom, tSingle, tMultiFinding, tMultiFound };
-// No tracker, User set tracker, normal torrent, multitracker searching, multitracker that's found a tracker
-
-// When to initiate new torrent transfers
-enum { dtAlways, dtWhenRatio, dtWhenRequested, dtNever };
-// Whenever wanted, when download ratio > 100%, only when another client requests, never
 
 #endif // !defined(AFX_BTINFO_H__AA44CA36_464F_4FB8_9D79_884D8092ADA0__INCLUDED_)

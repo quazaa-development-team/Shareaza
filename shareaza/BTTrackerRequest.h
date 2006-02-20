@@ -50,8 +50,7 @@ public:
 	static void		SendUpdate(CDownloadBase* pDownload, WORD nNumWant = 0xFFFF);
 	static void		SendCompleted(CDownloadBase* pDownload);
 	static void		SendStopped(CDownloadBase* pDownload);
-    static CString	Escape(const Hashes::BtHash& oBTH);
-    static CString	Escape(const Hashes::BtGuid& oGUID);
+	static CString	Escape(SHA1* pSHA1);
 protected:
 	void	Process(BOOL bRequest);
 	BOOL	Process(CBENode* pRoot);

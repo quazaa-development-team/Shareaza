@@ -4,15 +4,15 @@
 <skin xmlns="http://www.shareaza.com/schemas/Skin.xsd" version="1.0">
 
 <!-- Manifest -->
-<manifest name="Español" 
-		author="dague12" 
-		updatedBy="help" 
-		description="Traducción de Shareaza al Español Internacional" 
-		link="http://www.shareaza.com/" 
-		email="luis.help@gmail.com" 
-		version="2.2.0.2" 
-		type="Language" 
-		language="es" 
+<manifest name="Español"
+		author="dague12"
+		updatedBy="help"
+		description="Traducción de Shareaza al Español Internacional"
+		link="http://www.shareaza.com/"
+		email="luis.help@gmail.com"
+		version="2.2.0.2"
+		type="Language"
+		language="es"
 		prompt="Seleccione aquí para usar Shareaza en Español Internacional"
 />
 
@@ -127,7 +127,7 @@
 		<button id="ID_SEARCH_CHAT" text="Platicar con Usuario"/>
 		<separator/>
 		<button id="ID_BROWSE_STOP" text="Detener"/>
-		<button id="ID_BROWSE_REFRESH" text="Actualizar"/>
+		<button id="ID_BROWSE_REFRESH" text="Refrescar"/>
 		<separator/>
 		<button id="ID_SEARCH_DETAILS" text="Detalles"/>
 		<rightAlign/>
@@ -408,7 +408,7 @@
 		<menu text="_Red">
 			<item id="ID_NETWORK_CONNECT" text="_Conectar" shortcut="Ctrl+G"/>
 			<separator/>
-			<menu text="Seleccionar _Redes">
+			<menu text="Escoger _Redes">
 				<item id="ID_NETWORK_G2" text="Conectar a_Gnutella2"/>
 				<item id="ID_NETWORK_ED2K" text="Conectar a _eDonkey2000"/>
 				<item id="ID_NETWORK_G1" text="Conectar a _Gnutella 1"/>
@@ -475,7 +475,7 @@
 			<item id="ID_NETWORK_CONNECT" text="_Conectar" shortcut="Ctrl+G"/>
 			<item id="ID_NETWORK_DISCONNECT" text="_Desconectar"/>
 			<separator/>
-			<menu text="Seleccionar Redes">
+			<menu text="Escoger Redes">
 				<item id="ID_NETWORK_G2" text="Conectar a _Gnutella2"/>
 				<item id="ID_NETWORK_ED2K" text="Conectar a _eDonkey2000"/>
 				<item id="ID_NETWORK_G1" text="Conectar a _Gnutella 1"/>
@@ -513,7 +513,7 @@
 				<separator/>
 				<item id="ID_VIEW_PACKETS" text="_Monitor de paquetes" shortcut="Ctrl+F1"/>
 				<item id="ID_VIEW_SEARCH_MONITOR" text="_Monitor de Búsqueda" shortcut="Ctrl+F2"/>
-				<item id="ID_VIEW_RESULTS_MONITOR" text="_Monitor de resultados" shortcut="Ctrl+F3"/>
+				<item id="ID_VIEW_RESULTS_MONITOR" text="_Hit Monitor" shortcut="Ctrl+F3"/>
 			</menu>
 			<separator/>
 			<item id="ID_VIEW_BASIC" text="_Modo Normal"/>
@@ -524,8 +524,8 @@
 			<item id="ID_LIBRARY_FOLDERS" text="Compartir _Archivos..."/>
 			<item id="ID_TOOLS_DOWNLOAD" text="_Descargar Archivo/Torrent..."/>
 			<separator/>
-			<item id="ID_TOOLS_SKIN" text="Seleccionar _Skin..."/>
-			<item id="ID_TOOLS_LANGUAGE" text="Seleccionar un _Idioma..."/>
+			<item id="ID_TOOLS_SKIN" text="Elegir _Skin..."/>
+			<item id="ID_TOOLS_LANGUAGE" text="Elegir un _Lenguaje..."/>
 			<separator/>
 			<item id="ID_TOOLS_PROFILE" text="Editar Mi _Perfil..."/>
 			<item id="ID_TOOLS_WIZARD" text="Configuración _Rápida..."/>
@@ -548,7 +548,7 @@
 			<item id="ID_HELP_GUIDE" text="_Guía de Usuarios Shareaza "/>
 			<item id="ID_HELP_ROUTER" text="_Ayuda de Router"/>
 			<item id="ID_HELP_SECURITY" text="_Ayuda de Seguridad"/>
-			<item id="ID_HELP_CODEC" text="_Ayuda con Codecs"/>
+			<item id="ID_HELP_CODEC" text="_Ayuda con Codec"/>
 			</menu>
 			<separator/>
 	            <menu text="_Sitios">
@@ -597,7 +597,7 @@
 			<separator/>
 			<item id="ID_VIEW_PACKETS" text="_Monitor de paquetes" shortcut="Ctrl+F1"/>
 			<item id="ID_VIEW_SEARCH_MONITOR" text="_Monitor de Búsqueda" shortcut="Ctrl+F2"/>
-			<item id="ID_VIEW_RESULTS_MONITOR" text="_Monitor de Resultados" shortcut="Ctrl+F3"/>
+			<item id="ID_VIEW_RESULTS_MONITOR" text="_Hit Monitor" shortcut="Ctrl+F3"/>
 			<separator/>
 			<item id="ID_VIEW_BASIC" text="Modo Normal"/>
 			<item id="ID_VIEW_TABBED" text="Modo Avanzado"/>
@@ -607,8 +607,8 @@
 			<item id="ID_LIBRARY_FOLDERS" text="Compartir _Archivos..."/>
 			<item id="ID_TOOLS_DOWNLOAD" text="_Descargar Archivo/Torrent..."/>
 			<separator/>
-			<item id="ID_TOOLS_SKIN" text="Seleccionar _Skin..."/>
-			<item id="ID_TOOLS_LANGUAGE" text="Seleccionar un _Idioma..."/>
+			<item id="ID_TOOLS_SKIN" text="Elegir _Skin..."/>
+			<item id="ID_TOOLS_LANGUAGE" text="Elegir un _Lenguaje..."/>
 			<separator/>
 			<item id="ID_TOOLS_PROFILE" text="Editar Mi _Perfil..."/>
 			<separator/>
@@ -634,7 +634,7 @@
 			<item id="ID_HELP_GUIDE" text="_Guía de Usuarios Shareaza "/>
 			<item id="ID_HELP_ROUTER" text="_Ayuda de Router"/>
 			<item id="ID_HELP_SECURITY" text="_Ayuda de Seguridad"/>
-			<item id="ID_HELP_CODEC" text="_Ayuda con Codecs"/>
+			<item id="ID_HELP_CODEC" text="_Ayuda con Codec"/>
 			</menu>
 			<separator/>
 	            <menu text="_Sitios">
@@ -764,7 +764,7 @@
 		<separator/>
 		<item id="ID_VIEW_PACKETS" text="_Monitor de paquetes"/>
 		<item id="ID_VIEW_SEARCH_MONITOR" text="_Monitor de Búsqueda"/>
-		<item id="ID_VIEW_RESULTS_MONITOR" text="_Monitor de Resultados"/>
+		<item id="ID_VIEW_RESULTS_MONITOR" text="_Hit Monitor"/>
 	</menu>
 	<!-- HOST CACHE WINDOW -->
 	<menu name="CHostCacheWnd">
@@ -1105,7 +1105,7 @@
 			<item id="ID_LIBRARY_MOVE" text="_Mover Archivo..."/>
 			<item id="ID_LIBRARY_COPY" text="_Copiar Archivo..."/>
 		</menu>
-		<item id="ID_LIBRARY_REBUILD_ANSI" text="_Ubicar Metadata"/>
+		<item id="ID_LIBRARY_REBUILD_ANSI" text="_Localizar Metadata"/>
 		<separator/>
 		<item id="ID_LIBRARY_PROPERTIES" text="_Propiedades"/>
 	</menu>
@@ -1137,9 +1137,9 @@
 			<item id="ID_LIBRARY_MOVE" text="_Mover Archivos..."/>
 			<item id="ID_LIBRARY_COPY" text="_Copiar Archivos..."/>
 		</menu>
-		<item id="ID_LIBRARY_REBUILD_ANSI" text="_Ubicar Metadata"/>
+		<item id="ID_LIBRARY_REBUILD_ANSI" text="_Localizar Metadata"/>
 		<separator/>
-		<item id="ID_LIBRARY_COLUMNS" text="Seleccionar _Columnas..."/>
+		<item id="ID_LIBRARY_COLUMNS" text="Elegir _Columnas..."/>
 		<separator/>
 		<item id="ID_LIBRARY_PROPERTIES" text="_Propiedades"/>
 	</menu>
@@ -1173,7 +1173,7 @@
 			<item id="ID_LIBRARY_MOVE" text="_Mover Archivos..."/>
 			<item id="ID_LIBRARY_COPY" text="_Copiar Archivos..."/>
 		</menu>
-		<item id="ID_LIBRARY_REBUILD_ANSI" text="_Ubicar Metadata"/>
+		<item id="ID_LIBRARY_REBUILD_ANSI" text="_Localizar Metadata"/>
 		<separator/>
 		<item id="ID_LIBRARY_PROPERTIES" text="_Propiedades"/>
 	</menu>
@@ -1207,9 +1207,9 @@
 			<item id="ID_LIBRARY_MOVE" text="_Mover Archivos..."/>
 			<item id="ID_LIBRARY_COPY" text="_Copiar Archivos..."/>
 		</menu>
-		<item id="ID_LIBRARY_REBUILD_ANSI" text="_Ubicar Metadata"/>
+		<item id="ID_LIBRARY_REBUILD_ANSI" text="_Localizar Metadata"/>
 		<separator/>
-		<item id="ID_LIBRARY_COLUMNS" text="Seleccionar _Columnas..."/>
+		<item id="ID_LIBRARY_COLUMNS" text="Elegir _Columnas..."/>
 		<separator/>
 		<item id="ID_LIBRARY_PROPERTIES" text="_Propiedades"/>
 	</menu>
@@ -1243,7 +1243,7 @@
 			<item id="ID_MEDIA_FULLSCREEN" text="_Pantalla Completa"/>
 		</menu>
 		<menu text="Configuración">
-			<item id="ID_MEDIA_VIS" text="Seleccionar _Visualización..."/>
+			<item id="ID_MEDIA_VIS" text="Escoger _Visualización..."/>
 			<separator/>
 			<item id="ID_MEDIA_PLAYLIST" text="Mostrar _lista de reproducción"/>
 			<item id="ID_MEDIA_STATUS" text="Mostrar _Estado de archivo multimedia"/>
@@ -1281,7 +1281,7 @@
 			<item id="ID_MEDIA_FULLSCREEN" text="_Pantalla Completa"/>
 		</menu>
 		<menu text="Configuración">
-			<item id="ID_MEDIA_VIS" text="Seleccionar _Visualización..."/>
+			<item id="ID_MEDIA_VIS" text="Escoger _Visualización..."/>
 			<separator/>
 			<item id="ID_MEDIA_PLAYLIST" text="Mostrar _lista de reproducción"/>
 			<item id="ID_MEDIA_STATUS" text="Mostrar _Estado de archivo multimedia"/>
@@ -1788,7 +1788,7 @@
 			<newline gap="8" indent="0"/>
 			<text format="b">Ubicación</text>
 			<newline gap="2" indent="8"/>
-			<text id="Ubicación Completa"/>
+			<text id="FullLocation"/>
 		</group>
 
 		<group id="3">
@@ -2017,7 +2017,7 @@
 		<newline gap="8"/>
 		<text>Un disco de red puede estar desconectado, o tu no tienes permiso de escribir
 		a un directorio seleccionado. Por favor revisa los directorios y los permisos, o cambiar la
-		ubicación de archivos temporales.</text>
+		locación de archivos temporales.</text>
 	</document>
 
 	<document name="GeneralHelp.ConnectionFail">
@@ -2159,7 +2159,7 @@
 		recomendado, porque la mayoria de los archivos que estan aqui no son usados por otras personas.</text>
 		<newline gap="8"/>
 		<text>Carpetas como la carpeta de Windows, Archivos del Programa, y carpetas similares
-		no continen archivos suitables para compartir. Cualquier archivo de interés deberia estar ubicado en un
+		no continen archivos suitables para compartir. Cualquier archivo de interés deberia estar localizado en un
 		sub-folder</text><text format="i"> adentro </text>
 		<text> estas carpetas. Por favor comparte estos en vez de los otros.</text>
 		<newline gap="8"/>
@@ -2174,7 +2174,7 @@
 	<tip id="ID_BROWSE_FILES" message="Ver los archivos compartidos"/>
 	<tip id="ID_BROWSE_LAUNCH" message="Explorar usuario."/>
 	<tip id="ID_BROWSE_PROFILE" message="Explorar el perfil del usuario."/>
-	<tip id="ID_BROWSE_REFRESH" message="Actualizar la lista de usuarios."/>
+	<tip id="ID_BROWSE_REFRESH" message="Refrescar la lista de usuarios."/>
 	<tip id="ID_BROWSE_STOP" message="Parar la exploración del usuario."/>
 	<tip id="ID_CHAT_BOLD" message="Aplicar negrita (Ctrl+B)"/>
 	<tip id="ID_CHAT_BROWSE" message="Explorar usuario."/>
@@ -2407,7 +2407,7 @@
 	<tip id="ID_TAB_CONNECT" message="Conectar o desconectar."/>
 	<tip id="ID_TAB_HELP" message="Ayuda sobre el uso de Shareaza."/>
 	<tip id="ID_TAB_HOME" message="Ir a la página de inicio"/>
-	<tip id="ID_TAB_LIBRARY" message="Ver Mi Colección Local."/>
+	<tip id="ID_TAB_LIBRARY" message="Ver Mi Colección local."/>
 	<tip id="ID_TAB_MEDIA" message="Mostrar archivos de media."/>
 	<tip id="ID_TAB_NETWORK" message="Ver detalles de conexión."/>
 	<tip id="ID_TAB_SEARCH" message="Buscar archivos en la red."/>
@@ -2499,7 +2499,7 @@
     <string id="7002" value="Valores Multiple"/>
 	<string id="7003" value="Múltiple"/>
     <string id="7004" value="Ya hay un filtro llamado &quot;%s&quot;, deseas remplazarlo?"/>
-	<string id="7005" value="Por favor dale un nombre al filtro."/>
+	<string id="7005" value="Por favor ponle al filtro un nombre."/>
     <string id="8000" value="Configuración de Shareaza"/>
 	<string id="8001" value="Bienvenido a Shareaza"/>
 	<string id="8002" value="Propiedades del Archivo"/>
@@ -2606,7 +2606,7 @@
 	<string id="8294" value="Adicciones Recientes"/>
 	<string id="8295" value="Dar rating a archivo"/>
 	<string id="8304" value="N/A"/>
-	<string id="8306" value="Ubicación"/>
+	<string id="8306" value="Locación"/>
 	<string id="8307" value="Tipo"/>
 	<string id="8308" value="Tamaño"/>
 	<string id="8309" value="Fuente Parcial (%.2f%% disponible)"/>
@@ -2693,7 +2693,7 @@
 	<string id="16194" value="Neighbour %s remitio un paquete con excesivo TTL, tirando paquete (TTL=%i, Hops=%i)."/>
 	<string id="16195" value="Neighbour %s remitio un paquete de ping con tama o invalido, ignorando."/>
 	<string id="16196" value="Neighbour %s remitio un paquete de pong con tamao invalido, ignorando."/>
-	<string id="16197" value="%s -&gt; %s [%i/%i] %s %s"/>
+	<string id="16197" value="%s -> %s [%i/%i] %s %s"/>
 	<string id="16198" value="El vecino en mode Leaf %s esta reenviando b squedas. Conexión cerrada."/>
 	<string id="16199" value="%s envió un paquete desconocido (0x%.2x)."/>
 	<string id="16200" value="%s envió un pong inválido."/>
@@ -2826,7 +2826,7 @@
 	<string id="16373" value="Archivos Parciales"/>
 	<string id="16374" value="Nueva Cola"/>
 	<string id="16375" value="Parciales"/>
-	<string id="16376" value="Todos Los Archivos"/>
+	<string id="16376" value="Todos Los Archivos" />
 	<string id="16377" value="HTTP Guard"/>
     <string id="16384" value="Estás seguro(a) que quieres ejecutar el archivo %s?{n}nAlgunos archivos pueden ser peligrosos para la computadora, y es recomendado tener el antivirus funcionando y actualizado."/>
 	<string id="16385" value="Estas a punto de modificar la metadata de %i archivos. ¿Estás seguro(a) en continuar?"/>
@@ -2839,7 +2839,7 @@
 	<string id="16392" value="Haz click en Conectar, para empezar."/>
 	<string id="16393" value="El archivo %s falló la verificación, y puede no ser el correcto.  ¿Estás seguro(a) de abrirlo?"/>
 	<string id="16394" value="¿Quieres quitar el atributo de potencialmente inseguro de este archivo?"/>
-	<string id="16395" value="Tu carpeta de archivos descargados &quot;%s&quot; todavia no se encuentra en Mi Colección.\n\nIncluyendo tu carpeta de archivos descargados en Mi Colección hace más fácil ver y organizar tus nuevas descargas, y hay que tomar las ventajas de las avanzadas características de Shareaza como verificación de descarga y actualización automatica.  Poniendo los archivos descargados en Mi Colección no necesariamente requiere que los compartas: puedes Seleccionar si deseas o no compartir los archivos independientemente.\n\n¿Deseas agregar tu carpeta de descargas a Mi Colección ahora?"/>
+	<string id="16395" value="Tu carpeta de archivos descargados &quot;%s&quot; todavia no se encuentra en Mi Colección.\n\nIncluyendo tu carpeta de archivos descargados en Mi Colección hace más fácil ver y organizar tus nuevas descargas, y hay que tomar las ventajas de las avanzadas características de Shareaza como verificación de descarga y actualización automatica.  Poniendo los archivos descargados en Mi Colección no necesariamente requiere que los compartas: puedes elegir si deseas o no compartir los archivos independientemente.\n\n¿Deseas agregar tu carpeta de descargas a Mi Colección ahora?"/>
 	<string id="16396" value="La carpeta de archivos descargados fué agregada a Mi Colección.  ¿Quieres compartirla también?"/>
 	<string id="16397" value="¿Estás seguro(a) de eliminar %i carpetas(s) virtuales con información sobre albums?\n\nEsto no elimina los archivos fisicamente del disco duro, solo elimina la carpeta seleccionada de Mi Colección."/>
 	<string id="16398" value="Shareaza no pudo renombrar:\n\n%s\na\n%s"/>
@@ -3081,7 +3081,7 @@
 	<string id="18509" value="Esta descarga no se puede asumir completa, porque falta información sobre el hash, que es necesaria para verificarla."/>
 	<string id="18510" value="¿Estás seguro de asumir esta descara como completa y reverificarla? Shareaza reverificará el archivo, y aceptará las partes correctas, y descarga de nuevo aquellas incorrectas."/>
 	<string id="19000" value="El Acceso Remoto esta deshabilitado."/>
-	<string id="19001" value="Debes Seleccionar un nombre de usuario y contraseña."/>
+	<string id="19001" value="Debes elegir un nombre de usuario y contraseña."/>
 	<string id="19002" value="No se puede aceptar conexiones, URL no disponible."/>
 	<string id="20000" value="No hay URN disponible"/>
 	<string id="20001" value="Cerrar"/>
@@ -3212,7 +3212,7 @@
 
 	<dialog name="CMediaSettingsPage" cookie="BuBuBuBuCoBuBuBuBuBuCo" caption="Reproductor">
 		<control caption="_Opciones:"/>
-		<control caption="Usar el reproductor de Shareaza para reproducir los archivos"/>
+		<control caption="Usar el reproductor de Shareaza para Reproducir"/>
 		<control caption="Usar el reproductor de Shareaza para poner con cola"/>
 		<control caption="_Tipos de archivos:"/>
 		<control/>
@@ -3969,7 +3969,7 @@
 		<control caption="Ha seleccionado %lu archivos para exportar como referencias de URI para Shareaza.  Por favor seleccione el formato, y haz click en Guardar:"/>
 		<control/>
 		<control caption="Insertar campo:"/>
-        <control caption="Tiger Root|SHA1|MD5|ED2K (CMD4)|Nombre de Archivo|Archivo (URI)|Nombre de Archivo Base|Extensión de Archivo|Tamaño de Archivo|Tamaño de Archivo (bytes)|Ruta de carpeta|Host Local|Puerto Local"/>
+        <control caption="Tiger Root|SHA1|MD5|ED2K (CMD4)|Filename|Filename (URI)|Base Filename|File Extension|File Size|File Size (bytes)|Folder Path|Local Host|Local Port"/>
 		<control caption="Predefinidos:"/>
         <control/>
         <control caption="Cancelar"/>
@@ -4035,7 +4035,7 @@
 	<dialog name="CExistingFileDlg" cookie="StStStStBuBuBuBuBu" caption="El archivo ya existe">
 		<control/><control/><control/><control/>
 		<control caption="Este archivo ya está en Mi Colección.  ¿Qué quiere hacer?"/>
-		<control caption="Ubicarlo en Mi Colección"/>
+		<control caption="Localizarlo en Mi Colección"/>
 		<control caption="Descargarlo de nuevo"/>
 		<control caption="Nada, dejar el archivo original"/>
 		<control caption="Continuar"/>
@@ -4055,7 +4055,7 @@
 
 	<dialog name="CDonkeyServersDlg" cookie="StStEdmsBuBu" caption="Descargar el archivo Server.met">
 		<control/>
-		<control caption="Descargar el Server.met para eDonkey2000 de la web para actualizar el cache local."/>
+		<control caption="Descargar el Server.met para eDonkey2000 de la web para refrescar el cache local."/>
 		<control/><control/>
 		<control caption="Aceptar"/>
 		<control caption="Cancelar"/>
@@ -4190,7 +4190,7 @@
 		<control/><control/>
 	</dialog>
 
-	<dialog name="CDecodeMetadataDlg" cookie="BuBuStCo" caption="Ubicar Metadata">
+	<dialog name="CDecodeMetadataDlg" cookie="BuBuStCo" caption="Localizar Metadata">
 		<control caption="OK"/>
 		<control caption="Cancelar"/>
 		<control caption="Por favor selecciona un metodo de codificación"/>

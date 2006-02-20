@@ -37,7 +37,7 @@ public:
 
 // Attributes
 public:
-	CList< CPlugin* > m_pList;
+	CPtrList	m_pList;
 	UINT		m_nCommandID;
 
 // Operations
@@ -45,14 +45,14 @@ public:
 	void		Enumerate();
 	void		Clear();
 	BOOL		LookupCLSID(LPCTSTR pszGroup, LPCTSTR pszKey, CLSID& pCLSID, BOOL bEnableDefault = TRUE);
-	BOOL		LookupEnable(REFCLSID pCLSID, BOOL bDefault, LPCTSTR pszExt = NULL );
+	BOOL		LookupEnable(REFCLSID pCLSID, BOOL bDefault);
 public:
 	void		OnSkinChanged();
 	void		RegisterCommands();
 	UINT		GetCommandID();
 	BOOL		OnUpdate(CChildWnd* pActiveWnd, CCmdUI* pCmdUI);
 	BOOL		OnCommand(CChildWnd* pActiveWnd, UINT nCommandID);
-	BOOL		OnExecuteFile(LPCTSTR pszFile, BOOL bHasThumbnail = FALSE);
+	BOOL		OnExecuteFile(LPCTSTR pszFile);
 	BOOL		OnEnqueueFile(LPCTSTR pszFile);
 
 // Inlines
@@ -64,10 +64,10 @@ public:
 
 	inline CPlugin* GetNext(POSITION& pos) const
 	{
-		return m_pList.GetNext( pos );
+		return (CPlugin*)m_pList.GetNext( pos );
 	}
 
-	inline INT_PTR GetCount() const
+	inline int GetCount() const
 	{
 		return m_pList.GetCount();
 	}

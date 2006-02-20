@@ -125,8 +125,7 @@ void CLibraryAlbumView::Update()
 	
 	m_pStaticStyle = m_pStyle;
 	m_pStyle = NULL;
-	BOOL bGhostFolder	= FALSE;
-
+	
 	if ( pFolders != NULL && pFolders->m_pVirtual != NULL &&
 		 pFolders->m_pSelNext == NULL )
 	{
@@ -140,18 +139,14 @@ void CLibraryAlbumView::Update()
 		{
 			m_pStyle = CSchema::uriMusicArtist;
 		}
-		else if ( pFolder->m_sSchemaURI == CSchema::uriGhostFolder )
-		{
-			bGhostFolder = TRUE;
-		}
 	}
 	
 	CSchema* pSchema	= SchemaCache.Get( Settings.Library.FilterURI );
 	DWORD nCookie		= GetFolderCookie();
 	BOOL bChanged		= m_pStyle != m_pStaticStyle;
 	
-	if ( Settings.Library.ShowVirtual )	pSchema = NULL;
-
+	if ( Settings.Library.ShowVirtual ) pSchema = NULL;
+	
 	CLibraryAlbumTrack** pList = m_pList + m_nCount - 1;
 	
 	for ( int nItem = m_nCount ; nItem ; nItem--, pList-- )
@@ -160,7 +155,7 @@ void CLibraryAlbumView::Update()
 		CLibraryFile* pFile			= Library.LookupFile( pTrack->m_nIndex );
 		
 		if ( pFile != NULL && pFile->m_nSelectCookie == nCookie &&
-			 ( pFile->IsAvailable() || bGhostFolder ) &&
+			 pFile->IsAvailable() &&
 			 ( ! pSchema || pSchema->Equals( pFile->m_pSchema ) ||
 			 ( ! pFile->m_pMetadata && pSchema->FilterType( pFile->m_sName ) ) ) )
 		{
@@ -173,7 +168,7 @@ void CLibraryAlbumView::Update()
 			if ( pTrack == m_pFirst ) m_pFirst = NULL;
 			if ( pTrack->m_bSelected ) Select( pTrack, TS_FALSE );
 			delete pTrack;
-			MoveMemory( pList, pList + 1, ( m_nCount - nItem ) * sizeof *pList );
+			MoveMemory( pList, pList + 1, 4 * ( m_nCount - nItem ) );
 			m_nCount--;
 			bChanged = TRUE;
 		}
@@ -193,7 +188,7 @@ void CLibraryAlbumView::Update()
 		
 		if ( pFile->m_nSelectCookie == nCookie &&
  			 pFile->m_nListCookie != nCookie &&
-			 ( pFile->IsAvailable() || bGhostFolder ) &&
+			 pFile->IsAvailable() &&
 			 ( ! pSchema || pSchema->Equals( pFile->m_pSchema ) ||
 			 ( ! pFile->m_pMetadata && pSchema->FilterType( pFile->m_sName ) ) ) )
 		{
@@ -203,7 +198,7 @@ void CLibraryAlbumView::Update()
 			{
 				m_nBuffer += 64;
 				CLibraryAlbumTrack** pList = new CLibraryAlbumTrack*[ m_nBuffer ];
-				if ( m_nCount ) CopyMemory( pList, m_pList, m_nCount * sizeof( CLibraryAlbumTrack* ) );
+				if ( m_nCount ) CopyMemory( pList, m_pList, 4 * m_nCount );
 				if ( m_pList ) delete [] m_pList;
 				m_pList = pList;
 			}
@@ -217,7 +212,7 @@ void CLibraryAlbumView::Update()
 	if ( bChanged )
 	{
 		m_pStaticStyle = m_pStyle;
-		qsort( m_pList, m_nCount, sizeof *m_pList, SortList );
+		qsort( m_pList, m_nCount, 4, SortList );
 		UpdateScroll();
 	}
 }
@@ -257,7 +252,7 @@ BOOL CLibraryAlbumView::Select(DWORD nObject)
 	return TRUE;
 }
 
-DWORD_PTR CLibraryAlbumView::HitTestIndex(const CPoint& point) const
+DWORD CLibraryAlbumView::HitTestIndex(const CPoint& point) const
 {
 	CLibraryAlbumTrack* pTrack = HitTest( point );
 	return ( pTrack ) ? pTrack->m_nIndex : 0;
@@ -300,7 +295,7 @@ int CLibraryAlbumView::SortList(LPCVOID pA, LPCVOID pB)
 		{
 			return nCompare;
 		}
-		else if ( ( nCompare = _tcsicoll( ppA->m_sAlbum, ppB->m_sAlbum ) ) != 0 )
+		else if ( nCompare = _tcsicoll( ppA->m_sAlbum, ppB->m_sAlbum ) )
 		{
 			return nCompare;
 		}
@@ -523,7 +518,7 @@ void CLibraryAlbumView::UpdateScroll()
 	Invalidate();
 }
 
-void CLibraryAlbumView::OnVScroll(UINT nSBCode, UINT /*nPos*/, CScrollBar* /*pScrollBar*/) 
+void CLibraryAlbumView::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar) 
 {
 	CRect rc;
 	GetClientRect( &rc );
@@ -718,7 +713,7 @@ void CLibraryAlbumView::OnMouseMove(UINT nFlags, CPoint point)
 	
 	if ( CLibraryAlbumTrack* pTrack = HitTest( point, &rcTrack ) )
 	{
-		pTip->Show( (void*)pTrack->m_nIndex );
+		pTip->Show( (LPVOID)pTrack->m_nIndex );
 		
 		if ( pTrack->HitTestRating( rcTrack, point ) )
 		{
@@ -744,7 +739,7 @@ void CLibraryAlbumView::OnMouseMove(UINT nFlags, CPoint point)
 	}
 }
 
-void CLibraryAlbumView::OnLButtonUp(UINT nFlags, CPoint /*point*/) 
+void CLibraryAlbumView::OnLButtonUp(UINT nFlags, CPoint point) 
 {
 	ReleaseCapture();
 	m_bDrag = FALSE;
@@ -755,7 +750,7 @@ void CLibraryAlbumView::OnLButtonUp(UINT nFlags, CPoint /*point*/)
 	}
 }
 
-void CLibraryAlbumView::OnLButtonDblClk(UINT /*nFlags*/, CPoint /*point*/) 
+void CLibraryAlbumView::OnLButtonDblClk(UINT nFlags, CPoint point) 
 {
 	SendMessage( WM_COMMAND, ID_LIBRARY_LAUNCH );
 }
@@ -791,7 +786,7 @@ void CLibraryAlbumView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 		SelectTo( m_nCount );
 		break;
 	default:
-		if ( _istalnum( TCHAR( nChar ) ) )
+		if ( _istalnum( nChar ) )
 		{
 			CLibraryAlbumTrack* pStart	= m_pFocus;
 			
@@ -854,7 +849,7 @@ CImageList* CLibraryAlbumView::CreateDragImage(const CPoint& ptMouse)
 	
 	for ( POSITION pos = m_pSelTrack.GetHeadPosition() ; pos ; )
 	{
-		CLibraryAlbumTrack* pTrack = m_pSelTrack.GetNext( pos );
+		CLibraryAlbumTrack* pTrack = (CLibraryAlbumTrack*)m_pSelTrack.GetNext( pos );
 		GetItemRect( pTrack, &rcOne );
 		
 		if ( rcOne.IntersectRect( &rcClient, &rcOne ) )
@@ -906,7 +901,7 @@ CImageList* CLibraryAlbumView::CreateDragImage(const CPoint& ptMouse)
 	
 	for ( POSITION pos = m_pSelTrack.GetHeadPosition() ; pos ; )
 	{
-		CLibraryAlbumTrack* pTrack = m_pSelTrack.GetNext( pos );
+		CLibraryAlbumTrack* pTrack = (CLibraryAlbumTrack*)m_pSelTrack.GetNext( pos );
 		GetItemRect( pTrack, &rcOne );
 		CRect rcDummy;
 		

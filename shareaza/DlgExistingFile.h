@@ -25,6 +25,7 @@
 #pragma once
 
 #include "DlgSkinDialog.h"
+#include "afxwin.h"
 
 class CLibraryFile;
 
@@ -33,7 +34,7 @@ class CExistingFileDlg : public CSkinDialog
 {
 // Construction
 public:
-	CExistingFileDlg(CLibraryFile* pFile, CWnd* pParent = NULL, bool bDuplicateSearch = false);
+	CExistingFileDlg(CLibraryFile* pFile, CWnd* pParent = NULL);
 	DECLARE_DYNAMIC(CExistingFileDlg)
 
 // Dialog Data
@@ -48,13 +49,10 @@ public:
 	CStatic m_wndComments;
 	CStatic m_wndMessageAvailable;
 	CStatic m_wndMessageDeleted;
-	CStatic m_wndMessageDuplicates;
 	CButton m_wndLocate;
-	CButton m_wndDownload;
-	CButton m_wndDontDownload;
 	CString m_sComments;
 	//}}AFX_DATA
-	TRISTATE m_bAvailable;
+	BOOL	m_bAvailable;
 
 // Overrides
 public:

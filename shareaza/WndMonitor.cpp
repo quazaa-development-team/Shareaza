@@ -51,7 +51,6 @@ BEGIN_MESSAGE_MAP(CRemoteWnd, CWnd)
 	ON_WM_LBUTTONUP()
 	ON_WM_NCLBUTTONDBLCLK()
 	ON_WM_RBUTTONDOWN()
-	ON_WM_HELPINFO()
 END_MESSAGE_MAP()
 
 LPCTSTR CRemoteWnd::m_hClass = NULL;
@@ -110,7 +109,7 @@ int CRemoteWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if ( lpCreateStruct->dwExStyle & WS_EX_LAYOUTRTL )
 	{
 		lpCreateStruct->dwExStyle ^= WS_EX_LAYOUTRTL;
-		SetWindowLongPtr( this->m_hWnd, GWL_EXSTYLE, lpCreateStruct->dwExStyle );
+		SetWindowLong( this->m_hWnd, GWL_EXSTYLE, lpCreateStruct->dwExStyle );
 	}
 
 	OnSkinChange();
@@ -168,13 +167,13 @@ void CRemoteWnd::OnWindowPosChanging(WINDOWPOS FAR* lpwndpos)
 /////////////////////////////////////////////////////////////////////////////
 // CRemoteWnd command UI
 
-LRESULT CRemoteWnd::OnIdleUpdateCmdUI(WPARAM /*wParam*/, LPARAM /*lParam*/)
+LONG CRemoteWnd::OnIdleUpdateCmdUI(WPARAM wParam, LPARAM lParam)
 {
 	UpdateCmdButtons();
 	return 0;
 }
 
-void CRemoteWnd::OnTimer(UINT_PTR /*nIDEvent*/)
+void CRemoteWnd::OnTimer(UINT nIDEvent)
 {
 	if ( m_nTimer++ >= 10 )
 	{
@@ -220,8 +219,6 @@ CRemoteWnd::CmdButton* CRemoteWnd::HitTestButtons(const CPoint& ptIn, BOOL bAll)
 
 void CRemoteWnd::UpdateCmdButtons()
 {
-	if ( m_hWnd == NULL ) return;
-
 	BOOL bChanged = FALSE;
 
 	for ( POSITION pos = m_pButtons.GetHeadPosition() ; pos ; )
@@ -267,7 +264,7 @@ void CRemoteWnd::OnSkinChange()
 	{
 		CRect* prcAnchor;
 		CString strAnchor;
-		m_pSkin->m_pAnchorList.GetNextAssoc( pos, strAnchor, prcAnchor );
+		m_pSkin->m_pAnchorList.GetNextAssoc( pos, strAnchor, (void*&)prcAnchor );
 
 		if ( strAnchor.Find( '_' ) == 0 )
 		{
@@ -334,8 +331,7 @@ void CRemoteWnd::OnPaint()
 		return;
 	}
 
-	CSize size = rcClient.Size();
-	CDC* pDC = CoolInterface.GetBuffer( dc, size );
+	CDC* pDC = CoolInterface.GetBuffer( dc, rcClient.Size() );
 	m_pSkin->Prepare( &dc );
 
 	pDC->BitBlt( 0, 0, m_rcBackground.Width(), m_rcBackground.Height(),
@@ -378,7 +374,7 @@ void CRemoteWnd::OnNcPaint()
 {
 }
 
-BOOL CRemoteWnd::OnNcActivate(BOOL /*bActive*/)
+BOOL CRemoteWnd::OnNcActivate(BOOL bActive)
 {
 	return TRUE;
 }
@@ -662,16 +658,16 @@ void CRemoteWnd::PaintStatus(CDC* pDC)
 /////////////////////////////////////////////////////////////////////////////
 // CRemoteWnd mouse interaction
 
-void CRemoteWnd::OnNcCalcSize(BOOL /*bCalcValidRects*/, NCCALCSIZE_PARAMS* /*lpncsp*/)
+void CRemoteWnd::OnNcCalcSize(BOOL bCalcValidRects, NCCALCSIZE_PARAMS* lpncsp)
 {
 }
 
-ONNCHITTESTRESULT CRemoteWnd::OnNcHitTest(CPoint /*point*/)
+UINT CRemoteWnd::OnNcHitTest(CPoint point)
 {
 	return HTCLIENT;
 }
 
-BOOL CRemoteWnd::OnSetCursor(CWnd* /*pWnd*/, UINT /*nHitTest*/, UINT /*message*/)
+BOOL CRemoteWnd::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 {
 	CPoint point;
 	GetCursorPos( &point );
@@ -740,7 +736,7 @@ void CRemoteWnd::OnMouseMove(UINT nFlags, CPoint point)
 	if ( m_pCmdDown == NULL ) CWnd::OnMouseMove(nFlags, point);
 }
 
-void CRemoteWnd::OnLButtonDown(UINT /*nFlags*/, CPoint point)
+void CRemoteWnd::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	SetActiveWindow();
 	SetFocus();
@@ -770,7 +766,7 @@ void CRemoteWnd::OnLButtonDown(UINT /*nFlags*/, CPoint point)
 	}
 }
 
-void CRemoteWnd::OnLButtonUp(UINT /*nFlags*/, CPoint point)
+void CRemoteWnd::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	if ( m_pCmdDown != NULL )
 	{
@@ -794,7 +790,7 @@ void CRemoteWnd::OnLButtonUp(UINT /*nFlags*/, CPoint point)
 	}
 }
 
-void CRemoteWnd::OnNcLButtonDblClk(UINT /*nFlags*/, CPoint point)
+void CRemoteWnd::OnNcLButtonDblClk(UINT nFlags, CPoint point)
 {
 	if ( m_bsHistoryDest && m_rcsHistoryDest.PtInRect( point ) )
 	{
@@ -810,7 +806,7 @@ void CRemoteWnd::OnNcLButtonDblClk(UINT /*nFlags*/, CPoint point)
 	}
 }
 
-void CRemoteWnd::OnRButtonDown(UINT /*nFlags*/, CPoint point)
+void CRemoteWnd::OnRButtonDown(UINT nFlags, CPoint point)
 {
 	CMenu* pMenu = Skin.GetMenu( _T("CRemoteWnd") );
 	if ( pMenu == NULL ) pMenu = Skin.GetMenu( _T("CMainWnd.Tray") );
@@ -1077,9 +1073,4 @@ void CRemoteWnd::CmdButton::Paint(CDC* pdcWindow, CRect& rcWindow, CSkinWindow* 
 	{
 		pSkin->PaintPartOnAnchor( pdcWindow, rcWindow, m_sName + _T(".Up"), m_sName );
 	}
-}
-
-BOOL CRemoteWnd::OnHelpInfo(HELPINFO* /*pHelpInfo*/)
-{
-	return FALSE;
 }

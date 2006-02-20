@@ -270,7 +270,7 @@ STDMETHODIMP CApplication::XUserInterface::GetToolbar(BSTR bsName, VARIANT_BOOL 
 
 	CCoolBarCtrl* pBar = NULL;
 
-	Skin.m_pToolbars.Lookup( CString( bsName ), pBar );
+	Skin.m_pToolbars.Lookup( CString( bsName ), (void*&)pBar );
 
 	if ( pBar == NULL )
 	{

@@ -31,12 +31,12 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
-const unsigned HASH_SIZE = 1024u;
-const unsigned HASH_MASK = 0x3FF;
+#define HASH_SIZE			1024
+#define HASH_MASK			0x3FF
 
-const DWORD MIN_BUFFER_SIZE = 1024u;
-const DWORD MAX_BUFFER_SIZE = 40960u;
-const unsigned BUFFER_BLOCK_SIZE = 1024u;
+#define MIN_BUFFER_SIZE		1024
+#define MAX_BUFFER_SIZE		40960
+#define BUFFER_BLOCK_SIZE	1024
 
 
 //////////////////////////////////////////////////////////////////////
@@ -62,9 +62,9 @@ void CRouteCache::SetDuration(DWORD nSeconds)
 	Clear();
 }
 
-BOOL CRouteCache::Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour)
+BOOL CRouteCache::Add(const GGUID* pGUID, const CNeighbour* pNeighbour)
 {
-	if ( CRouteCacheItem* pItem = Lookup( oGUID ) )
+	if ( CRouteCacheItem* pItem = Lookup( pGUID ) )
 	{
 		pItem->m_pNeighbour = pNeighbour;
 		return FALSE;
@@ -78,15 +78,15 @@ BOOL CRouteCache::Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour)
 
 		m_pRecent->Resize( m_pHistory->GetNextSize( m_nSeconds ) );
 	}
-	
-	m_pRecent->Add( oGUID, pNeighbour, NULL );
-	
+
+	m_pRecent->Add( pGUID, pNeighbour, NULL );
+
 	return TRUE;
 }
 
-BOOL CRouteCache::Add(const Hashes::Guid& oGUID, const SOCKADDR_IN* pEndpoint)
+BOOL CRouteCache::Add(const GGUID* pGUID, const SOCKADDR_IN* pEndpoint)
 {
-	if ( CRouteCacheItem* pItem = Lookup( oGUID ) )
+	if ( CRouteCacheItem* pItem = Lookup( pGUID ) )
 	{
 		pItem->m_pNeighbour	= NULL;
 		pItem->m_pEndpoint	= *pEndpoint;
@@ -101,14 +101,15 @@ BOOL CRouteCache::Add(const Hashes::Guid& oGUID, const SOCKADDR_IN* pEndpoint)
 
 		m_pRecent->Resize( m_pHistory->GetNextSize( m_nSeconds ) );
 	}
-	
-	m_pRecent->Add( oGUID, NULL, pEndpoint );
-	
+
+	m_pRecent->Add( pGUID, NULL, pEndpoint );
+
 	return TRUE;
 }
 
-CRouteCacheItem* CRouteCache::Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD tAdded)
+CRouteCacheItem* CRouteCache::Add(const GGUID* pGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD tAdded)
 {
+	GGUID cGUID = *pGUID;
 	SOCKADDR_IN cEndpoint;
 	if ( pEndpoint != NULL ) cEndpoint = *pEndpoint;
 
@@ -121,16 +122,16 @@ CRouteCacheItem* CRouteCache::Add(const Hashes::Guid& oGUID, const CNeighbour* p
 		m_pRecent->Resize( m_pHistory->GetNextSize( m_nSeconds ) );
 	}
 
-	return m_pRecent->Add( oGUID, pNeighbour, pEndpoint != NULL ? &cEndpoint : NULL, tAdded );
+	return m_pRecent->Add( &cGUID, pNeighbour, pEndpoint != NULL ? &cEndpoint : NULL, tAdded );
 }
 
-CRouteCacheItem* CRouteCache::Lookup(const Hashes::Guid& oGUID, CNeighbour** ppNeighbour, SOCKADDR_IN* pEndpoint)
+CRouteCacheItem* CRouteCache::Lookup(const GGUID* pGUID, CNeighbour** ppNeighbour, SOCKADDR_IN* pEndpoint)
 {
-	CRouteCacheItem* pItem = m_pRecent->Find( oGUID );
+	CRouteCacheItem* pItem = m_pRecent->Find( pGUID );
 
 	if ( pItem == NULL )
 	{
-		pItem = m_pHistory->Find( oGUID );
+		pItem = m_pHistory->Find( pGUID );
 
 		if ( pItem == NULL )
 		{
@@ -140,7 +141,7 @@ CRouteCacheItem* CRouteCache::Lookup(const Hashes::Guid& oGUID, CNeighbour** ppN
 			return NULL;
 		}
 
-		pItem = Add( pItem->m_oGUID, pItem->m_pNeighbour,
+		pItem = Add( &pItem->m_pGUID, pItem->m_pNeighbour,
 			pItem->m_pNeighbour ? NULL : &pItem->m_pEndpoint, pItem->m_tAdded );
 	}
 
@@ -182,31 +183,27 @@ CRouteCacheTable::~CRouteCacheTable()
 //////////////////////////////////////////////////////////////////////
 // CRouteCacheTable operations
 
-CRouteCacheItem* CRouteCacheTable::Find(const Hashes::Guid& oGUID)
+CRouteCacheItem* CRouteCacheTable::Find(const GGUID* pGUID)
 {
-	WORD nGUID = 0, *ppGUID = (WORD*)&oGUID[ 0 ];
-	for ( int nIt = 8 ; nIt ; nIt-- ) nGUID = WORD( nGUID + *ppGUID++ );
+	WORD nGUID = 0, *ppGUID = (WORD*)pGUID;
+	for ( int nIt = 8 ; nIt ; nIt-- ) nGUID += *ppGUID++;
 
 	CRouteCacheItem* pItem = *( m_pHash + ( nGUID & HASH_MASK ) );
 
 	for ( ; pItem ; pItem = pItem->m_pNext )
 	{
-		if ( validAndEqual( oGUID, pItem->m_oGUID ) ) return pItem;
+		if ( *pGUID == pItem->m_pGUID ) return pItem;
 	}
 
 	return NULL;
 }
 
-CRouteCacheItem* CRouteCacheTable::Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD nTime)
+CRouteCacheItem* CRouteCacheTable::Add(const GGUID* pGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD nTime)
 {
 	if ( m_nUsed == m_nBuffer || ! m_pFree ) return NULL;
-	
-	if ( oGUID == NULL ) // There seem to be packets with oGUID == NULL (on heavy load) -> return NULL
-		return NULL;
-	
-	WORD nGUID = 0;
-	WORD *ppGUID = (WORD*)&oGUID[ 0 ];
-	for ( int nIt = 8 ; nIt ; nIt-- ) nGUID = WORD( nGUID + *ppGUID++ );
+
+	WORD nGUID = 0, *ppGUID = (WORD*)pGUID;
+	for ( int nIt = 8 ; nIt ; nIt-- ) nGUID += *ppGUID++;
 
 	CRouteCacheItem** pHash = m_pHash + ( nGUID & HASH_MASK );
 
@@ -216,7 +213,7 @@ CRouteCacheItem* CRouteCacheTable::Add(const Hashes::Guid& oGUID, const CNeighbo
 	pItem->m_pNext = *pHash;
 	*pHash = pItem;
 
-	pItem->m_oGUID			= oGUID;
+	pItem->m_pGUID			= *pGUID;
 	pItem->m_tAdded			= nTime ? nTime : GetTickCount();
 	pItem->m_pNeighbour		= pNeighbour;
 	if ( pEndpoint ) pItem->m_pEndpoint = *pEndpoint;
@@ -264,7 +261,7 @@ void CRouteCacheTable::Remove(CNeighbour* pNeighbour)
 
 void CRouteCacheTable::Resize(DWORD nSize)
 {
-	nSize = min( max( nSize, MIN_BUFFER_SIZE ), MAX_BUFFER_SIZE );
+	nSize = min( max( nSize, DWORD(MIN_BUFFER_SIZE) ), DWORD(MAX_BUFFER_SIZE) );
 	nSize = ( ( nSize + BUFFER_BLOCK_SIZE - 1 ) / BUFFER_BLOCK_SIZE * BUFFER_BLOCK_SIZE );
 
 	if ( nSize != m_nBuffer )

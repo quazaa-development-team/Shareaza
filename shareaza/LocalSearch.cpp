@@ -114,7 +114,7 @@ CLocalSearch::~CLocalSearch()
 //////////////////////////////////////////////////////////////////////
 // CLocalSearch execute
 
-INT_PTR CLocalSearch::Execute(INT_PTR nMaximum)
+int CLocalSearch::Execute(int nMaximum)
 {
 	if ( m_pBuffer == NULL )
 	{
@@ -125,14 +125,14 @@ INT_PTR CLocalSearch::Execute(INT_PTR nMaximum)
 
 	if ( m_pSearch )
 	{
-		m_oGUID = m_pSearch->m_oGUID;
+		m_pGUID = m_pSearch->m_pGUID;
 	}
 	else
 	{
-		Network.CreateID( m_oGUID );
+		Network.CreateID( m_pGUID );
 	}
 
-	INT_PTR nCount = ExecuteSharedFiles( nMaximum );
+	int nCount = ExecuteSharedFiles( nMaximum );
 
 	if ( m_pSearch != NULL && m_pSearch->m_bWantPFS && m_nProtocol == PROTOCOL_G2 )
 	{
@@ -148,21 +148,21 @@ INT_PTR CLocalSearch::Execute(INT_PTR nMaximum)
 //////////////////////////////////////////////////////////////////////
 // CLocalSearch execute shared files
 
-INT_PTR CLocalSearch::ExecuteSharedFiles(INT_PTR nMaximum)
+int CLocalSearch::ExecuteSharedFiles(int nMaximum)
 {
 	CQuickLock oLock( Library.m_pSection );
-	CList< CLibraryFile* >* pFiles = Library.Search( m_pSearch, static_cast< int >( nMaximum ) );
+	CPtrList* pFiles = Library.Search( m_pSearch, nMaximum );
 	if ( pFiles == NULL ) return 0;
 
-	INT_PTR nHits = pFiles->GetCount();
+	int nHits = pFiles->GetCount();
 
 	while ( pFiles->GetCount() )
 	{
-		int nInThisPacket = (int)min( pFiles->GetCount(), (int)Settings.Gnutella.HitsPerPacket );
+		int nInThisPacket = min( pFiles->GetCount(), (int)Settings.Gnutella.HitsPerPacket );
 
 		CreatePacket( nInThisPacket );
 
-		int nHitB = 0;
+        int nHitB = 0;
 		for ( int nHitA = 0 ; nHitA < nInThisPacket ; nHitA++ )
 		{
 			CLibraryFile* pFile = (CLibraryFile*)pFiles->RemoveHead();
@@ -215,7 +215,7 @@ BOOL CLocalSearch::AddHitG1(CLibraryFile* pFile, int nIndex)
 	// Gnutella some protection against 'extreme' settings (if only to reduce un-necessary traffic.)
 
 	m_pPacket->WriteLongLE( pFile->m_nIndex );
-	m_pPacket->WriteLongLE( (DWORD)min( pFile->GetSize(), 0xFFFFFFFF ) );
+	m_pPacket->WriteLongLE( (DWORD)min( pFile->GetSize(), QWORD(0xFFFFFFFF) ) );
 	if ( Settings.Gnutella1.QueryHitUTF8 ) //Support UTF-8 Query
 	{
 		m_pPacket->WriteStringUTF8( pFile->m_sName );
@@ -224,10 +224,10 @@ BOOL CLocalSearch::AddHitG1(CLibraryFile* pFile, int nIndex)
 	{
 		m_pPacket->WriteString( pFile->m_sName );
 	}
-	
-	if ( pFile->m_oSHA1 )
+
+	if ( pFile->m_bSHA1 )
 	{
-		CString strHash = pFile->m_oSHA1.toUrn();
+		CString strHash = CSHA::HashToString( &pFile->m_pSHA1, TRUE );
 		m_pPacket->WriteString( strHash );
 
 		/*
@@ -241,14 +241,14 @@ BOOL CLocalSearch::AddHitG1(CLibraryFile* pFile, int nIndex)
 		m_pPacket->WriteByte( 0 );
 		*/
 	}
-	else if ( pFile->m_oTiger )
+	else if ( pFile->m_bTiger )
 	{
-		CString strHash = pFile->m_oTiger.toUrn();
+		CString strHash = CTigerNode::HashToString( &pFile->m_pTiger, TRUE );
 		m_pPacket->WriteString( strHash );
 	}
-	else if ( pFile->m_oED2K )
+	else if ( pFile->m_bED2K )
 	{
-		CString strHash = pFile->m_oED2K.toUrn();
+		CString strHash = CED2K::HashToString( &pFile->m_pED2K, TRUE );
 		m_pPacket->WriteString( strHash );
 	}
 	else
@@ -264,7 +264,7 @@ BOOL CLocalSearch::AddHitG1(CLibraryFile* pFile, int nIndex)
 	return TRUE;
 }
 
-BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int /*nIndex*/)
+BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int nIndex)
 {
 	CG2Packet* pPacket = (CG2Packet*)m_pPacket;
 	CString strMetadata, strComment;
@@ -273,23 +273,23 @@ BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int /*nIndex*/)
 	DWORD nGroup = 0;
 
 	// Pass 1: Calculate child group size
-	
-	if ( pFile->m_oTiger && pFile->m_oSHA1 )
+
+	if ( pFile->m_bTiger && pFile->m_bSHA1 )
 	{
-        nGroup += 5 + 3 + Hashes::Sha1Hash::byteCount + Hashes::TigerHash::byteCount;
+		nGroup += 5 + 3 + sizeof(SHA1) + sizeof(TIGEROOT);
 	}
-	else if ( pFile->m_oTiger )
+	else if ( pFile->m_bTiger )
 	{
-		nGroup += 5 + 4 + Hashes::TigerHash::byteCount;
+		nGroup += 5 + 4 + sizeof(TIGEROOT);
 	}
-	else if ( pFile->m_oSHA1 )
+	else if ( pFile->m_bSHA1 )
 	{
-		nGroup += 5 + 5 + Hashes::Sha1Hash::byteCount;
+		nGroup += 5 + 5 + sizeof(SHA1);
 	}
-	
-	if ( pFile->m_oED2K )
+
+	if ( pFile->m_bED2K )
 	{
-        nGroup += 5 + 5 + Hashes::Ed2kHash::byteCount;
+		nGroup += 5 + 5 + sizeof(MD4);
 	}
 
 	if ( m_pSearch == NULL || m_pSearch->m_bWantDN )
@@ -391,32 +391,32 @@ BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int /*nIndex*/)
 	// Pass 2: Write the child packet
 
 	pPacket->WritePacket( "H", nGroup, TRUE );
-	
-	if ( pFile->m_oTiger && pFile->m_oSHA1 )
+
+	if ( pFile->m_bTiger && pFile->m_bSHA1 )
 	{
-		pPacket->WritePacket( "URN", 3 + Hashes::Sha1Hash::byteCount + Hashes::TigerHash::byteCount );
+		pPacket->WritePacket( "URN", 3 + sizeof(SHA1) + sizeof(TIGEROOT) );
 		pPacket->WriteString( "bp" );
-		pPacket->Write( pFile->m_oSHA1 );
-		pPacket->Write( pFile->m_oTiger );
+		pPacket->Write( &pFile->m_pSHA1, sizeof(SHA1) );
+		pPacket->Write( &pFile->m_pTiger, sizeof(TIGEROOT) );
 	}
-	else if ( pFile->m_oTiger )
+	else if ( pFile->m_bTiger )
 	{
-		pPacket->WritePacket( "URN", 4 + Hashes::TigerHash::byteCount );
+		pPacket->WritePacket( "URN", 4 + sizeof(TIGEROOT) );
 		pPacket->WriteString( "ttr" );
-		pPacket->Write( pFile->m_oTiger );
+		pPacket->Write( &pFile->m_pTiger, sizeof(TIGEROOT) );
 	}
-	else if ( pFile->m_oSHA1 )
+	else if ( pFile->m_bSHA1 )
 	{
-		pPacket->WritePacket( "URN", 5 + Hashes::Sha1Hash::byteCount );
+		pPacket->WritePacket( "URN", 5 + sizeof(SHA1) );
 		pPacket->WriteString( "sha1" );
-		pPacket->Write( pFile->m_oSHA1 );
+		pPacket->Write( &pFile->m_pSHA1, sizeof(SHA1) );
 	}
-	
-	if ( pFile->m_oED2K )
+
+	if ( pFile->m_bED2K )
 	{
-        pPacket->WritePacket( "URN", 5 + Hashes::Ed2kHash::byteCount );
+		pPacket->WritePacket( "URN", 5 + sizeof(MD4) );
 		pPacket->WriteString( "ed2k" );
-		pPacket->Write( pFile->m_oED2K );
+		pPacket->Write( &pFile->m_pED2K, sizeof(MD4) );
 	}
 
 	if ( m_pSearch == NULL || m_pSearch->m_bWantDN )
@@ -443,14 +443,14 @@ BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int /*nIndex*/)
 
 		CUploadQueue* pQueue = UploadQueues.SelectQueue( PROTOCOL_HTTP, pFile );
 		pPacket->WritePacket( "G", 1 );
-		pPacket->WriteByte( BYTE( pQueue ? pQueue->m_nIndex + 1 : 0 ) );
+		pPacket->WriteByte( pQueue ? pQueue->m_nIndex + 1 : 0 );
 	}
 
 	if ( pFile->IsAvailable() && ( m_pSearch == NULL || m_pSearch->m_bWantURL ) )
 	{
 		pPacket->WritePacket( "URL", 0 );
 
-		if ( INT_PTR nCount = pFile->m_pSources.GetCount() )
+		if ( int nCount = pFile->m_pSources.GetCount() )
 		{
 			pPacket->WritePacket( "CSC", 2 );
 			pPacket->WriteShortBE( (WORD)nCount );
@@ -491,14 +491,14 @@ BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int /*nIndex*/)
 //////////////////////////////////////////////////////////////////////
 // CLocalSearch execute partial files
 
-int CLocalSearch::ExecutePartialFiles(INT_PTR /*nMaximum*/)
+int CLocalSearch::ExecutePartialFiles(int nMaximum)
 {
 	ASSERT( m_nProtocol == PROTOCOL_G2 );
 	ASSERT( m_pSearch != NULL );
-	
-	if ( !m_pSearch->m_oTiger && !m_pSearch->m_oSHA1 &&
-		 !m_pSearch->m_oED2K && !m_pSearch->m_oBTH ) return 0;
-	
+
+	if ( m_pSearch->m_bTiger == FALSE && m_pSearch->m_bSHA1 == FALSE &&
+		 m_pSearch->m_bED2K  == FALSE && m_pSearch->m_bBTH == FALSE ) return 0;
+
 	CSingleLock pLock( &Transfers.m_pSection );
 	if ( ! pLock.Lock( 50 ) ) return 0;
 
@@ -510,13 +510,13 @@ int CLocalSearch::ExecutePartialFiles(INT_PTR /*nMaximum*/)
 		CDownload* pDownload = Downloads.GetNext( pos );
 
 		if ( ! pDownload->IsShared() ) continue;
-		
-		if (	validAndEqual( m_pSearch->m_oTiger, pDownload->m_oTiger )
-			||	validAndEqual( m_pSearch->m_oSHA1, pDownload->m_oSHA1 )
-			||	validAndEqual( m_pSearch->m_oED2K, pDownload->m_oED2K )
-			||	validAndEqual( m_pSearch->m_oBTH, pDownload->m_oBTH ) )
+
+		if (	( m_pSearch->m_bTiger && pDownload->m_bTiger && m_pSearch->m_pTiger == pDownload->m_pTiger )
+			||	( m_pSearch->m_bSHA1  && pDownload->m_bSHA1  && m_pSearch->m_pSHA1  == pDownload->m_pSHA1 )
+			||	( m_pSearch->m_bED2K  && pDownload->m_bED2K  && m_pSearch->m_pED2K  == pDownload->m_pED2K )
+			||	( m_pSearch->m_bBTH   && pDownload->m_bBTH   && m_pSearch->m_pBTH   == pDownload->m_pBTH ) )
 		{
-			if ( pDownload->m_oBTH || pDownload->IsStarted() )
+			if ( pDownload->m_bBTH || pDownload->IsStarted() )
 			{
 				if ( m_pPacket == NULL ) CreatePacketG2();
 				AddHit( pDownload, nCount++ );
@@ -536,39 +536,39 @@ int CLocalSearch::ExecutePartialFiles(INT_PTR /*nMaximum*/)
 //////////////////////////////////////////////////////////////////////
 // CLocalSearch add download hit
 
-void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
+void CLocalSearch::AddHit(CDownload* pDownload, int nIndex)
 {
 	ASSERT( m_pPacket != NULL );
 	CG2Packet* pPacket = (CG2Packet*)m_pPacket;
 	DWORD nGroup = 2 + 4 + 4;
 	CString strURL;
-	
-    if ( pDownload->m_oTiger && pDownload->m_oSHA1 )
+
+	if ( pDownload->m_bTiger && pDownload->m_bSHA1 )
 	{
-        nGroup += 5 + 3 + Hashes::Sha1Hash::byteCount + Hashes::TigerHash::byteCount;
+		nGroup += 5 + 3 + sizeof(SHA1) + sizeof(TIGEROOT);
 	}
-	else if ( pDownload->m_oSHA1 )
+	else if ( pDownload->m_bSHA1 )
 	{
-		nGroup += 5 + 5 + Hashes::Sha1Hash::byteCount;
+		nGroup += 5 + 5 + sizeof(SHA1);
 	}
-    else if ( pDownload->m_oTiger )
+	else if ( pDownload->m_bTiger )
 	{
-		nGroup += 5 + 4 + Hashes::TigerHash::byteCount;
+		nGroup += 5 + 4 + sizeof(TIGEROOT);
 	}
-	
-	if ( pDownload->m_oED2K )
+
+	if ( pDownload->m_bED2K )
 	{
-        nGroup += 5 + 5 + Hashes::Ed2kHash::byteCount;
+		nGroup += 5 + 5 + sizeof(MD4);
 	}
-	
-	if ( pDownload->m_oBTH )
+
+	if ( pDownload->m_bBTH )
 	{
-		nGroup += 5 + 5 + Hashes::BtHash::byteCount;
+		nGroup += 5 + 5 + sizeof(SHA1);
 	}
 
 	if ( m_pSearch->m_bWantDN )
 	{
-		nGroup += 8 + pPacket->GetStringLen( pDownload->m_sDisplayName );
+		nGroup += 8 + pPacket->GetStringLen( pDownload->m_sRemoteName );
 	}
 
 	if ( m_pSearch->m_bWantURL )
@@ -576,68 +576,68 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 		nGroup += 5;
 
 		// if ( m_pSearch->m_bBTH && pDownload->m_pTorrent.IsAvailable() && Network.IsListening() )
-		
-		if ( m_pSearch->m_oBTH && pDownload->m_pTorrent.IsAvailable() && Network.m_pHost.sin_addr.S_un.S_addr != 0 )
+
+		if ( m_pSearch->m_bBTH && pDownload->m_pTorrent.IsAvailable() && Network.m_pHost.sin_addr.S_un.S_addr != 0 )
 		{
 			strURL.Format( _T("btc://%s:%i/%s/%s/"),
 				(LPCTSTR)CString( inet_ntoa( Network.m_pHost.sin_addr ) ),
 				htons( Network.m_pHost.sin_port ),
-				(LPCTSTR)pDownload->m_pPeerID.toString(),
-				(LPCTSTR)pDownload->m_oBTH.toString() );
+				(LPCTSTR)CSHA::HashToString( &pDownload->m_pPeerID ),//(LPCTSTR)CSHA::HashToString( BTClients.GetGUID() ),
+				(LPCTSTR)CSHA::HashToString( &pDownload->m_pBTH ) );
 			nGroup += pPacket->GetStringLen( strURL );
 		}
 	}
 
 	pPacket->WritePacket( "H", nGroup, TRUE );
-	
-    if ( pDownload->m_oTiger && pDownload->m_oSHA1 )
+
+	if ( pDownload->m_bTiger && pDownload->m_bSHA1 )
 	{
-        pPacket->WritePacket( "URN", 3 + Hashes::Sha1Hash::byteCount + Hashes::TigerHash::byteCount );
+		pPacket->WritePacket( "URN", 3 + sizeof(SHA1) + sizeof(TIGEROOT) );
 		pPacket->WriteString( "bp" );
-		pPacket->Write( pDownload->m_oSHA1 );
-		pPacket->Write( pDownload->m_oTiger );
+		pPacket->Write( &pDownload->m_pSHA1, sizeof(SHA1) );
+		pPacket->Write( &pDownload->m_pTiger, sizeof(TIGEROOT) );
 	}
-    else if ( pDownload->m_oTiger )
+	else if ( pDownload->m_bTiger )
 	{
-		pPacket->WritePacket( "URN", 4 + Hashes::TigerHash::byteCount );
+		pPacket->WritePacket( "URN", 4 + sizeof(TIGEROOT) );
 		pPacket->WriteString( "ttr" );
-		pPacket->Write( pDownload->m_oTiger );
+		pPacket->Write( &pDownload->m_pTiger, sizeof(TIGEROOT) );
 	}
-	else if ( pDownload->m_oSHA1 )
+	else if ( pDownload->m_bSHA1 )
 	{
-		pPacket->WritePacket( "URN", 5 + Hashes::Sha1Hash::byteCount );
+		pPacket->WritePacket( "URN", 5 + sizeof(SHA1) );
 		pPacket->WriteString( "sha1" );
-		pPacket->Write( pDownload->m_oSHA1 );
+		pPacket->Write( &pDownload->m_pSHA1, sizeof(SHA1) );
 	}
-	
-    if ( pDownload->m_oED2K )
+
+	if ( pDownload->m_bED2K )
 	{
-        pPacket->WritePacket( "URN", 5 + Hashes::Ed2kHash::byteCount );
+		pPacket->WritePacket( "URN", 5 + sizeof(MD4) );
 		pPacket->WriteString( "ed2k" );
-		pPacket->Write( pDownload->m_oED2K );
+		pPacket->Write( &pDownload->m_pED2K, sizeof(MD4) );
 	}
-	
-	if ( pDownload->m_oBTH )
+
+	if ( pDownload->m_bBTH )
 	{
-        pPacket->WritePacket( "URN", 5 + Hashes::BtHash::byteCount );
+		pPacket->WritePacket( "URN", 5 + sizeof(SHA1) );
 		pPacket->WriteString( "btih" );
-		pPacket->Write( pDownload->m_oBTH );
+		pPacket->Write( &pDownload->m_pBTH, sizeof(SHA1) );
 	}
 
 	if ( m_pSearch->m_bWantDN )
 	{
 		if ( pDownload->m_nSize <= 0xFFFFFFFF )
 		{
-			pPacket->WritePacket( "DN", pPacket->GetStringLen( pDownload->m_sDisplayName ) + 4 );
+			pPacket->WritePacket( "DN", pPacket->GetStringLen( pDownload->m_sRemoteName ) + 4 );
 			pPacket->WriteLongBE( (DWORD)pDownload->m_nSize );
-			pPacket->WriteString( pDownload->m_sDisplayName, FALSE );
+			pPacket->WriteString( pDownload->m_sRemoteName, FALSE );
 		}
 		else
 		{
 			pPacket->WritePacket( "SZ", 8 );
 			pPacket->WriteInt64( pDownload->m_nSize );
-			pPacket->WritePacket( "DN", pPacket->GetStringLen( pDownload->m_sDisplayName ) );
-			pPacket->WriteString( pDownload->m_sDisplayName, FALSE );
+			pPacket->WritePacket( "DN", pPacket->GetStringLen( pDownload->m_sRemoteName ) );
+			pPacket->WriteString( pDownload->m_sRemoteName, FALSE );
 		}
 	}
 
@@ -685,9 +685,9 @@ void CLocalSearch::CreatePacket(int nCount)
 
 void CLocalSearch::CreatePacketG1(int nCount)
 {
-	m_pPacket = CG1Packet::New( G1_PACKET_HIT, m_nTTL, m_oGUID );
-	
-	m_pPacket->WriteByte( BYTE( nCount ) );
+	m_pPacket = CG1Packet::New( G1_PACKET_HIT, m_nTTL, &m_pGUID );
+
+	m_pPacket->WriteByte( nCount );
 	m_pPacket->WriteShortLE( htons( Network.m_pHost.sin_port ) );
 	m_pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
 
@@ -707,8 +707,9 @@ void CLocalSearch::CreatePacketG2()
 	m_pPacket = pPacket;
 
 	pPacket->WritePacket( "GU", 16 );
-	pPacket->Write( Hashes::Guid( MyProfile.oGUID ) );
-	
+	GGUID tmp( MyProfile.GUID );
+	pPacket->Write( &tmp, sizeof(GGUID) );
+
 	if ( TRUE /* Network.IsListening() */ )
 	{
 		pPacket->WritePacket( "NA", 6 );
@@ -756,11 +757,11 @@ void CLocalSearch::CreatePacketG2()
 			CUploadQueue* pQueue = UploadQueues.GetNext( pos );
 			pPacket->WritePacket( "HG", ( 4 + 7 ) + 2, TRUE );
 			pPacket->WritePacket( "SS", 7 );
-			pPacket->WriteShortBE( WORD( pQueue->GetQueuedCount() + pQueue->GetTransferCount() ) );
-			pPacket->WriteByte( BYTE( pQueue->GetTransferCount( TRUE ) ) );
+			pPacket->WriteShortBE( pQueue->GetQueuedCount() + pQueue->GetTransferCount() );
+			pPacket->WriteByte( pQueue->GetTransferCount( TRUE ) );
 			pPacket->WriteLongBE( pQueue->GetPredictedBandwidth() * 8 / 1024 );
 			pPacket->WriteByte( 0 );
-			pPacket->WriteByte( BYTE( nQueue ) );
+			pPacket->WriteByte( nQueue );
 		}
 
 		pQueueLock.Unlock();
@@ -793,7 +794,7 @@ void CLocalSearch::AddMetadata(CSchema* pSchema, CXMLElement* pXML, int nIndex)
 
 	CXMLElement* pGroup;
 
-	if ( ! m_pSchemas.Lookup( pSchema, pGroup ) )
+	if ( ! m_pSchemas.Lookup( pSchema, (void*&)pGroup ) )
 	{
 		pGroup = pSchema->Instantiate();
 		m_pSchemas.SetAt( pSchema, pGroup );
@@ -818,7 +819,7 @@ CString CLocalSearch::GetXMLString()
 		CXMLElement* pGroup;
 		CSchema* pSchema;
 
-		m_pSchemas.GetNextAssoc( pos1, pSchema, pGroup );
+		m_pSchemas.GetNextAssoc( pos1, (void*&)pSchema, (void*&)pGroup );
 
 		strXML += _T("<?xml version=\"1.0\"?>\r\n");
 		pGroup->ToString( strXML, TRUE );
@@ -873,7 +874,7 @@ void CLocalSearch::WriteTrailerG1()
 
 	CString strXML		= GetXMLString();
 	DWORD nCompressed	= 0;
-	auto_array< BYTE > pCompressed;
+	BYTE* pCompressed	= NULL;
 
 	m_pPacket->WriteByte( strXML.IsEmpty() ? 2 : 4 );
 	m_pPacket->WriteByte( nFlags[0] );
@@ -891,14 +892,15 @@ void CLocalSearch::WriteTrailerG1()
 
 		pCompressed = CZLib::Compress( pszXML, nXML, &nCompressed );
 
-		if ( nCompressed + 9 < (DWORD)nXML + 11 && pCompressed.get() != NULL )
+		if ( nCompressed + 9 < (DWORD)nXML + 11 && pCompressed != NULL )
 		{
 			m_pPacket->WriteShortLE( (WORD)( nCompressed + 9 + 1 ) );
 		}
 		else
 		{
-			m_pPacket->WriteShortLE( WORD( nXML + 11 + 1 ) );
-			pCompressed.reset();
+			m_pPacket->WriteShortLE( nXML + 11 + 1 );
+			if ( pCompressed != NULL ) delete [] pCompressed;
+			pCompressed = NULL;
 		}
 	}
 
@@ -913,11 +915,12 @@ void CLocalSearch::WriteTrailerG1()
 		m_pPacket->WriteByte( GGEP_LEN_LAST );
 	}
 
-	if ( pCompressed.get() != NULL )
+	if ( pCompressed != NULL )
 	{
 		m_pPacket->Write( "{deflate}", 9 );
-		m_pPacket->Write( pCompressed.get(), nCompressed );
+		m_pPacket->Write( pCompressed, nCompressed );
 		m_pPacket->WriteByte( 0 );
+		delete [] pCompressed;
 	}
 	else if ( pszXML != NULL )
 	{
@@ -927,7 +930,8 @@ void CLocalSearch::WriteTrailerG1()
 
 	if ( pszXML != NULL ) delete [] pszXML;
 
-	m_pPacket->Write( Hashes::Guid( MyProfile.oGUID ) );
+	GGUID tmp( MyProfile.GUID );
+	m_pPacket->Write( &tmp, sizeof(GGUID) );
 }
 
 void CLocalSearch::WriteTrailerG2()
@@ -936,7 +940,7 @@ void CLocalSearch::WriteTrailerG2()
 
 	pPacket->WriteByte( 0 );
 	pPacket->WriteByte( 0 );
-	pPacket->Write( m_oGUID );
+	pPacket->Write( &m_pGUID, sizeof(GGUID) );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1045,7 +1049,7 @@ CG2Packet* CLocalSearch::AlbumToPacket(CAlbumFolder* pFolder)
 		}
 	}
 
-	pPacket->WritePacket( "FILES", static_cast< DWORD >( pFolder->GetFileCount() * 4 ) );
+	pPacket->WritePacket( "FILES", pFolder->GetFileCount() * 4 );
 
 	for ( POSITION pos = pFolder->GetFileIterator() ; pos ; )
 	{
@@ -1092,7 +1096,7 @@ CG2Packet* CLocalSearch::FolderToPacket(CLibraryFolder* pFolder)
 		}
 	}
 
-	pPacket->WritePacket( "FILES", static_cast< DWORD >( pFolder->GetFileCount() * 4 ) );
+	pPacket->WritePacket( "FILES", pFolder->GetFileCount() * 4 );
 
 	for ( POSITION pos = pFolder->GetFileIterator() ; pos ; )
 	{

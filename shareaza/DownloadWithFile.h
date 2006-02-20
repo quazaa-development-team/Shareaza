@@ -32,15 +32,15 @@ class CFragmentedFile;
 class CDownloadWithFile : public CDownloadWithTransfers
 {
 // Construction
-protected:
+public:
 	CDownloadWithFile();
 	virtual ~CDownloadWithFile();
 
 // Attributes
 public:
 	CFragmentedFile*	m_pFile;
-	BOOL				m_bDiskFull;
 	DWORD				m_tReceived;
+	BOOL				m_bDiskFull;
 
 // Operations
 public:
@@ -50,31 +50,32 @@ public:
 	DWORD			GetTimeRemaining() const;
 	CString			GetDisplayName() const;
 public:
-	const Fragments::List& GetEmptyFragmentList() const;
+    const FF::SimpleFragmentList& GetEmptyFragmentList() const;
+    FF::SimpleFragmentList GetPossibleFragments(const FF::SimpleFragmentList& oAvailable, FF::SimpleFragment& oLargest);
 	BOOL			GetFragment(CDownloadTransfer* pTransfer);
 	BOOL			IsPositionEmpty(QWORD nOffset);
-	BOOL			AreRangesUseful(const Fragments::List& oAvailable);
+    BOOL            AreRangesUseful(const FF::SimpleFragmentList& oAvailable);
 	BOOL			IsRangeUseful(QWORD nOffset, QWORD nLength);
 	BOOL			IsRangeUsefulEnough(CDownloadTransfer* pTransfer, QWORD nOffset, QWORD nLength);
+	virtual CString	GetAvailableRanges() const;
 	BOOL			ClipUploadRange(QWORD nOffset, QWORD& nLength) const;
-	BOOL			PrepareFile();
 	BOOL			GetRandomRange(QWORD& nOffset, QWORD& nLength) const;
+	BOOL			PrepareFile();
 	BOOL			SubmitData(QWORD nOffset, LPBYTE pData, QWORD nLength);
 	QWORD			EraseRange(QWORD nOffset, QWORD nLength);
 	BOOL			MakeComplete();
 protected:
-	virtual CString	GetAvailableRanges() const;
 	BOOL			OpenFile();
 	void			CloseFile();
 	void			DeleteFile(BOOL bForce = FALSE);
 	BOOL			RunFile(DWORD tNow);
 	BOOL			WriteMetadata(LPCTSTR pszPath);
 	BOOL			AppendMetadata();
-	virtual void	Serialize(CArchive& ar, int nVersion);
-private:
-	Fragments::List	GetPossibleFragments(const Fragments::List& oAvailable, Fragments::Fragment& oLargest);
 	BOOL			AppendMetadataID3v1(HANDLE hFile, CXMLElement* pXML);
-	
+protected:
+	virtual void	Serialize(CArchive& ar, int nVersion);
+
+	friend class CDownloadTransfer;
 };
 
 #endif // !defined(AFX_DOWNLOADWITHFILE_H__79FE6B65_04DF_4CD5_A1BC_9AF8429664DC__INCLUDED_)

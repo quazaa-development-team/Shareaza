@@ -53,23 +53,23 @@ protected:
 	SOCKADDR_IN*	m_pEndpoint;
 	CBuffer*		m_pBuffer;
 	DWORD			m_nTTL;
-	Hashes::Guid	m_oGUID;
+	GGUID			m_pGUID;
 	PROTOCOLID		m_nProtocol;
 	BOOL			m_bWrapped;
 protected:
 	CPacket*		m_pPacket;
-	CMap< CSchema*, CSchema*, CXMLElement*, CXMLElement* > m_pSchemas;
+	CMapPtrToPtr	m_pSchemas;
 
 // Operations
 public:
-	INT_PTR		Execute(INT_PTR nMaximum = -1);
+	int			Execute(int nMaximum = -1);
 	void		WriteVirtualTree();
 protected:
-	INT_PTR		ExecuteSharedFiles(INT_PTR nMaximum);
+	int			ExecuteSharedFiles(int nMaximum);
 	BOOL		AddHit(CLibraryFile* pFile, int nIndex);
 	BOOL		AddHitG1(CLibraryFile* pFile, int nIndex);
 	BOOL		AddHitG2(CLibraryFile* pFile, int nIndex);
-	int			ExecutePartialFiles(INT_PTR nMaximum);
+	int			ExecutePartialFiles(int nMaximum);
 	void		AddHit(CDownload* pDownload, int nIndex);
 protected:
 	void		CreatePacket(int nCount);

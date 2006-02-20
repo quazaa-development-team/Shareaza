@@ -1,11 +1,7 @@
 //
 // Network.h
 //
-//	Date:			"$Date: 2006/02/15 10:02:57 $"
-//	Revision:		"$Revision: 1.13 $"
-//  Last change by:	"$Author: rolandas $"
-//
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -53,28 +49,15 @@ public:
 public:
 	CMutex			m_pSection;
 	CEvent			m_pWakeup;
-	SOCKADDR_IN		m_pHost;				// Structure (Windows Sockets) which holds address of the local machine
+	SOCKADDR_IN		m_pHost;
 	BOOL			m_bEnabled;				// If the network "enabled" (Connected or trying)
 	BOOL			m_bAutoConnect;
 	DWORD			m_tStartedConnecting;	// The time Shareaza started trying to connect
-	DWORD			m_tLastConnect;			// The last time a neighbour connection attempt was made
-	DWORD			m_tLastED2KServerHop;	// The last time the ed2k server was changed
+	DWORD			m_tLastConnect;			// The last time a neighbout connection attempt was made
 protected:
 	HANDLE			m_hThread;
 	DWORD			m_nSequence;
-	struct ResolveStruct
-	{
-		CString* m_sAddress;
-		PROTOCOLID m_nProtocol;
-		WORD m_nPort;
-		BYTE m_nCommand;
-		union
-		{
-			char m_pBuffer[ MAXGETHOSTSTRUCT ];
-			HOSTENT m_pHost;
-		};
-	};
-	CMap< HANDLE, HANDLE, ResolveStruct*, ResolveStruct* > m_pLookups;
+	CMapPtrToPtr	m_pLookups;
 
 // Operations
 public:
@@ -93,14 +76,13 @@ public:
 	void		AcquireLocalAddress(LPCTSTR pszHeader);
 	BOOL		Resolve(LPCTSTR pszHost, int nPort, SOCKADDR_IN* pHost, BOOL bNames = TRUE) const;
 	BOOL		AsyncResolve(LPCTSTR pszAddress, WORD nPort, PROTOCOLID nProtocol, BYTE nCommand);
-	BOOL		IsReserved(IN_ADDR* pAddress);
 	WORD		RandomPort() const;
-	void		CreateID(Hashes::Guid& oID);
+	void		CreateID(GGUID& oID);
 	BOOL		IsFirewalledAddress(LPVOID pAddress, BOOL bIncludeSelf = FALSE);
 public:
-	BOOL		GetNodeRoute(const Hashes::Guid& oGUID, CNeighbour** ppNeighbour, SOCKADDR_IN* pEndpoint);
+	BOOL		GetNodeRoute(GGUID* pGUID, CNeighbour** ppNeighbour, SOCKADDR_IN* pEndpoint);
 	BOOL		RoutePacket(CG2Packet* pPacket);
-	BOOL		SendPush(const Hashes::Guid& oGUID, DWORD nIndex = 0);
+	BOOL		SendPush(GGUID* pGUID, DWORD nIndex = 0);
 	BOOL		RouteHits(CQueryHit* pHits, CPacket* pPacket);
 	void		OnWinsock(WPARAM wParam, LPARAM lParam);
 	void		OnQuerySearch(CQuerySearch* pSearch);

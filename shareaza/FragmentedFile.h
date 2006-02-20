@@ -42,7 +42,7 @@ protected:
 	QWORD			m_nUnflushed;
 
 private:
-	Fragments::List	m_oFList;
+    FF::SimpleFragmentList m_oFList;
 	
 // Operations
 public:
@@ -80,7 +80,7 @@ public:
 	
 	inline QWORD GetRemaining() const
 	{
-		return m_oFList.length_sum();
+		return m_oFList.sumLength();
 	}
 	
 	inline QWORD GetCompleted() const
@@ -88,10 +88,10 @@ public:
 		return m_oFList.missing();
 	}
 	
-	const Fragments::List& GetEmptyFragmentList() const
-	{
-		return m_oFList;
-	}
+    const FF::SimpleFragmentList& GetEmptyFragmentList() const
+    {
+        return m_oFList;
+    }
 	
 	inline QWORD GetEmptyFragmentCount() const
 	{

@@ -1,8 +1,8 @@
 //
 // ChatSession.cpp
 //
-//	Date:			"$Date: 2005/11/28 09:18:06 $"
-//	Revision:		"$Revision: 1.24 $"
+//	Date:			"$Date: 2005/10/04 02:42:09 $"
+//	Revision:		"$Revision: 1.21 $"
 //  Last change by:	"$Author: mogthecat $"
 //
 // Copyright (c) Shareaza Development Team, 2002-2005.
@@ -44,6 +44,9 @@
 #include "CtrlPrivateChatFrame.h"
 // #include "CtrlPublicChatFrame.h"
 
+typedef unsigned int UINT_PTR;
+#include <mmsystem.h>
+
 #ifdef _DEBUG
 #undef THIS_FILE
 static char THIS_FILE[]=__FILE__;
@@ -56,6 +59,8 @@ static char THIS_FILE[]=__FILE__;
 
 CChatSession::CChatSession(CChatFrame* pFrame)
 {
+	m_bGUID			= FALSE;
+	
 	m_nState		= cssNull;
 	m_nProtocol		= PROTOCOL_NULL;
 	m_bOld			= FALSE;
@@ -94,11 +99,15 @@ CChatSession::~CChatSession()
 //////////////////////////////////////////////////////////////////////
 // CChatSession setup
 
-void CChatSession::Setup(const Hashes::Guid& oGUID, SOCKADDR_IN* pHost, BOOL bMustPush)
+void CChatSession::Setup(GGUID* pGUID, SOCKADDR_IN* pHost, BOOL bMustPush)
 {
 	CSingleLock pLock( &ChatCore.m_pSection, TRUE );
 	
-	m_oGUID = oGUID;
+	if ( pGUID != NULL )
+	{
+		m_bGUID = TRUE;
+		m_pGUID = *pGUID;
+	}
 	
 	m_pHost		= *pHost;
 	m_bMustPush	= bMustPush;
@@ -193,13 +202,13 @@ void CChatSession::AttachTo(CConnection* pConnection)
 //////////////////////////////////////////////////////////////////////
 // CChatSession push functionality
 
-BOOL CChatSession::SendPush(BOOL /*bAutomatic*/)
+BOOL CChatSession::SendPush(BOOL bAutomatic)
 {
-	if ( ! m_oGUID ) return FALSE;
+	if ( ! m_bGUID ) return FALSE;
 
 	if ( m_nProtocol == PROTOCOL_ED2K ) return FALSE;
 	
-	if ( Network.SendPush( m_oGUID, 0 ) )
+	if ( Network.SendPush( &m_pGUID, 0 ) )
 	{
 		m_nState = cssNull;
 		CConnection::Close();
@@ -215,10 +224,10 @@ BOOL CChatSession::SendPush(BOOL /*bAutomatic*/)
 	}
 }
 
-BOOL CChatSession::OnPush(const Hashes::Guid& oGUID, CConnection* pConnection)
+BOOL CChatSession::OnPush(GGUID* pGUID, CConnection* pConnection)
 {
 	if ( m_tPushed == 0 ) return FALSE;
-	if ( !m_oGUID || validAndUnequal( m_oGUID, oGUID ) ) return FALSE;
+	if ( ! m_bGUID || m_pGUID != *pGUID ) return FALSE;
 	if ( m_nState > cssConnecting ) return FALSE;
 	if ( m_nProtocol == PROTOCOL_ED2K ) return FALSE;
 	
@@ -291,7 +300,7 @@ BOOL CChatSession::OnConnected()
 //////////////////////////////////////////////////////////////////////
 // CChatSession disconnection handler
 
-void CChatSession::OnDropped(BOOL /*bError*/)
+void CChatSession::OnDropped(BOOL bError)
 {
 	if ( m_hSocket == INVALID_SOCKET ) return;
 	
@@ -436,10 +445,10 @@ BOOL CChatSession::OnHeaderLine(CString& strHeader, CString& strValue)
 	{
 		m_sUserNick = strValue;
 	}
-	else if (  strHeader.CompareNoCase( _T("X-My-Address") ) == 0
-			|| strHeader.CompareNoCase( _T("Listen-IP") ) == 0
-			|| strHeader.CompareNoCase( _T("X-Node") ) == 0
-			|| strHeader.CompareNoCase( _T("Node") ) == 0 )
+	else if (	strHeader.CompareNoCase( _T("X-My-Address") ) == 0 ||
+				strHeader.CompareNoCase( _T("Listen-IP") ) == 0 ||
+				strHeader.CompareNoCase( _T("X-Node") ) == 0 ||
+				strHeader.CompareNoCase( _T("Node") ) == 0 )
 	{
 		int nColon = strValue.Find( ':' );
 		
@@ -449,7 +458,7 @@ BOOL CChatSession::OnHeaderLine(CString& strHeader, CString& strValue)
 			
 			if ( _stscanf( strValue.Mid( nColon + 1 ), _T("%i"), &nPort ) == 1 && nPort != 0 )
 			{
-				m_pHost.sin_port = htons( u_short( nPort ) );
+				m_pHost.sin_port = htons( nPort );
 			}
 		}
 	}
@@ -542,10 +551,11 @@ BOOL CChatSession::OnEstablished()
 BOOL CChatSession::ReadPacketsED2K()
 {
 	BOOL bSuccess = TRUE;
+	CEDPacket* pPacket;
 
 	ASSERT( m_pInput != NULL );
 	
-	while ( CEDPacket* pPacket = CEDPacket::ReadBuffer( m_pInput, ED2K_PROTOCOL_EMULE ) )
+	while ( pPacket = CEDPacket::ReadBuffer( m_pInput, ED2K_PROTOCOL_EMULE ) )
 	{
 		try
 		{
@@ -567,7 +577,7 @@ BOOL CChatSession::ReadPacketsED2K()
 		catch ( CException* pException )
 		{
 			pException->Delete();
-			if ( !m_oGUID ) bSuccess = FALSE;
+			if ( ! m_bGUID ) bSuccess = FALSE;
 		}
 		
 		pPacket->Release();
@@ -579,9 +589,11 @@ BOOL CChatSession::ReadPacketsED2K()
 
 BOOL CChatSession::SendPacketsED2K()
 {
+	CEDPacket* pPacket;
+
 	ASSERT( m_pOutput != NULL );
 
-	while ( CEDPacket* pPacket = CEDPacket::ReadBuffer( m_pOutput, ED2K_PROTOCOL_EMULE ) )
+	while ( pPacket = CEDPacket::ReadBuffer( m_pOutput, ED2K_PROTOCOL_EMULE ) )
 	{
 		ASSERT ( pPacket != NULL );
 
@@ -621,7 +633,7 @@ BOOL CChatSession::SendChatMessage(CEDPacket* pPacket)
 	// Try to find an ed2k client
 	CEDClient* pClient = EDClients.GetByIP( &m_pHost.sin_addr );
 
-	if ( ( pClient ) && validAndEqual( pClient->m_oGUID, m_oGUID ) )	// Found a client
+	if ( ( pClient ) && ( pClient->m_pGUID == m_pGUID ) )	// Found a client
 	{	
 		
 		if ( pClient->IsOnline() )	// We found a client that's ready to go
@@ -916,7 +928,7 @@ BOOL CChatSession::OnPacket(CG2Packet* pPacket)
 	return TRUE;
 }
 
-BOOL CChatSession::OnProfileChallenge(CG2Packet* /*pPacket*/)
+BOOL CChatSession::OnProfileChallenge(CG2Packet* pPacket)
 {
 	if ( ! MyProfile.IsValid() ) return TRUE;
 	
@@ -953,12 +965,7 @@ BOOL CChatSession::OnProfileDelivery(CG2Packet* pPacket)
 			{
 				m_pProfile = new CGProfile();
 				
-				if ( m_pProfile == NULL )
-				{
-					theApp.Message( MSG_ERROR, _T("Memory allocation error in CChatSession::OnProfileDelivery()") );
-					delete pXML;
-				}
-				else if ( ! m_pProfile->FromXML( pXML ) || ! m_pProfile->IsValid() )
+				if ( ! m_pProfile->FromXML( pXML ) || ! m_pProfile->IsValid() )
 				{
 					delete pXML;
 					delete m_pProfile;
@@ -974,15 +981,27 @@ BOOL CChatSession::OnProfileDelivery(CG2Packet* pPacket)
 	
 	m_sUserNick = m_pProfile->GetNick();
 	
-	m_oGUID = m_pProfile->oGUID;
-
+	if ( m_bGUID )
+	{
+		if ( m_pGUID != m_pProfile->GUID )
+		{
+			// ERROR: Its someone else !!
+			m_pGUID = m_pProfile->GUID;
+		}
+	}
+	else
+	{
+		m_bGUID = TRUE;
+		m_pGUID = m_pProfile->GUID;
+	}
+	
 	if ( m_pWndPrivate != NULL )
 	{
 		m_pWndPrivate->OnProfileReceived();
 		
 		CG2Packet* pPacket = CG2Packet::New( "CHATREQ", TRUE );
 		pPacket->WritePacket( "USERGUID", 16 );
-		pPacket->Write( m_oGUID );
+		pPacket->Write( &m_pGUID, 16 );
 		
 		Send( pPacket, TRUE );
 	}
@@ -994,7 +1013,8 @@ BOOL CChatSession::OnChatRequest(CG2Packet* pPacket)
 {
 	if ( ! pPacket->m_bCompound ) return TRUE;
 	
-	Hashes::Guid oGUID;
+	BOOL bGUID = FALSE;
+	GGUID pGUID;
 	
 	CHAR szType[9];
 	DWORD nLength;
@@ -1005,7 +1025,8 @@ BOOL CChatSession::OnChatRequest(CG2Packet* pPacket)
 		
 		if ( strcmp( szType, "USERGUID" ) == 0 && nLength >= 16 )
 		{
-			pPacket->Read( oGUID );
+			pPacket->Read( &pGUID, 16 );
+			bGUID = TRUE;
 		}
 		
 		pPacket->m_nPosition = nOffset;
@@ -1014,10 +1035,10 @@ BOOL CChatSession::OnChatRequest(CG2Packet* pPacket)
 	pPacket = CG2Packet::New( "CHATANS", TRUE );
 	
 	pPacket->WritePacket( "USERGUID", 16 );
-	Hashes::Guid tmp = MyProfile.oGUID;
-	pPacket->Write( tmp );
+	GGUID tmp( MyProfile.GUID );
+	pPacket->Write( &tmp, 16 );
 	
-	if ( validAndEqual( oGUID, tmp ) )
+	if ( bGUID && pGUID == MyProfile.GUID )
 	{
 		pPacket->WritePacket( "ACCEPT", 0 );
 		PostOpenWindow();
@@ -1132,12 +1153,12 @@ BOOL CChatSession::SendPrivateMessage(BOOL bAction, LPCTSTR pszText)
 
 		if ( m_bUnicode )
 		{
-			pPacket->WriteShortLE( WORD( pPacket->GetStringLenUTF8( pszText ) ) );
+			pPacket->WriteShortLE( pPacket->GetStringLenUTF8( pszText ) );
 			pPacket->WriteStringUTF8( pszText, FALSE );
 		}
 		else
 		{
-			pPacket->WriteShortLE( WORD( pPacket->GetStringLen( strMessage ) ) );
+			pPacket->WriteShortLE( pPacket->GetStringLen( strMessage ) );
 			pPacket->WriteString( strMessage, FALSE );
 		}
 
@@ -1219,9 +1240,9 @@ void CChatSession::OnOpenWindow()
 {
 	ASSERT( m_pWndPrivate == NULL && m_pWndPublic == NULL );
 	
-	if ( m_oGUID )
+	if ( m_bGUID )
 	{
-		m_pWndPrivate = ChatWindows.FindPrivate( m_oGUID );
+		m_pWndPrivate = ChatWindows.FindPrivate( &m_pGUID );
 	}
 	else
 	{

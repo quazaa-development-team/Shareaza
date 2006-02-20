@@ -37,12 +37,12 @@ public:
 	
 // Attributes
 protected:
-	CList< CUploadFile* >	m_pList;
+	CPtrList	m_pList;
 
 // Operations
 public:
 	void			Clear();
-	CUploadFile*	GetFile(CUploadTransfer* pUpload, const Hashes::Sha1Hash& oSHA1, LPCTSTR pszName, LPCTSTR pszPath, QWORD nSize);
+	CUploadFile*	GetFile(CUploadTransfer* pUpload, SHA1* pSHA1, LPCTSTR pszName, LPCTSTR pszPath, QWORD nSize);
 	void			Remove(CUploadTransfer* pTransfer);
 	void			MoveToHead(CUploadTransfer* pTransfer);
 	void			MoveToTail(CUploadTransfer* pTransfer);
@@ -56,10 +56,10 @@ public:
 	
 	inline CUploadFile* GetNext(POSITION& pos) const
 	{
-		return m_pList.GetNext( pos );
+		return (CUploadFile*)m_pList.GetNext( pos );
 	}
 	
-	inline INT_PTR GetCount() const
+	inline int GetCount() const
 	{
 		return m_pList.GetCount();
 	}

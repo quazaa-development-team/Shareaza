@@ -23,10 +23,16 @@
 ;
 ; SHA_asm - Implementation of SHA-1 for x86 - use together with SHA.cpp and SHA.h
 ;
+; created              4.7.2004         by Camper
+;
+; last modified        20.7.2004         by Camper
+;
+; The integration into other projects than Shareaza is expressivly encouraged. Feel free to contact me about it.
+;
 ; #####################################################################################################################
 
                         .586p
-                        .model      flat, stdcall
+                        .model      flat, C 
                         option      casemap:none                    ; case sensitive
                         option      prologue:none                   ; we generate our own entry/exit code
                         option      epilogue:none
@@ -45,40 +51,51 @@ m_nHash4                 equ         24
 m_nBuffer                equ         28
 
 RND_CH                  MACRO       const:REQ
+
 ; t=a; a=rotl32(a,5)+e+k+w[i]+((b&c)^(~b&d)); e=d; d=c; c=rotl32(b,30); b=t
-;      a=rotl32(a,5)+e+k+w[i]+(d^(b&(c^d)));
+
                         mov         reg_temp1, reg_a                        ; t=a
-                        mov         reg_temp2, reg_c
+                        mov         reg_temp2, reg_c                        ; save c
                         rol         reg_a, 5
-                        xor         reg_temp2, reg_d
                         add         reg_a, reg_e
-                        and         reg_temp2, reg_b
+                        mov         reg_e, reg_b
+                        and         reg_b, reg_c                            ; b&c
+                        mov         reg_c, reg_e
+                        not         reg_e
                         add         reg_a, const
-                        xor         reg_temp2, reg_d
+                        ror         reg_c, 2                                ; c=rotl32(b,30)
+                        and         reg_e, reg_d                            ; ~b&d
                         add         reg_a, [_w+count*4]
-                        ror         reg_b, 2
-                        add         reg_a, reg_temp2
+                        xor         reg_b, reg_e                            ; ( )^( )
+                        add         reg_a, reg_b
 reg_t                   textequ     reg_e
-reg_e                   textequ     reg_d
-reg_d                   textequ     reg_c
-reg_c                   textequ     reg_b
-reg_b                   textequ     reg_temp1
+reg_e                   textequ     reg_d                                   ; e=d, saves mov reg_e,reg_d
+reg_d                   textequ     reg_temp2                               ; d=c, saves mov reg_d,reg_temp2
+reg_temp2               textequ     reg_t
+reg_t                   textequ     reg_b                                   ; b=t
+reg_b                   textequ     reg_temp1                               ; save mov reg_d,reg_temp1
 reg_temp1               textequ     reg_t
 count                   =           count + 1
+
                         ENDM                                                ; RND_CH
 
 RND_PARITY              MACRO       const:REQ
+
 ; t=a; a=rotl32(a,5)+e+k+w[i]+(b^c^d); e=d; d=c; c=rotl32(b,30); b=t
+
                         mov         reg_temp1, reg_a                        ; t=a
                         rol         reg_a, 5
-                        mov         reg_temp2, reg_d
                         add         reg_a, reg_e
-                        xor         reg_temp2, reg_c
+                        mov         reg_e, reg_b
                         add         reg_a, const
-                        xor         reg_temp2, reg_b
+reg_t                   textequ     reg_b
+reg_b                   textequ     reg_e                                   ; b<->e
+reg_e                   textequ     reg_t
+                        xor         reg_e, reg_c
                         add         reg_a, [_w+count*4]
+                        xor         reg_e, reg_d
+                        add         reg_a, reg_e
                         ror         reg_b, 2
-                        add         reg_a, reg_temp2
 reg_t                   textequ     reg_e
 reg_e                   textequ     reg_d                                   ; e=d
 reg_d                   textequ     reg_c                                   ; d=c
@@ -86,33 +103,45 @@ reg_c                   textequ     reg_b                                   ; c=
 reg_b                   textequ     reg_temp1                               ; b=t
 reg_temp1               textequ     reg_t
 count                   =           count + 1
+
                         ENDM                                                ; RND_PARITY
 
 RND_MAJ                 MACRO       const:REQ
+
 ; t=a; a=rotl32(a,5)+e+k+w[i]+((b&c)^(b&d)^(c&d)); e=d; d=c; c=rotl32(b,30); b=t
-;      a=rotl32(a,5)+e+k+w[i]+((c&d)^(b&(c^d)))
-                        mov         reg_temp2, reg_d
-                        mov         reg_temp1, reg_a
+
+                        mov         _t, reg_a
                         rol         reg_a, 5
-                        xor         reg_temp2, reg_c
+                        mov         reg_temp1, reg_c
+                        mov         reg_temp2, reg_d
                         add         reg_a, reg_e
-                        and         reg_temp2, reg_b
+                        mov         reg_e, reg_b
+reg_t                   textequ     reg_b
+reg_b                   textequ     reg_e
+reg_e                   textequ     reg_t
+                        and         reg_e, reg_c
                         add         reg_a, const
-                        mov         reg_e, reg_c
+                        and         reg_c, reg_d
                         add         reg_a, [_w+count*4]
-                        and         reg_e, reg_d
-                        xor         reg_temp2, reg_e
-                        ror         reg_b, 2
-                        add         reg_a, reg_temp2
+                        and         reg_d, reg_b
+                        xor         reg_e, reg_c
+                        xor         reg_e, reg_d
+                        add         reg_a, reg_e
+reg_t                   textequ     reg_c
+reg_c                   textequ     reg_b                                   ; c=rotl32(b,30)
+reg_b                   textequ     reg_t
+                        mov         reg_b, _t                               ; b=t
+                        ror         reg_c, 2
 reg_t                   textequ     reg_e
-reg_e                   textequ     reg_d
-reg_d                   textequ     reg_c
-reg_c                   textequ     reg_b
-reg_b                   textequ     reg_temp1
+reg_e                   textequ     reg_temp2                               ; e=d
+reg_temp2               textequ     reg_t
+reg_t                   textequ     reg_d
+reg_d                   textequ     reg_temp1                               ; d=c
 reg_temp1               textequ     reg_t
 count                   =           count + 1
-                        ENDM                                                ; RND_MAJ
 
+                        ENDM                                                ; RND_MAJ
+                        
 INIT_REG_ALIAS          MACRO
 reg_accu                textequ     <eax>
 reg_base                textequ     <ebp>
@@ -122,41 +151,35 @@ reg_i_3                 textequ     <edx>
 reg_i_15                textequ     <esi>
 reg_i_16                textequ     <edi>
                         ENDM
-
+                        
                         .code
 
                         ALIGN       16
 
 SHA_Compile_p5          PROC
 
-__this                  textequ     <[esp+40+320]>                       ; pusha + 2 * ret addr in between
-_w                      textequ     <esp+4>
+__this                  textequ     <[esp+32+4+4+324]>                       ; pusha + 2 * ret addr in between
+_w                      textequ     <esp+8>
+_t                      textequ     <[esp+4]>
 
                         INIT_REG_ALIAS
 
 count                   =           0
                         REPEAT      16
+                        mov         reg_accu, [reg_base+count*4]
+                        bswap       reg_accu
                         IF          count eq 0
-                        mov         reg_i_16, [ebp+count*4]
-                        bswap       reg_i_16
-                        mov         [_w+count*4], reg_i_16
+                        mov         reg_i_16, reg_accu
                         ELSEIF      count eq 1
-                        mov         reg_i_15, [ebp+count*4]
-                        bswap       reg_i_15
-                        mov         [_w+count*4], reg_i_15
+                        mov         reg_i_15, reg_accu
                         ELSEIF      count eq 13
-                        mov         reg_i_3, [ebp+count*4]
-                        bswap       reg_i_3
-                        mov         [_w+count*4], reg_i_3
+                        mov         reg_i_3, reg_accu
                         ELSEIF      count eq 14
-                        mov         reg_i_2, [ebp+count*4]
-                        bswap       reg_i_2
-                        mov         [_w+count*4], reg_i_2
-                        ELSE
-                        mov         reg_i_1, [ebp+count*4]
-                        bswap       reg_i_1
-                        mov         [_w+count*4], reg_i_1
+                        mov         reg_i_2, reg_accu
+                        ELSEIF      count eq 15
+                        mov         reg_i_1, reg_accu
                         ENDIF
+                        mov         [_w+count*4], reg_accu
 count                   =           count + 1
                         ENDM
 count                   =           16
@@ -182,13 +205,13 @@ reg_i_15                textequ     reg_i_14
 count                   =           count + 1
                         ENDM
 
-reg_a                   textequ     <eax>
-reg_b                   textequ     <ebx>
-reg_c                   textequ     <ecx>
-reg_d                   textequ     <edx>
-reg_e                   textequ     <esi>
-reg_temp1               textequ     <edi>
-reg_temp2               textequ     <ebp>
+reg_a                   textequ     reg_accu
+reg_b                   textequ     reg_i_1
+reg_c                   textequ     reg_i_2
+reg_d                   textequ     reg_i_3
+reg_e                   textequ     reg_i_15
+reg_temp1               textequ     reg_i_16
+reg_temp2               textequ     reg_base
 
                         mov         reg_temp2, __this
                         mov         reg_a, [reg_temp2+m_nHash0]
@@ -225,14 +248,14 @@ SHA_Compile_p5          ENDP
 
                         ALIGN       16
 
-SHA1_Add_p5              PROC        PUBLIC, _this:DWORD, _Data:DWORD, _nLength:DWORD
+SHA_Add_p5              PROC        PUBLIC, _this:DWORD, _Data:DWORD, _nLength:DWORD
 
                         pusha
-__this                  textequ     <[esp+36+320]>                              ; different offset due to pusha
-__Data                  textequ     <[esp+40+320]>
-__nLength               textequ     <[esp+44+320]>
+__this                  textequ     <[esp+36+324]>                              ; different offset due to pusha
+__Data                  textequ     <[esp+40+324]>
+__nLength               textequ     <[esp+44+324]>
 
-                        sub         esp, 320
+                        sub         esp, 324
 
                         mov         ecx, __nLength
                         and         ecx, ecx
@@ -289,10 +312,10 @@ short_stream:           sub         ecx, eax                                ;  -
                         lea         edi, [edi+m_nBuffer+eax]
                         rep movsb
 
-get_out:                add         esp, 320
+get_out:                add         esp, 324
                         popa
-                        ret 12
+                        ret
 
-SHA1_Add_p5              ENDP
+SHA_Add_p5              ENDP
 
         end

@@ -65,7 +65,7 @@ BEGIN_MESSAGE_MAP(CDownloadMonitorDlg, CSkinDialog)
 	ON_NOTIFY_EX(TTN_NEEDTEXT, 0, OnNeedText)
 END_MESSAGE_MAP()
 
-CList< CDownloadMonitorDlg* > CDownloadMonitorDlg::m_pWindows;
+CPtrList CDownloadMonitorDlg::m_pWindows;
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -139,7 +139,7 @@ void CDownloadMonitorDlg::OnSkinChange(BOOL bSet)
 {
 	for ( POSITION pos = m_pWindows.GetHeadPosition() ; pos ; )
 	{
-		CDownloadMonitorDlg* pDlg = m_pWindows.GetNext( pos );
+		CDownloadMonitorDlg* pDlg = (CDownloadMonitorDlg*)m_pWindows.GetNext( pos );
 
 		if ( bSet )
 		{
@@ -157,7 +157,7 @@ void CDownloadMonitorDlg::CloseAll()
 {
 	for ( POSITION pos = m_pWindows.GetHeadPosition() ; pos ; )
 	{
-		delete m_pWindows.GetNext( pos );
+		delete (CDownloadMonitorDlg*)m_pWindows.GetNext( pos );
 	}
 	m_pWindows.RemoveAll();
 }
@@ -179,7 +179,7 @@ BOOL CDownloadMonitorDlg::OnInitDialog()
 	
 	if ( Downloads.Check( m_pDownload ) )
 	{
-		m_sName = m_pDownload->m_sDisplayName;
+		m_sName = m_pDownload->m_sRemoteName;
 		CString strType = m_sName;
 
 		int nPeriod = strType.ReverseFind( '.' );
@@ -251,7 +251,7 @@ void CDownloadMonitorDlg::PostNcDestroy()
 	delete this;
 }
 
-void CDownloadMonitorDlg::OnTimer(UINT_PTR /*nIDEvent*/) 
+void CDownloadMonitorDlg::OnTimer(UINT nIDEvent) 
 {
 	CSingleLock pLock( &Transfers.m_pSection );
 	if ( ! pLock.Lock( 250 ) ) return;
@@ -280,18 +280,18 @@ void CDownloadMonitorDlg::OnTimer(UINT_PTR /*nIDEvent*/)
 		if ( theApp.m_bRTL )
 		{
 			strText.Format( _T("%s %s %.1f%% : Shareaza"),
-				(LPCTSTR)m_pDownload->m_sDisplayName, strOf, m_pDownload->GetProgress() * 100.0 );
+				(LPCTSTR)m_pDownload->m_sRemoteName, strOf, m_pDownload->GetProgress() * 100.0 );
 		}
 		else
 		{
 		strText.Format( _T("%.1f%% %s %s : Shareaza"),
-			m_pDownload->GetProgress() * 100.0, strOf, (LPCTSTR)m_pDownload->m_sDisplayName );
+			m_pDownload->GetProgress() * 100.0, strOf, (LPCTSTR)m_pDownload->m_sRemoteName );
 	}
 	}
 	else
 	{
 		strText.Format( _T("%s : Shareaza"),
-			(LPCTSTR)m_pDownload->m_sDisplayName );
+			(LPCTSTR)m_pDownload->m_sRemoteName );
 	}
 	
 	Update( this, strText );
@@ -518,7 +518,7 @@ void CDownloadMonitorDlg::OnDownloadLaunch()
 	CSingleLock pLock( &Transfers.m_pSection );
 	if ( ! pLock.Lock( 250 ) || ! Downloads.Check( m_pDownload ) ) return;
 	
-	CString strName = m_pDownload->m_sSafeName;
+	CString strName = m_pDownload->m_sLocalName;
 	BOOL bCompleted = m_pDownload->IsMoving();
 	
 	CString strType;
@@ -561,7 +561,7 @@ void CDownloadMonitorDlg::OnDownloadStop()
 	{
 		CString strFormat, strPrompt;
 		::LoadString( strFormat, IDS_DOWNLOAD_CONFIRM_CLEAR );
-		strPrompt.Format( strFormat, (LPCTSTR)m_pDownload->m_sDisplayName );
+		strPrompt.Format( strFormat, (LPCTSTR)m_pDownload->m_sRemoteName );
 
 		pLock.Unlock();
 		if ( MessageBox( strPrompt, NULL, MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 ) != IDYES ) return;
@@ -628,7 +628,7 @@ void CDownloadMonitorDlg::OnSysCommand(UINT nID, LPARAM lParam)
 	CSkinDialog::OnSysCommand( nID, lParam );
 }
 
-LRESULT CDownloadMonitorDlg::OnTray(WPARAM /*wParam*/, LPARAM lParam)
+LONG CDownloadMonitorDlg::OnTray(UINT wParam, LONG lParam)
 {
 	if ( LOWORD(lParam) == WM_LBUTTONDBLCLK && m_bTray )
 	{
@@ -653,7 +653,7 @@ HBRUSH CDownloadMonitorDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 	return hbr;
 }
 
-void CDownloadMonitorDlg::OnContextMenu(CWnd* /*pWnd*/, CPoint point) 
+void CDownloadMonitorDlg::OnContextMenu(CWnd* pWnd, CPoint point) 
 {
 	CMainWnd* pMainWnd = (CMainWnd*)AfxGetMainWnd();
 	if ( ! pMainWnd || ! IsWindow( pMainWnd->m_hWnd ) ) return;
@@ -684,7 +684,7 @@ void CDownloadMonitorDlg::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 	}
 }
 
-BOOL CDownloadMonitorDlg::OnNeedText(UINT /*nID*/, NMHDR* pTTTH, LRESULT* /*pResult*/)
+BOOL CDownloadMonitorDlg::OnNeedText(UINT nID, NMHDR* pTTTH, LRESULT* pResult)
 {
 	if ( pTTTH->idFrom == IDC_DOWNLOAD_FILE )
 	{

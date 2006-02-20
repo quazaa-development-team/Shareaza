@@ -88,15 +88,15 @@ BOOL CLanguageDlg::OnInitDialog()
 
 	m_bmHeader.LoadBitmap( IDB_WIZARD );
 
-	m_fntNormal.CreateFontW( -(theApp.m_nDefaultFontSize + 1), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+	m_fntNormal.CreateFont( -(theApp.m_nDefaultFontSize + 1), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		DEFAULT_PITCH|FF_DONTCARE, theApp.m_sDefaultFont );
 
-	m_fntBold.CreateFontW( -(theApp.m_nDefaultFontSize + 5), 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
+	m_fntBold.CreateFont( -(theApp.m_nDefaultFontSize + 5), 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		DEFAULT_PITCH|FF_DONTCARE, theApp.m_sDefaultFont );
 
-	m_fntSmall.CreateFontW( -(theApp.m_nDefaultFontSize - 1), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+	m_fntSmall.CreateFont( -(theApp.m_nDefaultFontSize - 1), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
 		DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
 		DEFAULT_PITCH|FF_DONTCARE, theApp.m_sDefaultFont );
 
@@ -113,18 +113,19 @@ BOOL CLanguageDlg::OnInitDialog()
 
 	int nLanguagesToDisplay;
 
-	if ( GetSystemMetrics( SM_CYSCREEN ) < 768 )
-		nLanguagesToDisplay = int( min(m_pPaths.GetSize(), 10 ) );
+	if( GetSystemMetrics( SM_CYSCREEN ) < 768 )
+		nLanguagesToDisplay = min(m_pPaths.GetSize(), 10);
 	else
-		nLanguagesToDisplay = int( min(m_pPaths.GetSize(), 14 ) );
+		nLanguagesToDisplay = min(m_pPaths.GetSize(), 14);
 
 	rc.bottom += ( nLanguagesToDisplay ) * ITEM_HEIGHT;
 
-	SCROLLINFO pScroll = {};
+	SCROLLINFO pScroll;
+	ZeroMemory( &pScroll, sizeof(pScroll) );
 	pScroll.cbSize	= sizeof(pScroll);
 	pScroll.fMask	= SIF_RANGE|SIF_PAGE|SIF_DISABLENOSCROLL;
 	pScroll.nMin	= 0;
-	pScroll.nMax	= static_cast< int >( m_pPaths.GetSize() );
+	pScroll.nMax	= m_pPaths.GetSize(); 
 	pScroll.nPage	= nLanguagesToDisplay + 1;
 	SetScrollInfo( SB_VERT, &pScroll, TRUE );
 
@@ -149,7 +150,7 @@ void CLanguageDlg::OnDestroy()
 	CSkinDialog::OnDestroy();
 }
 
-BOOL CLanguageDlg::OnEraseBkgnd(CDC* /*pDC*/) 
+BOOL CLanguageDlg::OnEraseBkgnd(CDC* pDC) 
 {
 	return TRUE;
 }
@@ -279,7 +280,7 @@ void CLanguageDlg::DrawWrappedText(CDC* pDC, CRect* pBox, LPCTSTR pszText)
 		
 		if ( pszWord < pszScan )
 		{
-			int nLen = static_cast< int >( pszScan - pszWord + ( *pszScan ? 1 : 0 ) );
+			int nLen = pszScan - pszWord + ( *pszScan ? 1 : 0 );
 			CSize sz = pDC->GetTextExtent( pszWord, nLen );
 
 			if ( pt.x > pBox->left && pt.x + sz.cx > pBox->right )
@@ -303,7 +304,7 @@ void CLanguageDlg::DrawWrappedText(CDC* pDC, CRect* pBox, LPCTSTR pszText)
 }
 
 
-void CLanguageDlg::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* /*pScrollBar*/)
+void CLanguageDlg::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 {
 	SCROLLINFO pInfo;
 	
@@ -349,7 +350,7 @@ void CLanguageDlg::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* /*pScrollBar*/
 	Invalidate();
 }
 
-BOOL CLanguageDlg::OnMouseWheel(UINT /*nFlags*/, short zDelta, CPoint /*pt*/)
+BOOL CLanguageDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
 	OnVScroll( SB_THUMBPOSITION, (int)( GetScrollPos( SB_VERT ) - zDelta / WHEEL_DELTA ), NULL );
 	return TRUE;
@@ -400,14 +401,14 @@ BOOL CLanguageDlg::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 	return CSkinDialog::OnSetCursor( pWnd, nHitTest, message );
 }
 
-void CLanguageDlg::OnLButtonDown(UINT /*nFlags*/, CPoint /*point*/) 
+void CLanguageDlg::OnLButtonDown(UINT nFlags, CPoint point) 
 {
 	m_nDown = m_nHover;
 	SetCapture();
 	Invalidate();
 }
 
-void CLanguageDlg::OnLButtonUp(UINT /*nFlags*/, CPoint /*point*/) 
+void CLanguageDlg::OnLButtonUp(UINT nFlags, CPoint point) 
 {
 	int nSelected = m_nDown && ( m_nDown == m_nHover ) ? m_nDown : 0;
 
@@ -420,7 +421,7 @@ void CLanguageDlg::OnLButtonUp(UINT /*nFlags*/, CPoint /*point*/)
 	if ( nSelected ) Execute( nSelected );
 }
 
-void CLanguageDlg::OnTimer(UINT_PTR /*nIDEvent*/) 
+void CLanguageDlg::OnTimer(UINT nIDEvent) 
 {
 	if ( ! m_nHover || m_bKeyMode ) return;
 
@@ -442,7 +443,7 @@ BOOL CLanguageDlg::PreTranslateMessage(MSG* pMsg)
 {
 	if ( pMsg->message == WM_KEYDOWN )
 	{
-		OnKeyDown( static_cast< UINT >( pMsg->wParam ), LOWORD( pMsg->lParam ), HIWORD( pMsg->lParam ) );
+		OnKeyDown( pMsg->wParam, LOWORD( pMsg->lParam ), HIWORD( pMsg->lParam ) );
 		return TRUE;
 	}
 	
@@ -461,7 +462,7 @@ void CLanguageDlg::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 		{
 			m_nHover--;
 			m_bKeyMode = TRUE;
-			if ( m_nHover < 1 ) m_nHover = static_cast< int >( m_pPaths.GetSize() );
+			if ( m_nHover < 1 ) m_nHover = m_pPaths.GetSize();
 			Invalidate();
 		}
 		return;
@@ -568,7 +569,7 @@ BOOL CLanguageDlg::AddSkin(LPCTSTR pszPath, LPCTSTR pszName)
 			pByte += 2; 
 		}
 		
-		CopyMemory( strXML.GetBuffer( nByte ), pByte, nByte * sizeof( TCHAR ) );
+		CopyMemory( strXML.GetBuffer( nByte ), pByte, nByte * 2 );
 		strXML.ReleaseBuffer( nByte );
 	}
 	else

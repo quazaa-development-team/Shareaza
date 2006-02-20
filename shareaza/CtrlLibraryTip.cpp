@@ -87,11 +87,7 @@ BOOL CLibraryTipCtrl::OnPrepare()
 		m_sSize = Settings.SmartVolume( pFile->GetSize(), FALSE );
 		m_nIcon = 0;
 
-		if ( pFile->m_pFolder != NULL ) 
-			m_sFolder = pFile->m_pFolder->m_sPath;
-		else
-			m_sFolder.Empty(); // Ghost files have no location
-
+		if ( pFile->m_pFolder != NULL ) m_sFolder = pFile->m_pFolder->m_sPath;
 		m_sType.Empty();
 		m_sSHA1.Empty();
 		m_sTTH.Empty();
@@ -103,11 +99,18 @@ BOOL CLibraryTipCtrl::OnPrepare()
 		m_nIcon = ShellIcons.Get( m_sName, 48 );
 
 		// URN
-		if ( Settings.General.GUIMode != GUI_BASIC )
+
+		if ( pFile->m_bSHA1 && Settings.General.GUIMode != GUI_BASIC)
 		{
-			m_sSHA1 = pFile->m_oSHA1.toShortUrn();
-			m_sTTH = pFile->m_oTiger.toShortUrn();
-			m_sED2K = pFile->m_oED2K.toShortUrn();
+			m_sSHA1 = _T("sha1:") + CSHA::HashToString( &pFile->m_pSHA1 );
+		}
+		if ( pFile->m_bTiger && Settings.General.GUIMode != GUI_BASIC)
+		{
+			m_sTTH = _T("tree:tiger/:") + CTigerNode::HashToString( &pFile->m_pTiger );
+		}
+		if ( pFile->m_bED2K  && Settings.General.GUIMode != GUI_BASIC)
+		{
+			m_sED2K = _T("ed2k:") + CED2K::HashToString( &pFile->m_pED2K );
 		}
 
 		// Metadata
@@ -173,7 +176,7 @@ void CLibraryTipCtrl::OnCalcSize(CDC* pDC)
 
 	m_sz.cy += TIP_RULE;
 
-	int nMetaHeight = static_cast< int >( m_pMetadata.GetCount() * TIP_TEXTHEIGHT );
+	int nMetaHeight = m_pMetadata.GetCount() * TIP_TEXTHEIGHT;
 	int nValueWidth = 0;
 	m_nKeyWidth = 40;
 
@@ -287,7 +290,6 @@ void CLibraryTipCtrl::OnShow()
 	{
 		m_bThread = TRUE;
 		CWinThread* pThread = AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_IDLE );
-		SetThreadName( pThread->m_nThreadID, "CtrlLibraryTip" );
 		m_hThread = pThread->m_hThread;
 	}
 
@@ -302,7 +304,7 @@ void CLibraryTipCtrl::OnHide()
 	m_tHidden = GetTickCount();
 }
 
-void CLibraryTipCtrl::OnTimer(UINT_PTR nIDEvent)
+void CLibraryTipCtrl::OnTimer(UINT nIDEvent)
 {
 	CCoolTipCtrl::OnTimer( nIDEvent );
 

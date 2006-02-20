@@ -182,7 +182,7 @@ CCoolBarItem* CCoolBarCtrl::GetIndex(int nIndex) const
 {
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		CCoolBarItem* pItem = m_pItems.GetNext( pos );
+		CCoolBarItem* pItem = (CCoolBarItem*)m_pItems.GetNext( pos );
 		if ( ! nIndex-- ) return pItem;
 	}
 
@@ -193,7 +193,7 @@ CCoolBarItem* CCoolBarCtrl::GetID(UINT nID) const
 {
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		CCoolBarItem* pItem = m_pItems.GetNext( pos );
+		CCoolBarItem* pItem = (CCoolBarItem*)m_pItems.GetNext( pos );
 		if ( pItem->m_nID == nID ) return pItem;
 	}
 
@@ -206,11 +206,16 @@ int CCoolBarCtrl::GetIndexForID(UINT nID) const
 
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; nIndex++ )
 	{
-		CCoolBarItem* pItem = m_pItems.GetNext( pos );
+		CCoolBarItem* pItem = (CCoolBarItem*)m_pItems.GetNext( pos );
 		if ( pItem->m_nID == nID ) return nIndex;
 	}
 
 	return -1;
+}
+
+int CCoolBarCtrl::GetCount() const
+{
+	return m_pItems.GetCount();
 }
 
 BOOL CCoolBarCtrl::LoadToolBar(UINT nIDToolBar)
@@ -236,7 +241,7 @@ void CCoolBarCtrl::Clear()
 {
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		delete m_pItems.GetNext( pos );
+		delete (CCoolBarItem*)m_pItems.GetNext( pos );
 	}
 
 	m_pItems.RemoveAll();
@@ -248,7 +253,7 @@ void CCoolBarCtrl::Copy(CCoolBarCtrl* pOther)
 
 	for ( POSITION pos = pOther->m_pItems.GetHeadPosition() ; pos ; )
 	{
-		CCoolBarItem* pItem = pOther->m_pItems.GetNext( pos );
+		CCoolBarItem* pItem = (CCoolBarItem*)pOther->m_pItems.GetNext( pos );
 		m_pItems.AddTail( new CCoolBarItem( this, pItem ) );
 	}
 }
@@ -331,7 +336,7 @@ int CCoolBarCtrl::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	return 0;
 }
 
-CSize CCoolBarCtrl::CalcFixedLayout(BOOL bStretch, BOOL /*bHorz*/)
+CSize CCoolBarCtrl::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 {
 	if ( m_bStretch || bStretch )
 	{
@@ -355,7 +360,7 @@ CSize CCoolBarCtrl::CalcFixedLayout(BOOL bStretch, BOOL /*bHorz*/)
 
 		for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 		{
-			CCoolBarItem* pItem = m_pItems.GetNext( pos );
+			CCoolBarItem* pItem = (CCoolBarItem*)m_pItems.GetNext( pos );
 			if ( pItem->m_bVisible ) size.cx += pItem->m_nWidth;
 		}
 
@@ -392,7 +397,7 @@ CCoolBarItem* CCoolBarCtrl::HitTest(const CPoint& point, CRect* pItemRect, BOOL 
 
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		CCoolBarItem* pItem = m_pItems.GetNext( pos );
+		CCoolBarItem* pItem = (CCoolBarItem*)m_pItems.GetNext( pos );
 		if ( ! pItem->m_bVisible ) continue;
 
 		if ( pItem->m_nID == ID_RIGHTALIGN && ! bRight )
@@ -402,7 +407,7 @@ CCoolBarItem* CCoolBarCtrl::HitTest(const CPoint& point, CRect* pItemRect, BOOL 
 
 			for ( POSITION pos2 = pos ; pos2 ; )
 			{
-				CCoolBarItem* pRight = m_pItems.GetNext( pos2 );
+				CCoolBarItem* pRight = (CCoolBarItem*)m_pItems.GetNext( pos2 );
 				if ( pRight->m_bVisible ) nRight += pRight->m_nWidth;
 			}
 
@@ -440,7 +445,7 @@ BOOL CCoolBarCtrl::GetItemRect(CCoolBarItem* pFind, CRect* pRect) const
 
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		CCoolBarItem* pItem = m_pItems.GetNext( pos );
+		CCoolBarItem* pItem = (CCoolBarItem*)m_pItems.GetNext( pos );
 		if ( ! pItem->m_bVisible ) continue;
 
 		if ( pItem->m_nID == ID_RIGHTALIGN && ! bRight )
@@ -450,7 +455,7 @@ BOOL CCoolBarCtrl::GetItemRect(CCoolBarItem* pFind, CRect* pRect) const
 
 			for ( POSITION pos2 = pos ; pos2 ; )
 			{
-				CCoolBarItem* pRight = m_pItems.GetNext( pos2 );
+				CCoolBarItem* pRight = (CCoolBarItem*)m_pItems.GetNext( pos2 );
 				if ( pRight->m_bVisible ) nRight += pRight->m_nWidth;
 			}
 
@@ -476,7 +481,7 @@ BOOL CCoolBarCtrl::GetItemRect(CCoolBarItem* pFind, CRect* pRect) const
 	return FALSE;
 }
 
-INT_PTR CCoolBarCtrl::OnToolHitTest(CPoint point, TOOLINFO* pTI) const
+int CCoolBarCtrl::OnToolHitTest(CPoint point, TOOLINFO* pTI) const
 {
 	CRect rcItem;
 	CCoolBarItem* pItem = HitTest( point, &rcItem );
@@ -498,7 +503,7 @@ INT_PTR CCoolBarCtrl::OnToolHitTest(CPoint point, TOOLINFO* pTI) const
 	{
 		CString strTip;
 
-		if ( LoadString( strTip, static_cast< UINT >( pTI->uId ) ) )
+		if ( LoadString( strTip, pTI->uId ) )
 		{
 			if ( LPCTSTR pszBreak = _tcschr( strTip, '\n' ) )
 			{
@@ -532,8 +537,7 @@ void CCoolBarCtrl::DoPaint(CDC* pDC)
 
 	if ( m_bBuffered || m_bmImage.m_hObject != NULL )
 	{
-		CSize size = rc.Size();
-		CDC* pBuffer = CoolInterface.GetBuffer( *pDC, size );
+		CDC* pBuffer = CoolInterface.GetBuffer( *pDC, rc.Size() );
 
 		if ( CoolInterface.DrawWatermark( pBuffer, &rc, &m_bmImage ) )
 		{
@@ -591,14 +595,14 @@ void CCoolBarCtrl::DoPaint(CDC* pDC, CRect& rcClient, BOOL bTransparent)
 		rcItem.left += GRIPPER_WIDTH;
 	}
 
-	if ( m_pItems.IsEmpty() ) return;
+	if ( m_pItems.GetCount() == 0 ) return;
 
 	CFont* pOldFont = (CFont*)pDC->SelectObject( m_bBold ? &CoolInterface.m_fntBold : &CoolInterface.m_fntNormal );
 	BOOL bRight = FALSE;
 
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		CCoolBarItem* pItem = m_pItems.GetNext( pos );
+		CCoolBarItem* pItem = (CCoolBarItem*)m_pItems.GetNext( pos );
 
 		if ( pItem->m_nID == ID_RIGHTALIGN && ! bRight )
 		{
@@ -607,7 +611,7 @@ void CCoolBarCtrl::DoPaint(CDC* pDC, CRect& rcClient, BOOL bTransparent)
 
 			for ( POSITION pos2 = pos ; pos2 ; )
 			{
-				CCoolBarItem* pRight = m_pItems.GetNext( pos2 );
+				CCoolBarItem* pRight = (CCoolBarItem*)m_pItems.GetNext( pos2 );
 				if ( pRight->m_bVisible ) nRight += pRight->m_nWidth;
 			}
 
@@ -693,14 +697,14 @@ void CCoolBarCtrl::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
 
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		CCoolBarItem* pItem = m_pItems.GetNext( pos );
+		CCoolBarItem* pItem = (CCoolBarItem*)m_pItems.GetNext( pos );
 
 		if ( pItem->m_nID == ID_SEPARATOR ) continue;
 		if ( pItem->m_nCtrlID ) continue;
 
 		pItem->m_pOther		= this;
 		pItem->m_nIndex		= nIndex++;
-		pItem->m_nIndexMax	= static_cast< UINT >( m_pItems.GetCount() );
+		pItem->m_nIndexMax	= m_pItems.GetCount();
 		pItem->m_bDirty		= FALSE;
 		BOOL bEnabled		= pItem->m_bEnabled;
 
@@ -739,7 +743,7 @@ void CCoolBarCtrl::OnMouseMove(UINT nFlags, CPoint point)
 	CControlBar::OnMouseMove( nFlags, point );
 }
 
-void CCoolBarCtrl::OnTimer(UINT_PTR nIDEvent)
+void CCoolBarCtrl::OnTimer(UINT nIDEvent)
 {
 	if ( m_bRecalc )
 	{

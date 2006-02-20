@@ -28,40 +28,38 @@ class CImageServices : public CComObject
 {
 // Construction
 public:
-	CImageServices()
-		: m_COM( GetCurrentThreadId() == AfxGetApp()->m_nThreadID )
-	{}
-	~CImageServices() { Cleanup(); }
+	CImageServices();
+	virtual ~CImageServices();
 
 	DECLARE_DYNAMIC(CImageServices)
 
 // Operations
 public:
-	void	Cleanup();
-	BOOL	LoadFromMemory(CImageFile* pFile, LPCTSTR pszType, LPCVOID pData, DWORD nLength, BOOL bScanOnly = FALSE, BOOL bPartialOk = FALSE);
-	BOOL	LoadFromFile(CImageFile* pFile, LPCTSTR szFilename, BOOL bScanOnly = FALSE, BOOL bPartialOk = FALSE);
-	BOOL	SaveToMemory(CImageFile* pFile, LPCTSTR pszType, int nQuality, LPBYTE* ppBuffer, DWORD* pnLength);
-//	BOOL	SaveToFile(CImageFile* pFile, LPCTSTR pszType, int nQuality, HANDLE hFile, DWORD* pnLength = NULL);
+	void					Cleanup();
+protected:
+	BOOL					LoadFromMemory(CImageFile* pFile, LPCTSTR pszType, LPCVOID pData, DWORD nLength, BOOL bScanOnly = FALSE, BOOL bPartialOk = FALSE);
+	BOOL					LoadFromFile(CImageFile* pFile, LPCTSTR pszType, HANDLE hFile, DWORD nLength, BOOL bScanOnly = FALSE, BOOL bPartialOk = FALSE);
+	BOOL					PostLoad(CImageFile* pFile, IMAGESERVICEDATA* pParams, SAFEARRAY* pArray, BOOL bSuccess);
+protected:
+	BOOL					SaveToMemory(CImageFile* pFile, LPCTSTR pszType, int nQuality, LPBYTE* ppBuffer, DWORD* pnLength);
+	BOOL					SaveToFile(CImageFile* pFile, LPCTSTR pszType, int nQuality, HANDLE hFile, DWORD* pnLength = NULL);
+	SAFEARRAY*				ImageToArray(CImageFile* pFile);
+protected:
+	IImageServicePlugin*	GetService(LPCTSTR pszFile, CLSID** ppCLSID = NULL);
+	IImageServicePlugin*	LoadService(LPCTSTR pszType, CLSID* pCLSID = NULL);
 
 // Static Load Tool
 public:
-	static BOOL	LoadBitmap(CBitmap* pBitmap, UINT nResourceID, LPCTSTR pszType);
-
-// Implementation
-private:
-	typedef std::pair< CComQIPtr< IImageServicePlugin >, CLSID > PluginInfo;
-	typedef std::map< CString, PluginInfo > services_map;
-	typedef services_map::const_iterator const_iterator;
-
-	BOOL		PostLoad(CImageFile* pFile, IMAGESERVICEDATA* pParams, SAFEARRAY* pArray, BOOL bSuccess);
-	SAFEARRAY*	ImageToArray(CImageFile* pFile);
-	PluginInfo	GetService(const CString& strFile);
-	PluginInfo	LoadService(const CString& strType);
+	static BOOL				LoadBitmap(CBitmap* pBitmap, UINT nResourceID, LPCTSTR pszType);
 
 // Attributes
-	bool m_COM;
-	services_map m_services;
+protected:
+	CMapStringToPtr			m_pService;
+	CMapStringToPtr			m_pCLSID;
+	BOOL					m_bCOM;
+
+	friend class CImageFile;
 };
 
-extern const LPCTSTR RT_JPEG;
-extern const LPCTSTR RT_PNG;
+extern LPCTSTR RT_JPEG;
+extern LPCTSTR RT_PNG;

@@ -112,10 +112,10 @@ POSITION CTaskPanel::GetBoxIterator() const
 
 CTaskBox* CTaskPanel::GetNextBox(POSITION& pos) const
 {
-	return m_pBoxes.GetNext( pos );
+	return (CTaskBox*)m_pBoxes.GetNext( pos );
 }
 
-INT_PTR CTaskPanel::GetBoxCount() const
+int CTaskPanel::GetBoxCount() const
 {
 	return m_pBoxes.GetCount();
 }
@@ -193,7 +193,7 @@ void CTaskPanel::OnSize(UINT nType, int cx, int cy)
 	}
 }
 
-BOOL CTaskPanel::OnEraseBkgnd(CDC* /*pDC*/) 
+BOOL CTaskPanel::OnEraseBkgnd(CDC* pDC) 
 {
 	return TRUE;
 }
@@ -424,7 +424,7 @@ void CTaskBox::Expand(BOOL bOpen)
 	InvalidateNonclient();
 }
 
-void CTaskBox::OnExpanded(BOOL /*bOpen*/)
+void CTaskBox::OnExpanded(BOOL bOpen)
 {
 }
 
@@ -437,7 +437,7 @@ int CTaskBox::GetOuterHeight() const
 /////////////////////////////////////////////////////////////////////////////
 // CTaskBox message handlers
 
-void CTaskBox::OnNcCalcSize(BOOL /*bCalcValidRects*/, NCCALCSIZE_PARAMS FAR* lpncsp) 
+void CTaskBox::OnNcCalcSize(BOOL bCalcValidRects, NCCALCSIZE_PARAMS FAR* lpncsp) 
 {
 	NCCALCSIZE_PARAMS* pSize = (NCCALCSIZE_PARAMS*)lpncsp;
 
@@ -447,7 +447,7 @@ void CTaskBox::OnNcCalcSize(BOOL /*bCalcValidRects*/, NCCALCSIZE_PARAMS FAR* lpn
 	pSize->rgrc[0].bottom --;
 }
 
-ONNCHITTESTRESULT CTaskBox::OnNcHitTest(CPoint point) 
+UINT CTaskBox::OnNcHitTest(CPoint point) 
 {
 	CRect rc;
 	GetWindowRect( &rc );
@@ -479,16 +479,16 @@ BOOL CTaskBox::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 	return CWnd::OnSetCursor(pWnd, nHitTest, message);
 }
 
-void CTaskBox::OnNcLButtonDown(UINT /*nHitTest*/, CPoint /*point*/) 
+void CTaskBox::OnNcLButtonDown(UINT nHitTest, CPoint point) 
 {
 }
 
-void CTaskBox::OnNcLButtonUp(UINT nHitTest, CPoint /*point*/) 
+void CTaskBox::OnNcLButtonUp(UINT nHitTest, CPoint point) 
 {
 	if ( nHitTest == HTCAPTION ) Expand( ! m_bOpen );	
 }
 
-void CTaskBox::OnTimer(UINT_PTR /*nIDEvent*/) 
+void CTaskBox::OnTimer(UINT nIDEvent) 
 {
 	CPoint point;
 	GetCursorPos( &point );
@@ -501,7 +501,7 @@ void CTaskBox::OnTimer(UINT_PTR /*nIDEvent*/)
 	}
 }
 
-BOOL CTaskBox::OnNcActivate(BOOL /*bActive*/)
+BOOL CTaskBox::OnNcActivate(BOOL bActive) 
 {
 	PaintBorders();
 	return TRUE;
@@ -537,9 +537,8 @@ void CTaskBox::PaintBorders()
 	}
 	
 	rcc.SetRect( 0, 0, rc.right, CAPTION_HEIGHT );
-
-	CSize size= rcc.Size();
-	CDC* pBuffer = CoolInterface.GetBuffer( dc, size );
+	
+	CDC* pBuffer = CoolInterface.GetBuffer( dc, rcc.Size() );
 	
 	if ( m_bmCaptionmark.m_hObject != NULL )
 	{
@@ -607,7 +606,7 @@ void CTaskBox::OnPaint()
 	}
 }
 
-void CTaskBox::OnSysCommand(UINT /*nID*/, LPARAM /*lParam*/) 
+void CTaskBox::OnSysCommand(UINT nID, LPARAM lParam) 
 {
 }
 

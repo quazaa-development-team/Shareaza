@@ -85,19 +85,22 @@ void CGProfile::Create()
 {
 	Clear();
 
-	Hashes::Guid tmp;
+	GGUID tmp( GUID );
+	CoCreateGuid( (::GUID*)&tmp );
 	srand( GetTickCount() );
-	
-	for ( int nByte = 0 ; nByte < 16 ; nByte++ ) tmp[ nByte ] = uchar( tmp[ nByte ] + rand() );
-	tmp.validate();
 
-	oGUID = tmp;
+	for ( int nByte = 0 ; nByte < 16 ; nByte++ ) tmp.n[ nByte ] += rand();
+
+	wchar_t szGUID[39];
+	szGUID[ StringFromGUID2( *(::GUID*)&tmp, szGUID, 39 ) - 2 ] = 0;
+
+	GUID = tmp;
 
 	m_pXML = new CXMLElement( NULL, _T("gProfile") );
 	m_pXML->AddAttribute( _T("xmlns"), xmlns );
 
 	CXMLElement* pGnutella = m_pXML->AddElement( _T("gnutella") );
-	pGnutella->AddAttribute( _T("guid"), tmp.toString() );
+	pGnutella->AddAttribute( _T("guid"), (CString)&szGUID[1] );
 }
 
 void CGProfile::Clear()
@@ -175,11 +178,10 @@ BOOL CGProfile::FromXML(CXMLElement* pXML)
 	if ( pGnutella == NULL ) return FALSE;
 
 	CString strGUID = pGnutella->GetAttributeValue( _T("guid") );
-	
-	Hashes::Guid tmp;
-	if ( ! GUIDX::Decode( strGUID, &tmp[ 0 ] ) ) return FALSE;
-	tmp.validate();
-	oGUID = tmp;
+
+	GGUID tmp;
+	if ( ! GUIDX::Decode( strGUID, &tmp ) ) return FALSE;
+	GUID = tmp;
 
 	m_pXML = pXML;
 
@@ -302,14 +304,7 @@ CG2Packet* CGProfile::CreateAvatar()
 	pPacket->WritePacket( "BODY", (DWORD)pFile.GetLength() );
 	LPBYTE pBody = pPacket->WriteGetPointer( (DWORD)pFile.GetLength() );
 
-	if ( pBody == NULL )
-	{
-		theApp.Message( MSG_ERROR, _T("Memory allocation error in CGProfile::CreateAvatar()") );
-	}
-	else
-	{
-		pFile.Read( pBody, (DWORD)pFile.GetLength() );
-	}
+	pFile.Read( pBody, (DWORD)pFile.GetLength() );
 	pFile.Close();
 
 	return pPacket;

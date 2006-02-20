@@ -53,7 +53,6 @@ BEGIN_MESSAGE_MAP(CFilePropertiesSheet, CPropertySheet)
 	ON_WM_SIZE()
 	ON_WM_ERASEBKGND()
 	ON_WM_CTLCOLOR()
-	ON_WM_HELPINFO()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -61,17 +60,11 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CFilePropertiesSheet
 
-CFilePropertiesSheet::CFilePropertiesSheet(UINT nIndex) : 
-	CPropertySheet( L"" ),
-	m_sGeneralTitle( L"General" ),
-	m_sMetadataTitle( L"Metadata" ),
-	m_sCommentsTitle( L"My Review" ),
-	m_sSharingTitle( L"Sharing" ),
-	m_sSourcesTitle( L"Sources" ),
-	m_pSkin( NULL )
+CFilePropertiesSheet::CFilePropertiesSheet(UINT nIndex) : CPropertySheet( _T("") )
 {
 	if ( nIndex > 0 ) m_pList.AddTail( nIndex );
 
+	m_pSkin = NULL;
 	m_psh.dwFlags &= ~PSP_HASHELP;
 }
 
@@ -82,7 +75,7 @@ CFilePropertiesSheet::~CFilePropertiesSheet()
 /////////////////////////////////////////////////////////////////////////////
 // CFilePropertiesSheet operations
 
-void CFilePropertiesSheet::Add(DWORD nIndex)
+void CFilePropertiesSheet::Add(UINT nIndex)
 {
 	m_pList.CheckAndAdd( nIndex );
 }
@@ -92,8 +85,9 @@ void CFilePropertiesSheet::Add(CLibraryList* pList)
 	m_pList.Merge( pList );
 }
 
-INT_PTR CFilePropertiesSheet::DoModal(int nPage)
+int CFilePropertiesSheet::DoModal(int nPage)
 {
+	//TODO: Get page title from defined caption in resources (Rolandas)
 	CFileGeneralPage	pGeneral;
 	CFileMetadataPage	pMetadata;
 	CFileCommentsPage	pComments;
@@ -107,23 +101,39 @@ INT_PTR CFilePropertiesSheet::DoModal(int nPage)
 	case 0:
 		return IDCANCEL;
 	case 1:
-		SetTabTitle( &pGeneral, m_sGeneralTitle );
+		strTabLabel = Skin.GetDialogCaption( _T("CFileGeneralPage") );
+		pGeneral.m_psp.dwFlags |= PSP_USETITLE;
+		pGeneral.m_psp.pszTitle = strTabLabel.IsEmpty() ? _T("General") : strTabLabel;
 		AddPage( &pGeneral );
-		SetTabTitle( &pMetadata, m_sMetadataTitle );
+		strTabLabel = Skin.GetDialogCaption( _T("CFileMetadataPage") );
+		pMetadata.m_psp.dwFlags |= PSP_USETITLE;
+		pMetadata.m_psp.pszTitle = strTabLabel.IsEmpty() ? _T("Metadata") : strTabLabel;
 		AddPage( &pMetadata );
-		SetTabTitle( &pComments, m_sCommentsTitle );
+		strTabLabel = Skin.GetDialogCaption( _T("CFileCommentsPage") );
+		pComments.m_psp.dwFlags |= PSP_USETITLE;
+		pComments.m_psp.pszTitle = strTabLabel.IsEmpty() ? _T("My Review") : strTabLabel;
 		AddPage( &pComments );
-		SetTabTitle( &pSharing, m_sSharingTitle );
+		strTabLabel = Skin.GetDialogCaption( _T("CFileSharingPage") );
+		pSharing.m_psp.dwFlags |= PSP_USETITLE;
+		pSharing.m_psp.pszTitle = strTabLabel.IsEmpty() ? _T("Sharing") : strTabLabel;
 		AddPage( &pSharing );
-		SetTabTitle( &pSources, m_sSourcesTitle );
+		strTabLabel = Skin.GetDialogCaption( _T("CFileSourcesPage") );
+		pSources.m_psp.dwFlags |= PSP_USETITLE;
+		pSources.m_psp.pszTitle = strTabLabel.IsEmpty() ? _T("Sources") : strTabLabel;
 		AddPage( &pSources );
 		break;
 	default:
-		SetTabTitle( &pMetadata, m_sMetadataTitle );
+		strTabLabel = Skin.GetDialogCaption( _T("CFileMetadataPage") );
+		pMetadata.m_psp.dwFlags |= PSP_USETITLE;
+		pMetadata.m_psp.pszTitle = strTabLabel.IsEmpty() ? _T("Metadata") : strTabLabel;
 		AddPage( &pMetadata );
-		SetTabTitle( &pComments, m_sCommentsTitle );
+		strTabLabel = Skin.GetDialogCaption( _T("CFileCommentsPage") );
+		pComments.m_psp.dwFlags |= PSP_USETITLE;
+		pComments.m_psp.pszTitle = strTabLabel.IsEmpty() ? _T("My Review") : strTabLabel;
 		AddPage( &pComments );
-		SetTabTitle( &pSharing, m_sSharingTitle );
+		strTabLabel = Skin.GetDialogCaption( _T("CFileSharingPage") );
+		pSharing.m_psp.dwFlags |= PSP_USETITLE;
+		pSharing.m_psp.pszTitle = strTabLabel.IsEmpty() ? _T("Sharing") : strTabLabel;
 		AddPage( &pSharing );
 		if ( nPage == 1 ) nPage = 0;
 		else if ( nPage == 2 ) nPage = 1;
@@ -132,15 +142,6 @@ INT_PTR CFilePropertiesSheet::DoModal(int nPage)
 
 	m_psh.nStartPage = nPage;
 	return CPropertySheet::DoModal();
-}
-
-void CFilePropertiesSheet::SetTabTitle(CPropertyPage* pPage, CString& strTitle)
-{
-	CString strClass = pPage->GetRuntimeClass()->m_lpszClassName;
-	CString strTabLabel = Skin.GetDialogCaption( strClass );
-	if ( ! strTabLabel.IsEmpty() )
-		strTitle = strTabLabel;
-	pPage->m_psp.pszTitle = strTitle.GetBuffer();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -197,7 +198,7 @@ void CFilePropertiesSheet::OnNcCalcSize(BOOL bCalcValidRects, NCCALCSIZE_PARAMS 
 		CPropertySheet::OnNcCalcSize( bCalcValidRects, lpncsp );
 }
 
-ONNCHITTESTRESULT CFilePropertiesSheet::OnNcHitTest(CPoint point)
+UINT CFilePropertiesSheet::OnNcHitTest(CPoint point)
 {
 	if ( m_pSkin )
 		return m_pSkin->OnNcHitTest( this, point, ( GetStyle() & WS_THICKFRAME ) ? TRUE : FALSE );
@@ -261,13 +262,13 @@ void CFilePropertiesSheet::OnSize(UINT nType, int cx, int cy)
 	if ( nType != 1982 ) CPropertySheet::OnSize( nType, cx, cy );
 }
 
-LRESULT CFilePropertiesSheet::OnSetText(WPARAM /*wParam*/, LPARAM /*lParam*/)
+LONG CFilePropertiesSheet::OnSetText(WPARAM wParam, LPARAM lParam)
 {
 	if ( m_pSkin )
 	{
 		BOOL bVisible = IsWindowVisible();
 		if ( bVisible ) ModifyStyle( WS_VISIBLE, 0 );
-		LRESULT lResult = Default();
+		LONG lResult = Default();
 		if ( bVisible ) ModifyStyle( 0, WS_VISIBLE );
 		if ( m_pSkin ) m_pSkin->OnSetText( this );
 		return lResult;
@@ -292,9 +293,4 @@ HBRUSH CFilePropertiesSheet::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
 	// if ( m_brDialog.m_hObject ) return m_brDialog;
 	return CPropertySheet::OnCtlColor( pDC, pWnd, nCtlColor );
-}
-
-BOOL CFilePropertiesSheet::OnHelpInfo(HELPINFO* /*pHelpInfo*/)
-{
-	return FALSE;
 }

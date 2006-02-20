@@ -45,9 +45,9 @@
 #include "DlgDownloadReviews.h"
 #include "DlgDownloadEdit.h"
 #include "DlgSettingsManager.h"
+#include "DlgTorrentTracker.h"
 #include "DlgDeleteFile.h"
 #include "DlgFilePropertiesSheet.h"
-#include "DlgTorrentInfoSheet.h"
 #include "DlgURLCopy.h"
 #include "DlgHelp.h"
 #include "Skin.h"
@@ -272,7 +272,7 @@ void CDownloadsWnd::OnSize(UINT nType, int cx, int cy)
 	EndDeferWindowPos( hPos );
 }
 
-void CDownloadsWnd::OnTimer(UINT_PTR nIDEvent) 
+void CDownloadsWnd::OnTimer(UINT nIDEvent) 
 {
 	// Reset Selection Timer event (posted by ctrldownloads)
 	if ( nIDEvent == 5 ) m_tSel = 0;
@@ -366,7 +366,7 @@ void CDownloadsWnd::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 	AfxGetMainWnd()->SendMessage( WM_DRAWITEM, nIDCtl, (LPARAM)lpDrawItemStruct );
 }
 
-void CDownloadsWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point) 
+void CDownloadsWnd::OnContextMenu(CWnd* pWnd, CPoint point) 
 {
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
 	CDownloadSource* pSource;
@@ -458,13 +458,13 @@ void CDownloadsWnd::Prepare()
 	m_bSelAny = m_bSelDownload = m_bSelSource = m_bSelTrying = m_bSelPaused = FALSE;
 	m_bSelNotPausedOrMoving = m_bSelNoPreview = m_bSelNotCompleteAndNoPreview = FALSE;
 	m_bSelCompletedAndNoPreview = m_bSelStartedAndNotMoving = m_bSelCompleted = FALSE;
-	m_bSelNotMoving = m_bSelBoostable = m_bSelSHA1orTTHorED2KorName = FALSE;
+	m_bSelNotMoving = m_bSelBoostable = m_bSelSHA1orED2K = FALSE;
 	m_bSelTorrent = m_bSelIdleSource = m_bSelActiveSource = FALSE;
 	m_bSelHttpSource = m_bSelDonkeySource = m_bSelShareState = FALSE;
 	m_bSelShareConsistent = TRUE;
 	m_bSelMoreSourcesOK = FALSE;
 	m_bSelSourceAcceptConnections = m_bSelSourceExtended = m_bSelHasReviews = FALSE;
-	
+
 	m_bConnectOkay = FALSE;
 	
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
@@ -484,8 +484,8 @@ void CDownloadsWnd::Prepare()
 				m_bSelNotMoving = TRUE;
 			if ( ! pDownload->IsBoosted() )
 				m_bSelBoostable = TRUE;
-            if ( pDownload->m_oSHA1 || pDownload->m_oTiger || pDownload->m_oED2K || pDownload->m_sDisplayName.GetLength() )
-				m_bSelSHA1orTTHorED2KorName = TRUE;
+			if ( pDownload->m_bSHA1 || pDownload->m_bED2K )
+				m_bSelSHA1orED2K = TRUE;
 			if ( pDownload->m_pTorrent.IsAvailable() )
 				m_bSelTorrent = TRUE;
 			if ( pDownload->IsTrying() )
@@ -632,7 +632,7 @@ void CDownloadsWnd::OnDownloadsClear()
 			else if ( pDownload->IsStarted() )
 			{
 				CDeleteFileDlg dlg;
-				dlg.m_sName = pDownload->m_sDisplayName;
+				dlg.m_sName = pDownload->m_sRemoteName;
 				BOOL bShared = pDownload->IsShared();
 				
 				pLock.Unlock();
@@ -686,7 +686,7 @@ void CDownloadsWnd::OnDownloadsClearIncomplete()
 				if ( pDownload->IsStarted() )
 				{
 					CDeleteFileDlg dlg;
-					dlg.m_sName = pDownload->m_sDisplayName;
+					dlg.m_sName = pDownload->m_sRemoteName;
 					BOOL bShared = pDownload->IsShared();
 					
 					pLock.Unlock();
@@ -784,7 +784,7 @@ void CDownloadsWnd::OnDownloadsLaunch()
 		
 		if ( Downloads.Check( pDownload ) )
 		{
-			CString strName = pDownload->m_sDiskName;
+			CString strName = pDownload->m_sLocalName;
 			
 			if ( pDownload->IsCompleted() )
 			{
@@ -814,11 +814,9 @@ void CDownloadsWnd::OnDownloadsLaunch()
 					pLock.Lock();
 					if ( nResponse == IDNO ) continue;
 				}
-
-				int nDot = pDownload->m_sDisplayName.ReverseFind( '.' );
-				CString strExt = pDownload->m_sDisplayName.Mid( nDot + 1 );
+				
 				pLock.Unlock();
-				if ( ! CFileExecutor::Execute( strName, FALSE, FALSE, strExt ) ) break;
+				if ( ! CFileExecutor::Execute( strName, FALSE ) ) break;
 				pLock.Lock();
 				
 				if ( ++nCount >= 5 ) break;
@@ -831,10 +829,8 @@ void CDownloadsWnd::OnDownloadsLaunch()
 				}
 				else
 				{
-					int nDot = pDownload->m_sDisplayName.ReverseFind( '.' );
-					CString strExt = pDownload->m_sDisplayName.Mid( nDot + 1 );
 					pLock.Unlock();
-					if ( ! CFileExecutor::Execute( strName, FALSE, FALSE, strExt ) ) break;
+					if ( ! CFileExecutor::Execute( strName, FALSE ) ) break;
 					pLock.Lock();
 				}
 				
@@ -887,8 +883,8 @@ void CDownloadsWnd::OnDownloadsLaunchCopy()
 			{
 				CString strType;
 				
-				int nExtPos = pDownload->m_sSafeName.ReverseFind( '.' );
-				if ( nExtPos > 0 ) strType = pDownload->m_sSafeName.Mid( nExtPos + 1 );
+				int nExtPos = pDownload->m_sLocalName.ReverseFind( '.' );
+				if ( nExtPos > 0 ) strType = pDownload->m_sLocalName.Mid( nExtPos + 1 );
 				strType = _T("|") + strType + _T("|");
 				
 				if ( _tcsistr( Settings.Library.SafeExecute, strType ) == NULL ||
@@ -897,7 +893,7 @@ void CDownloadsWnd::OnDownloadsLaunchCopy()
 					CString strFormat, strPrompt;
 					
 					LoadString( strFormat, IDS_LIBRARY_CONFIRM_EXECUTE );
-					strPrompt.Format( strFormat, (LPCTSTR)pDownload->m_sSafeName );
+					strPrompt.Format( strFormat, (LPCTSTR)pDownload->m_sLocalName );
 					
 					pLock.Unlock();
 					int nResult = AfxMessageBox( strPrompt, MB_ICONQUESTION|MB_YESNOCANCEL|MB_DEFBUTTON2 );
@@ -942,12 +938,9 @@ void CDownloadsWnd::OnDownloadsEnqueue()
 		{
 			if ( pDownload->IsStarted() )
 			{
-				CString strPath = pDownload->m_sDiskName;
-				int nDot = pDownload->m_sDisplayName.ReverseFind( '.' );
-				CString strExt = pDownload->m_sDisplayName.Mid( nDot + 1 );
-
+				CString strPath = pDownload->m_sLocalName;
 				pLock.Unlock();
-				CFileExecutor::Enqueue( strPath, FALSE, strExt );
+				CFileExecutor::Enqueue( strPath );
 				pLock.Lock();
 			}
 		}
@@ -1073,7 +1066,7 @@ void CDownloadsWnd::OnDownloadsBoost()
 void CDownloadsWnd::OnUpdateDownloadsCopy(CCmdUI* pCmdUI) 
 {
 	Prepare();
-	pCmdUI->Enable( m_bSelSHA1orTTHorED2KorName );
+	pCmdUI->Enable( m_bSelSHA1orED2K );
 }
 
 void CDownloadsWnd::OnDownloadsCopy() 
@@ -1091,13 +1084,16 @@ void CDownloadsWnd::OnDownloadsCopy()
 	{
 		CDownload* pDownload = pList.RemoveHead();
 		
-        if ( Downloads.Check( pDownload ) && ( pDownload->m_oSHA1 || pDownload->m_oTiger || pDownload->m_oED2K || pDownload->m_sDisplayName.GetLength() ) )
+		if ( Downloads.Check( pDownload ) && ( pDownload->m_bSHA1 || pDownload->m_bED2K ) )
 		{
 			CURLCopyDlg dlg;
-			dlg.m_sName		= pDownload->m_sDisplayName;
-			dlg.m_oSHA1		= pDownload->m_oSHA1;
-			dlg.m_oTiger	= pDownload->m_oTiger;
-			dlg.m_oED2K		= pDownload->m_oED2K;
+			dlg.m_sName		= pDownload->m_sRemoteName;
+			dlg.m_bSHA1		= pDownload->m_bSHA1;
+			dlg.m_pSHA1		= pDownload->m_pSHA1;
+			dlg.m_bTiger	= pDownload->m_bTiger;
+			dlg.m_pTiger	= pDownload->m_pTiger;
+			dlg.m_bED2K		= pDownload->m_bED2K;
+			dlg.m_pED2K		= pDownload->m_pED2K;
 			dlg.m_bSize		= pDownload->m_nSize != SIZE_UNKNOWN;
 			dlg.m_nSize		= pDownload->m_nSize;
 			dlg.DoModal();
@@ -1186,7 +1182,9 @@ void CDownloadsWnd::OnDownloadsTorrentInfo()
 		
 		if ( pDownload->m_bSelected && pDownload->m_pTorrent.IsAvailable() )
 		{
-			CTorrentInfoSheet dlg( &pDownload->m_pTorrent );
+			int nStart = pDownload->m_nStartTorrentDownloads;
+			CTorrentTrackerDlg dlg( &pDownload->m_pTorrent, &nStart );
+
 			
 			pLock.Unlock();
 			dlg.DoModal();
@@ -1194,13 +1192,14 @@ void CDownloadsWnd::OnDownloadsTorrentInfo()
 
 			if ( Downloads.Check( pDownload ) )
 			{
+				pDownload->m_nStartTorrentDownloads = nStart;
+
 				if ( dlg.m_pInfo.IsAvailable() )
 				{
 					pDownload->m_pTorrent.m_sTracker = dlg.m_pInfo.m_sTracker;
 				}
-				pDownload->m_pTorrent.m_nStartDownloads = dlg.m_pInfo.m_nStartDownloads;
-				pDownload->m_pTorrent.m_nTrackerMode = dlg.m_pInfo.m_nTrackerMode;
 			}
+			
 			break;
 		}
 	}
@@ -1378,11 +1377,11 @@ void CDownloadsWnd::OnTransfersChat()
 			if ( pSource->m_bSelected ) 
 			{
 				if ( pSource->m_nProtocol == PROTOCOL_HTTP )						// HTTP chat
-					ChatWindows.OpenPrivate( Hashes::Guid(), &pSource->m_pAddress, pSource->m_nPort, pSource->m_bPushOnly, pSource->m_nProtocol, &pSource->m_pServerAddress, pSource->m_nServerPort );
+					ChatWindows.OpenPrivate( NULL, &pSource->m_pAddress, pSource->m_nPort, pSource->m_bPushOnly, pSource->m_nProtocol, &pSource->m_pServerAddress, pSource->m_nServerPort );
 				else if ( pSource->m_bClientExtended && ! pSource->m_bPushOnly )	// Client accepts G2 chat connections
-					ChatWindows.OpenPrivate( Hashes::Guid(), &pSource->m_pAddress, pSource->m_nPort, FALSE, PROTOCOL_G2 );
+					ChatWindows.OpenPrivate( NULL, &pSource->m_pAddress, pSource->m_nPort, FALSE, PROTOCOL_G2 );
 				else if ( pSource->m_nProtocol == PROTOCOL_ED2K )					// ED2K chat
-					ChatWindows.OpenPrivate( Hashes::Guid(), &pSource->m_pAddress, pSource->m_nPort, pSource->m_bPushOnly, pSource->m_nProtocol, &pSource->m_pServerAddress, pSource->m_nServerPort );
+					ChatWindows.OpenPrivate( NULL, &pSource->m_pAddress, pSource->m_nPort, pSource->m_bPushOnly, pSource->m_nProtocol, &pSource->m_pServerAddress, pSource->m_nServerPort );
 				else		// Should never be called
 					theApp.Message( MSG_ERROR, _T("Error while initiating chat- Unable to select protocol") );
 			}
@@ -1409,9 +1408,9 @@ void CDownloadsWnd::OnBrowseLaunch()
 			if ( pSource->m_bSelected )
 			{
 				if ( pSource->m_nProtocol == PROTOCOL_HTTP )	// Many HTTP clients support this
-					new CBrowseHostWnd( &pSource->m_pAddress, pSource->m_nPort, pSource->m_bPushOnly, pSource->m_oGUID );
+					new CBrowseHostWnd( &pSource->m_pAddress, pSource->m_nPort, pSource->m_bPushOnly, &pSource->m_pGUID );
 				else if ( pSource->m_bClientExtended )			// Over other protocols, you can only contact non-push G2 clients
-					new CBrowseHostWnd( &pSource->m_pAddress, pSource->m_nPort, FALSE, Hashes::Guid() );
+					new CBrowseHostWnd( &pSource->m_pAddress, pSource->m_nPort, FALSE, NULL );
 			}
 		}
 	}
@@ -1454,8 +1453,8 @@ void CDownloadsWnd::OnDownloadsFileDelete()
 		if ( Downloads.Check( pDownload ) && pDownload->IsCompleted() )
 		{
 			CDeleteFileDlg dlg;
-			dlg.m_sName		= pDownload->m_sDisplayName;
-			CString strPath	= pDownload->m_sDiskName;
+			dlg.m_sName		= pDownload->m_sRemoteName;
+			CString strPath	= pDownload->m_sLocalName;
 			
 			pLock.Unlock();
 			if ( dlg.DoModal() != IDOK ) break;
@@ -1485,13 +1484,13 @@ void CDownloadsWnd::OnDownloadsRate()
 {
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
 	CFilePropertiesSheet dlg;
-	CList< CString > pList;
+	CStringList pList;
 	
 	for ( POSITION pos = Downloads.GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = Downloads.GetNext( pos );
 		if ( pDownload->m_bSelected && pDownload->IsCompleted() )
-			pList.AddTail( pDownload->m_sDiskName );
+			pList.AddTail( pDownload->m_sLocalName );
 	}
 	
 	pLock.Unlock();
@@ -1674,7 +1673,7 @@ void CDownloadsWnd::OnDownloadsHelp()
 	{
 		CHelpDlg::Show( _T("DownloadHelp.Searching") );
 	}
-	else if ( pDownload->m_oBTH && pDownload->IsTasking() )
+	else if ( pDownload->m_bBTH && pDownload->IsTasking() )
 	{
 		CHelpDlg::Show( _T("DownloadHelp.Creating") );
 	}
@@ -1691,7 +1690,7 @@ void CDownloadsWnd::OnDownloadsHelp()
 /////////////////////////////////////////////////////////////////////////////
 // CDownloadsWnd drag and drop
 
-void CDownloadsWnd::DragDownloads(CList< CDownload* >* pList, CImageList* pImage, const CPoint& ptScreen)
+void CDownloadsWnd::DragDownloads(CPtrList* pList, CImageList* pImage, const CPoint& ptScreen)
 {
 	ASSERT( m_pDragList == NULL );
 	

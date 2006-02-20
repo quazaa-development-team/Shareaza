@@ -93,7 +93,6 @@ public:
 		CString		SafeExecute;
 		CString		PrivateTypes;
 		DWORD		ThumbSize;
-		CString		BitziAgent;
 		CString		BitziWebView;
 		CString		BitziWebSubmit;
 		CString		BitziXML;
@@ -106,7 +105,6 @@ public:
 												// if buffer allocation fails hashing will run with Parallel = 1
 		DWORD		Parallel;					// how many files to hash parallel: 1..6; 0 for autoselect
 		int			LowPriorityHashing;			// desired speed in MB/s when hashing with low priority
-		DWORD		MaxMaliciousFileSize;		// Size for which to trigger malicious software search
 	} Library;
 
 	struct sSearch
@@ -146,17 +144,9 @@ public:
 		BOOL		ListVisible;
 		DWORD		ListSize;
 		BOOL		StatusVisible;
-		CString		MediaServicesCLSID;
-		CString		Mpeg1PreviewCLSID;
-		CString		Mp3PreviewCLSID;
-		CString		AviPreviewCLSID;
-		CString		VisWrapperCLSID;
-		CString		VisSoniqueCLSID;
 		CString		VisCLSID;
 		CString		VisPath;
 		INT			VisSize;
-		CString		ServicePath;
-		BOOL		ShortPaths;		// Some players differently handle unicode paths but they can launch files using 8.3 paths
 	} MediaPlayer;
 	
 	struct sWeb
@@ -176,7 +166,6 @@ public:
 		CString		InHost;
 		DWORD		InPort;
 		BOOL		InBind;
-		BOOL		RandomPort;
 		DWORD		InSpeed;
 		DWORD		OutSpeed;
 		BOOL		IgnoreLocalIP;				// Ingnore all 'local' (LAN) IPs
@@ -192,10 +181,6 @@ public:
 		BOOL		DetectConnectionReset;		// Detect regaining of internet connection
 		BOOL		ForceConnectedState;		// Force WinINet into a connected state on startup. (Put IE into online mode)
 		BOOL		SlowConnect;				// Connect to one network at a time. Don't download while connecting. (XPsp2)
-		BOOL		EnableUPnP;
-		BOOL		DeleteUPnPPorts;			// Delete forwarded ports on shutdown (UPnP)
-		BOOL		SkipWANPPPSetup;			// Skip WANPPPConn1 device setup (UPnP)
-		BOOL		SkipWANIPSetup;				// Skip WANIPConn1 device setup (UPnP)
 	} Connection;
 
 	struct sBandwidth
@@ -322,7 +307,6 @@ public:
 		BOOL		EnableToday;
 		BOOL		EnableAlways;
 		BOOL		FastConnect;				// Try connecting to 2 servers to get online faster
-		BOOL		ForceHighID;				// Reconnect if low-id. (once only)
 		DWORD		NumServers;					// 1
 		int			MaxLinks;					// Max ed2k client links
 		int			MaxResults;
@@ -346,14 +330,12 @@ public:
 		DWORD		FrameSize;
 		DWORD		ReAskTime;
 		DWORD		DequeueTime;
-		DWORD		ExtendedRequest;
-		BOOL		SendPortServer;				// Send port in tag to ed2k servers. (not needed for newer servers)
+		BOOL		ExtendedRequest;
 		BOOL		MagnetSearch;				// Search for magnets over ed2k (lower server load)
 		DWORD		MinServerFileSize;			// Minimum size a file in the library must be in order to be included in the server file list. (In KB)
 		BOOL		TagNames;					// Add (Shareaza.com) to user name over ed2k
 		DWORD		DefaultServerFlags;			// Default server flags (for UDP searches)
 		BOOL		Endgame;					// Allow endgame mode when completing downloads. (Download same chunk from multiple sources)
-		BOOL		LargeFileSupport;			// Allow 64 bit file sizes
 	} eDonkey;
 	
 	struct sBitTorrent
@@ -493,12 +475,11 @@ public:
 		BOOL		LoadWindowState;
 		BOOL		AutoClose;
 		BOOL		FirstRun;					// Is this the first time Shareaza is being run?
-		CString		LastDuplicateHash;			// Stores the hash of the file about which the warning was shown
-		BOOL		NewFile;					// TRUE if the new file was added to the Library
-		BOOL		MaliciousWarning;			// Is the warning dialog opened?
 	} Live;
 
 // Attributes : Item List
+protected:
+	CPtrList	m_pItems;
 public:
 	class Item
 	{
@@ -512,8 +493,6 @@ public:
 		DOUBLE*		m_pFloat;
 		CString*	m_pString;
 	};
-protected:
-	CList< Item* >	m_pItems;
 
 // Operations
 public:

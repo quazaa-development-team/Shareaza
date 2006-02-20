@@ -106,7 +106,6 @@ void CDonkeyServersDlg::OnOK()
 	if ( m_hInternet == NULL ) return;
 
 	CWinThread* pThread = AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_NORMAL );
-	SetThreadName( pThread->m_nThreadID, "DlgDonkeyServices" );
 	m_hThread = pThread->m_hThread;
 
 	m_wndOK.EnableWindow( FALSE );
@@ -119,7 +118,7 @@ void CDonkeyServersDlg::OnCancel()
 	CSkinDialog::OnCancel();
 }
 
-void CDonkeyServersDlg::OnTimer(UINT_PTR nIDEvent)
+void CDonkeyServersDlg::OnTimer(UINT nIDEvent)
 {
 	if ( m_hInternet != NULL )
 	{
@@ -197,7 +196,7 @@ void CDonkeyServersDlg::OnRun()
 
 		while ( nRemaining > 0 )
 		{
-			DWORD nBuffer = min( nRemaining, 1024u );
+			DWORD nBuffer = min( nRemaining, DWORD(1024) );
 			InternetReadFile( hRequest, pBuffer, nBuffer, &nBuffer );
 			pFile.Write( pBuffer, nBuffer );
 			nRemaining -= nBuffer;

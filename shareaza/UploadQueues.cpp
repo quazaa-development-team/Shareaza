@@ -202,7 +202,7 @@ CUploadQueue* CUploadQueues::SelectQueue(PROTOCOLID nProtocol, CLibraryFile* pFi
 
 CUploadQueue* CUploadQueues::SelectQueue(PROTOCOLID nProtocol, CDownload* pFile)
 {
-	return SelectQueue( nProtocol, pFile->m_sDisplayName, pFile->m_nSize, TRUE );
+	return SelectQueue( nProtocol, pFile->m_sRemoteName, pFile->m_nSize, TRUE );
 }
 
 CUploadQueue* CUploadQueues::SelectQueue(PROTOCOLID nProtocol, LPCTSTR pszName, QWORD nSize, BOOL bPartial, LPCTSTR pszShareTags)
@@ -264,10 +264,10 @@ int CUploadQueues::GetQueueCapacity()
 	return nCount;
 }
 
-INT_PTR CUploadQueues::GetQueuedCount()
+int CUploadQueues::GetQueuedCount()
 {
 	CSingleLock pLock( &m_pSection, TRUE );
-	INT_PTR nCount = 0;
+	int nCount = 0;
 
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
@@ -277,10 +277,10 @@ INT_PTR CUploadQueues::GetQueuedCount()
 	return nCount;
 }
 
-INT_PTR CUploadQueues::GetQueueRemaining()
+int CUploadQueues::GetQueueRemaining()
 {
 	CSingleLock pLock( &m_pSection, TRUE );
-	INT_PTR nCount = 0;
+	int nCount = 0;
 
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
@@ -290,10 +290,10 @@ INT_PTR CUploadQueues::GetQueueRemaining()
 	return nCount;
 }
 
-INT_PTR CUploadQueues::GetTransferCount()
+int CUploadQueues::GetTransferCount()
 {
 	CSingleLock pLock( &m_pSection, TRUE );
-	INT_PTR nCount = 0;
+	int nCount = 0;
 
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
@@ -420,7 +420,7 @@ int CUploadQueues::QueueRank(PROTOCOLID nProtocol, CLibraryFile *pFile )
 		{	// If this queue will accept this file
 
 			if ( pQueue->GetQueueRemaining() > 0 )
-				return static_cast< int >( pQueue->GetQueuedCount() );
+				return pQueue->GetQueuedCount();
 		}
 	}
 
@@ -523,7 +523,7 @@ void CUploadQueues::Serialize(CArchive& ar)
 		ar >> nVersion;
 		if ( nVersion < 2 ) AfxThrowUserException();
 
-		for ( DWORD_PTR nCount = ar.ReadCount() ; nCount > 0 ; nCount-- )
+		for ( int nCount = ar.ReadCount() ; nCount > 0 ; nCount-- )
 		{
 			Create()->Serialize( ar, nVersion );
 		}

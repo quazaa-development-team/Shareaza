@@ -62,10 +62,14 @@ public:
 	QWORD			m_nVirtualBase;
 	QWORD			m_nVirtualSize;
 public:
-    Hashes::Sha1Hash m_oSHA1;
-    Hashes::TigerHash m_oTiger;
-    Hashes::Md5Hash m_oMD5;
-    Hashes::Ed2kHash m_oED2K;
+	BOOL			m_bSHA1;
+	SHA1			m_pSHA1;
+	BOOL			m_bTiger;
+	TIGEROOT		m_pTiger;
+	BOOL			m_bMD5;
+	MD5				m_pMD5;
+	BOOL			m_bED2K;
+	MD4				m_pED2K;
 	TRISTATE		m_bVerify;
 public:
 	CSchema*		m_pSchema;
@@ -82,7 +86,7 @@ public:
 	DWORD			m_nUploadsTotal;
 	BOOL			m_bCachedPreview;
 	BOOL			m_bBogus;
-	CList< CSharedSource* > m_pSources;
+	CPtrList		m_pSources;
 public:
 	DWORD			m_nSearchCookie;
 	DWORD			m_nSearchWords;
@@ -101,7 +105,7 @@ public:
 public:
 	BOOL			Rebuild();
 	BOOL			Rename(LPCTSTR pszName);
-	BOOL			Delete(BOOL bDeleteGhost = FALSE);
+	BOOL			Delete();
 	BOOL			SetMetadata(CXMLElement* pXML);
 	CString			GetMetadataWords() const;
 	BOOL			SaveMetadata();
@@ -110,14 +114,14 @@ public:
 public:
 	CSharedSource*	AddAlternateSource(LPCTSTR pszURL, BOOL bForce = TRUE);
 	CSharedSource*	AddAlternateSources(LPCTSTR pszURL);
-	CString			GetAlternateSources(CList< CString >* pState, int nMaximum, PROTOCOLID nProtocol);
+	CString			GetAlternateSources(CStringList* pState, int nMaximum, PROTOCOLID nProtocol);
 protected:
 	void			Serialize(CArchive& ar, int nVersion);
 	BOOL			ThreadScan(CSingleLock& pLock, DWORD nScanCookie, QWORD nSize, FILETIME* pTime, LPCTSTR pszMetaData);
 	BOOL			LoadMetadata(HANDLE hFile);
-	void			OnDelete(BOOL bDeleteGhost = FALSE);
+	void			OnDelete();
 	void			Ghost();
-    BOOL			OnVerifyDownload(const Hashes::Sha1Hash& oSHA1, const Hashes::Ed2kHash& oED2K, LPCTSTR pszSources);
+	BOOL			OnVerifyDownload(const SHA1* pSHA1, const MD4* pED2K, LPCTSTR pszSources);
 	
 // Inlines
 public:

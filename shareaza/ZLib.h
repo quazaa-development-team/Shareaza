@@ -30,15 +30,14 @@
 #pragma once
 
 // Wraps the compress and decompress data compression functions of the ZLib compression library
-class CZLib  
+class CZLib
 {
 
-// Operations
 public:
 
 	// Compress and decompress nInput bytes at pInput to a new returned buffer of size pnOutput
-	static auto_array< BYTE > Compress(LPCVOID pInput, DWORD nInput, DWORD* pnOutput, DWORD nSuggest = 0);
-	static auto_array< BYTE > Decompress(LPCVOID pInput, DWORD nInput, DWORD* pnOutput, DWORD nSuggest = 0);
+	static LPBYTE Compress(LPCVOID pInput, DWORD nInput, DWORD* pnOutput, DWORD nSuggest = 0);
+	static LPBYTE Decompress(LPCVOID pInput, DWORD nInput, DWORD* pnOutput, DWORD nSuggest = 0);
 };
 
 // End the group of lines to only include once, pragma once doesn't require an endif at the bottom

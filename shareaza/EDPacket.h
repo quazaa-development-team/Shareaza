@@ -43,7 +43,7 @@ typedef struct
 	BYTE	nProtocol;
 	DWORD	nLength;
 	BYTE	nType;
-	Hashes::Ed2kHash::RawStorage pMD4;
+	MD4		pMD4;
 	DWORD	nOffset1;
 	DWORD	nOffset2;
 } ED2K_PART_HEADER;
@@ -157,10 +157,6 @@ inline void CEDPacket::CEDPacketPool::NewPoolImpl(int nSize, CPacket*& pPool, in
 {
 	nPitch	= sizeof(CEDPacket);
 	pPool	= new CEDPacket[ nSize ];
-	if ( pPool == NULL )
-	{
-		theApp.Message( MSG_ERROR, _T("Memory allocation error in CEDPacket::CEDPacketPool::NewPoolImpl()") );
-	}
 }
 
 inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
@@ -188,7 +184,6 @@ inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
 #define ED2K_S2C_CALLBACKREQUESTED		0x35
 
 // Client - Server, Global (UDP)
-#define ED2K_C2SG_SEARCHREQUEST3		0x90
 #define ED2K_C2SG_SEARCHREQUEST2		0x92
 #define ED2K_C2SG_GETSOURCES2			0x94
 #define ED2K_C2SG_SERVERSTATUSREQUEST	0x96
@@ -241,13 +236,11 @@ inline void CEDPacket::CEDPacketPool::FreePoolImpl(CPacket* pPacket)
 #define	ED2K_SERVER_TCP_UNICODE			0x00000010
 #define	ED2K_SERVER_TCP_GETSOURCES2		0x00000020
 #define	ED2K_SERVER_TCP_RELATEDSEARCH	0x00000040
-#define	ED2K_SERVER_TCP_64BITSIZE		0x00000080
 // Server UDP flags
 #define	ED2K_SERVER_UDP_GETSOURCES		0x00000001
 #define	ED2K_SERVER_UDP_GETFILES		0x00000002
 #define	ED2K_SERVER_UDP_UNICODE			0x00000010
 #define	ED2K_SERVER_UDP_GETSOURCES2		0x00000020
-#define	ED2K_SERVER_UDP_64BITSIZE		0x00000080
 
 
 class CEDTag
@@ -347,7 +340,6 @@ public:
 #define ED2K_FT_PERMISSIONS			0x16
 #define ED2K_FT_ULPRIORITY			0x17
 #define ED2K_FT_COMPLETESOURCES		0x30
-#define ED2K_FT_FILESIZEUPPER		0x32
 #define ED2K_FT_ATTRANSFERED		0x50
 #define ED2K_FT_ATREQUESTED			0x51
 #define ED2K_FT_ATACCEPTED			0x52
@@ -373,11 +365,9 @@ public:
 #define ED2K_MESSAGE_MAX			500
 // Max file comment length
 #define ED2K_COMMENT_MAX			250
-// Max file size in 32 bits
-#define MAX_SIZE_32BIT				0xFFFFFFFF
 
 // Client ID
-#define ED2K_COMPATIBLECLIENT_ID	ED2K_CLIENT_ID
+#define ED2K_COMPATIBLECLIENT_ID	ED2K_CLIENT_ID	// Used to be 4, changed on request
 
 // "Unknown" and "Unknown mod" client ID for compatible client variable
 #define ED2K_CLIENT_UNKNOWN			0xFF
@@ -388,8 +378,7 @@ public:
 #define ED2K_VERSION_UDP			0x02
 #define ED2K_VERSION_SOURCEEXCHANGE	0x02
 #define ED2K_VERSION_COMMENTS		0x01
-#define ED2K_VERSION_EXTENDEDREQUEST 0x02 // Note: Defined at run time. 0, 1, or 2
-
+#define ED2K_VERSION_EXTENDEDREQUEST 0x01
 // Things that aren't supported
 #define ED2K_VERSION_AICH			0x00
 #define ED2K_VERSION_SECUREID		0x00

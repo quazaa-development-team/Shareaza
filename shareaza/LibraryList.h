@@ -36,14 +36,14 @@ public:
 
 // Attributes
 protected:
-	DWORD* m_pList;
-	INT_PTR		m_nCount;
-	INT_PTR		m_nBuffer;
-	INT_PTR		m_nBlock;
+	DWORD*	m_pList;
+	int		m_nCount;
+	int		m_nBuffer;
+	int		m_nBlock;
 
 // Operations
 public:
-	inline INT_PTR GetCount() const
+	inline int GetCount() const
 	{
 		return m_nCount;
 	}
@@ -82,21 +82,17 @@ public:
 
 	inline DWORD GetPrev(POSITION& pos) const
 	{
-		INT_PTR nPos = (INT_PTR)pos;
-		ASSERT( nPos > 0 && nPos <= m_nCount );
-		DWORD nItem = m_pList[ --nPos ];
-		if ( nPos < 1 || nPos > m_nCount ) nPos = NULL;
-		pos = (POSITION)nPos;
+		ASSERT( (int)pos > 0 && (int)pos <= m_nCount );
+		DWORD nItem = m_pList[ (int)pos-- - 1 ];
+		if ( (int)pos < 1 || (int)pos > m_nCount ) pos = NULL;
 		return nItem;
 	}
 
 	inline DWORD GetNext(POSITION& pos) const
 	{
-		INT_PTR nPos = (INT_PTR)pos;
-		ASSERT( nPos > 0 && nPos <= m_nCount );
-		DWORD nItem = m_pList[ ++nPos - 2 ];
-		if ( nPos < 1 || nPos > m_nCount ) nPos = NULL;
-		pos = (POSITION)nPos;
+		ASSERT( (int)pos > 0 && (int)pos <= m_nCount );
+		DWORD nItem = m_pList[ (int)pos++ - 1 ];
+		if ( (int)pos < 1 || (int)pos > m_nCount ) pos = NULL;
 		return nItem;
 	}
 
@@ -146,7 +142,7 @@ public:
 
 	inline void RemoveAt(POSITION pos)
 	{
-		INT_PTR nPos = (INT_PTR)pos;
+		int nPos = (int)pos;
 		ASSERT( nPos > 0 && nPos <= m_nCount );
 		MoveMemory( m_pList + nPos - 1, m_pList + nPos, sizeof(DWORD) * ( m_nCount - nPos ) );
 		m_nCount--;
@@ -160,7 +156,7 @@ public:
 	inline POSITION Find(DWORD nItem) const
 	{
 		DWORD* pSeek = m_pList;
-		for ( INT_PTR nCount = m_nCount ; nCount ; nCount--, pSeek++ )
+		for ( int nCount = m_nCount ; nCount ; nCount--, pSeek++ )
 		{
 			if ( *pSeek == nItem ) return (POSITION)( m_nCount - nCount + 1 );
 		}

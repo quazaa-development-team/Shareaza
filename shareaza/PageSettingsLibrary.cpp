@@ -226,8 +226,9 @@ void CLibrarySettingsPage::OnCollectionsBrowse()
 	TCHAR szPath[MAX_PATH];
 	LPITEMIDLIST pPath;
 	LPMALLOC pMalloc;
+	BROWSEINFO pBI;
 		
-	BROWSEINFO pBI = {};
+	ZeroMemory( &pBI, sizeof(pBI) );
 	pBI.hwndOwner		= AfxGetMainWnd()->GetSafeHwnd();
 	pBI.pszDisplayName	= szPath;
 	pBI.lpszTitle		= _T("Select folder for collections:");

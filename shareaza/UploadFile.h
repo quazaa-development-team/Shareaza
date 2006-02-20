@@ -31,23 +31,24 @@ class CUploadFile
 {
 // Construction
 public:
-    CUploadFile(CUploadTransfer* pUpload, const Hashes::Sha1Hash& oSHA1, LPCTSTR pszName, LPCTSTR pszPath, QWORD nSize);
+	CUploadFile(CUploadTransfer* pUpload, SHA1* pSHA1, LPCTSTR pszName, LPCTSTR pszPath, QWORD nSize);
 	virtual ~CUploadFile();
 
 // Attributes
 public:
 	IN_ADDR			m_pAddress;
-    Hashes::Sha1Hash m_oSHA1;
+	BOOL			m_bSHA1;
+	SHA1			m_pSHA1;
 	CString			m_sName;
 	CString			m_sPath;
 	QWORD			m_nSize;
 public:
 	DWORD			m_nRequests;
-	Fragments::List	m_oFragments;
+    FF::SimpleFragmentList m_oFragments;
 public:
 	BOOL			m_bSelected;
 protected:
-	CList< CUploadTransfer* > m_pTransfers;
+	CPtrList		m_pTransfers;
 
 // Operations
 public:
@@ -62,7 +63,7 @@ public:
 public:
 	inline BOOL IsEmpty() const
 	{
-		return m_pTransfers.IsEmpty();
+		return m_pTransfers.GetCount() == 0;
 	}
 
 };

@@ -1,9 +1,9 @@
 //
 // EDPartImporter.cpp
 //
-//	Date:			"$Date: 2005/11/17 21:34:55 $"
-//	Revision:		"$Revision: 1.13 $"
-//	Last change by:	"$Author: thetruecamper $"
+//	Date:			"$Date: 2005/05/01 11:42:52 $"
+//	Revision:		"$Revision: 1.10 $"
+//	Last change by:	"$Author: rolandas $"
 //
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
@@ -185,16 +185,15 @@ BOOL CEDPartImporter::ImportFile(LPCTSTR pszPath, LPCTSTR pszFile)
 	LONG nDate = 0;
 	WORD nParts = 0;
 	CED2K pED2K;
-	Hashes::Ed2kHash oED2K;
+	MD4 pMD4;
 
 	pFile.Read( &nDate, 4 );
-	pFile.Read( oED2K.begin(), Hashes::Ed2kHash::byteCount );
-	oED2K.validate();
+	pFile.Read( &pMD4, sizeof(MD4) );
 	pFile.Read( &nParts, 2 );
 
 	if ( Transfers.m_pSection.Lock() )
 	{
-		CDownload* pDownload = Downloads.FindByED2K( oED2K );
+		CDownload* pDownload = Downloads.FindByED2K( &pMD4 );
 		Transfers.m_pSection.Unlock();
 
 		if ( pDownload != NULL )
@@ -206,19 +205,19 @@ BOOL CEDPartImporter::ImportFile(LPCTSTR pszPath, LPCTSTR pszFile)
 
 	if ( nParts == 0 )
 	{
-		pED2K.FromRoot( oED2K );
+		pED2K.FromRoot( &pMD4 );
 	}
 	else if ( nParts > 0 )
 	{
-		CMD4::MD4Digest* pHashset = new CMD4::MD4Digest[ nParts ];
-		pFile.Read( pHashset, sizeof( CMD4::MD4Digest ) * nParts );
-		BOOL bSuccess = pED2K.FromBytes( (BYTE*)pHashset, sizeof(  CMD4::MD4Digest ) * nParts );
+		MD4* pHashset = new MD4[ nParts ];
+		pFile.Read( pHashset, sizeof(MD4) * nParts );
+		BOOL bSuccess = pED2K.FromBytes( (BYTE*)pHashset, sizeof(MD4) * nParts );
 		delete [] pHashset;
 		if ( ! bSuccess ) return FALSE;
 
-		Hashes::Ed2kHash pCheck;
-		pED2K.GetRoot( pCheck );
-		if ( validAndUnequal( pCheck, oED2K ) ) return FALSE;
+		MD4 pCheck;
+		pED2K.GetRoot( &pCheck );
+		if ( pCheck != pMD4 ) return FALSE;
 	}
 	else
 	{
@@ -231,8 +230,8 @@ BOOL CEDPartImporter::ImportFile(LPCTSTR pszPath, LPCTSTR pszFile)
 	pFile.Read( &nCount, 4 );
 	if ( nCount > 2048 ) return FALSE;
 
-	CMap< WORD, WORD, DWORD, DWORD > pGapStart, pGapStop;
-	CArray< WORD > pGapIndex;
+	CMapWordToPtr pGapStart, pGapStop;
+	CWordArray pGapIndex;
 	BOOL bPaused = FALSE;
 	CString strName;
 	DWORD nSize = 0;
@@ -260,16 +259,16 @@ BOOL CEDPartImporter::ImportFile(LPCTSTR pszPath, LPCTSTR pszFile)
 			{
 				int niPart = 0;
 				_stscanf( (LPCTSTR)pTag.m_sKey + 1, _T("%i"), &niPart );
-				WORD nPart = WORD( niPart );
-				pGapStart.SetAt( nPart, pTag.m_nValue );
+				WORD nPart = (int)niPart;
+				pGapStart.SetAt( nPart, (LPVOID)pTag.m_nValue );
 				pGapIndex.Add( nPart );
 			}
 			else if ( pTag.m_sKey.GetAt( 0 ) == 0x0A )
 			{
 				int niPart = 0;
 				_stscanf( (LPCTSTR)pTag.m_sKey + 1, _T("%i"), &niPart );
-				WORD nPart = WORD( niPart );
-				pGapStop.SetAt( nPart, pTag.m_nValue );
+				WORD nPart = (int)niPart;
+				pGapStop.SetAt( nPart, (LPVOID)pTag.m_nValue );
 			}
 		}
 
@@ -283,10 +282,10 @@ BOOL CEDPartImporter::ImportFile(LPCTSTR pszPath, LPCTSTR pszFile)
 		WORD nPart = pGapIndex.GetAt( nGap );
 		DWORD nStart = 0, nStop = 0;
 
-		if ( ! pGapStart.Lookup( nPart, nStart ) ) return FALSE;
+		if ( ! pGapStart.Lookup( nPart, (void*&)nStart ) ) return FALSE;
 		if ( nStart >= nSize ) return FALSE;
 
-		if ( ! pGapStop.Lookup( nPart, nStop ) ) return FALSE;
+		if ( ! pGapStop.Lookup( nPart, (void*&)nStop ) ) return FALSE;
 		if ( nStop > nSize || nStop <= nStart ) return FALSE;
 	}
 
@@ -314,9 +313,10 @@ BOOL CEDPartImporter::ImportFile(LPCTSTR pszPath, LPCTSTR pszFile)
 	}
 
 	CString strTarget;
-	strTarget.Format( _T("%s\\ed2k_%s"),
+	strTarget.Format( _T("%s\\%s %s"),
 		(LPCTSTR)Settings.Downloads.IncompletePath,
-		(LPCTSTR)oED2K.toString() );
+		(LPCTSTR)CED2K::HashToString( &pMD4 ),
+		(LPCTSTR)strName );
 
 	Message( IDS_ED2K_EPI_COPY_START, (LPCTSTR)strPath, (LPCTSTR)strTarget );
 
@@ -329,28 +329,24 @@ BOOL CEDPartImporter::ImportFile(LPCTSTR pszPath, LPCTSTR pszFile)
 	Transfers.m_pSection.Lock();
 
 	CDownload* pDownload = Downloads.Add();
-	
-	pDownload->m_oED2K			= oED2K;
-	pDownload->m_oED2K.signalTrusted(); // .part use trusted hashes
 
+	pDownload->m_bED2K			= TRUE;
+	pDownload->m_pED2K			= pMD4;
 	pDownload->m_nSize			= nSize;
-	pDownload->m_sDisplayName	= strName;
-	pDownload->m_sDiskName		= strTarget;
-	
-	{
-		Fragments::List oNewList( nSize );
-		pDownload->m_pFile->m_oFList.swap( oNewList );
-	}
+	pDownload->m_sRemoteName	= strName;
+	pDownload->m_sLocalName		= strTarget;
+
+	pDownload->m_pFile->m_oFList.swap( FF::SimpleFragmentList( nSize ) );
 
 	for ( int nGap = 0 ; nGap < pGapIndex.GetSize() ; nGap++ )
 	{
 		WORD nPart = pGapIndex.GetAt( nGap );
 		DWORD nStart = 0, nStop = 0;
 
-		pGapStart.Lookup( nPart, nStart );
-		pGapStop.Lookup( nPart, nStop );
-		
-		pDownload->m_pFile->m_oFList.insert( Fragments::Fragment( nStart, nStop ) );
+		pGapStart.Lookup( nPart, (void*&)nStart );
+		pGapStop.Lookup( nPart, (void*&)nStop );
+
+        pDownload->m_pFile->m_oFList.insert( FF::SimpleFragment( nStart, nStop ) );
 	}
 
 	if ( pED2K.IsAvailable() )
@@ -369,8 +365,8 @@ BOOL CEDPartImporter::ImportFile(LPCTSTR pszPath, LPCTSTR pszFile)
 	Transfers.m_pSection.Unlock();
 
 	Message( IDS_ED2K_EPI_FILE_CREATED,
-		(LPCTSTR)Settings.SmartVolume( pDownload->m_pFile->m_oFList.length_sum(), FALSE ) );
-	
+		(LPCTSTR)Settings.SmartVolume( pDownload->m_pFile->m_oFList.sumLength(), FALSE ) );
+
 	return TRUE;
 }
 
@@ -403,6 +399,6 @@ void CEDPartImporter::Message(UINT nMessageID, ...)
 	int nLen = pCtrl->GetWindowTextLength();
 	pCtrl->SetSel( nLen, nLen );
 	pCtrl->ReplaceSel( szBuffer );
-	nLen += static_cast< int >( _tcslen( szBuffer ) );
+	nLen += _tcslen( szBuffer );
 	pCtrl->SetSel( nLen, nLen );
 }

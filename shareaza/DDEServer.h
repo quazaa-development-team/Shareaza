@@ -47,7 +47,7 @@ public:
 protected:
 	CString StringFromHsz(HSZ hsz);
 	static CString	ReadArgument(LPCTSTR& pszMessage);
-	static FNCALLBACK DDECallback;
+	static HDDEDATA CALLBACK DDECallback(UINT wType, UINT wFmt, HCONV hConv, HSZ hsz1, HSZ hsz2, HDDEDATA hData, DWORD dwData1, DWORD dwData2);
 protected:
 	virtual BOOL	CheckAccept(LPCTSTR pszTopic);
 	virtual BOOL	Execute(LPCTSTR pszTopic, HDDEDATA hData, HDDEDATA* phResult);

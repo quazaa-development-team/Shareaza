@@ -44,7 +44,6 @@ public:
 	UINT			m_nCommandID;
 	LPCTSTR			m_pszToolBar;
 	BOOL			m_bAvailable;
-	BOOL			m_bGhostFolder;
 public:
 	CLibraryList	m_pSelection;
 
@@ -65,9 +64,9 @@ protected:
 	void				DragObjects(CImageList* pImage, const CPoint& ptMouse);
 protected:
 	BOOL	SelAdd(DWORD nObject, BOOL bNotify = TRUE);
-	BOOL	SelRemove(DWORD_PTR nObject, BOOL bNotify = TRUE);
+	BOOL	SelRemove(DWORD nObject, BOOL bNotify = TRUE);
 	BOOL	SelClear(BOOL bNotify = TRUE);
-	INT_PTR	GetSelectedCount() const;
+	int		GetSelectedCount() const;
 
 // Overrides
 public:

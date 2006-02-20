@@ -124,12 +124,12 @@ CLibraryFrame::~CLibraryFrame()
 {
 	for ( POSITION pos = m_pViews.GetHeadPosition() ; pos ; )
 	{
-		delete m_pViews.GetNext( pos );
+		delete (CLibraryView*)m_pViews.GetNext( pos );
 	}
 
 	for ( POSITION pos = m_pPanels.GetHeadPosition() ; pos ; )
 	{
-		delete m_pPanels.GetNext( pos );
+		delete (CLibraryPanel*)m_pPanels.GetNext( pos );
 	}
 }
 
@@ -404,12 +404,12 @@ void CLibraryFrame::OnPaint()
 	}
 }
 
-void CLibraryFrame::OnContextMenu(CWnd* /*pWnd*/, CPoint /*point*/)
+void CLibraryFrame::OnContextMenu(CWnd* pWnd, CPoint point)
 {
-//	if ( m_pView ) m_pView->SendMessage( WM_CONTEXTMENU, (WPARAM)pWnd->GetSafeHwnd(), MAKELONG( point.x, point.y ) );
+	if ( m_pView ) m_pView->SendMessage( (WPARAM)pWnd->GetSafeHwnd(), MAKELONG( point.x, point.y ) );
 }
 
-void CLibraryFrame::OnMeasureItem(int /*nIDCtl*/, LPMEASUREITEMSTRUCT lpMeasureItemStruct)
+void CLibraryFrame::OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct)
 {
 	lpMeasureItemStruct->itemHeight = 18;
 }
@@ -640,16 +640,6 @@ void CLibraryFrame::SetView(CLibraryView* pView, BOOL bUpdate, BOOL bUser)
 		}
 	}
 
-	if ( m_pFolderSelection != NULL && pView != NULL )
-	{
-		if ( Settings.Library.ShowVirtual && m_pView &&
-			 m_pFolderSelection->m_pVirtual->m_pSchema )
-			pView->m_bGhostFolder = 
-				( m_pFolderSelection->m_pVirtual->m_pSchema->m_sURI == CSchema::uriGhostFolder );
-		else 
-			pView->m_bGhostFolder = FALSE;
-	}
-
 	if ( m_pView == pView )
 	{
 		if ( m_pView )
@@ -748,7 +738,7 @@ BOOL CLibraryFrame::Update(BOOL bForce, BOOL bBestView)
 
 	for ( POSITION pos = m_pViews.GetHeadPosition() ; pos ; )
 	{
-		CLibraryView* pView = m_pViews.GetNext( pos );
+		CLibraryView* pView = (CLibraryView*)m_pViews.GetNext( pos );
 
 		if ( pView->CheckAvailable( m_pFolderSelection ) )
 		{
@@ -810,7 +800,7 @@ void CLibraryFrame::UpdatePanel(BOOL bForce)
 
 	for ( POSITION pos = m_pPanels.GetHeadPosition() ; pos ; )
 	{
-		CLibraryPanel* pPanel = m_pPanels.GetNext( pos );
+		CLibraryPanel* pPanel = (CLibraryPanel*)m_pPanels.GetNext( pos );
 
 		if ( pPanel->CheckAvailable( m_pFolderSelection, m_pViewSelection )
 			&& pFirstPanel == NULL ) pFirstPanel = pPanel;
@@ -882,7 +872,7 @@ CLibraryList* CLibraryFrame::GetViewSelection() const
 	return m_pViewSelection;
 }
 
-void CLibraryFrame::OnTreeSelection(NMHDR* /*pNotify*/, LRESULT* pResult)
+void CLibraryFrame::OnTreeSelection(NMHDR* pNotify, LRESULT* pResult)
 {
 	if ( ! m_bUpdating ) Update( TRUE, TRUE );
 	*pResult = 0;
@@ -895,7 +885,7 @@ void CLibraryFrame::OnViewSelection()
 	PostMessage( WM_TIMER, 1 );
 }
 
-void CLibraryFrame::OnTimer(UINT_PTR /*nIDEvent*/)
+void CLibraryFrame::OnTimer(UINT nIDEvent)
 {
 	if ( m_bViewSelection ) UpdatePanel( FALSE );
 }
@@ -957,11 +947,10 @@ void CLibraryFrame::CancelDrag()
 	delete m_pDragList;
 	m_pDragList = NULL;
 
-	CSingleLock oLock( &Library.m_pSection );	// no lock, just serves as a dummy
-	m_wndTree.DropObjects( NULL, FALSE, oLock );
+	m_wndTree.DropObjects( NULL, FALSE, CSingleLock( &Library.m_pSection ) ); // no lock, just serves as a dummy
 }
 
-void CLibraryFrame::OnMouseMove(UINT /*nFlags*/, CPoint point)
+void CLibraryFrame::OnMouseMove(UINT nFlags, CPoint point)
 {
 	if ( m_pDragList == NULL ) return;
 
@@ -1090,7 +1079,7 @@ void CLibraryFrame::OnLibraryPanel()
 
 void CLibraryFrame::OnLibrarySearch()
 {
-	CNewSearchDlg dlg( NULL, auto_ptr< CQuerySearch >(), TRUE );
+	CNewSearchDlg dlg( NULL, NULL, TRUE );
 
 	if ( dlg.DoModal() == IDOK )
 	{
@@ -1105,7 +1094,7 @@ void CLibraryFrame::OnLibrarySearchQuick()
 
 	if ( str.GetLength() > 0 )
 	{
-		auto_ptr< CQuerySearch > pSearch( new CQuerySearch() );
+		CQuerySearch* pSearch = new CQuerySearch();
 		pSearch->m_sSearch = str;
 		RunLocalSearch( pSearch );
 		m_wndSearch.SetWindowText( _T("") );
@@ -1136,7 +1125,7 @@ void CLibraryFrame::OnToolbarEscape()
 	}
 }
 
-void CLibraryFrame::RunLocalSearch(auto_ptr< CQuerySearch > pSearch)
+void CLibraryFrame::RunLocalSearch(CQuerySearch* pSearch)
 {
 	CWaitCursor pCursor;
 
@@ -1180,7 +1169,7 @@ void CLibraryFrame::RunLocalSearch(auto_ptr< CQuerySearch > pSearch)
 	{
 		CQuickLock oLock( Library.m_pSection );
 
-		CList< CLibraryFile* >* pFiles = Library.Search( pSearch.get(), 0, TRUE );
+		CPtrList* pFiles = Library.Search( pSearch, 0, TRUE );
 
 		if ( pFiles != NULL )
 		{
@@ -1200,6 +1189,8 @@ void CLibraryFrame::RunLocalSearch(auto_ptr< CQuerySearch > pSearch)
 			delete pFiles;
 		}
 	}
+
+	delete pSearch;
 
 	Update();
 	Display( pFolder );

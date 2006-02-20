@@ -50,7 +50,6 @@ BEGIN_MESSAGE_MAP(CSkinDialog, CDialog)
 	ON_WM_CTLCOLOR()
 	ON_WM_WINDOWPOSCHANGING()
 	ON_WM_CREATE()
-	ON_WM_HELPINFO()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -152,7 +151,7 @@ void CSkinDialog::OnNcCalcSize(BOOL bCalcValidRects, NCCALCSIZE_PARAMS FAR* lpnc
 		CDialog::OnNcCalcSize( bCalcValidRects, lpncsp );
 }
 
-ONNCHITTESTRESULT CSkinDialog::OnNcHitTest(CPoint point)
+UINT CSkinDialog::OnNcHitTest(CPoint point)
 {
 	if ( m_pSkin )
 		return m_pSkin->OnNcHitTest( this, point, ( GetStyle() & WS_THICKFRAME ) ? TRUE : FALSE );
@@ -212,13 +211,13 @@ void CSkinDialog::OnSize(UINT nType, int cx, int cy)
 	CDialog::OnSize( nType, cx, cy );
 }
 
-LRESULT CSkinDialog::OnSetText(WPARAM /*wParam*/, LPARAM /*lParam*/)
+LONG CSkinDialog::OnSetText(WPARAM wParam, LPARAM lParam)
 {
 	if ( m_pSkin )
 	{
 		BOOL bVisible = IsWindowVisible();
 		if ( bVisible ) ModifyStyle( WS_VISIBLE, 0 );
-		LRESULT lResult = Default();
+		LONG lResult = Default();
 		if ( bVisible ) ModifyStyle( 0, WS_VISIBLE );
 		if ( m_pSkin ) m_pSkin->OnSetText( this );
 		return lResult;
@@ -261,7 +260,8 @@ void CSkinDialog::OnWindowPosChanging(WINDOWPOS* lpwndpos)
 
 	if ( theApp.m_pfnGetMonitorInfoA != NULL ) //If GetMonitorInfo() is available
 	{
-		MONITORINFO oMonitor = {};
+		MONITORINFO oMonitor;
+		ZeroMemory( &oMonitor, sizeof(oMonitor) );
 		oMonitor.cbSize = sizeof(oMonitor);
 		theApp.m_pfnGetMonitorInfoA( theApp.m_pfnMonitorFromWindow( GetSafeHwnd(), MONITOR_DEFAULTTOPRIMARY ), &oMonitor );
 
@@ -329,9 +329,4 @@ BOOL CSkinDialog::OnInitDialog()
 		}
 	}
 	return TRUE; 
-}
-
-BOOL CSkinDialog::OnHelpInfo(HELPINFO* /*pHelpInfo*/)
-{
-	return FALSE;
 }

@@ -73,12 +73,6 @@ CGGEPItem* CGGEPBlock::Add(LPCTSTR pszID)
 
 	CGGEPItem* pItem = new CGGEPItem( pszID );
 
-	if ( pItem == NULL )
-	{
-		theApp.Message( MSG_ERROR, _T("Memory allocation error in CGGEPBlock::Add()") );
-		return NULL;
-	}
-
 	if ( ! m_pFirst ) m_pFirst = pItem;
 	if ( m_pLast ) m_pLast->m_pNext = pItem;
 	m_pLast = pItem;
@@ -131,7 +125,7 @@ BOOL CGGEPBlock::ReadFromPacket(CPacket* pPacket)
 BOOL CGGEPBlock::ReadFromString(LPCTSTR pszData)
 {
 	m_pInput = (BYTE*)pszData;
-	m_nInput = static_cast< DWORD >( _tcslen( pszData ) );
+	m_nInput = _tcslen( pszData );
 
 	return ReadInternal();
 }
@@ -261,13 +255,6 @@ void CGGEPItem::Write(LPCVOID pData, int nLength)
 {
 	BYTE* pNew = new BYTE[ m_nLength + (DWORD)nLength ];
 
-	if ( pNew == NULL )
-	{
-		theApp.Message( MSG_ERROR, _T("Memory allocation error in CGGEPItem::Write()") );
-		theApp.Message( MSG_DEBUG, _T("Requested length: %i"), nLength );
-		return;
-	}
-
 	if ( m_pBuffer )
 	{
 		CopyMemory( pNew, m_pBuffer, m_nLength );
@@ -335,12 +322,6 @@ BOOL CGGEPItem::ReadFrom(CGGEPBlock* pBlock, BYTE nFlags)
 	if ( pBlock->m_nInput < m_nLength ) return FALSE;
 
 	m_pBuffer = new BYTE[ m_nLength ];
-	if ( m_pBuffer == NULL )
-	{
-		theApp.Message( MSG_ERROR, _T("Memory allocation error in CGGEPItem::ReadFrom()") );
-		theApp.Message( MSG_DEBUG, _T("Requested length: %i"), m_nLength );
-		return FALSE;
-	}
 
 	CopyMemory( m_pBuffer, pBlock->m_pInput, m_nLength );
 	pBlock->m_pInput += m_nLength;
@@ -368,7 +349,7 @@ BOOL CGGEPItem::ReadFrom(CGGEPBlock* pBlock, BYTE nFlags)
 
 void CGGEPItem::WriteTo(CPacket* pPacket)
 {
-	BYTE nFlags = BYTE( m_sID.GetLength() & GGEP_HDR_IDLEN );
+	BYTE nFlags = ( m_sID.GetLength() & GGEP_HDR_IDLEN );
 
 	if ( Deflate( TRUE ) ) nFlags |= GGEP_HDR_DEFLATE;
 	if ( Encode( TRUE ) ) nFlags |= GGEP_HDR_COBS;
@@ -398,7 +379,7 @@ void CGGEPItem::WriteTo(CPacket* pPacket)
 
 void CGGEPItem::WriteTo(CString& str)
 {
-	BYTE nFlags = BYTE( m_sID.GetLength() & GGEP_HDR_IDLEN );
+	BYTE nFlags = ( m_sID.GetLength() & GGEP_HDR_IDLEN );
 
 	if ( Deflate( TRUE ) ) nFlags |= GGEP_HDR_DEFLATE;
 	if ( Encode() ) nFlags |= GGEP_HDR_COBS;
@@ -447,13 +428,6 @@ BOOL CGGEPItem::Encode(BOOL bIfZeros)
 	BYTE* pOut		= pOutput;
 	BYTE* pRange	= NULL;
 	DWORD nRange	= 0;
-
-	if ( pOutput == NULL )
-	{
-		theApp.Message( MSG_ERROR, _T("Memory allocation error in CGGEPItem::Encode()") );
-		theApp.Message( MSG_DEBUG, _T("Requested length: %i"), m_nLength * 2 );
-		return FALSE;
-	}
 
 	for ( pIn = m_pBuffer, nLength = m_nLength ; nLength > 0 ; nLength--, pIn++ )
 	{
@@ -504,7 +478,7 @@ BOOL CGGEPItem::Encode(BOOL bIfZeros)
 	delete [] m_pBuffer;
 
 	m_pBuffer = pOutput;
-	m_nLength = static_cast< DWORD >( pOut - pOutput );
+	m_nLength = pOut - pOutput;
 
 	return TRUE;
 }
@@ -516,13 +490,6 @@ BOOL CGGEPItem::Decode()
 	BYTE* pOutput	= new BYTE[ m_nLength * 2 ];
 	BYTE* pOut		= pOutput;
 	BYTE* pIn		= m_pBuffer;
-
-	if ( pOutput == NULL )
-	{
-		theApp.Message( MSG_ERROR, _T("Memory allocation error in CGGEPItem::Decode()") );
-		theApp.Message( MSG_DEBUG, _T("Requested length: %i"), m_nLength * 2 );
-		return FALSE;
-	}
 
 	for ( DWORD nLength = m_nLength ; nLength > 0 ; nLength--, pIn++ )
 	{
@@ -540,7 +507,7 @@ BOOL CGGEPItem::Decode()
 		BYTE nSize = *pIn++ - 1;
 		nLength--;
 
-		nSize = min( nSize, nLength );
+		nSize = (BYTE)min( (DWORD)nSize, nLength );
 
 		while ( nSize-- )
 		{
@@ -557,7 +524,7 @@ BOOL CGGEPItem::Decode()
 	delete [] m_pBuffer;
 
 	m_pBuffer = pOutput;
-	m_nLength = static_cast< DWORD >( pOut - pOutput );
+	m_nLength = pOut - pOutput;
 
 	return TRUE;
 }
@@ -571,16 +538,18 @@ BOOL CGGEPItem::Deflate(BOOL bIfSmaller)
 	if ( bIfSmaller && m_nLength < 45 ) return FALSE;
 
 	DWORD nCompressed = 0;
-	auto_array< BYTE > pCompressed( CZLib::Compress( m_pBuffer, m_nLength, &nCompressed ) );
+	BYTE* pCompressed = CZLib::Compress( m_pBuffer, m_nLength, &nCompressed );
 
-	if ( !pCompressed.get() )
-		return FALSE;
+	if ( ! pCompressed ) return FALSE;
 
 	if ( bIfSmaller && nCompressed >= m_nLength )
+	{
+		delete [] pCompressed;
 		return FALSE;
+	}
 
 	delete [] m_pBuffer;
-	m_pBuffer = pCompressed.release();
+	m_pBuffer = pCompressed;
 	m_nLength = nCompressed;
 
 	return TRUE;
@@ -591,13 +560,12 @@ BOOL CGGEPItem::Inflate()
 	if ( ! m_pBuffer ) return FALSE;
 
 	DWORD nCompressed = 0;
-	auto_array< BYTE > pCompressed( CZLib::Decompress( m_pBuffer, m_nLength, &nCompressed ) );
+	BYTE* pCompressed = CZLib::Decompress( m_pBuffer, m_nLength, &nCompressed );
 
-	if ( !pCompressed.get() )
-		return FALSE;
+	if ( ! pCompressed ) return FALSE;
 
 	delete [] m_pBuffer;
-	m_pBuffer = pCompressed.release();
+	m_pBuffer = pCompressed;
 	m_nLength = nCompressed;
 
 	return TRUE;

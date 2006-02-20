@@ -25,10 +25,6 @@ Name: "fi"; MessagesFile: "compiler:Languages\Finnish.isl"; LicenseFile: "setup/
 Name: "heb"; MessagesFile: "setup\isl\hebrew.isl"; LicenseFile: "setup/license/hebrew.rtf"
 Name: "pl"; MessagesFile: "compiler:Languages\Polish.isl"; LicenseFile: "setup/license/polish.rtf"
 Name: "sr"; MessagesFile: "setup\isl\Serbian.isl"; LicenseFile: "setup/license/serbian.rtf"
-Name: "tr"; MessagesFile: "setup\isl\turkish.isl"; LicenseFile: "setup/license/turkish.rtf"
-Name: "jp"; MessagesFile: "setup\isl\japanese.isl"; LicenseFile: "setup/license/japanese.rtf"
-Name: "ar"; MessagesFile: "setup\isl\arabic.isl"; LicenseFile: "setup/license/default.rtf"
-Name: "ee"; MessagesFile: "setup\isl\estonian.isl"; LicenseFile: "setup/license/estonian.rtf"
 ;Name: "cz"; MessagesFile: "compiler:Languages\Czech.isl"; LicenseFile: "setup/license/czech.rtf"
 
 [Files]
@@ -78,14 +74,6 @@ Source: "Remote\en\*"; DestDir: "{app}\Remote"; Flags: ignoreversion overwritere
 ;Source: "Remote\en\*"; DestDir: "{app}\Remote"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: cz; Components: language
 ; Serbian
 Source: "Remote\en\*"; DestDir: "{app}\Remote"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: sr; Components: language
-; Turkish
-Source: "Remote\en\*"; DestDir: "{app}\Remote"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: tr; Components: language
-; Japanese
-Source: "Remote\jp\*"; DestDir: "{app}\Remote"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: jp; Components: language
-; Arabic
-Source: "Remote\en\*"; DestDir: "{app}\Remote"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: ar; Components: language
-; Estonian
-Source: "Remote\en\*"; DestDir: "{app}\Remote"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: ee; Components: language
 
 ; Install default license
 Source: "setup\license\default.rtf"; DestDir: "{app}\Uninstall"; DestName: "license.rtf"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Components: not language
@@ -132,14 +120,6 @@ Source: "setup\license\polish.rtf"; DestDir: "{app}\Uninstall"; DestName: "licen
 ;Source: "setup\license\czech.rtf"; DestDir: "{app}\Uninstall"; DestName: "license.rtf"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: cz; Components: language
 ; Serbian
 Source: "setup\license\serbian.rtf"; DestDir: "{app}\Uninstall"; DestName: "license.rtf"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: sr; Components: language
-; Turkish
-Source: "setup\license\turkish.rtf"; DestDir: "{app}\Uninstall"; DestName: "license.rtf"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: tr; Components: language
-; Japanese
-Source: "setup\license\japanese.rtf"; DestDir: "{app}\Uninstall"; DestName: "license.rtf"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: jp; Components: language
-; Arabic
-Source: "setup\license\default.rtf"; DestDir: "{app}\Uninstall"; DestName: "license.rtf"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: ar; Components: language
-; Estonian
-Source: "setup\license\estonian.rtf"; DestDir: "{app}\Uninstall"; DestName: "license.rtf"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: ee; Components: language
 
 ; Install default filter
 Source: "setup\filter\default.dat"; DestDir: "{app}\Data"; DestName: "AdultFilter.dat"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Components: not language
@@ -186,14 +166,6 @@ Source: "setup\filter\default.dat"; DestDir: "{app}\Data"; DestName: "AdultFilte
 ;Source: "setup\filter\default.dat"; DestDir: "{app}\Data"; DestName: "AdultFilter.dat"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: cz; Components: language
 ; Serbian
 Source: "setup\filter\default.dat"; DestDir: "{app}\Data"; DestName: "AdultFilter.dat"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: sr; Components: language
-; Turkish
-Source: "setup\filter\default.dat"; DestDir: "{app}\Data"; DestName: "AdultFilter.dat"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: tr; Components: language
-; Japanese
-Source: "setup\filter\default.dat"; DestDir: "{app}\Data"; DestName: "AdultFilter.dat"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: jp; Components: language
-; Arabic
-Source: "setup\filter\default.dat"; DestDir: "{app}\Data"; DestName: "AdultFilter.dat"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: ar; Components: language
-; Estonian
-Source: "setup\filter\default.dat"; DestDir: "{app}\Data"; DestName: "AdultFilter.dat"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension; Languages: ee; Components: language
 #endif
 
 [CustomMessages]
@@ -215,9 +187,6 @@ reg_apptitle=Shareaza Ultimate File Sharing
 icons_license=License
 icons_uninstall=Uninstall
 icons_downloads=Downloads
-icons_basicmode=Normal Mode
-icons_tabbedmode=Tabbed Mode
-icons_windowedmode=Windowed Mode
 dialog_shutdown=%1 is currently running. Would you like %1 to be shutdown so the installation can continue?
 dialog_firewall=Setup failed to add Shareaza to the Windows Firewall.%nPlease add Shareaza to the exception list manually.
 page_viruswarning_text=When using the internet, you should always ensure you have an up-to-date virus scanner to protect you from trojans, worms, and other malicious programs. You can find list of good virus scanners and other security tips to protect your computer by following this link:
@@ -438,7 +407,7 @@ fr.CreateQuickLaunchIcon=Afficher un raccouri dans la barre de &Lancement rapide
 ; Spanish
 es.components_plugins=Plugins
 es.components_skins=Skins
-es.components_languages=Idiomas
+es.components_languages=Lenguages
 es.tasks_allusers=Todos los usuarios
 es.tasks_selectusers=Instalar %1 para:
 es.tasks_currentuser=%1 solamente
@@ -664,29 +633,6 @@ sr.page_viruswarning_title=Virus Uopzorenje
 sr.page_viruswarning_subtitle=Da li imate AntiVirus program instaliran?
 sr.CreateDesktopIcon=Napravi &desktop ikonu
 sr.CreateQuickLaunchIcon=Napravi &Brzo Pokretanje(QL) ikonu
-;Turkish
-tr.components_plugins=Pluginler
-tr.components_skins=Ara Yüzler
-tr.components_languages=Diller
-tr.tasks_allusers=Tüm Kullanıcılar
-tr.tasks_selectusers=%1 Kuruldu:
-tr.tasks_currentuser=Sadece %1
-tr.tasks_multisetup=Çoklu-kullanıcı desteğini etkinleştir
-tr.tasks_firewall=Windows Güvenlik Duvarına bir istisna ekle
-tr.tasks_deleteoldsetup=Eski kurulumları sil
-tr.run_skinexe=Arayüz kurulumu çalışıyor...
-tr.reg_incomingchat=Gelen sohbet mesajı
-tr.reg_apptitle=Shareaza En iyi Dosya Paylaşımı
-tr.icons_license=Lisans
-tr.icons_uninstall=Kurulumu Kaldır
-tr.icons_downloads=Downloadlar
-tr.dialog_shutdown=Şuan %1 çalışıyor.Kurulumun devam edebilmesi için %1'in kapalı olmasını istiyor musunuz?
-tr.dialog_firewall=Windows güvenlik duvarına Shareaza kurulumunu eklemek başarısız oldu.%n Lütfen Shareaza'yı el ile istisna listesine ekle
-tr.page_viruswarning_text=İnternet kullanıyorken, trojanlardan, wormlardan ve diğer kötü niyetli programlardan sizi koruyan güncel bir virüs tarayıcısına sahip olduğunuzdan emin olmalısınız. Bu bağlantı takibiyle bilgisayarınızı koruyan iyi virüs tarayıcılarının ve diğer güvenlik tiplerinin listesini bulacaksınız:
-tr.page_viruswarning_title=Virüs Uyarısı
-tr.page_viruswarning_subtitle=Bir AntiVirus programı yükledin mi?
-tr.CreateDesktopIcon=Bir &Masaüstü ikonu görüntüle
-tr.CreateQuickLaunchIcon=Bir &Hızlı Başlat ikonu görüntüle
 ; Czech
 ;cz.components_plugins=Plugins
 ;cz.components_skins=Skins
@@ -710,75 +656,3 @@ tr.CreateQuickLaunchIcon=Bir &Hızlı Başlat ikonu görüntüle
 ;cz.page_viruswarning_subtitle=Do you have an AntiVirus program installed?
 ;cz.CreateDesktopIcon=Display a &desktop icon
 ;cz.CreateQuickLaunchIcon=Display a &Quick Launch icon
-; japanese
-jp.components_plugins=ƒvƒ‰ƒOƒCƒ“
-jp.components_skins=ƒXƒLƒ“
-jp.components_languages=Œ¾Œêƒtƒ@ƒCƒ‹
-jp.tasks_allusers=‚·‚×‚Ä‚Ìƒ†[ƒU[
-jp.tasks_selectusers=%1‚ğ‚µ‚æ‚¤‚·‚éƒ†[ƒU[:
-jp.tasks_currentuser=%1‚Ì‚İ
-jp.tasks_multisetup=ƒ}ƒ‹ƒ`ƒ†[ƒU[ƒTƒ|[ƒg
-jp.tasks_firewall=Windowsƒtƒ@ƒCƒ„[ƒEƒH[ƒ‹‚Ì—áŠO‚Éİ’è
-jp.tasks_deleteoldsetup=ŒÃ‚¢ƒCƒ“ƒXƒg[ƒ‰[‚Ìíœ
-jp.run_skinexe=ƒXƒLƒ“ƒCƒ“ƒXƒg[ƒ‰[‚ğÀs‚µ‚Ä‚¢‚Ü‚·...
-jp.reg_incomingchat=ƒ`ƒƒƒbƒgƒƒbƒZ[ƒW‚ğó‚¯“ü‚ê‚é
-jp.reg_apptitle=Shareazaƒtƒ@ƒCƒ‹‹¤—Lƒ\ƒtƒg
-jp.icons_license=ƒ‰ƒCƒZƒ“ƒX
-jp.icons_uninstall=ƒAƒ“ƒCƒ“ƒXƒg[ƒ‹
-jp.icons_downloads=ƒ_ƒEƒ“ƒ[ƒh
-jp.dialog_shutdown=%1 ‚ªŠˆ“®’†‚Å‚·. %1‚ğI—¹‚µ‚ÄƒCƒ“ƒXƒg[ƒ‹‚ğ‘±‚¯‚Ü‚·‚©?
-jp.dialog_firewall=WindowsXPƒtƒ@ƒCƒ„[ƒEƒH[ƒ‹‚Ì“o˜^‚É¸”s‚µ‚Ü‚µ‚½.%nè“®‚Å“o˜^‚µ‚Ä‚­‚¾‚³‚¢.
-jp.page_viruswarning_text=‚ ‚È‚½‚ªƒCƒ“ƒ^[ƒlƒbƒg‚ÉÚ‘±‚·‚é‚Æ‚«‚ÍAƒgƒƒC‚âƒ[ƒ€–”‚ÍA‚»‚êˆÈŠO‚ÌŠëŒ¯‚Èƒtƒ@ƒCƒ‹‚©‚çPC‚ğ•ÛŒì‚·‚é‚½‚ß‚ÉA•K‚¸ƒEƒCƒ‹ƒX’è‹`ƒtƒ@ƒCƒ‹‚ğÅV‚Ì‚à‚Ì‚É‚µ‚Ü‚µ‚å‚¤BƒEƒCƒ‹ƒXƒXƒLƒƒƒi[‚âƒZƒLƒ…ƒŠƒeƒB-‚ÉŠÖ‚·‚éî•ñ‚ª‰º‹L‚ÌƒŠƒ“ƒN‚É‚ ‚è‚Ü‚·B
-jp.page_viruswarning_title=ƒEƒCƒ‹ƒX‚ÌŒx
-jp.page_viruswarning_subtitle=ƒAƒ“ƒ`EƒEƒCƒ‹ƒXEƒ\ƒtƒg‚Í“ü‚Á‚Ä‚¢‚Ü‚·‚©?
-jp.CreateDesktopIcon=ƒfƒXƒNƒgƒbƒv‚ÉƒAƒCƒRƒ“‚ğ•\¦(&d)
-jp.CreateQuickLaunchIcon=ƒNƒCƒbƒNƒ‰ƒ“ƒ`‚ÉƒAƒCƒRƒ“‚ğ•\¦(&Q)
-; arabic
-ar.components_plugins=ÇáæÙÇÆİ ÇáÅÖÇİíÉ
-ar.components_skins=ÇáÛáÇİÇÊ
-ar.components_languages=ÇááÛÇÊ
-ar.tasks_allusers=ßÇİÉ ÇáãÓÊÎÏãíä
-ar.tasks_selectusers=ãä ÃÌá %1 ÊÑßíÈ:
-ar.tasks_currentuser=%1 İŞØ
-ar.tasks_multisetup=Êãßíä ÇáÏÚã áÚÏÉ ãÓÊÎÏãíä
-ar.tasks_firewall=ÅÖÇİÉ ÅÓÊËäÇÁ Åáì ÌÏÇÑ ÇáæíäÏæÒ ÇáäÇÑí
-ar.tasks_deleteoldsetup=ÍĞİ ãáİÇÊ ÇáÊÑßíÈ ÇáŞÏíãÉ
-ar.run_skinexe=...íÊã ÊÔÛíá ÊÑßíÈ ÇáÛáÇİ
-ar.reg_incomingchat=ÑÓÇáÉ ãÍÇÏËÉ æÇÑÏÉ
-ar.reg_apptitle=ÔíÑ-ÃÒÇ ááãÔÇÑßÉ ÇáÛíÑ ãÍÏæÏÉ ÈÇáãáİÇÊ
-ar.icons_license=ÇáÑÎÕÉ
-ar.icons_uninstall=ÅáÛÇÁ ÇáÊËÈíÊ
-ar.icons_downloads=ÇáÊÍãíáÇÊ
-ar.dialog_shutdown=%1 íÚãá ÍÇáíÇ . åá ÊÑíÏ ÅÛáÇŞ %1 áíÓÊãÑ ÇáÊÑßíÈ ¿
-ardialog_firewall=İÔá ÇáÅÚÏÇÏ İí ÅÖÇİÉ ÔíÑ-ÃÒÇ Åáì ÈÑäÇãÌ ÍãÇíÉ ÇáæíäÏæÒ %nÇáÑÌÇÁ ÅÖÇİÉ ÔíÑ-ÃÒÇ Åáì ŞÇÆãÉ ÇáÅÓÊËäÇÁÇÊ íÏæíÇ
-ar.page_viruswarning_text=ÚäÏãÇ ÅÓÊÚãÇá ÇáÅäÊÑäÊ ¡ íÌÈ Ãä ÊÊÃßÏ ãä æÌæÏ ÃÍÏË ÈÑäÇãÌ ááİíÑæÓ áÏíß . íãßäß ÇáÍÕæá Úáì ÈÑÇãÌ ááİíÑæÓÇÊ æ äÕÇÆÍ ÃãäíÉ ÃÎÑì áÍãÇíÉ ßãÈíæÊÑß ãä åĞå ÇáæÕáÉ:
-ar.page_viruswarning_title=ÊÍĞíÑ ãä ÇáİíÑæÓÇÊ
-ar.page_viruswarning_subtitle=åá ÚäÏß ÈÑäÇãÌ ááİíÑæÓÇÊ ¿
-ar.CreateDesktopIcon=ÅÙåÇÑ &ÃíŞæäÉ ÓØÍ ÇáãßÊÈ
-ar.CreateQuickLaunchIcon=ÅÙåÇÑ &ÃíŞæäÉ ÇáÊÔÛíá ÇáÓÑíÚ
-; estonian
-ee.components_plugins=Pluginad
-ee.components_skins=Nahad
-ee.components_languages=Keeled
-ee.tasks_allusers=Kõik kasutajad
-ee.tasks_selectusers=Installi %1 jaoks:
-ee.tasks_currentuser=%1 ainult
-ee.tasks_multisetup=Võimalda mitmekasutaja tugi
-ee.tasks_firewall=Lisa erand Windowsi Tulemüüri
-ee.tasks_deleteoldsetup=Kustuta vanad installerid
-ee.run_skinexe=Käivitan Naha installi...
-ee.reg_incomingchat=Sisse tulev vestlusteade
-ee.reg_apptitle=Shareaza Ülim Failijagamine
-ee.icons_license=Litsents
-ee.icons_uninstall=Uninstalli
-ee.icons_downloads=Tõmbamised
-ee.icons_basicmode=Tavaline Vaade
-ee.icons_tabbedmode=Sakiline Vaade
-ee.icons_windowedmode=Akendega Vaade
-ee.dialog_shutdown=%1 töötab hetkel. Kas tahad  %1 sulgeda, et saaksid installeerimist jätkata?
-ee.dialog_firewall=Installeril ebaõnnestus Shareaza lisamine Windowsi Tulemüüri.%Palun lisa Shareaza käsitsi erandite nimekirja.
-ee.page_viruswarning_text=Internetti kasutades peaksid kontrollima, et sul oleks uusim viirusetõrje, et kaitsta ennast troojalaste, usside, viiruste ja teiste kahjulike programmide eest. Sa leiad nimekirja headest viirus skänneritest ja teisi turva nõuandeid oma arvuti kaitseks sellelt lingilt:
-ee.page_viruswarning_title=Viiruse Hoiatus
-ee.page_viruswarning_subtitle=Kas sul on AntiVirus programm installeeeritud?
-ee.CreateDesktopIcon=Loo &Töölaua ikoon
-ee.CreateQuickLaunchIcon=Loo &Quick Launch ikoon

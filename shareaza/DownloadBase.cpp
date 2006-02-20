@@ -1,9 +1,9 @@
 //
 // DownloadBase.cpp
 //
-//	Date:			"$Date: 2005/11/17 21:34:55 $"
-//	Revision:		"$Revision: 1.13 $"
-//  Last change by:	"$Author: thetruecamper $"
+//	Date:			"$Date: 2005/06/15 22:00:06 $"
+//	Revision:		"$Revision: 1.10 $"
+//  Last change by:	"$Author: rolandas $"
 //
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
@@ -48,16 +48,16 @@ CDownloadBase::CDownloadBase()
 {
 	m_nCookie		= 1;
 	m_nSize			= SIZE_UNKNOWN;
-//	m_bSHA1			= FALSE;
-//	m_bSHA1Trusted	= FALSE;
-//	m_bTiger		= FALSE;
-//	m_bTigerTrusted	= FALSE;
-//	m_bMD5			= FALSE;
-//	m_bMD5Trusted	= FALSE;
-//	m_bED2K			= FALSE;
-//	m_bED2KTrusted	= FALSE;
-//	m_bBTH			= FALSE;
-//	m_bBTHTrusted	= FALSE;
+	m_bSHA1			= FALSE;
+	m_bSHA1Trusted	= FALSE;
+	m_bTiger		= FALSE;
+	m_bTigerTrusted	= FALSE;
+	m_bMD5			= FALSE;
+	m_bMD5Trusted	= FALSE;
+	m_bED2K			= FALSE;
+	m_bED2KTrusted	= FALSE;
+	m_bBTH			= FALSE;
+	m_bBTHTrusted	= FALSE;
 	m_pTask			= NULL;
 }
 
@@ -74,56 +74,30 @@ void CDownloadBase::SetModified()
 }
 
 //////////////////////////////////////////////////////////////////////
-// CDownloadBase disk file name (the <hash>.partial file in the incomplete directory)
+// CDownloadBase local name
 
-void CDownloadBase::GenerateDiskName()
+void CDownloadBase::GenerateLocalName()
 {
-	// Exit if we've already named the temp file
-	if ( m_sDiskName.GetLength() > 0 ) return;
+	if ( m_sLocalName.GetLength() > 0 ) return;
 
-	// Get a meaningful (but safe) name. Used for previews, etc. Make sure we get extention if name is long.
-	m_sSafeName = CDownloadTask::SafeFilename( m_sDisplayName.Right( 64 ) );
+	if ( m_bSHA1 ) m_sLocalName += CSHA::HashToString( &m_pSHA1 );
+	else if ( m_bTiger ) m_sLocalName += CTigerNode::HashToString( &m_pTiger );
+	else if ( m_bED2K ) m_sLocalName += CED2K::HashToString( &m_pED2K );
+	else if ( m_bBTH ) m_sLocalName += CSHA::HashToString( &m_pBTH );
 
-	// Start disk file name with hash
-	if ( m_oSHA1 ) 
+	if ( m_sRemoteName.GetLength() > 0 )
 	{
-		m_sDiskName += _T("sha1_");
-		m_sDiskName += m_oSHA1.toString();
-	}
-	else if ( m_oTiger ) 
-	{
-		m_sDiskName += _T("ttr_");
-		m_sDiskName += m_oTiger.toString();
-	}
-	else if ( m_oED2K )
-	{
-		m_sDiskName += _T("ed2k_");
-		m_sDiskName += m_oED2K.toString();
-	}
-	else if ( m_oBTH ) 
-	{
-		m_sDiskName += _T("btih_");
-		m_sDiskName += m_oBTH.toString();
-	}
-	else if ( m_sDisplayName.GetLength() > 0 )
-	{
-		m_sDiskName += _T("name_");
-		m_sDiskName += CDownloadTask::SafeFilename( m_sDisplayName.Left( 32 ) );
-	}
-	else
-	{
-		srand( (unsigned)GetTickCount() );
-		m_sDiskName.Format( _T("rand_%2i%2i%2i%2i"), rand() % 100, rand() % 100, rand() % 100, rand() % 100 );
+		if ( m_sLocalName.GetLength() > 0 ) m_sLocalName += _T(" ");
+		m_sLocalName += CDownloadTask::SafeFilename( m_sRemoteName );
 	}
 
-	// Add a .partial extention
-	m_sDiskName += _T(".partial");
-	// Create download directory if it doesn't exist
+	if ( m_sLocalName.GetLength() > 0 )
+	{
 		CreateDirectory( Settings.Downloads.IncompletePath, NULL );
-	// Add the path
-	m_sDiskName = Settings.Downloads.IncompletePath + _T("\\") + m_sDiskName;
+		m_sLocalName = Settings.Downloads.IncompletePath + _T("\\") + m_sLocalName;
+	}
 
-	ASSERT( m_sDiskName.GetLength() < MAX_PATH - 1 );
+	ASSERT( m_sLocalName.GetLength() < MAX_PATH - 1 );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -133,16 +107,28 @@ void CDownloadBase::Serialize(CArchive& ar, int nVersion)
 {
 	if ( ar.IsStoring() )
 	{
-		ar << m_sDisplayName;
+		ar << m_sRemoteName;
 		ar << m_nSize;
-        SerializeOut( ar, m_oSHA1 );
-        SerializeOut( ar, m_oTiger );
-        SerializeOut( ar, m_oMD5 );
-        SerializeOut( ar, m_oED2K );
+
+		ar << m_bSHA1;
+		if ( m_bSHA1 ) ar.Write( &m_pSHA1, sizeof(SHA1) );
+		ar << m_bSHA1Trusted;
+
+		ar << m_bTiger;
+		if ( m_bTiger ) ar.Write( &m_pTiger, sizeof(TIGEROOT) );
+		ar << m_bTigerTrusted;
+
+		ar << m_bMD5;
+		if ( m_bMD5 ) ar.Write( &m_pMD5, sizeof(MD5) );
+		ar << m_bMD5Trusted;
+
+		ar << m_bED2K;
+		if ( m_bED2K ) ar.Write( &m_pED2K, sizeof(MD4) );
+		ar << m_bED2KTrusted;
 	}
 	else
 	{
-		ar >> m_sDisplayName;
+		ar >> m_sRemoteName;
 
 		if ( nVersion >= 29 )
 		{
@@ -154,10 +140,28 @@ void CDownloadBase::Serialize(CArchive& ar, int nVersion)
 			ar >> nSize;
 			m_nSize = nSize;
 		}
-        SerializeIn( ar, m_oSHA1, nVersion );
-        SerializeIn( ar, m_oTiger, nVersion );
-        if ( nVersion >= 22 ) SerializeIn( ar, m_oMD5, nVersion );
-        if ( nVersion >= 13 ) SerializeIn( ar, m_oED2K, nVersion );
+
+		ar >> m_bSHA1;
+		if ( m_bSHA1 ) ar.Read( &m_pSHA1, sizeof(SHA1) );
+		if ( nVersion >= 31 ) ar >> m_bSHA1Trusted;
+		else m_bSHA1Trusted = m_bSHA1;
+		if ( ( m_bSHA1 ) && ( CSHA::IsNull( &m_pSHA1 ) ) ) m_bSHA1Trusted = m_bSHA1 = FALSE;
+
+		ar >> m_bTiger;
+		if ( m_bTiger ) ar.Read( &m_pTiger, sizeof(TIGEROOT) );
+		if ( nVersion >= 31 ) ar >> m_bTigerTrusted;
+		else m_bTigerTrusted = m_bTiger;
+		if ( ( m_bTiger ) && ( CTigerNode::IsNull( &m_pTiger ) ) ) m_bTigerTrusted = m_bTiger = FALSE;
+
+		if ( nVersion >= 22 ) ar >> m_bMD5;
+		if ( m_bMD5 ) ar.Read( &m_pMD5, sizeof(MD5) );
+		if ( nVersion >= 31 ) ar >> m_bMD5Trusted;
+		else m_bMD5Trusted = m_bMD5;
+
+		if ( nVersion >= 13 ) ar >> m_bED2K;
+		if ( m_bED2K ) ar.Read( &m_pED2K, sizeof(MD4) );
+		if ( nVersion >= 31 ) ar >> m_bED2KTrusted;
+		else m_bED2KTrusted = m_bED2K;
 
 	}
 }

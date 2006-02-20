@@ -35,6 +35,7 @@
 #include "Neighbours.h"
 #include "Statistics.h"
 #include "Remote.h"
+#include "SHA.h"
 
 #include "WndMain.h"
 #include "WndMedia.h"
@@ -81,11 +82,11 @@ void CUploads::Clear(BOOL bMessage)
 //////////////////////////////////////////////////////////////////////
 // CUploads counting
 
-INT_PTR CUploads::GetCount(CUploadTransfer* pExcept, int nState) const
+int CUploads::GetCount(CUploadTransfer* pExcept, int nState) const
 {
 	if ( pExcept == NULL && nState == -1 ) return m_pList.GetCount();
 	
-	INT_PTR nCount = 0;
+	int nCount = 0;
 	
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
@@ -185,7 +186,7 @@ BOOL CUploads::AllowMoreTo(IN_ADDR* pAddress) const
 	return ( nCount <= Settings.Uploads.MaxPerHost );
 }
 
-BOOL CUploads::CanUploadFileTo(IN_ADDR* pAddress, const Hashes::Sha1Hash& oSHA1) const
+BOOL CUploads::CanUploadFileTo(IN_ADDR* pAddress, const SHA1* pSHA1) const
 {
 	int nCount = 0;
 	
@@ -201,7 +202,7 @@ BOOL CUploads::CanUploadFileTo(IN_ADDR* pAddress, const Hashes::Sha1Hash& oSHA1)
 				nCount++;
 
 				// If we're already uploading this file to this client
-				if ( ( pUpload->m_oSHA1 ) && ( oSHA1 ) && validAndEqual( pUpload->m_oSHA1, oSHA1 ) )
+				if ( ( pUpload->m_bSHA1 ) && ( pSHA1 ) && ( pUpload->m_pSHA1 == *pSHA1 ) )
 					return FALSE;
 			}
 		}
@@ -407,9 +408,8 @@ BOOL CUploads::OnAccept(CConnection* pConnection, LPCTSTR pszHandshake)
 //////////////////////////////////////////////////////////////////////
 // CUploads rename handler
 
-void CUploads::OnRename(LPCTSTR pszSource, LPCTSTR pszTarget, BOOL bRemoving)
+void CUploads::OnRename(LPCTSTR pszSource, LPCTSTR pszTarget)
 {
-	if ( pszSource == NULL ) return;
 	CSingleLock pLock( &Transfers.m_pSection );
 	
 	if ( pLock.Lock( 500 ) )
@@ -422,8 +422,6 @@ void CUploads::OnRename(LPCTSTR pszSource, LPCTSTR pszTarget, BOOL bRemoving)
 		pLock.Unlock();
 	}
 	
-	if ( ! bRemoving ) return;
-
 	CSingleLock pLock2( &theApp.m_pSection );
 	
 	if ( pLock2.Lock( 500 ) )
@@ -451,7 +449,6 @@ void CUploads::Add(CUploadTransfer* pUpload)
 	POSITION pos = m_pList.Find( pUpload );
 	ASSERT( pos == NULL );
 	m_pList.AddHead( pUpload );
-	UNUSED_ALWAYS( pos );
 }
 
 void CUploads::Remove(CUploadTransfer* pUpload)
@@ -459,6 +456,5 @@ void CUploads::Remove(CUploadTransfer* pUpload)
 	POSITION pos = m_pList.Find( pUpload );
 	ASSERT( pos != NULL );
 	m_pList.RemoveAt( pos );
-	UNUSED_ALWAYS( pos );
 }
 

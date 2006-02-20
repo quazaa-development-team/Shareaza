@@ -37,7 +37,6 @@
 #include "Statistics.h"
 #include "DiscoveryServices.h"
 #include "HttpRequest.h"
-#include "UPnPFinder.h"
 
 #include "CrawlSession.h"
 #include "SearchManager.h"
@@ -74,12 +73,10 @@ CNetwork::CNetwork()
 	
 	m_bEnabled				= FALSE;
 	m_bAutoConnect			= FALSE;
-	m_tStartedConnecting	= 0;
-	m_tLastConnect			= 0;
-	m_tLastED2KServerHop	= 0;
-
 	m_nSequence				= 0;
 	m_hThread				= NULL;
+	m_tLastConnect			= 0;
+	m_tStartedConnecting	= 0;
 }
 
 CNetwork::~CNetwork()
@@ -223,9 +220,7 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 	
 	m_bEnabled				= TRUE;
 	m_tStartedConnecting	= GetTickCount();
-	CWinThread* pThread = AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_NORMAL );
-	m_hThread				= pThread->m_hThread;
-	SetThreadName( pThread->m_nThreadID, "Network" );
+	m_hThread				= AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_NORMAL )->m_hThread;
 	
 	// if ( m_bAutoConnect && bAutoConnect ) DiscoveryServices.Execute();
 	
@@ -288,12 +283,11 @@ void CNetwork::Disconnect()
 	{
 		for ( POSITION pos = m_pLookups.GetStartPosition() ; pos ; )
 		{
-			HANDLE pAsync;
-			ResolveStruct* pBuffer;
-			m_pLookups.GetNextAssoc( pos, pAsync, pBuffer );
-			WSACancelAsyncRequest( pAsync );
-			delete pBuffer->m_sAddress;
-			delete pBuffer;
+			LPBYTE pAsync, pBuffer;
+			m_pLookups.GetNextAssoc( pos, (VOID*&)pAsync, (VOID*&)pBuffer );
+			WSACancelAsyncRequest( (HANDLE)pAsync );
+			delete *(CString**)pBuffer;
+			free( pBuffer );
 		}
 		
 		m_pLookups.RemoveAll();
@@ -352,14 +346,13 @@ void CNetwork::AcquireLocalAddress(LPCTSTR pszHeader)
 //////////////////////////////////////////////////////////////////////
 // CNetwork GGUID generation
 
-void CNetwork::CreateID(Hashes::Guid& oID)
+void CNetwork::CreateID(GGUID& oID)
 {
-	oID = MyProfile.oGUID;
-	Hashes::Guid::iterator i = oID.begin();
-	*i++ += GetTickCount();
-	*i++ += m_nSequence++;
-	*i++ += rand() * ( RAND_MAX + 1 ) * ( RAND_MAX + 1 ) + rand() * ( RAND_MAX + 1 ) + rand();
-	*i   += rand() * ( RAND_MAX + 1 ) * ( RAND_MAX + 1 ) + rand() * ( RAND_MAX + 1 ) + rand();
+	oID = MyProfile.GUID;
+	oID.w[0] += GetTickCount();
+	oID.w[1] += m_nSequence++;
+	oID.w[2] += rand() * ( RAND_MAX + 1 ) * ( RAND_MAX + 1 ) + rand() * ( RAND_MAX + 1 ) + rand();
+	oID.w[3] += rand() * ( RAND_MAX + 1 ) * ( RAND_MAX + 1 ) + rand() * ( RAND_MAX + 1 ) + rand();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -390,7 +383,7 @@ BOOL CNetwork::Resolve(LPCTSTR pszHost, int nPort, SOCKADDR_IN* pHost, BOOL bNam
 {
 	ZeroMemory( pHost, sizeof(*pHost) );
 	pHost->sin_family	= PF_INET;
-	pHost->sin_port		= htons( u_short( nPort ) );
+	pHost->sin_port		= htons( nPort );
 	
 	if ( pszHost == NULL || *pszHost == 0 ) return FALSE;
 	
@@ -402,7 +395,7 @@ BOOL CNetwork::Resolve(LPCTSTR pszHost, int nPort, SOCKADDR_IN* pHost, BOOL bNam
 	{
 		if ( _stscanf( strHost.Mid( nColon + 1 ), _T("%i"), &nPort ) == 1 )
 		{
-			pHost->sin_port = htons( u_short( nPort ) );
+			pHost->sin_port = htons( nPort );
 		}
 		
 		strHost = strHost.Left( nColon );
@@ -421,11 +414,11 @@ BOOL CNetwork::Resolve(LPCTSTR pszHost, int nPort, SOCKADDR_IN* pHost, BOOL bNam
 		
 		if ( pLookup == NULL ) return FALSE;
 		
-		CopyMemory( &pHost->sin_addr, pLookup->h_addr, sizeof pHost->sin_addr );
+		CopyMemory( &pHost->sin_addr, pLookup->h_addr, 4 );
 	}
 	else
 	{
-		CopyMemory( &pHost->sin_addr, &dwIP, sizeof pHost->sin_addr );
+		CopyMemory( &pHost->sin_addr, &dwIP, 4 );
 	}
 	
 	return TRUE;
@@ -436,115 +429,33 @@ BOOL CNetwork::AsyncResolve(LPCTSTR pszAddress, WORD nPort, PROTOCOLID nProtocol
 	CSingleLock pLock( &m_pSection );
 	if ( ! pLock.Lock( 250 ) ) return FALSE;
 	
-	ResolveStruct* pResolve = new ResolveStruct;
+	BYTE* pResolve = (BYTE*)malloc( MAXGETHOSTSTRUCT + 8 );
 	
 	USES_CONVERSION;
 	
 	HANDLE hAsync = WSAAsyncGetHostByName( AfxGetMainWnd()->GetSafeHwnd(), WM_WINSOCK,
-		T2CA(pszAddress), pResolve->m_pBuffer, MAXGETHOSTSTRUCT );
+		T2CA(pszAddress), (LPSTR)pResolve + 8, MAXGETHOSTSTRUCT );
 	
 	if ( hAsync != NULL )
 	{
-		pResolve->m_sAddress = new CString( pszAddress );
-		pResolve->m_nProtocol = nProtocol;
-		pResolve->m_nPort = nPort;
-		pResolve->m_nCommand = nCommand;
-
-		m_pLookups.SetAt( hAsync, pResolve );
+		*((CString**)&pResolve[0])	= new CString( pszAddress );
+		*((WORD*)&pResolve[4])		= nPort;
+		*((BYTE*)&pResolve[6])		= nProtocol;
+		*((BYTE*)&pResolve[7])		= nCommand;
+		
+		m_pLookups.SetAt( (LPVOID)hAsync, (LPVOID)pResolve );
 		return TRUE;
 	}
 	else
 	{
-		delete pResolve;
+		free( pResolve );
 		return FALSE;
 	}
 }
 
-// Returns TRUE if the IP address is reserved.
-// Private addresses are treated as reserved when Connection.IgnoreLocalIP = TRUE.
-// The code is based on nmap code and updated according to
-// http://www.cymru.com/Documents/bogon-bn-nonagg.txt
-// and http://www.iana.org/assignments/ipv4-address-space
-
-BOOL CNetwork::IsReserved(IN_ADDR* pAddress)
-{
-	char *ip = (char*)&(pAddress->s_addr);
-	unsigned char i1 = ip[ 0 ], i2 = ip[ 1 ], i3 = ip[ 2 ], i4 = ip[ 3 ];
-
-	switch ( i1 )
-	{
-		case 0:         // 000/8 is IANA reserved
-		case 1:         // 001/8 is IANA reserved       
-		case 2:         // 002/8 is IANA reserved       
-		case 5:         // 005/8 is IANA reserved       
-		case 6:         // USA Army ISC                 
-		case 7:         // used for BGP protocol        
-		case 23:        // 023/8 is IANA reserved       
-		case 27:        // 027/8 is IANA reserved       
-		case 31:        // 031/8 is IANA reserved       
-		case 36:        // 036/8 is IANA reserved       
-		case 37:        // 037/8 is IANA reserved       
-		case 39:        // 039/8 is IANA reserved       
-		case 42:        // 042/8 is IANA reserved       
-		case 49:        // 049/8 is IANA reserved       
-		case 50:        // 050/8 is IANA reserved       
-		case 55:        // misc. USA Armed forces    
-		case 127:       // 127/8 is reserved for loopback 
-		case 197:       // 197/8 is IANA reserved       
-		case 223:       // 223/8 is IANA reserved       
-			return TRUE;
-		case 10:        // Private addresses
-			return Settings.Connection.IgnoreLocalIP;
-		default:
-			break;
-	}
-
-	// 077-079/8 is IANA reserved 
-	if ( i1 >= 77 && i1 <= 79 ) return TRUE;
-
-	// 092-123/8 is IANA reserved 
-	if ( i1 >= 92 && i1 <= 120 ) return TRUE;
-
-	// 172.16.0.0/12 is reserved for private nets by RFC1819 
-	if ( i1 == 172 && i2 >= 16 && i2 <= 31 ) 
-		return Settings.Connection.IgnoreLocalIP;
-
-	// 173-187/8 is IANA reserved 
-	if ( i1 >= 173 && i1 <= 187 ) return TRUE;
-
-	// 192.168.0.0/16 is reserved for private nets by RFC1819 
-	// 192.0.2.0/24 is reserved for documentation and examples 
-	// 192.88.99.0/24 is used as 6to4 Relay anycast prefix by RFC3068 
-	if ( i1 == 192 )
-	{
-		if ( i2 == 168 ) return Settings.Connection.IgnoreLocalIP;
-		if ( i2 == 0 && i3 == 2 ) return TRUE;
-		if ( i2 == 88 && i3 == 99 ) return TRUE;
-	}
-
-	// 198.18.0.0/15 is used for benchmark tests by RFC2544 
-	if ( i1 == 198 && i2 == 18 && i3 >= 1 && i3 <= 64 ) return TRUE;
-
-	// reserved for DHCP clients seeking addresses, not routable outside LAN 
-	if ( i1 == 169 && i2 == 254 ) return TRUE;
-
-	// 204.152.64.0/23 is some Sun proprietary clustering thing 
-	if ( i1 == 204 && i2 == 152 && ( i3 == 64 || i3 == 65 ) )
-		return TRUE;
-
-	// 224-239/8 is all multicast stuff 
-	// 240-255/8 is IANA reserved 
-	if ( i1 >= 224 ) return TRUE;
-
-	// 255.255.255.255, we already tested for i1 
-	if ( i2 == 255 && i3 == 255 && i4 == 255 ) return TRUE;
-
-	return FALSE;
-}
-
 WORD CNetwork::RandomPort() const
 {
-	return WORD( 10000 + ( rand() % 50000 ) );
+	return 10000 + ( rand() % 50000 );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -563,11 +474,7 @@ void CNetwork::OnRun()
 	{
 		Sleep( 50 );
 		WaitForSingleObject( m_pWakeup, 100 );
-	
-		if ( ! theApp.m_bLive ) continue;
-		if ( theApp.m_pUPnPFinder && theApp.m_pUPnPFinder->IsAsyncFindRunning() )
-			continue;
-
+		
 		if ( m_bEnabled && m_pSection.Lock() )
 		{
 			Datagrams.OnRun();
@@ -590,45 +497,51 @@ void CNetwork::OnWinsock(WPARAM wParam, LPARAM lParam)
 {
 	CSingleLock pLock( &m_pSection, TRUE );
 
-	ResolveStruct* pResolve = NULL;
-	if ( ! m_pLookups.Lookup( (HANDLE)wParam, pResolve ) ) return;
-	m_pLookups.RemoveKey( (HANDLE)wParam );
+	LPBYTE pBuffer = NULL;
+	if ( ! m_pLookups.Lookup( (LPVOID)wParam, (LPVOID&)pBuffer ) ) return;
+	m_pLookups.RemoveKey( (LPVOID)wParam );
+
+	CString* psHost	= *(CString**)pBuffer;
+	WORD nPort		= *(WORD*)(pBuffer + 4);
+	BYTE nProtocol	= *(BYTE*)(pBuffer + 6);
+	BYTE nCommand	= *(BYTE*)(pBuffer + 7);
+	HOSTENT* pHost	= (HOSTENT*)(pBuffer + 8);
 
 	if ( WSAGETASYNCERROR(lParam) == 0 )
 	{
-		if ( pResolve->m_nCommand == 0 )
+		if ( nCommand == 0 )
 		{
-			HostCache.ForProtocol( pResolve->m_nProtocol )->Add( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort );
+			HostCache.ForProtocol( nProtocol )->Add( (IN_ADDR*)pHost->h_addr, nPort );
 		}
 		else
 		{
-			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, pResolve->m_nCommand );
+			Neighbours.ConnectTo( (IN_ADDR*)pHost->h_addr, nPort, nProtocol, FALSE, nCommand == 2 );
 		}
 	}
-	else if ( pResolve->m_nCommand > 0 )
+	else if ( nCommand > 0 )
 	{
-		theApp.Message( MSG_ERROR, IDS_NETWORK_RESOLVE_FAIL, LPCTSTR( *pResolve->m_sAddress ) );
+		theApp.Message( MSG_ERROR, IDS_NETWORK_RESOLVE_FAIL, (LPCTSTR)*psHost );
 	}
 	
-	delete pResolve->m_sAddress;
-	delete pResolve;
+	delete psHost;
+	free( pBuffer );
 }
 
 //////////////////////////////////////////////////////////////////////
 // CNetwork get node route
 
-BOOL CNetwork::GetNodeRoute(const Hashes::Guid& oGUID, CNeighbour** ppNeighbour, SOCKADDR_IN* pEndpoint)
+BOOL CNetwork::GetNodeRoute(GGUID* pGUID, CNeighbour** ppNeighbour, SOCKADDR_IN* pEndpoint)
 {
-	if ( validAndEqual( oGUID, Hashes::Guid( MyProfile.oGUID ) ) ) return FALSE;
+	if ( *pGUID == MyProfile.GUID ) return FALSE;
 	
-	if ( Network.NodeRoute->Lookup( oGUID, ppNeighbour, pEndpoint ) ) return TRUE;
+	if ( Network.NodeRoute->Lookup( pGUID, ppNeighbour, pEndpoint ) ) return TRUE;
 	if ( ppNeighbour == NULL ) return FALSE;
 	
 	for ( POSITION pos = Neighbours.GetIterator() ; pos ; )
 	{
 		CNeighbour* pNeighbour = Neighbours.GetNext( pos );
 		
-		if ( validAndEqual( pNeighbour->m_oGUID, oGUID ) )
+		if ( pNeighbour->m_bGUID && pNeighbour->m_pGUID == *pGUID )
 		{
 			*ppNeighbour = pNeighbour;
 			return TRUE;
@@ -643,14 +556,14 @@ BOOL CNetwork::GetNodeRoute(const Hashes::Guid& oGUID, CNeighbour** ppNeighbour,
 
 BOOL CNetwork::RoutePacket(CG2Packet* pPacket)
 {
-	Hashes::Guid oGUID;
+	GGUID pGUID;
 	
-	if ( ! pPacket->GetTo( oGUID ) || validAndEqual( oGUID, Hashes::Guid( MyProfile.oGUID ) ) ) return FALSE;
+	if ( ! pPacket->GetTo( &pGUID ) || pGUID == MyProfile.GUID ) return FALSE;
 	
 	CNeighbour* pOrigin = NULL;
 	SOCKADDR_IN pEndpoint;
 	
-	if ( GetNodeRoute( oGUID, &pOrigin, &pEndpoint ) )
+	if ( GetNodeRoute( &pGUID, &pOrigin, &pEndpoint ) )
 	{
 		if ( pOrigin != NULL )
 		{
@@ -659,7 +572,7 @@ BOOL CNetwork::RoutePacket(CG2Packet* pPacket)
 			{
 				CG1Neighbour* pG1 = (CG1Neighbour*)pOrigin;
 				pPacket->SkipCompound();
-				pG1->SendG2Push( oGUID, pPacket );
+				pG1->SendG2Push( &pGUID, pPacket );
 			}
 			else
 			{
@@ -680,26 +593,26 @@ BOOL CNetwork::RoutePacket(CG2Packet* pPacket)
 //////////////////////////////////////////////////////////////////////
 // CNetwork send a push request
 
-BOOL CNetwork::SendPush(const Hashes::Guid& oGUID, DWORD nIndex)
+BOOL CNetwork::SendPush(GGUID* pGUID, DWORD nIndex)
 {
 	CSingleLock pLock( &Network.m_pSection );
 	if ( ! pLock.Lock( 250 ) ) return TRUE;
 
 	if ( ! IsListening() ) return FALSE;
 	
-	Hashes::Guid oGUID2 = oGUID;
+	GGUID pGUID2 = *pGUID;
 	SOCKADDR_IN pEndpoint;
 	CNeighbour* pOrigin;
 	int nCount = 0;
 	
-	while ( GetNodeRoute( oGUID2, &pOrigin, &pEndpoint ) )
+	while ( GetNodeRoute( &pGUID2, &pOrigin, &pEndpoint ) )
 	{
 		if ( pOrigin != NULL && pOrigin->m_nProtocol == PROTOCOL_G1 )
 		{
 			CG1Packet* pPacket = CG1Packet::New( G1_PACKET_PUSH,
 				Settings.Gnutella1.MaximumTTL - 1 );
 			
-			pPacket->Write( oGUID );
+			pPacket->Write( pGUID, 16 );
 			pPacket->WriteLongLE( nIndex );
 			pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
 			pPacket->WriteShortLE( htons( m_pHost.sin_port ) );
@@ -711,7 +624,7 @@ BOOL CNetwork::SendPush(const Hashes::Guid& oGUID, DWORD nIndex)
 			CG2Packet* pPacket = CG2Packet::New( G2_PACKET_PUSH, TRUE );
 			
 			pPacket->WritePacket( G2_PACKET_TO, 16 );
-			pPacket->Write( oGUID );
+			pPacket->Write( pGUID, 16 );
 			
 			pPacket->WriteByte( 0 );
 			pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
@@ -727,7 +640,7 @@ BOOL CNetwork::SendPush(const Hashes::Guid& oGUID, DWORD nIndex)
 			}
 		}
 		
-		oGUID2[15] ++;
+		pGUID2.n[15] ++;
 		nCount++;
 	}
 	
@@ -742,7 +655,7 @@ BOOL CNetwork::RouteHits(CQueryHit* pHits, CPacket* pPacket)
 	SOCKADDR_IN pEndpoint;
 	CNeighbour* pOrigin;
 	
-	if ( ! QueryRoute->Lookup( pHits->m_oSearchID, &pOrigin, &pEndpoint ) ) return FALSE;
+	if ( ! QueryRoute->Lookup( &pHits->m_pSearchID, &pOrigin, &pEndpoint ) ) return FALSE;
 	
 	BOOL bWrapped = FALSE;
 	
@@ -827,10 +740,10 @@ void CNetwork::OnQuerySearch(CQuerySearch* pSearch)
 		if ( CMainWnd* pMainWnd = theApp.SafeMainWnd() )
 		{
 			CWindowManager* pWindows	= &pMainWnd->m_pWindows;
-			CRuntimeClass* pClass		= RUNTIME_CLASS(CSearchMonitorWnd);
 			CChildWnd* pChildWnd		= NULL;
+			CRuntimeClass* pClass		= RUNTIME_CLASS(CSearchMonitorWnd);
 
-			while ( ( pChildWnd = pWindows->Find( pClass, pChildWnd ) ) != NULL )
+			while ( pChildWnd = pWindows->Find( pClass, pChildWnd ) )
 			{
 				pChildWnd->OnQuerySearch( pSearch );
 			}
@@ -851,11 +764,11 @@ void CNetwork::OnQueryHits(CQueryHit* pHits)
 		if ( CMainWnd* pMainWnd = theApp.SafeMainWnd() )
 		{
 			CWindowManager* pWindows	= &pMainWnd->m_pWindows;
+			CChildWnd* pChildWnd		= NULL;
 			CChildWnd* pMonitorWnd		= NULL;
 			CRuntimeClass* pMonitorType	= RUNTIME_CLASS(CHitMonitorWnd);
-			CChildWnd* pChildWnd		= NULL;
 
-			while ( ( pChildWnd = pWindows->Find( NULL, pChildWnd ) ) != NULL )
+			while ( pChildWnd = pWindows->Find( NULL, pChildWnd ) )
 			{
 				if ( pChildWnd->GetRuntimeClass() == pMonitorType )
 				{

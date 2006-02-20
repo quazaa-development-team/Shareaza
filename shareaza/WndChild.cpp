@@ -53,9 +53,8 @@ BEGIN_MESSAGE_MAP(CChildWnd, CMDIChildWnd)
 	ON_WM_NCLBUTTONUP()
 	ON_WM_NCMOUSEMOVE()
 	ON_WM_NCLBUTTONDBLCLK()
-	ON_MESSAGE(WM_SETTEXT, OnSetText)
-	ON_WM_HELPINFO()
 	//}}AFX_MSG_MAP
+	ON_MESSAGE(WM_SETTEXT, OnSetText)
 END_MESSAGE_MAP()
 
 CChildWnd* CChildWnd::m_pCmdMsg = NULL;
@@ -142,7 +141,7 @@ BOOL CChildWnd::TestPoint(const CPoint& ptScreen)
 	if ( pHit == NULL ) return FALSE;
 	if ( pHit == this ) return TRUE;
 
-	if ( pHit->GetAncestor( GA_ROOT ) != GetAncestor( GA_ROOT ) ) return FALSE;
+	if ( pHit->GetTopLevelParent() != GetTopLevelParent() ) return FALSE;
 
 	CPoint ptChild( ptScreen );
 	pHit->ScreenToClient( &ptChild );
@@ -281,7 +280,7 @@ BOOL CChildWnd::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* 
 	return bResult;
 }
 
-BOOL CChildWnd::OnEraseBkgnd(CDC* /*pDC*/)
+BOOL CChildWnd::OnEraseBkgnd(CDC* pDC)
 {
 	return TRUE;
 }
@@ -395,7 +394,7 @@ void CChildWnd::OnNcCalcSize(BOOL bCalcValidRects, NCCALCSIZE_PARAMS FAR* lpncsp
 		CMDIChildWnd::OnNcCalcSize( bCalcValidRects, lpncsp );
 }
 
-ONNCHITTESTRESULT CChildWnd::OnNcHitTest(CPoint point)
+UINT CChildWnd::OnNcHitTest(CPoint point)
 {
 	if ( m_pSkin )
 		return m_pSkin->OnNcHitTest( this, point, ! m_bPanelMode );
@@ -454,13 +453,13 @@ void CChildWnd::OnNcLButtonDblClk(UINT nHitTest, CPoint point)
 	CMDIChildWnd::OnNcLButtonDblClk( nHitTest, point );
 }
 
-LRESULT CChildWnd::OnSetText(WPARAM /*wParam*/, LPARAM /*lParam*/)
+LONG CChildWnd::OnSetText(WPARAM wParam, LPARAM lParam)
 {
 	if ( m_pSkin != NULL )
 	{
 		BOOL bVisible = IsWindowVisible();
 		if ( bVisible ) ModifyStyle( WS_VISIBLE, 0 );
-		LRESULT lResult = Default();
+		LONG lResult = Default();
 		if ( bVisible ) ModifyStyle( 0, WS_VISIBLE );
 		if ( m_pSkin ) m_pSkin->OnSetText( this );
 		return lResult;
@@ -506,16 +505,16 @@ void CChildWnd::OnSkinChange()
 	}
 }
 
-void CChildWnd::OnQuerySearch(CQuerySearch* /*pSearch*/)
+void CChildWnd::OnQuerySearch(CQuerySearch* pSearch)
 {
 }
 
-BOOL CChildWnd::OnQueryHits(CQueryHit* /*pHits*/)
+BOOL CChildWnd::OnQueryHits(CQueryHit* pHits)
 {
 	return FALSE;
 }
 
-BOOL CChildWnd::OnPush(const Hashes::Guid& /*oClientID*/, CConnection* /*pConnection*/)
+BOOL CChildWnd::OnPush(GGUID* pClientID, CConnection* pConnection)
 {
 	return FALSE;
 }
@@ -526,12 +525,7 @@ HRESULT CChildWnd::GetGenericView(IGenericView** ppView)
 	return S_FALSE;
 }
 
-BOOL CChildWnd::OnDropFiles(CList< CString >& /*pFiles*/, const CPoint& /*ptScreen*/, BOOL /*bDrop*/)
-{
-	return FALSE;
-}
-
-BOOL CChildWnd::OnHelpInfo(HELPINFO* /*pHelpInfo*/)
+BOOL CChildWnd::OnDropFiles(CStringList& pFiles, const CPoint& ptScreen, BOOL bDrop)
 {
 	return FALSE;
 }

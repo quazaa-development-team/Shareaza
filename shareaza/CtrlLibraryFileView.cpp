@@ -1,8 +1,8 @@
 //
 // CtrlLibraryFileView.cpp
 //
-//	Date:			"$Date: 2005/12/16 11:42:36 $"
-//	Revision:		"$Revision: 1.25 $"
+//	Date:			"$Date: 2005/08/01 14:51:54 $"
+//	Revision:		"$Revision: 1.22 $"
 //  Last change by:	"$Author: rolandas $"
 //
 // Copyright (c) Shareaza Development Team, 2002-2005.
@@ -194,18 +194,18 @@ BOOL CLibraryFileView::PreTranslateMessage(MSG* pMsg)
 	return CLibraryView::PreTranslateMessage( pMsg );
 }
 
-void CLibraryFileView::OnContextMenu(CWnd* /*pWnd*/, CPoint point) 
+void CLibraryFileView::OnContextMenu(CWnd* pWnd, CPoint point) 
 {
 	CString strName( m_pszToolBar );
 	strName += Settings.Library.ShowVirtual ? _T(".Virtual") : _T(".Physical");
 	Skin.TrackPopupMenu( strName, point, ID_LIBRARY_LAUNCH );
 }
 
-void CLibraryFileView::OnMouseMove(UINT /*nFlags*/, CPoint point) 
+void CLibraryFileView::OnMouseMove(UINT nFlags, CPoint point) 
 {
-	if ( DWORD_PTR nFile = HitTestIndex( point ) )
+	if ( DWORD nFile = HitTestIndex( point ) )
 	{
-		GetToolTip()->Show( (void*)nFile );
+		GetToolTip()->Show( (LPVOID)nFile );
 	}
 	else
 	{
@@ -239,21 +239,16 @@ void CLibraryFileView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 
 void CLibraryFileView::OnUpdateLibraryLaunch(CCmdUI* pCmdUI) 
 {
-	if ( m_bGhostFolder )
-		pCmdUI->Enable( FALSE );
-	else
-		pCmdUI->Enable( GetSelectedCount() > 0 );
+	pCmdUI->Enable( GetSelectedCount() > 0 );
 }
 
 void CLibraryFileView::OnLibraryLaunch() 
 {
-	BOOL bHasThumbnail = FALSE;
-
 	CSingleLock pLock( &Library.m_pSection, TRUE );
 	
 	StartSelectedFileLoop();
 
-	for ( CLibraryFile* pFile = GetNextSelectedFile(); pFile; pFile = GetNextSelectedFile() )
+	for ( CLibraryFile* pFile ; pFile = GetNextSelectedFile() ; )
 	{
 		CString strPath = pFile->GetPath();
 
@@ -285,7 +280,6 @@ void CLibraryFileView::OnLibraryLaunch()
 			}
 		}
 		
-		bHasThumbnail = pFile->m_bCachedPreview;		
 		pLock.Unlock();
 		
 		LPCTSTR pszType = _tcsrchr( strPath, '.' );
@@ -296,7 +290,7 @@ void CLibraryFileView::OnLibraryLaunch()
 		}
 		else
 		{
-			if ( ! CFileExecutor::Execute( strPath, FALSE, bHasThumbnail ) ) break;
+			if ( ! CFileExecutor::Execute( strPath ) ) break;
 		}
 		
 		pLock.Lock();
@@ -305,18 +299,13 @@ void CLibraryFileView::OnLibraryLaunch()
 
 void CLibraryFileView::OnUpdateLibraryEnqueue(CCmdUI* pCmdUI) 
 {
-	if ( m_bGhostFolder )
-	{
-		pCmdUI->Enable( FALSE );
-		return;
-	}
 	CSingleLock pLock( &Library.m_pSection );
 	
 	if ( GetSelectedCount() > 0 && pLock.Lock( 100 ) )
 	{
 		StartSelectedFileLoop();
 		
-		for ( CLibraryFile* pFile = GetNextSelectedFile(); pFile; pFile = GetNextSelectedFile() )
+		for ( CLibraryFile* pFile ; pFile = GetNextSelectedFile() ; )
 		{
 			if ( LPCTSTR pszType = _tcsrchr( pFile->m_sName, '.' ) )
 			{
@@ -341,7 +330,7 @@ void CLibraryFileView::OnLibraryEnqueue()
 	
 	StartSelectedFileLoop();
 	
-	for ( CLibraryFile* pFile = GetNextSelectedFile(); pFile; pFile = GetNextSelectedFile() )
+	for ( CLibraryFile* pFile ; pFile = GetNextSelectedFile() ; )
 	{
 		CString strPath = pFile->GetPath();
 		pLock.Unlock();
@@ -353,10 +342,8 @@ void CLibraryFileView::OnLibraryEnqueue()
 void CLibraryFileView::OnUpdateLibraryURL(CCmdUI* pCmdUI) 
 {
 	CString strMessage;
-	if ( m_bGhostFolder )
-		pCmdUI->Enable( FALSE );
-	else
-		pCmdUI->Enable( GetSelectedCount() > 0 );
+
+	pCmdUI->Enable( GetSelectedCount() > 0 );
 	GetSelectedCount() > 1 ? LoadString( strMessage, IDS_LIBRARY_EXPORTURIS ) : LoadString( strMessage, IDS_LIBRARY_COPYURI );
 	pCmdUI->SetText( strMessage );
 }
@@ -375,9 +362,12 @@ void CLibraryFileView::OnLibraryURL()
 		dlg.m_sName = pFile->m_sName;
 		dlg.m_bSize = TRUE;
 		dlg.m_nSize = pFile->GetSize();
-		dlg.m_oSHA1 = pFile->m_oSHA1;
-		dlg.m_oTiger = pFile->m_oTiger;
-		dlg.m_oED2K = pFile->m_oED2K;
+		dlg.m_bSHA1 = pFile->m_bSHA1;
+		if ( pFile->m_bSHA1 ) dlg.m_pSHA1 = pFile->m_pSHA1;
+		dlg.m_bTiger = pFile->m_bTiger;
+		if ( pFile->m_bTiger ) dlg.m_pTiger = pFile->m_pTiger;
+		dlg.m_bED2K = pFile->m_bED2K;
+		if ( pFile->m_bED2K ) dlg.m_pED2K = pFile->m_pED2K;
 		
 		pLock.Unlock();
 		
@@ -389,7 +379,7 @@ void CLibraryFileView::OnLibraryURL()
 		
 		StartSelectedFileLoop();
 		
-		for ( CLibraryFile* pFile = GetNextSelectedFile(); pFile; pFile = GetNextSelectedFile() )
+		for ( CLibraryFile* pFile ; pFile = GetNextSelectedFile() ; )
 		{
 			dlg.AddFile( pFile );
 		}
@@ -402,10 +392,7 @@ void CLibraryFileView::OnLibraryURL()
 
 void CLibraryFileView::OnUpdateLibraryMove(CCmdUI* pCmdUI) 
 {
-	if ( m_bGhostFolder )
-		pCmdUI->Enable( FALSE );
-	else
-		pCmdUI->Enable( GetSelectedCount() > 0 );
+	pCmdUI->Enable( GetSelectedCount() > 0 );
 }
 
 void CLibraryFileView::OnLibraryMove() 
@@ -415,7 +402,7 @@ void CLibraryFileView::OnLibraryMove()
 	
 	StartSelectedFileLoop();
 	
-	for ( CLibraryFile* pFile = GetNextSelectedFile(); pFile; pFile = GetNextSelectedFile() )
+	for ( CLibraryFile* pFile ; pFile = GetNextSelectedFile() ; )
 	{
 		dlg.AddFile( pFile );
 	}
@@ -427,10 +414,7 @@ void CLibraryFileView::OnLibraryMove()
 
 void CLibraryFileView::OnUpdateLibraryCopy(CCmdUI* pCmdUI) 
 {
-	if ( m_bGhostFolder )
-		pCmdUI->Enable( FALSE );
-	else
-		pCmdUI->Enable( GetSelectedCount() > 0 );
+	pCmdUI->Enable( GetSelectedCount() > 0 );
 }
 
 void CLibraryFileView::OnLibraryCopy() 
@@ -440,7 +424,7 @@ void CLibraryFileView::OnLibraryCopy()
 	
 	StartSelectedFileLoop();
 	
-	for ( CLibraryFile* pFile = GetNextSelectedFile(); pFile; pFile = GetNextSelectedFile() )
+	for ( CLibraryFile* pFile ; pFile = GetNextSelectedFile() ; )
 	{
 		dlg.AddFile( pFile );
 	}
@@ -461,50 +445,35 @@ void CLibraryFileView::OnLibraryDelete()
 	CLibraryList pList;
 	
 	StartSelectedFileLoop();
-
-	while ( m_posSel )
+	
+	for ( CLibraryFile* pFile ; pFile = GetNextSelectedFile() ; )
 	{
-		if ( CLibraryFile* pFile = Library.LookupFile( m_pSelection.GetNext( m_posSel ), 
-				FALSE, ! m_bGhostFolder ) )
-			pList.AddTail( pFile->m_nIndex );
+		pList.AddTail( pFile->m_nIndex );
 	}
 	
 	while ( !pList.IsEmpty() )
 	{
-		CLibraryFile* pFile = Library.LookupFile( pList.GetHead(), FALSE, ! m_bGhostFolder );
+		CLibraryFile* pFile = Library.LookupFile( pList.GetHead(), FALSE, TRUE );
 		if ( pFile == NULL ) 
 		{
 			pList.RemoveHead(); // Remove item from list to avoid endless loop
 			continue;
 		}
 
-		if ( m_bGhostFolder )
+		CDeleteFileDlg dlg( this );
+		dlg.m_sName	= pFile->m_sName;
+		dlg.m_bAll	= pList.GetCount() > 1;
+		
+		pLock.Unlock();
+		if ( dlg.DoModal() != IDOK ) break;
+		pLock.Lock();
+		
+		for ( int nProcess = dlg.m_bAll ? pList.GetCount() : 1 ; nProcess > 0 && pList.GetCount() > 0 ; nProcess-- )
 		{
-			for ( INT_PTR nProcess = pList.GetCount() ; nProcess > 0 && pList.GetCount() > 0 ; nProcess-- )
+			if ( pFile = Library.LookupFile( pList.RemoveHead(), FALSE, TRUE ) )
 			{
-				if ( ( pFile = Library.LookupFile( pList.RemoveHead() ) ) != NULL )
-				{
-					pFile->Delete( TRUE );
-				}
-			}
-		}
-		else
-		{
-			CDeleteFileDlg dlg( this );
-			dlg.m_sName	= pFile->m_sName;
-			dlg.m_bAll	= pList.GetCount() > 1;
-			
-			pLock.Unlock();
-			if ( dlg.DoModal() != IDOK ) break;
-			pLock.Lock();
-			
-			for ( INT_PTR nProcess = dlg.m_bAll ? pList.GetCount() : 1 ; nProcess > 0 && pList.GetCount() > 0 ; nProcess-- )
-			{
-				if ( ( pFile = Library.LookupFile( pList.RemoveHead(), FALSE, TRUE ) ) != NULL )
-				{
-					dlg.Apply( pFile );
-					pFile->Delete();
-				}
+				dlg.Apply( pFile );
+				pFile->Delete();
 			}
 		}
 		
@@ -514,10 +483,7 @@ void CLibraryFileView::OnLibraryDelete()
 
 void CLibraryFileView::OnUpdateLibraryBitziWeb(CCmdUI* pCmdUI) 
 {
-	if ( m_bGhostFolder )
-		pCmdUI->Enable( FALSE );
-	else
-		pCmdUI->Enable( GetSelectedCount() == 1 && Settings.Library.BitziWebSubmit.GetLength() );
+	pCmdUI->Enable( GetSelectedCount() == 1 && Settings.Library.BitziWebSubmit.GetLength() );
 }
 
 void CLibraryFileView::OnLibraryBitziWeb() 
@@ -535,11 +501,7 @@ void CLibraryFileView::OnLibraryBitziWeb()
 
 void CLibraryFileView::OnUpdateLibraryCreateTorrent(CCmdUI* pCmdUI) 
 {
-	if ( m_bGhostFolder )
-		pCmdUI->Enable( FALSE );
-	else
-		pCmdUI->Enable( GetSelectedCount() == 1 && ( Settings.BitTorrent.DefaultTracker.GetLength() > 5 )
-						&& ( Settings.BitTorrent.TorrentCreatorPath.GetLength() > 5 ) );
+	pCmdUI->Enable( GetSelectedCount() == 1 && ( Settings.BitTorrent.DefaultTracker.GetLength() > 5 ) && ( Settings.BitTorrent.TorrentCreatorPath.GetLength() > 5 ) );
 }
 
 void CLibraryFileView::OnLibraryCreateTorrent() 
@@ -564,12 +526,7 @@ void CLibraryFileView::OnLibraryCreateTorrent()
 
 void CLibraryFileView::OnUpdateLibraryRebuildAnsi(CCmdUI* pCmdUI) 
 {
-	if ( m_bGhostFolder )
-	{
-		pCmdUI->Enable( FALSE );
-		return;
-	}
-	INT_PTR nSelected = GetSelectedCount();
+	int nSelected = GetSelectedCount();
 
 	StartSelectedFileLoop();
 
@@ -579,7 +536,7 @@ void CLibraryFileView::OnUpdateLibraryRebuildAnsi(CCmdUI* pCmdUI)
 		// Lookup locks library if it finds a file
 		CQuickLock oLock( Library.m_pSection );
 
-		if ( CLibraryFile* pFile = Library.LookupFile( m_pSelection.GetNext( m_posSel ), FALSE, TRUE ) )
+		if ( CLibraryFile* pFile = Library.LookupFile( m_pSelection.GetNext( m_posSel ) ) )
 		{
 			CString strExtension = pFile->m_sName.Right(3);
 			CharLower( strExtension.GetBuffer() );
@@ -617,7 +574,6 @@ void CLibraryFileView::OnUpdateLibraryRebuildAnsi(CCmdUI* pCmdUI)
 			if ( ( strExtension != _T("mp3") ) || bXmlPossiblyModified )
 				nSelected--;
 		}
-		else nSelected--;
 	}
 	pCmdUI->Enable( nSelected > 0 );
 }
@@ -630,7 +586,7 @@ void CLibraryFileView::OnLibraryRebuildAnsi()
 
 	StartSelectedFileLoop();
 
-	for ( CLibraryFile* pFile = GetNextSelectedFile(); pFile; pFile = GetNextSelectedFile() )
+	for ( CLibraryFile* pFile ; pFile = GetNextSelectedFile() ; )
 	{
 		CString strExtension = pFile->m_sName.Right(3);
 		CharLower( strExtension.GetBuffer() );
@@ -647,10 +603,7 @@ void CLibraryFileView::OnLibraryRebuildAnsi()
 
 void CLibraryFileView::OnUpdateLibraryBitziDownload(CCmdUI* pCmdUI) 
 {
-	if ( m_bGhostFolder )
-		pCmdUI->Enable( FALSE );
-	else
-		pCmdUI->Enable( GetSelectedCount() > 0 && Settings.Library.BitziXML.GetLength() );
+	pCmdUI->Enable( GetSelectedCount() > 0 && Settings.Library.BitziXML.GetLength() );
 }
 
 void CLibraryFileView::OnLibraryBitziDownload() 
@@ -669,9 +622,9 @@ void CLibraryFileView::OnLibraryBitziDownload()
 
 	StartSelectedFileLoop();
 
-	for ( CLibraryFile* pFile = GetNextSelectedFile(); pFile; pFile = GetNextSelectedFile() )
+	for ( CLibraryFile* pFile ; pFile = GetNextSelectedFile() ; )
 	{
-		if ( pFile->m_oSHA1 ) dlg.AddFile( pFile->m_nIndex );
+		if ( pFile->m_bSHA1 ) dlg.AddFile( pFile->m_nIndex );
 	}
 
 	pLock.Unlock();
@@ -690,10 +643,10 @@ void CLibraryFileView::OnLibraryProperties()
 	CFilePropertiesSheet dlg;
 
 	StartSelectedFileLoop();
-	while ( m_posSel )
+
+	for ( CLibraryFile* pFile ; pFile = GetNextSelectedFile() ; )
 	{
-		if ( CLibraryFile* pFile = Library.LookupFile( m_pSelection.GetNext( m_posSel ) ) )
-			dlg.Add( pFile->m_nIndex );
+		dlg.Add( pFile->m_nIndex );
 	}
 
 	pLock.Unlock();
@@ -709,22 +662,21 @@ void CLibraryFileView::OnUpdateLibraryShared(CCmdUI* pCmdUI)
 	if ( GetSelectedCount() > 0 && pLock.Lock( 100 ) )
 	{
 		StartSelectedFileLoop();
-		while ( m_posSel )
+		
+		for ( CLibraryFile* pFile ; pFile = GetNextSelectedFile() ; )
 		{
-			if ( CLibraryFile* pFile = Library.LookupFile( m_pSelection.GetNext( m_posSel ) ) )
+			if ( bShared == TS_UNKNOWN )
 			{
-				if ( bShared == TS_UNKNOWN )
-				{
-					bShared = pFile->IsShared() ? TS_TRUE : TS_FALSE;
-				}
-				else if ( ( bShared == TS_TRUE ) != pFile->IsShared() )
-				{
-					pCmdUI->Enable( FALSE );
-					return;
-				}
+				bShared = pFile->IsShared() ? TS_TRUE : TS_FALSE;
+			}
+			else if ( ( bShared == TS_TRUE ) != pFile->IsShared() )
+			{
+				pCmdUI->Enable( FALSE );
+				return;
 			}
 		}
 	}
+	
 	pCmdUI->Enable( GetSelectedCount() > 0 );
 	pCmdUI->SetCheck( bShared == TS_TRUE );
 }
@@ -735,16 +687,13 @@ void CLibraryFileView::OnLibraryShared()
 
 	StartSelectedFileLoop();
 
-	while ( m_posSel )
+	for ( CLibraryFile* pFile ; pFile = GetNextSelectedFile() ; )
 	{
-		if ( CLibraryFile* pFile = Library.LookupFile( m_pSelection.GetNext( m_posSel ) ) )
-		{
-			if ( pFile->IsShared() )
-				pFile->m_bShared = pFile->m_pFolder->IsShared() ? TS_FALSE : TS_UNKNOWN;
-			else
-				pFile->m_bShared = pFile->m_pFolder->IsShared() ? TS_UNKNOWN : TS_TRUE;
-			pFile->m_nUpdateCookie++;
-		}
+		if ( pFile->IsShared() )
+			pFile->m_bShared = pFile->m_pFolder->IsShared() ? TS_FALSE : TS_UNKNOWN;
+		else
+			pFile->m_bShared = pFile->m_pFolder->IsShared() ? TS_UNKNOWN : TS_TRUE;
+		pFile->m_nUpdateCookie++;
 	}
 
 	Library.Update();
@@ -752,11 +701,6 @@ void CLibraryFileView::OnLibraryShared()
 
 void CLibraryFileView::OnUpdateLibraryUnlink(CCmdUI* pCmdUI) 
 {
-	if ( m_bGhostFolder )
-	{
-		pCmdUI->Enable( FALSE );
-		return;
-	}	
 	CLibraryTreeItem* pItem = GetFolderSelection();
 	pCmdUI->Enable( GetSelectedCount() > 0 && pItem && pItem->m_pVirtual && pItem->m_pSelNext == NULL );
 }
@@ -774,7 +718,7 @@ void CLibraryFileView::OnLibraryUnlink()
 
 	StartSelectedFileLoop();
 
-	for ( CLibraryFile* pFile = GetNextSelectedFile(); pFile; pFile = GetNextSelectedFile() )
+	for ( CLibraryFile* pFile ; pFile = GetNextSelectedFile() ; )
 	{
 		pFolder->RemoveFile( pFile );
 	}

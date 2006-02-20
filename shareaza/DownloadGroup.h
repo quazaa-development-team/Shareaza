@@ -33,12 +33,12 @@ public:
 
 // Attributes
 protected:
-	CList< CDownload* > m_pDownloads;
+	CPtrList	m_pDownloads;
 public:
 	CString		m_sName;
 	CString		m_sSchemaURI;
 	CString		m_sFolder;
-	CList< CString >	m_pFilters;
+	CStringList	m_pFilters;
 public:
 	int			m_nImage;
 	BOOL		m_bRemoteSelected;
@@ -48,7 +48,7 @@ public:
 	void		Add(CDownload* pDownload);
 	void		Remove(CDownload* pDownload);
 	void		SetCookie(int nCookie);
-	void		CopyList(CList< CDownload* >& pList);
+	void		CopyList(CPtrList* pList);
 	BOOL		Link(CDownload* pDownload);
 	int			LinkAll();
 	void		AddFilter(LPCTSTR pszFilter);
@@ -64,7 +64,7 @@ public:
 
 	inline CDownload* GetNext(POSITION& pos) const
 	{
-		return m_pDownloads.GetNext( pos );
+		return (CDownload*)m_pDownloads.GetNext( pos );
 	}
 
 	inline BOOL Contains(CDownload* pDownload) const
@@ -72,7 +72,7 @@ public:
 		return m_pDownloads.Find( pDownload ) != NULL;
 	}
 
-	inline INT_PTR GetCount() const
+	inline int GetCount() const
 	{
 		return m_pDownloads.GetCount();
 	}

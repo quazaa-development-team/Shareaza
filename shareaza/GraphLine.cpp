@@ -31,7 +31,7 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
-const DWORD MIN_GRID_SIZE_HORZ = 16u;
+#define MIN_GRID_SIZE_HORZ	16
 #define TOP_MARGIN			10
 
 
@@ -74,7 +74,12 @@ POSITION CLineGraph::GetItemIterator() const
 
 CGraphItem* CLineGraph::GetNextItem(POSITION& pos) const
 {
-	return m_pItems.GetNext( pos );
+	return (CGraphItem*)m_pItems.GetNext( pos );
+}
+
+int CLineGraph::GetItemCount() const
+{
+	return m_pItems.GetCount();
 }
 
 void CLineGraph::RemoveItem(CGraphItem* pItem)
@@ -123,7 +128,7 @@ BOOL CLineGraph::Update()
 	}
 
 	m_nUpdates++;
-	return !m_pItems.IsEmpty();
+	return m_pItems.GetCount();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -167,7 +172,7 @@ void CLineGraph::Serialize(CArchive& ar)
 		ar >> m_nSpeed;
 		ar >> m_nScale;
 
-		for ( DWORD_PTR nCount = ar.ReadCount() ; nCount > 0 ; nCount-- )
+		for ( int nCount = ar.ReadCount() ; nCount > 0 ; nCount-- )
 		{
 			CGraphItem* pItem = new CGraphItem();
 			pItem->Serialize( ar );
@@ -222,7 +227,7 @@ void CLineGraph::Paint(CDC* pDC, CRect* pRect)
 
 	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
 	{
-		CGraphItem* pItem = m_pItems.GetNext( pos );
+		CGraphItem* pItem = (CGraphItem*)m_pItems.GetNext( pos );
 
 		DWORD nPoints	= min( pItem->m_nLength, nWidth );
 		POINT* pPoints	= new POINT[ nPoints ];
@@ -268,7 +273,7 @@ void CLineGraph::PaintGrid(CDC* pDC, CRect* pRect)
 
 	if ( pRect->Height() <= TOP_MARGIN ) return;
 
-	DWORD nScale = max( m_nScale, MIN_GRID_SIZE_HORZ );
+	DWORD nScale = max( m_nScale, DWORD(MIN_GRID_SIZE_HORZ) );
 	DWORD nCount = pRect->Width() / nScale + 1;
 	DWORD nTimeB = nScale / m_nScale;
 

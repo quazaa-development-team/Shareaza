@@ -56,68 +56,79 @@ static char THIS_FILE[]=__FILE__;
 // CQuerySearch construction
 
 CQuerySearch::CQuerySearch(BOOL bGUID)
-: m_oWords()
 {
-	if ( bGUID ) Network.CreateID( m_oGUID );
+	if ( bGUID ) Network.CreateID( m_pGUID );
 	
-	m_pSchema	= NULL;
-	m_pXML		= NULL;
-	m_nMinSize	= 0x0000000000000000;
-	m_nMaxSize	= 0xFFFFFFFFFFFFFFFF;
+	m_pSchema		= NULL;
+	m_pXML			= NULL;
+	m_nMinSize		= 0x0000000000000000;
+	m_nMaxSize		= 0xFFFFFFFFFFFFFFFF;
 	
-	m_bWantURL	= TRUE;
-	m_bWantDN	= TRUE;
-	m_bWantXML	= TRUE;
-	m_bWantCOM	= TRUE;
-	m_bWantPFS	= TRUE;
-	m_bAndG1	= Settings.Gnutella1.EnableToday;
+	m_bSHA1			= FALSE;
+	m_bTiger		= FALSE;
+	m_bED2K			= FALSE;
+	m_bBTH			= FALSE;
+
+	m_bSimilarSearch= FALSE;
 	
-	m_bUDP		= FALSE;
-	m_nKey		= 0;
-	m_bFirewall	= FALSE;
+	m_bWantURL		= TRUE;
+	m_bWantDN		= TRUE;
+	m_bWantXML		= TRUE;
+	m_bWantCOM		= TRUE;
+	m_bWantPFS		= TRUE;
+	m_bAndG1		= Settings.Gnutella1.EnableToday;
 	
-//	m_nWords	= 0;
-//	m_pWordPtr	= NULL;
-//	m_pWordLen	= NULL;
+	m_bUDP			= FALSE;
+	m_nKey			= 0;
+	m_bFirewall		= FALSE;
+	
+	m_nWords		= 0;
+	m_pWordPtr		= NULL;
+	m_pWordLen		= NULL;
 }
 
-CQuerySearch::CQuerySearch(const CQuerySearch* pOrigin)
-: m_oGUID( pOrigin->m_oGUID ),
-  m_sSearch( pOrigin->m_sSearch ),
-  m_sKeywords( pOrigin->m_sKeywords ),
-  m_pSchema( pOrigin->m_pSchema ),
-  m_pXML( pOrigin->m_pXML ? pOrigin->m_pXML->Clone() : NULL ),
-  m_nMinSize( pOrigin->m_nMinSize ),
-  m_nMaxSize( pOrigin->m_nMaxSize ),
-
-  m_oSHA1( pOrigin->m_oSHA1 ),
-  m_oTiger( pOrigin->m_oTiger ),
-  m_oED2K( pOrigin->m_oED2K ),
-  m_oBTH( pOrigin->m_oBTH ),
-  m_oSimilarED2K(),         //! \todo verify this
-
-  m_bWantURL( pOrigin->m_bWantURL ),
-  m_bWantDN( pOrigin->m_bWantDN ),
-  m_bWantXML( pOrigin->m_bWantXML ),
-  m_bWantCOM( pOrigin->m_bWantCOM ),
-  m_bWantPFS( pOrigin->m_bWantPFS ),
-  m_bAndG1( pOrigin->m_bAndG1 ),
-
-  m_bUDP( pOrigin->m_bUDP ),
-  m_pEndpoint( pOrigin->m_pEndpoint ),
-  m_nKey( pOrigin->m_nKey ),
-
-  m_oWords()                //! \todo comment this - we copy the search string but not the word list
-{ }
+CQuerySearch::CQuerySearch(CQuerySearch* pCopy)
+{
+	m_pGUID		= pCopy->m_pGUID;
+	
+	m_sSearch	= pCopy->m_sSearch;
+	m_pSchema	= pCopy->m_pSchema;
+	m_pXML		= pCopy->m_pXML ? pCopy->m_pXML->Clone() : NULL;
+	m_nMinSize	= pCopy->m_nMinSize;
+	m_nMaxSize	= pCopy->m_nMaxSize;
+	
+	m_bSHA1 = pCopy->m_bSHA1;
+	if ( m_bSHA1 ) m_pSHA1 = pCopy->m_pSHA1;
+	m_bTiger = pCopy->m_bTiger;
+	if ( m_bTiger ) m_pTiger = pCopy->m_pTiger;
+	m_bED2K = pCopy->m_bED2K;
+	if ( m_bED2K ) m_pED2K = pCopy->m_pED2K;
+	m_bBTH = pCopy->m_bBTH;
+	if ( m_bBTH ) m_pBTH = pCopy->m_pBTH;
+	m_bSimilarSearch = FALSE;
+	
+	m_bWantURL	= pCopy->m_bWantURL;
+	m_bWantDN	= pCopy->m_bWantDN;
+	m_bWantXML	= pCopy->m_bWantXML;
+	m_bWantCOM	= pCopy->m_bWantCOM;
+	m_bWantPFS	= pCopy->m_bWantPFS;
+	m_bAndG1	= pCopy->m_bAndG1;
+	
+	m_bUDP		= pCopy->m_bUDP;
+	m_nKey		= pCopy->m_nKey;
+	if ( m_bUDP ) m_pEndpoint = pCopy->m_pEndpoint;
+	
+	m_nWords	= 0;
+	m_pWordPtr	= NULL;
+	m_pWordLen	= NULL;
+}
 
 CQuerySearch::~CQuerySearch()
 {
 	if ( m_pXML ) delete m_pXML;
-}
-
-auto_ptr< CQuerySearch > CQuerySearch::clone() const
-{
-	return auto_ptr< CQuerySearch >( new CQuerySearch( this ) );
+	
+	if ( m_pWordPtr ) delete [] m_pWordPtr;
+	if ( m_pWordLen ) delete [] m_pWordLen;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -126,7 +137,7 @@ auto_ptr< CQuerySearch > CQuerySearch::clone() const
 CG1Packet* CQuerySearch::ToG1Packet()
 {
 	CG1Packet* pPacket = CG1Packet::New( G1_PACKET_QUERY,
-		min( Settings.Gnutella1.SearchTTL, 4ul ), m_oGUID );
+		min( Settings.Gnutella1.SearchTTL, DWORD(4) ), &m_pGUID );
 	
 	WORD nFlags = G1_QF_TAG | G1_QF_BIN_HASH | G1_QF_DYNAMIC;
 	if ( ! Network.IsListening() ) nFlags |= G1_QF_FIREWALLED;
@@ -135,25 +146,20 @@ CG1Packet* CQuerySearch::ToG1Packet()
 	
 	CString strExtra;
 	
-	if ( m_sKeywords.GetLength() )
+	if ( m_sSearch.GetLength() )
 	{
 		if ( Settings.Gnutella1.QuerySearchUTF8 ) //Support UTF-8 Query
 		{
-			pPacket->WriteStringUTF8( m_sKeywords );
+			pPacket->WriteStringUTF8( m_sSearch );
 		}
 		else
 		{
-			pPacket->WriteString( m_sKeywords );
-		}
-		if ( m_sKeywords != m_sSearch )
-		{
-			theApp.Message( MSG_SYSTEM, L"G1 keywords: %s->%s", m_sSearch, m_sKeywords );
+			pPacket->WriteString( m_sSearch );
 		}
 	}
 	else if ( m_pSchema != NULL && m_pXML != NULL )
 	{
 		strExtra = m_pSchema->GetIndexedWords( m_pXML->GetFirstElement() );
-		MakeKeywords( strExtra, false );
 		pPacket->WriteString( strExtra );
 		strExtra.Empty();
 	}
@@ -162,17 +168,17 @@ CG1Packet* CQuerySearch::ToG1Packet()
 		pPacket->WriteByte( 0 );
 	}
 	
-	if ( m_oSHA1 )
+	if ( m_bSHA1 )
 	{
-		strExtra = m_oSHA1.toUrn();
+		strExtra = CSHA::HashToString( &m_pSHA1, TRUE );
 	}
-	else if ( m_oTiger )
+	else if ( m_bTiger )
 	{
-		strExtra = m_oTiger.toUrn();
+		strExtra = CTigerNode::HashToString( &m_pTiger, TRUE );
 	}
-	else if ( m_oED2K )
+	else if ( m_bED2K )
 	{
-        strExtra = m_oED2K.toUrn();
+		strExtra = CED2K::HashToString( &m_pED2K, TRUE );
 	}
 	else
 	{
@@ -205,53 +211,43 @@ CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 		if ( nKey ) pPacket->WriteLongBE( nKey );
 	}
 	
-	if ( m_oTiger && m_oSHA1 )
+	if ( m_bTiger && m_bSHA1 )
 	{
-        pPacket->WritePacket( "URN", Hashes::Sha1Hash::byteCount + Hashes::TigerHash::byteCount + 3 );
+		pPacket->WritePacket( "URN", sizeof(SHA1) + sizeof(TIGEROOT) + 3 );
 		pPacket->WriteString( "bp" );
-		pPacket->Write( m_oSHA1 );
-        pPacket->Write( m_oTiger );
+		pPacket->Write( &m_pSHA1, sizeof(SHA1) );
+		pPacket->Write( &m_pTiger, sizeof(TIGEROOT) );
 	}
-	else if ( m_oSHA1 )
+	else if ( m_bSHA1 )
 	{
-		pPacket->WritePacket( "URN", Hashes::Sha1Hash::byteCount + 5 );
+		pPacket->WritePacket( "URN", sizeof(SHA1) + 5 );
 		pPacket->WriteString( "sha1" );
-		pPacket->Write( m_oSHA1 );
+		pPacket->Write( &m_pSHA1, sizeof(SHA1) );
 	}
-	else if ( m_oTiger )
+	else if ( m_bTiger )
 	{
-		pPacket->WritePacket( "URN", Hashes::TigerHash::byteCount + 4 );
+		pPacket->WritePacket( "URN", sizeof(TIGEROOT) + 4 );
 		pPacket->WriteString( "ttr" );
-		pPacket->Write( m_oTiger );
+		pPacket->Write( &m_pTiger, sizeof(TIGEROOT) );
 	}
-	else if ( m_oED2K )
+	else if ( m_bED2K )
 	{
-        pPacket->WritePacket( "URN", Hashes::Ed2kHash::byteCount + 5 );
+		pPacket->WritePacket( "URN", sizeof(MD4) + 5 );
 		pPacket->WriteString( "ed2k" );
-		pPacket->Write( m_oED2K );
+		pPacket->Write( &m_pED2K, sizeof(MD4) );
 	}
 	
-	if ( m_oBTH )
+	if ( m_bBTH )
 	{
-		pPacket->WritePacket( "URN", Hashes::BtHash::byteCount + 5 );
+		pPacket->WritePacket( "URN", sizeof(SHA1) + 5 );
 		pPacket->WriteString( "btih" );
-		pPacket->Write( m_oBTH );
+		pPacket->Write( &m_pBTH, sizeof(SHA1) );
 	}
 	
-	if ( m_sKeywords.GetLength() )
+	if ( m_sSearch.GetLength() )
 	{
-		if ( m_sKeywords != m_sSearch )
-		{
-			short bValue = (short)( 2 * rand() / ( RAND_MAX + 1.0 ) );
-			pPacket->WritePacket( "DN", pPacket->GetStringLen( bValue ? m_sSearch : m_sKeywords ) );
-			pPacket->WriteString( bValue ? m_sSearch : m_sKeywords, FALSE );
-			theApp.Message( MSG_SYSTEM, L"G2 keywords: %s->%s", m_sSearch, m_sKeywords );
-		}
-		else
-		{
-			pPacket->WritePacket( "DN", pPacket->GetStringLen( m_sKeywords ) );
-			pPacket->WriteString( m_sKeywords, FALSE );
-		}
+		pPacket->WritePacket( "DN", pPacket->GetStringLen( m_sSearch ) );
+		pPacket->WriteString( m_sSearch, FALSE );
 	}
 	
 	if ( m_pXML != NULL )
@@ -304,7 +300,7 @@ CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 	//if ( m_bAndG1 ) pPacket->WritePacket( "G1", 0 );
 	
 	pPacket->WriteByte( 0 );
-	pPacket->Write( m_oGUID );
+	pPacket->Write( &m_pGUID, sizeof(GGUID) );
 	
 	return pPacket;
 }
@@ -320,6 +316,7 @@ CEDPacket* CQuerySearch::ToEDPacket(BOOL bUDP, DWORD nServerFlags)
 	
 	CString strWords = m_pSchema->GetIndexedWords( m_pXML->GetFirstElement() );
 
+
 	if ( bUDP )
 	{
 		bUTF8 = nServerFlags & ED2K_SERVER_UDP_UNICODE;
@@ -331,14 +328,14 @@ CEDPacket* CQuerySearch::ToEDPacket(BOOL bUDP, DWORD nServerFlags)
 		bGetS2 = nServerFlags & ED2K_SERVER_TCP_GETSOURCES2;
 	}
 	
-	if ( m_oED2K )
+	if ( m_bED2K )
 	{
-		if ( m_bWantDN && Settings.eDonkey.MagnetSearch )
+		if( m_bWantDN && Settings.eDonkey.MagnetSearch )
 		{			
 			// We need the size- do a search by magnet (hash)
 			pPacket = CEDPacket::New( bUDP ? ED2K_C2SG_SEARCHREQUEST : ED2K_C2S_SEARCHREQUEST );
 			pPacket->WriteByte( 1 );
-			pPacket->WriteEDString( _T("magnet:?xt=ed2k:") + m_oED2K.toString(), bUTF8 );
+			pPacket->WriteEDString( _T("magnet:?xt=ed2k:") + CED2K::HashToString( &m_pED2K ), bUTF8 );
 		}
 		else
 		{			
@@ -347,12 +344,12 @@ CEDPacket* CQuerySearch::ToEDPacket(BOOL bUDP, DWORD nServerFlags)
 			// For newer servers, send the file size if it's valid (and not over 4GB)
 			if ( ( bGetS2 ) && ( m_nMinSize == m_nMaxSize ) && ( m_nMaxSize < 0xFFFFFFFF ) )
 			{
-				// theApp.Message( MSG_DEBUG, ( _T("Creating multi-hash capable GetSources2 for: ") + m_oED2K.toString() ) );
+				// theApp.Message( MSG_DEBUG, ( _T("Creating multi-hash capable GetSources2 for: ") + CED2K::HashToString( &m_pED2K ) ) );
 
 				// Newer server, send size as well as hash
 				pPacket = CEDPacket::New( bUDP ? ED2K_C2SG_GETSOURCES2 : ED2K_C2S_GETSOURCES );
 				// Add the hash/size this packet is for
-				pPacket->Write( m_oED2K );
+				pPacket->Write( &m_pED2K, sizeof(MD4) );
 				pPacket->WriteLongLE( (DWORD)m_nMaxSize );
 				// Add any other hashes that need to be searched for.
 				WriteHashesToEDPacket( pPacket, bUDP );
@@ -362,11 +359,11 @@ CEDPacket* CQuerySearch::ToEDPacket(BOOL bUDP, DWORD nServerFlags)
 			{
 				// Old style GetSources, with no size attached
 				pPacket = CEDPacket::New( bUDP ? ED2K_C2SG_GETSOURCES : ED2K_C2S_GETSOURCES );
-				pPacket->Write( m_oED2K );
+				pPacket->Write( &m_pED2K, sizeof(MD4) );
 			}
 		}
 	}
-	else if ( m_oBTH )
+	else if ( m_bBTH )
 	{
 		// BitTorrent searches prohibited unless they are GETSOURCES above
 	}
@@ -392,7 +389,7 @@ CEDPacket* CQuerySearch::ToEDPacket(BOOL bUDP, DWORD nServerFlags)
 			
 			// Size limit (max)
 			pPacket->WriteByte( 3 );		
-			pPacket->WriteLongLE( (DWORD)min( m_nMaxSize, 0xFFFFFFFF ) );
+			pPacket->WriteLongLE( (DWORD)min( m_nMaxSize, QWORD(0xFFFFFFFF) ) );
 			pPacket->WriteByte( 2 );
 			pPacket->WriteShortLE( 1 );
 			pPacket->WriteByte( ED2K_FT_FILESIZE );
@@ -402,17 +399,19 @@ CEDPacket* CQuerySearch::ToEDPacket(BOOL bUDP, DWORD nServerFlags)
 		{	
 			// ed2k search without file type
 			// Name / Key Words
-			pPacket->WriteByte( 1 );		
+			pPacket->WriteByte( 1 );	
 			// Check if this is a "search for similar files"
-			if ( ( m_oSimilarED2K ) && ( ! bUDP ) && ( nServerFlags & ED2K_SERVER_TCP_RELATEDSEARCH ) )
+			if ( ( m_bSimilarSearch ) && ( ! bUDP ) && ( nServerFlags & ED2K_SERVER_TCP_RELATEDSEARCH ) )
 			{
 				// This is a search for similar files
-				pPacket->WriteEDString( _T( "related::" ) + m_oSimilarED2K.toString(), bUTF8 );
+				CString strSearch;
+				strSearch.Format( _T("related::%s"), (LPCTSTR)CED2K::HashToString( &m_pSimilarED2K ) );
+				pPacket->WriteEDString( strSearch, bUTF8 );
 			}
 			else
 			{
 				// Regular search
-				pPacket->WriteEDString( m_sKeywords.GetLength() ? m_sSearch : strWords, bUTF8 );
+				pPacket->WriteEDString( m_sSearch.GetLength() ? m_sSearch : strWords, bUTF8 );
 			}
 		}
 		else
@@ -436,7 +435,7 @@ CEDPacket* CQuerySearch::ToEDPacket(BOOL bUDP, DWORD nServerFlags)
 	return pPacket;
 }
 
-BOOL CQuerySearch::WriteHashesToEDPacket(CEDPacket* pPacket, BOOL bUDP)
+BOOL CQuerySearch::WriteHashesToEDPacket( CEDPacket* pPacket, BOOL bUDP )
 {
 	ASSERT ( pPacket != NULL );
 	ASSERT ( pPacket->m_nType == bUDP ? ED2K_C2SG_GETSOURCES2 : ED2K_C2S_GETSOURCES );
@@ -453,12 +452,12 @@ BOOL CQuerySearch::WriteHashesToEDPacket(CEDPacket* pPacket, BOOL bUDP)
 		CDownload* pDownload = Downloads.GetNext( pos );
 		
 		// Basic check
-		if ( pDownload->m_oED2K &&					// Must have an ed2k hash
+		if ( pDownload->m_bED2K &&					// Must have an ed2k hash
 			 pDownload->IsTrying() &&				// Must be active
 			 pDownload->m_nSize < 0xFFFFFFFF &&		// Must have a valid size
 			 pDownload->IsCompleted() == FALSE &&	// Must not be complete
 			 pDownload->NeedHashset() == FALSE &&	// Must have hashset
-			 validAndUnequal( pDownload->m_oED2K, m_oED2K ) )// Must not be already added to packet
+			 pDownload->m_pED2K != m_pED2K )		// Must not be already added to packet
 		{
 			// If a download is allowed to ask for more sources
 			DWORD tNextQuery = bUDP ? pDownload->m_tLastED2KGlobal + Settings.eDonkey.QueryFileThrottle : pDownload->m_tLastED2KLocal + Settings.eDonkey.QueryFileThrottle;
@@ -474,7 +473,7 @@ BOOL CQuerySearch::WriteHashesToEDPacket(CEDPacket* pPacket, BOOL bUDP)
 					if ( ( bFewSources ) || ( bDataStarve ) || ( nFiles < 10 ) )
 					{
 						// Add the hash/size for this download
-						pPacket->Write( pDownload->m_oED2K );
+						pPacket->Write( &pDownload->m_pED2K, sizeof(MD4) );
 						pPacket->WriteLongLE( (DWORD)pDownload->m_nSize );
 						if ( bUDP )
 							pDownload->m_tLastED2KGlobal = tNow; 
@@ -533,11 +532,11 @@ BOOL CQuerySearch::ReadG1Packet(CPacket* pPacket)
 		GNUTELLAPACKET pG1;
 		if ( ! ((CG2Packet*)pPacket)->SeekToWrapped() ) return NULL;
 		pPacket->Read( &pG1, sizeof(pG1) );
-		m_oGUID = pG1.m_oGUID;
+		m_pGUID = pG1.m_pGUID;
 	}
 	else
 	{
-		m_oGUID = ((CG1Packet*)pPacket)->m_oGUID;
+		m_pGUID = ((CG1Packet*)pPacket)->m_pGUID;
 	}
 	
 	if ( pPacket->GetRemaining() < 4 ) return FALSE;
@@ -584,37 +583,37 @@ BOOL CQuerySearch::ReadG1Packet(CPacket* pPacket)
 			{
 				if ( pItem->m_pBuffer[0] > 0 && pItem->m_pBuffer[0] < 3 )
 				{
-					m_oSHA1 = reinterpret_cast< Hashes::Sha1Hash::RawStorage& >(
-						pItem->m_pBuffer[ 1 ] );
+					CopyMemory( &m_pSHA1, &pItem->m_pBuffer[1], 20 );
+					m_bSHA1 = TRUE;
 				}
 				if ( pItem->m_pBuffer[0] == 2 && pItem->m_nLength >= 24 + 20 + 1 )
 				{
-					m_oTiger = reinterpret_cast< Hashes::TigerHash::RawStorage& >(
-						pItem->m_pBuffer[ 1 ] );
+					CopyMemory( &m_pTiger, &pItem->m_pBuffer[21], 24 );
+					m_bTiger = TRUE;
 				}
 			}
 			else if ( CGGEPItem* pItem = pGGEP.Find( _T("u") ) )
 			{
 				strData = pItem->ToString();
 
-				if ( !m_oSHA1 ) m_oSHA1.fromUrn( strData );
-				if ( !m_oTiger ) m_oTiger.fromUrn( strData );
-				if ( !m_oED2K ) m_oED2K.fromUrn( strData );
+				m_bSHA1		|= CSHA::HashFromURN( strData, &m_pSHA1 );
+				m_bTiger	|= CTigerNode::HashFromURN( strData, &m_pTiger );
+				m_bED2K		|= CED2K::HashFromURN( strData, &m_pED2K );
 			}
 			
 			break;
 		}
 		
 		LPCTSTR pszSep = _tcschr( pszData, 0x1C );
-		size_t nLength = ( pszSep && *pszSep == 0x1C ) ? pszSep - pszData : _tcslen( pszData );
+		int nLength = ( pszSep && *pszSep == 0x1C ) ? pszSep - pszData : _tcslen( pszData );
 		
-		if ( !IsCharacter( *pszData ) ) nLength = 0;
+		if ( ! _istalnum( *pszData ) ) nLength = 0;
 		
 		if ( nLength >= 4 && _tcsncmp( pszData, _T("urn:"), 4 ) == 0 )
 		{
-			if ( !m_oSHA1 ) m_oSHA1.fromUrn( pszData );
-			if ( !m_oTiger ) m_oTiger.fromUrn( pszData );
-			if ( !m_oED2K ) m_oED2K.fromUrn( pszData );
+			m_bSHA1		|= CSHA::HashFromURN( pszData, &m_pSHA1 );
+			m_bTiger	|= CTigerNode::HashFromURN( pszData, &m_pTiger );
+			m_bED2K		|= CED2K::HashFromURN( pszData, &m_pED2K );
 		}
 		else if ( nLength > 5 && _tcsncmp( pszData, _T("<?xml"), 5 ) == 0 )
 		{
@@ -631,7 +630,7 @@ BOOL CQuerySearch::ReadG1Packet(CPacket* pPacket)
 	}
 	
 	m_bAndG1 = TRUE;
-	return CheckValid( false );
+	return CheckValid();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -702,24 +701,30 @@ BOOL CQuerySearch::ReadG2Packet(CG2Packet* pPacket, SOCKADDR_IN* pEndpoint)
 			
 			if ( nLength >= 20 && strURN == _T("sha1") )
 			{
-				pPacket->Read( m_oSHA1 );
+				m_bSHA1 = TRUE;
+				pPacket->Read( &m_pSHA1, sizeof(SHA1) );
 			}
 			else if ( nLength >= 44 && ( strURN == _T("bp") || strURN == _T("bitprint") ) )
 			{
-				pPacket->Read( m_oSHA1 );
-				pPacket->Read( m_oTiger );
+				m_bSHA1 = TRUE;
+				pPacket->Read( &m_pSHA1, sizeof(SHA1) );
+				m_bTiger = TRUE;
+				pPacket->Read( &m_pTiger, sizeof(TIGEROOT) );
 			}
 			else if ( nLength >= 24 && ( strURN == _T("ttr") || strURN == _T("tree:tiger/") ) )
 			{
-				pPacket->Read( m_oTiger );
+				m_bTiger = TRUE;
+				pPacket->Read( &m_pTiger, sizeof(TIGEROOT) );
 			}
 			else if ( nLength >= 16 && strURN == _T("ed2k") )
 			{
-				pPacket->Read( m_oED2K );
+				m_bED2K = TRUE;
+				pPacket->Read( &m_pED2K, sizeof(MD4) );
 			}
 			else if ( nLength >= 20 && strURN == _T("btih") )
 			{
-				pPacket->Read( m_oBTH );
+				m_bBTH = TRUE;
+				pPacket->Read( &m_pBTH, sizeof(SHA1) );
 			}
 		}
 		else if ( strcmp( szType, "DN" ) == 0 )
@@ -772,7 +777,7 @@ BOOL CQuerySearch::ReadG2Packet(CG2Packet* pPacket, SOCKADDR_IN* pEndpoint)
 	
 	if ( pPacket->GetRemaining() < 16 ) return FALSE;
 	
-	pPacket->Read( m_oGUID );
+	pPacket->Read( &m_pGUID, sizeof(GGUID) );
 	
 	return CheckValid();
 }
@@ -780,68 +785,86 @@ BOOL CQuerySearch::ReadG2Packet(CG2Packet* pPacket, SOCKADDR_IN* pEndpoint)
 //////////////////////////////////////////////////////////////////////
 // CQuerySearch validity check
 
-BOOL CQuerySearch::CheckValid(bool bExpression)
+BOOL CQuerySearch::CheckValid()
 {
-	DWORD nValidWords = 0;
-	size_t nValidCharacters = 0;
+	DWORD nCount, nValidWords = 0, nValidCharacters = 0;
 	BOOL bExtendedSearch = FALSE;
+	CString strLastWord;
+
+	BuildWordList();
+
+	// Searches by hash are okay
+	if ( m_bSHA1 || m_bTiger || m_bED2K || m_bBTH ) return TRUE;
 
 	// Search without any terms and no hash is invalid
-	if ( m_oWords.empty() )
-	{
-		// Searches by hash are okay
-		if ( m_oSHA1 || m_oTiger || m_oED2K || m_oBTH )
-		{
-			BuildWordList( false );
-			return TRUE;
-		}
-
-		BuildWordList( bExpression );
-		if ( m_oWords.empty() )
-			return FALSE;
-	}
+	if ( m_nWords == 0 ) return FALSE;
 
 	// Check if it's an "extended search" (Using a character set with many symbols)
-	iterator pLast = m_oWords.end();
-	--pLast;
-	if ( pLast->second >= 2 && 
-		 ( IsHiragana( pLast->first[ 0 ] ) || 
-		   IsKatakana( pLast->first[ 0 ] ) || 
-		   pLast->first[ 0 ] > 0x33FF 
-		 ) &&
-		 ( IsHiragana( pLast->first[ 1 ] ) || 
-		   IsKatakana( pLast->first[ 1 ] ) || 
-		   pLast->first[ 1 ] > 0x33FF 
-		 )
-	   )
+	if ( ( m_pWordLen ) && ( m_pWordLen[0] >= 2 ) )
 	{
-		bExtendedSearch = TRUE;
+		if ( ( (DWORD)m_pWordPtr[0][0] > 20000 ) && ( (DWORD)m_pWordPtr[0][1] > 20000 ) )
+		{
+			bExtendedSearch = TRUE;
+		}
 	}
 
-	// Check we aren't just searching for broad terms - set counters, etc
-	for ( const_iterator pWord = begin(); pWord != end(); ++pWord )
+	// Check we aren't just searching for broad terms-  set counters, etc
+	for ( nCount = 0 ; nCount < m_nWords ; nCount++ )
 	{
-		static const LPCTSTR common[] =
-		{
-			L"mp3", L"ogg",
-			L"jpg", L"gif", L"png", L"bmp",
-			L"mpg", L"avi", L"mkv", L"wmv", L"mov", L"ogm",
-			L"exe", L"zip", L"rar", L"iso", L"bin", L"cue",
-			L"dvd", L"mpeg", L"divx", L"xvid",
-			L"xxx", L"sex", L"fuck",
-			L"torrent"
-		};
-		static const size_t commonWords = sizeof common / sizeof common[ 0 ];
+		if (	_tcsnicmp( m_pWordPtr[nCount], _T("mp3"),  m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("ogg"),  m_pWordLen[nCount] ) == 0 ||
 
-		if ( std::find_if( common, common + commonWords, FindStr( *pWord ) ) != common + commonWords )
+				_tcsnicmp( m_pWordPtr[nCount], _T("jpg"),  m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("gif"),  m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("png"),  m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("bmp"),  m_pWordLen[nCount] ) == 0 ||
+
+				_tcsnicmp( m_pWordPtr[nCount], _T("mpg"),   m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("avi"),   m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("mkv"),   m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("wmv"),   m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("mov"),   m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("ogm"),   m_pWordLen[nCount] ) == 0 ||
+
+				_tcsnicmp( m_pWordPtr[nCount], _T("exe"),   m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("zip"),   m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("rar"),   m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("iso"),   m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("bin"),   m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("cue"),   m_pWordLen[nCount] ) == 0 ||
+
+				_tcsnicmp( m_pWordPtr[nCount], _T("dvd"),   m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("mpeg"),  m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("divx"),  m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("xvid"),  m_pWordLen[nCount] ) == 0 ||
+
+				_tcsnicmp( m_pWordPtr[nCount], _T("xxx"),   m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("sex"),   m_pWordLen[nCount] ) == 0 ||
+				_tcsnicmp( m_pWordPtr[nCount], _T("fuck"),  m_pWordLen[nCount] ) == 0 ||
+				
+				_tcsicmp( m_pWordPtr[nCount], _T("torrent") ) == 0 )
 		{
 			// Common term. Don't count it.
 		}
 		else
 		{
 			// Valid search term.
-			nValidWords++;
-			nValidCharacters += pWord->second;
+
+			// Check if user has duplicated terms
+			if ( nCount == 0 )
+			{
+				// This is the first word- never a duplicate
+				nValidWords++;
+				nValidCharacters += m_pWordLen[nCount];
+			}
+			else if ( _tcsnicmp( m_pWordPtr[nCount], strLastWord.GetString(),  m_pWordLen[nCount] ) != 0 )
+			{
+				// Valid search term, not duplicated. Add to the count of valid words/characters.
+				nValidWords++;
+				nValidCharacters += m_pWordLen[nCount];
+			}
+			// Update "last word" variable
+			strLastWord = m_pWordPtr[nCount];
 		}
 	}
 
@@ -868,60 +891,57 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 //////////////////////////////////////////////////////////////////////
 // CQuerySearch matching
 
-BOOL CQuerySearch::Match(LPCTSTR pszFilename, QWORD nSize, LPCTSTR pszSchemaURI, CXMLElement* pXML, const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, const Hashes::Ed2kHash& oED2K)
+BOOL CQuerySearch::Match(LPCTSTR pszFilename, QWORD nSize, LPCTSTR pszSchemaURI, CXMLElement* pXML, SHA1* pSHA1, TIGEROOT* pTiger, MD4* pED2K)
 {
 	if ( nSize < m_nMinSize || nSize > m_nMaxSize ) return FALSE;
 	
-	if ( m_oSHA1 )
+	if ( m_bSHA1 )
 	{
-		return validAndEqual( m_oSHA1, oSHA1 );
+		return pSHA1 != NULL && ( m_pSHA1 == *pSHA1 );
 	}
-	else if ( m_oTiger )
+	else if ( m_bTiger )
 	{
-		return validAndEqual( oTiger, m_oTiger );
+		return pTiger != NULL && ( m_pTiger == *pTiger );
 	}
-	else if ( m_oED2K )
+	else if ( m_bED2K )
 	{
-		return validAndEqual( oED2K, m_oED2K );
+		return pED2K != NULL && ( memcmp( &m_pED2K, pED2K, sizeof(MD4) ) == 0 );
 	}
 	
 	if ( pszSchemaURI && *pszSchemaURI && pXML )
 	{
 		TRISTATE bResult = MatchMetadata( pszSchemaURI, pXML );
 		if ( bResult != TS_UNKNOWN ) return ( bResult == TS_TRUE );
-		if ( m_sKeywords.GetLength() > 0 )
+		if ( m_sSearch.GetLength() > 0 )
 		{
-			if ( m_sKeywords != m_sSearch )
-			{
-				theApp.Message( MSG_SYSTEM, L"Received: %s", m_sSearch );
-				theApp.Message( MSG_SYSTEM, L"Keywords: %s", m_sKeywords );
-			}
 			if ( MatchMetadataShallow( pszSchemaURI, pXML ) )
 			{
 				// only return WordMatch when negative terms are used
 				// otherwise, prefer metadata over file name.
+				int nMinusPos = -1;
 				BOOL bNegative = FALSE;
-				if ( m_sKeywords.GetLength() > 1 )
+				if ( m_sSearch.GetLength() > 1 )
 				{
-					int nMinusPos = -1;
 					while ( !bNegative )
 					{
-						nMinusPos = m_sKeywords.Find( '-', nMinusPos + 1 );
+						nMinusPos = m_sSearch.Find( '-', nMinusPos + 1 );
 						if ( nMinusPos != -1 )
-						{
-							bNegative = ( IsCharacter( m_sKeywords.GetAt( nMinusPos + 1 ) ) != 0 );
-							if ( nMinusPos > 0 )
-								bNegative &= ( IsCharacter( m_sKeywords.GetAt( nMinusPos - 1 ) ) == 0 );
-						}
+							bNegative = ( _istalnum( m_sSearch.GetAt( nMinusPos + 1 ) ) != 0 );
 						else break;
 					}
 				}
-				return bNegative ? WordMatch( pszFilename, m_sKeywords ) : TRUE;
+				if ( bNegative )
+					return WordMatch( pszFilename, m_sSearch );
+				else return TRUE;
 			}
 		}
 	}
+
 	// If it's a search for similar files, the text doesn't have to match
-	return m_oSimilarED2K || m_sKeywords.GetLength() && WordMatch( pszFilename, m_sKeywords );
+	if ( m_bSimilarSearch )
+		return TRUE;
+	else
+		return m_sSearch.GetLength() && WordMatch( pszFilename, m_sSearch );
 }
 
 TRISTATE CQuerySearch::MatchMetadata(LPCTSTR pszSchemaURI, CXMLElement* pXML)
@@ -978,7 +998,7 @@ BOOL CQuerySearch::MatchMetadataShallow(LPCTSTR pszSchemaURI, CXMLElement* pXML)
 			if ( pMember->m_bSearched )
 			{
 				CString strTarget = pMember->GetValueFrom( pXML, _T(""), FALSE );
-				if ( WordMatch( strTarget, m_sKeywords ) ) return TRUE;
+				if ( WordMatch( strTarget, m_sSearch ) ) return TRUE;
 			}
 		}
 	}
@@ -990,7 +1010,7 @@ BOOL CQuerySearch::MatchMetadataShallow(LPCTSTR pszSchemaURI, CXMLElement* pXML)
 
 			CString strTarget = pAttribute->GetValue();
 
-			if ( WordMatch( strTarget, m_sKeywords ) ) return TRUE;
+			if ( WordMatch( strTarget, m_sSearch ) ) return TRUE;
 		}
 	}
 	
@@ -1068,7 +1088,7 @@ BOOL CQuerySearch::WordMatch(LPCTSTR pszString, LPCTSTR pszFind)
 
 BOOL CQuerySearch::NumberMatch(const CString& strValue, const CString& strRange)
 {
-	double nValue, nMinimum, nMaximum = 0;
+	double nValue, nMinimum, nMaximum;
 
 	if ( _stscanf( strValue, _T("%lf"), &nValue ) != 1 ) return FALSE;
 
@@ -1097,19 +1117,16 @@ BOOL CQuerySearch::NumberMatch(const CString& strValue, const CString& strRange)
 //////////////////////////////////////////////////////////////////////
 // CQuerySearch word list builder
 
-void CQuerySearch::BuildWordList(bool bExpression)
+void CQuerySearch::BuildWordList()
 {
-	m_oWords.clear();
-
+	m_nWords = 0;
+	
 	m_sSearch.Trim();
 	ToLower( m_sSearch );
-
 	// temporarily solution for last greek sigma fix
 	// the phrase can contain punctuation marks and it won't work
 	Replace( m_sSearch, _T("\x03C3 "), _T("\x03C2 ") ); 
-
-	m_sKeywords = m_sSearch;
-
+	
 	BOOL bHash = FALSE;
 	
 	if ( 0 == _tcsncmp( m_sSearch, _T("magnet:?"), 8 ) )
@@ -1122,53 +1139,41 @@ void CQuerySearch::BuildWordList(bool bExpression)
 			bHash = TRUE;
 		}
 	}
-
+	
 	if ( bHash || 0 == _tcsncmp( m_sSearch, _T("urn:"), 4 ) )
 	{
-		if ( ! m_oSHA1 )
+		if ( ! m_bSHA1 )
 		{
-			if ( m_oSHA1.fromUrn( m_sSearch ) )
+			if ( CSHA::HashFromURN( m_sSearch, &m_pSHA1 ) )
 			{
+				m_bSHA1 = TRUE;
 				bHash = TRUE;
 			}
 		}
 		
-		if ( ! m_oTiger )
+		if ( ! m_bTiger )
 		{
-			if ( m_oTiger.fromUrn( m_sSearch ) )
+			if ( CTigerNode::HashFromURN( m_sSearch, &m_pTiger ) )
 			{
+				m_bTiger = TRUE;
 				bHash = TRUE;
 			}
 		}
-
-		if ( ! m_oED2K )
+		
+		if ( ! m_bED2K )
 		{
-			if ( m_oED2K.fromUrn( m_sSearch ) )
+			if ( CED2K::HashFromURN( m_sSearch, &m_pED2K ) )
 			{
+				m_bED2K = TRUE;
 				bHash = TRUE;
 			}
 		}
-
-		if ( bHash ) 
-		{
-			int nFirstSpace = m_sSearch.Find( _T(" ") );
-			if ( nFirstSpace != -1 )
-				m_sSearch = m_sSearch.Mid( nFirstSpace + 1 );
-			else
-				m_sSearch.Empty();
-		}
+		
+		if ( bHash ) m_sSearch.Empty();
 	}
-
-	if ( bHash )
-	{
-		AddStringToWordList( m_sSearch );
-	}
-	else
-	{
-		MakeKeywords( m_sKeywords, bExpression );
-		AddStringToWordList( m_sKeywords );
-	}
-
+	
+	AddStringToWordList( m_sSearch );
+	
 	if ( m_pXML == NULL ) return;
 	
 	if ( CXMLElement* pXML = m_pXML->GetFirstElement() )
@@ -1183,8 +1188,8 @@ void CQuerySearch::BuildWordList(bool bExpression)
 				{
 					if ( CXMLAttribute* pAttribute = pXML->GetAttribute( pMember->m_sName ) )
 					{
-						ToLower( pAttribute->m_sValue );
-						MakeKeywords( pAttribute->m_sValue, bExpression );
+						CharLower( pAttribute->m_sValue.GetBuffer() );
+						pAttribute->m_sValue.ReleaseBuffer();
 						AddStringToWordList( pAttribute->m_sValue );
 					}
 				}
@@ -1195,110 +1200,12 @@ void CQuerySearch::BuildWordList(bool bExpression)
 			for ( POSITION pos = pXML->GetAttributeIterator() ; pos ; )
 			{
 				CXMLAttribute* pAttribute = pXML->GetNextAttribute( pos );
-				ToLower( pAttribute->m_sValue );
-				MakeKeywords( pAttribute->m_sValue, bExpression );
+				CharLower( pAttribute->m_sValue.GetBuffer() );
+				pAttribute->m_sValue.ReleaseBuffer();
 				AddStringToWordList( pAttribute->m_sValue );
 			}
 		}
 	}
-}
-
-// Function is used to split a phrase in asian languages to separate keywords
-// to ease keyword matching, allowing user to type as in the natural language.
-// Spacebar key is not a convenient way to separate keywords with IME, and user
-// may not know how application is keywording their files.
-//
-// The function splits katakana, hiragana and CJK phrases out of the input string.
-// ToDo: "minus" words and quoted phrases for asian languages may not work correctly in all cases.
-void CQuerySearch::MakeKeywords(CString& strPhrase, bool bExpression)
-{
-	if ( strPhrase.IsEmpty() ) return;
-
-	CString str( L" " );
-	LPCTSTR pszPtr = strPhrase;
-	ScriptType boundary[ 2 ] = { sNone, sNone };
-    int nPos = 0;
-	int nPrevWord = 0;
-
-	for ( ; *pszPtr ; nPos++, pszPtr++ )
-	{
-		// boundary[ 0 ] -- previous character;
-		// boundary[ 1 ] -- current character;
-		boundary[ 0 ] = boundary[ 1 ];
-
-		if ( IsKanji( *pszPtr ) )
-			boundary[ 1 ] = sKanji;
-		else if ( IsKatakana( *pszPtr ) && IsHiragana( *pszPtr ) )
-		{
-			if ( boundary[ 0 ] == sKatakana || boundary[ 0 ] == sHiragana )
-				boundary[ 1 ] = boundary[ 0 ];
-		}
-		else if ( IsKatakana( *pszPtr ) )
-			boundary[ 1 ] = sKatakana;
-		else if ( IsHiragana( *pszPtr ) )
-			boundary[ 1 ] = sHiragana;
-		else
-			boundary[ 1 ] = sRegular;
-
-		bool bCharacter = IsCharacter( *pszPtr ) || 
-			bExpression && ( *pszPtr == '-' || *pszPtr == '"' );
-		int nDistance = !bCharacter ? 1 : 0;
-
-		if ( !bCharacter || boundary[ 0 ] != boundary[ 1 ] && nPos )
-		{
-			if ( nPos > nPrevWord )
-			{
-				ASSERT( !str.IsEmpty() );
-				TCHAR sz = TCHAR( str.Right( 2 ).GetAt( 0 ) );
-				if ( boundary[ 0 ] > sRegular && _tcschr( L" -\"", sz ) != NULL &&
-					!_istdigit( TCHAR( str.Right( nPos < 3 ? 1 : 3 ).GetAt( 0 ) ) ) )
-				{
-					// Join two phrases if the previous was a sigle characters word.
-				}
-				else if ( str.Right( 1 ) != ' ' )
-				{
-					if ( str.Right( 1 ) != '-' || str.Right( 1 ) != '"' || *pszPtr == '"' )
-						str.Append( L" " );
-				}
-				ASSERT( strPhrase.GetLength() > nPos - 1 );
-				if ( _tcschr( L"-", strPhrase.GetAt( nPos - 1 ) ) != NULL )
-				{
-					ASSERT( strPhrase.GetLength() > nPos - 2 );
-					if ( *pszPtr != ' ' && strPhrase.GetAt( nPos - 2 ) != ' ' )
-					{
-						nPrevWord += nDistance + 1;
-						continue;
-					}
-					else
-					{
-						str += strPhrase.Mid( nPrevWord, nPos - nDistance - nPrevWord );
-					}
-				}
-				else
-				{
-					str += strPhrase.Mid( nPrevWord, nPos - nPrevWord );
-				}
-			}
-			nPrevWord = nPos + nDistance;
-		}
-	}
-
-	ASSERT( !str.IsEmpty() );
-	TCHAR sz = TCHAR( str.Right( 2 ).GetAt( 0 ) );
-	if ( boundary[ 0 ] > sRegular && _tcschr( L" -\"", sz ) != NULL &&
-		 boundary[ 1 ] > sRegular )
-	{
-		// Join two phrases if the previous was a sigle characters word.
-	}
-	else if ( str.Right( 1 ) != ' ' )
-	{
-		if ( str.Right( 1 ) != '-' || str.Right( 1 ) != '"' )
-			str.Append( L" " );
-	}
-	str += strPhrase.Mid( nPrevWord, nPos - nPrevWord );
-
-	strPhrase = str.TrimLeft().TrimRight( L" -" );
-	return;
 }
 
 void CQuerySearch::AddStringToWordList(LPCTSTR pszString)
@@ -1321,7 +1228,24 @@ void CQuerySearch::AddStringToWordList(LPCTSTR pszString)
 		{
 			if ( ! bNegate && pszWord + 1 < pszPtr && IsWord( pszWord, 0, pszPtr - pszWord ) )
 			{
-				m_oWords.insert( std::make_pair( pszWord, pszPtr - pszWord ) );
+				if ( ( m_nWords & 0x1F ) == 0 )
+				{
+					LPCTSTR* pWordPtr = new LPCTSTR[ ( m_nWords | 0x1F ) + 1 ];
+					DWORD* pWordLen = new DWORD[ ( m_nWords | 0x1F ) + 1 ];
+					if ( m_pWordPtr )
+					{
+						CopyMemory( pWordPtr, m_pWordPtr, 4 * m_nWords );
+						CopyMemory( pWordLen, m_pWordLen, 4 * m_nWords );
+						delete [] m_pWordPtr;
+						delete [] m_pWordLen;
+					}
+					m_pWordPtr = pWordPtr;
+					m_pWordLen = pWordLen;
+				}
+				
+				m_pWordPtr[ m_nWords ] = pszWord;
+				m_pWordLen[ m_nWords ] = pszPtr - pszWord;
+				m_nWords++;
 			}
 			
 			pszWord = pszPtr + 1;
@@ -1347,7 +1271,24 @@ void CQuerySearch::AddStringToWordList(LPCTSTR pszString)
 	
 	if ( ! bNegate && pszWord + 1 < pszPtr && IsWord( pszWord, 0, pszPtr - pszWord ) )
 	{
-		m_oWords.insert( std::make_pair( pszWord, pszPtr - pszWord ) );
+		if ( ( m_nWords & 0x1F ) == 0 )
+		{
+			LPCTSTR* pWordPtr = new LPCTSTR[ ( m_nWords | 0x1F ) + 1 ];
+			DWORD* pWordLen = new DWORD[ ( m_nWords | 0x1F ) + 1 ];
+			if ( m_pWordPtr )
+			{
+				CopyMemory( pWordPtr, m_pWordPtr, 4 * m_nWords );
+				CopyMemory( pWordLen, m_pWordLen, 4 * m_nWords );
+				delete [] m_pWordPtr;
+				delete [] m_pWordLen;
+			}
+			m_pWordPtr = pWordPtr;
+			m_pWordLen = pWordLen;
+		}
+		
+		m_pWordPtr[ m_nWords ] = pszWord;
+		m_pWordLen[ m_nWords ] = pszPtr - pszWord;
+		m_nWords++;
 	}
 }
 
@@ -1363,14 +1304,18 @@ void CQuerySearch::Serialize(CArchive& ar)
 	{
 		ar << nVersion;
 		
-		ar.Write( &m_oGUID[ 0 ], Hashes::Guid::byteCount );
+		ar.Write( &m_pGUID, sizeof(GGUID) );
 		
 		ar << m_sSearch;
 		
-		SerializeOut( ar, m_oSHA1 );
-		SerializeOut( ar, m_oTiger );
-		SerializeOut( ar, m_oED2K );
-		SerializeOut( ar, m_oBTH );
+		ar << m_bSHA1;
+		if ( m_bSHA1 ) ar.Write( &m_pSHA1, sizeof(SHA1) );
+		ar << m_bTiger;
+		if ( m_bTiger ) ar.Write( &m_pTiger, sizeof(TIGEROOT) );
+		ar << m_bED2K;
+		if ( m_bED2K ) ar.Write( &m_pED2K, sizeof(MD4) );
+		ar << m_bBTH;
+		if ( m_bBTH ) ar.Write( &m_pBTH, sizeof(SHA1) );
 		
 		if ( m_pSchema != NULL && m_pXML != NULL )
 		{
@@ -1393,14 +1338,18 @@ void CQuerySearch::Serialize(CArchive& ar)
 		ar >> nVersion;
 		if ( nVersion < 4 ) AfxThrowUserException();
 		
-		ar.Read( &m_oGUID[ 0 ], Hashes::Guid::byteCount );
+		ar.Read( &m_pGUID, sizeof(GGUID) );
 		
 		ar >> m_sSearch;
 		
-		SerializeIn( ar, m_oSHA1, nVersion );
-		SerializeIn( ar, m_oTiger, nVersion );
-		SerializeIn( ar, m_oED2K, nVersion );
-		SerializeIn( ar, m_oBTH, nVersion );
+		ar >> m_bSHA1;
+		if ( m_bSHA1 ) ar.Read( &m_pSHA1, sizeof(SHA1) );
+		ar >> m_bTiger;
+		if ( m_bTiger ) ar.Read( &m_pTiger, sizeof(TIGEROOT) );
+		ar >> m_bED2K;
+		if ( m_bED2K ) ar.Read( &m_pED2K, sizeof(MD4) );
+		if ( nVersion >= 6 ) ar >> m_bBTH;
+		if ( m_bBTH ) ar.Read( &m_pBTH, sizeof(SHA1) );
 		
 		ar >> strURI;
 		
@@ -1427,15 +1376,11 @@ void CQuerySearch::Serialize(CArchive& ar)
 //////////////////////////////////////////////////////////////////////
 // CQuerySearch open window
 
-CSearchWnd* CQuerySearch::OpenWindow(auto_ptr< CQuerySearch > pSearch)
+CSearchWnd* CQuerySearch::OpenWindow()
 {
-	if ( !pSearch.get() ) 
-		return NULL;
-
-	pSearch->BuildWordList( false );
-	if ( pSearch->CheckValid( false ) )
+	if ( this != NULL && CheckValid() )
 	{
-		return new CSearchWnd( pSearch );
+		return new CSearchWnd( this );
 	}
 	else
 	{

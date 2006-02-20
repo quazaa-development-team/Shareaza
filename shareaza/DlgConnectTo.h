@@ -46,13 +46,13 @@ public:
 	CString	m_sHost;
 	BOOL	m_bNoUltraPeer;
 	int		m_nPort;
-	PROTOCOLID	m_nProtocol;
+	int		m_nProtocol;
 	//}}AFX_DATA
 
 	CImageList	m_pImages;
 	BOOL		m_bBrowseHost;
 
-	void		LoadItem(INT_PTR nItem);
+	void		LoadItem(int nItem);
 
 // Overrides
 public:

@@ -30,7 +30,7 @@ class CDownloadTask;
 class CDownloadBase
 {
 // Construction
-protected:
+public:
 	CDownloadBase();
 	virtual ~CDownloadBase();
 
@@ -38,30 +38,43 @@ protected:
 public:
 	int			m_nCookie;
 public:
-	CString		m_sDisplayName;				// The name of the file (Displayed in windows, etc). May have 'unsafe' characters
-	CString		m_sSafeName;				// The name, with invalid characters removed. (A meaningful local disk name)
-	CString		m_sDiskName;				// The name and path of the incomplete file on disk (the .partial). 
-											// The .sd will be the same as above with ".sd" on the end
+	CString		m_sRemoteName;
+	CString		m_sLocalName;
 	QWORD		m_nSize;
 public:
-    Hashes::Sha1ManagedHash m_oSHA1;
-    Hashes::TigerManagedHash m_oTiger;
-    Hashes::Md5ManagedHash m_oMD5;
-    Hashes::Ed2kManagedHash m_oED2K;
-    Hashes::BtManagedHash m_oBTH;
+	BOOL		m_bSHA1;
+	SHA1		m_pSHA1;
+	BOOL		m_bSHA1Trusted;
+	BOOL		m_bTiger;
+	TIGEROOT	m_pTiger;
+	BOOL		m_bTigerTrusted;
+	BOOL		m_bMD5;
+	MD5			m_pMD5;
+	BOOL		m_bMD5Trusted;
+	BOOL		m_bED2K;
+	MD4			m_pED2K;
+	BOOL		m_bED2KTrusted;
+	BOOL		m_bBTH;
+	SHA1		m_pBTH;
+	BOOL		m_bBTHTrusted;
 protected:
 	CDownloadTask*	m_pTask;
 
 // Operations
 public:
-	BOOL	        IsTasking() const { return m_pTask != NULL; }
+	virtual void	Pause() = 0;
+	virtual void	Resume() = 0;
+	virtual void	Remove(BOOL bDelete = FALSE) = 0;
+	virtual void	Boost() = 0;
+	virtual BOOL	IsPaused() const = 0;
+	virtual BOOL	IsMoving() const = 0;
+	virtual BOOL	IsCompleted() const = 0;
+	virtual BOOL	IsTasking() { return m_pTask != NULL; }
+	virtual BOOL	IsTrying() const = 0;
+public:
 	void			SetModified();
 protected:
-	virtual BOOL	IsCompleted() const = 0;
-	virtual BOOL	IsMoving() const = 0;
-	virtual BOOL	IsPaused() const = 0;
-	virtual BOOL	IsTrying() const = 0;
-	void			GenerateDiskName();
+	void			GenerateLocalName();
 	virtual void	Serialize(CArchive& ar, int nVersion);
 
 };

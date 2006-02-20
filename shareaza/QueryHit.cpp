@@ -51,13 +51,17 @@ static char THIS_FILE[]=__FILE__;
 //////////////////////////////////////////////////////////////////////
 // CQueryHit construction
 
-CQueryHit::CQueryHit(PROTOCOLID nProtocol, const Hashes::Guid& oSearchID)
+CQueryHit::CQueryHit(PROTOCOLID nProtocol, GGUID* pSearchID)
 {
 	m_pNext = NULL;
 	
-	m_oSearchID = oSearchID;
+	if ( pSearchID != NULL )
+		m_pSearchID = *pSearchID;
+	else
+		m_pSearchID = (GGUID&)GUID_NULL;
 	
 	m_nProtocol		= nProtocol;
+	m_pClientID		= (GGUID&)GUID_NULL;
 	m_pAddress.S_un.S_addr = 0;
 	m_nPort			= 0;
 	m_nSpeed		= 0;
@@ -71,10 +75,10 @@ CQueryHit::CQueryHit(PROTOCOLID nProtocol, const Hashes::Guid& oSearchID)
 	m_bBrowseHost	= FALSE;
 	
 	m_nGroup		= 0;
-//	m_bSHA1			= FALSE;
-//	m_bTiger		= FALSE;
-//	m_bED2K			= FALSE;
-//	m_bBTH			= FALSE;
+	m_bSHA1			= FALSE;
+	m_bTiger		= FALSE;
+	m_bED2K			= FALSE;
+	m_bBTH			= FALSE;
 	m_nIndex		= 0;
 	m_bSize			= FALSE;
 	m_nSize			= 0;
@@ -90,7 +94,6 @@ CQueryHit::CQueryHit(PROTOCOLID nProtocol, const Hashes::Guid& oSearchID)
 	
 	m_bBogus		= FALSE;
 	m_bMatched		= FALSE;
-	m_bExactMatch	= FALSE;
 	m_bFiltered		= FALSE;
 	m_bDownload		= FALSE;
 	m_bNew			= FALSE;
@@ -111,7 +114,7 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 	CQueryHit* pFirstHit	= NULL;
 	CQueryHit* pLastHit		= NULL;
 	CXMLElement* pXML		= NULL;
-	Hashes::Guid oQueryID;
+	GGUID pQueryID;
 	
 	if ( pPacket->m_nProtocol == PROTOCOL_G2 )
 	{
@@ -119,12 +122,12 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 		if ( ! ((CG2Packet*)pPacket)->SeekToWrapped() ) return NULL;
 		pPacket->Read( &pG1, sizeof(pG1) );
 		
-		oQueryID = pG1.m_oGUID;
+		pQueryID = pG1.m_pGUID;
 		if ( pnHops ) *pnHops = pG1.m_nHops + 1;
 	}
 	else
 	{
-		oQueryID = pPacket->m_oGUID;
+		pQueryID = pPacket->m_pGUID;
 		if ( pnHops ) *pnHops = pPacket->m_nHops + 1;
 	}
 	
@@ -135,14 +138,11 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 		DWORD	nAddress	= pPacket->ReadLongLE();
 		DWORD	nSpeed		= pPacket->ReadLongLE();
 		
-		if ( Network.IsReserved( (IN_ADDR*)&nAddress ) )
-			AfxThrowUserException();
-
 		if ( ! nCount ) AfxThrowUserException();
 		
 		while ( nCount-- )
 		{
-			CQueryHit* pHit = new CQueryHit( PROTOCOL_G1, oQueryID );
+			CQueryHit* pHit = new CQueryHit( PROTOCOL_G1, &pQueryID );
 			if ( pFirstHit ) pLastHit->m_pNext = pHit;
 			else pFirstHit = pHit;
 			pLastHit = pHit;
@@ -208,8 +208,6 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 		{
 			pPacket->Seek( 16 + nXMLSize, CG1Packet::seekEnd );
 			pXML = ReadXML( pPacket, nXMLSize );
-			if ( pXML == NULL && nXMLSize > 1 )
-				theApp.Message( MSG_DEBUG, L"Invalid compressed metadata. Vendor: %s", pVendor->m_sName );
 		}
 		
 		if ( ! nPort || Network.IsFirewalledAddress( &nAddress ) )
@@ -218,16 +216,16 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 			nFlags[1] |= G1_QHD_PUSH;
 		}
 		
-		Hashes::Guid oClientID;
+		GGUID pClientID;
 		
 		pPacket->Seek( 16, CG1Packet::seekEnd );
-		pPacket->Read( oClientID );
+		pPacket->Read( &pClientID, sizeof(pClientID) );
 		
 		DWORD nIndex = 0;
 		
 		for ( pLastHit = pFirstHit ; pLastHit ; pLastHit = pLastHit->m_pNext, nIndex++ )
 		{
-			pLastHit->ParseAttributes( oClientID, pVendor, nFlags, bChat, bBrowseHost );
+			pLastHit->ParseAttributes( &pClientID, pVendor, nFlags, bChat, bBrowseHost );
 			pLastHit->Resolve();
 			if ( pXML ) pLastHit->ParseXML( pXML, nIndex );
 		}
@@ -263,8 +261,9 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 	CQueryHit* pLastHit		= NULL;
 	CXMLElement* pXML		= NULL;
 	
-	Hashes::Guid oSearchID;
-	Hashes::Guid oClientID, oIncrID;
+	GGUID		pSearchID;
+	GGUID		pClientID, pIncrID;
+	BOOL		bClientID	= FALSE;
 	
 	DWORD		nAddress	= 0;
 	WORD		nPort		= 0;
@@ -276,16 +275,16 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 	CVendor*	pVendor		= VendorCache.m_pNull;
 	
 	CString		strNick;
-	DWORD		nGroupState[8][4] = {};
+	DWORD		nGroupState[8][4];
+	
+	ZeroMemory( nGroupState, sizeof(nGroupState) );
 	
 	try
 	{
 		BOOL bCompound;
 		CHAR szType[9];
 		DWORD nLength;
-		bool bSpam = false;
-		DWORD nPrevHubAddress = 0;
-
+		
 		while ( pPacket->ReadPacket( szType, nLength, &bCompound ) )
 		{
 			DWORD nSkip = pPacket->m_nPosition + nLength;
@@ -302,7 +301,7 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 			
 			if ( strcmp( szType, "H" ) == 0 && bCompound )
 			{
-				CQueryHit* pHit = new CQueryHit( PROTOCOL_G2 );
+				CQueryHit* pHit = new CQueryHit( PROTOCOL_G2);
 				
 				if ( pFirstHit ) pLastHit->m_pNext = pHit;
 				else pFirstHit = pHit;
@@ -350,27 +349,18 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 				pHub.sin_addr.S_un.S_addr	= pPacket->ReadLongLE();
 				pHub.sin_port				= htons( pPacket->ReadShortBE() );
 				
-				// ToDo: We should check if ALL hubs are unique
-				if ( nPrevHubAddress == pHub.sin_addr.S_un.S_addr )
-				{
-					bSpam = true;
-				}
-				nPrevHubAddress = pHub.sin_addr.S_un.S_addr;
-
-				oIncrID[15]++;
-				oIncrID.validate();
-				Network.NodeRoute->Add( oIncrID, &pHub );
+				pIncrID.n[15] ++;
+				Network.NodeRoute->Add( &pIncrID, &pHub );
 			}
 			else if ( strcmp( szType, "GU" ) == 0 && nLength == 16 )
 			{
-				pPacket->Read( oClientID );
-				oIncrID		= oClientID;
+				pPacket->Read( &pClientID, sizeof(GGUID) );
+				bClientID	= TRUE;
+				pIncrID		= pClientID;
 			}
 			else if ( ( strcmp( szType, "NA" ) == 0 || strcmp( szType, "NI" ) == 0 ) && nLength >= 6 )
 			{
 				nAddress	= pPacket->ReadLongLE();
-				if ( Network.IsReserved( (IN_ADDR*)&nAddress ) )
-					AfxThrowUserException();
 				nPort		= pPacket->ReadShortBE();
 			}
 			else if ( strcmp( szType, "V" ) == 0 && nLength >= 4 )
@@ -398,19 +388,13 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 			{
 				CHAR szInner[9];
 				DWORD nInner;
-				DWORD ip;
-
+				
 				while ( pPacket->m_nPosition < nSkip && pPacket->ReadPacket( szInner, nInner ) )
 				{
 					DWORD nSkipInner = pPacket->m_nPosition + nInner;
 					if ( strcmp( szInner, "NICK" ) == 0 )
 					{
 						strNick = pPacket->ReadString( nInner );
-						USES_CONVERSION;
-						LPCSTR pszIP = CT2CA( (LPCTSTR)strNick );
-						ip = inet_addr( pszIP );
-						if ( ip != INADDR_NONE && nAddress != ip )
-							bSpam = true;
 					}
 					pPacket->m_nPosition = nSkipInner;
 				}
@@ -459,13 +443,13 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 			pPacket->m_nPosition = nSkip;
 		}
 		
-		if ( ! oClientID ) AfxThrowUserException();
+		if ( ! bClientID ) AfxThrowUserException();
 		if ( pPacket->GetRemaining() < 17 ) AfxThrowUserException();
 		
 		BYTE nHops = pPacket->ReadByte() + 1;
 		if ( pnHops ) *pnHops = nHops;
 		
-		pPacket->Read( oSearchID );
+		pPacket->Read( &pSearchID, sizeof(GGUID) );
 		
 		if ( ! bPush ) bPush = ( nPort == 0 || Network.IsFirewalledAddress( &nAddress ) );
 		
@@ -475,8 +459,8 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 		{
 			if ( nGroupState[ pLastHit->m_nGroup ][0] == FALSE ) pLastHit->m_nGroup = 0;
 			
-			pLastHit->m_oSearchID	= oSearchID;
-			pLastHit->m_oClientID	= oClientID;
+			pLastHit->m_pSearchID	= pSearchID;
+			pLastHit->m_pClientID	= pClientID;
 			pLastHit->m_pAddress	= *(IN_ADDR*)&nAddress;
 			pLastHit->m_nPort		= nPort;
 			pLastHit->m_pVendor		= pVendor;
@@ -501,15 +485,7 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 			if ( pXML ) pLastHit->ParseXML( pXML, nIndex );
 		}
 		
-		if ( bSpam == true && pFirstHit )
-		{
-			for ( CQueryHit* pHit = pFirstHit ; pHit ; pHit = pHit->m_pNext )
-			{
-				pHit->m_bBogus = TRUE;
-			}			
-		}
-		else
-			CheckBogus( pFirstHit );
+		CheckBogus( pFirstHit );
 	}
 	catch ( CException* pException )
 	{
@@ -527,11 +503,11 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 //////////////////////////////////////////////////////////////////////
 // CQueryHit from ED2K packet
 
-CQueryHit* CQueryHit::FromPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_nServerFlags, const Hashes::Guid& oSearchID )
+CQueryHit* CQueryHit::FromPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_nServerFlags, GGUID* pSearchID )
 {
 	CQueryHit* pFirstHit	= NULL;
 	CQueryHit* pLastHit		= NULL;
-    Hashes::Ed2kHash oHash;
+	MD4 pHash;
 	
 	if ( pPacket->m_nType == ED2K_S2C_SEARCHRESULTS ||
 		 pPacket->m_nType == ED2K_S2CG_SEARCHRESULT )
@@ -544,9 +520,9 @@ CQueryHit* CQueryHit::FromPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD
 			nCount = pPacket->ReadLongLE();
 		}
 		
-        while ( nCount-- > 0 && pPacket->GetRemaining() >= Hashes::Ed2kHash::byteCount + 10 )
+		while ( nCount-- > 0 && pPacket->GetRemaining() >= sizeof(MD4) + 10 )
 		{
-			CQueryHit* pHit = new CQueryHit( PROTOCOL_ED2K, oSearchID );
+			CQueryHit* pHit = new CQueryHit( PROTOCOL_ED2K, pSearchID );
 			if ( pFirstHit ) pLastHit->m_pNext = pHit;
 			else pFirstHit = pHit;
 			pLastHit = pHit;
@@ -558,7 +534,7 @@ CQueryHit* CQueryHit::FromPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD
 			if ( ! pHit->ReadEDPacket( pPacket, pServer, m_nServerFlags ) ) break;
 			pHit->Resolve();
 
-			if ( pHit->m_bPush == TS_TRUE )
+			if( pHit->m_bPush == TS_TRUE )
 			{
 				//pHit->m_sNick		= _T("(Low ID)");
 				pHit->m_nPort		= 0;
@@ -568,14 +544,14 @@ CQueryHit* CQueryHit::FromPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD
 	else if (	pPacket->m_nType == ED2K_S2C_FOUNDSOURCES ||
 				pPacket->m_nType == ED2K_S2CG_FOUNDSOURCES )
 	{
-        if ( pPacket->GetRemaining() < Hashes::Ed2kHash::byteCount + 1 ) return NULL;
-		pPacket->Read( oHash );
+		if ( pPacket->GetRemaining() < sizeof(MD4) + 1 ) return NULL;
+		pPacket->Read( &pHash, sizeof(MD4) );
 
 		BYTE nCount = pPacket->ReadByte();
 		
 		while ( nCount-- > 0 && pPacket->GetRemaining() >= 6 )
 		{
-			CQueryHit* pHit = new CQueryHit( PROTOCOL_ED2K, oSearchID );
+			CQueryHit* pHit = new CQueryHit( PROTOCOL_ED2K, pSearchID );
 			if ( pFirstHit ) pLastHit->m_pNext = pHit;
 			else pFirstHit = pHit;
 			pLastHit = pHit;
@@ -583,7 +559,8 @@ CQueryHit* CQueryHit::FromPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD
 			// Enable chat for ed2k hits
 			pHit->m_bChat = TRUE;
 
-			pHit->m_oED2K = oHash;
+			pHit->m_bED2K = TRUE;
+			pHit->m_pED2K = pHash;
 			pHit->m_pVendor = VendorCache.m_pED2K;
 			pHit->ReadEDAddress( pPacket, pServer );
 			pHit->Resolve();
@@ -593,7 +570,7 @@ CQueryHit* CQueryHit::FromPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD
 	// Enable chat for ed2k hits
 	//pFirstHit->m_bChat = TRUE;
 	
-	CheckBogus( pFirstHit );
+	// CheckBogus( pFirstHit );
 	
 	return pFirstHit;
 }
@@ -603,16 +580,68 @@ CQueryHit* CQueryHit::FromPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD
 
 BOOL CQueryHit::CheckBogus(CQueryHit* pFirstHit)
 {
+	CString strBase, strTest;
 	int nBogus = 0;
 	
 	if ( pFirstHit == NULL ) return TRUE;
-
+	
 	for ( CQueryHit* pHit = pFirstHit->m_pNext ; pHit ; pHit = pHit->m_pNext )
 	{
-		if ( validAndEqual( pFirstHit->m_oSHA1, pHit->m_oSHA1 ) )
-			nBogus++;
-		else if ( validAndEqual( pFirstHit->m_oED2K, pHit->m_oED2K ) )
-			nBogus++;
+		LPCTSTR pszBase = pFirstHit->m_sName;
+		LPCTSTR pszTest = pHit->m_sName;
+		
+		if ( *pszBase == 0 || *pszTest == 0 ) continue;
+		
+		BOOL bDots = FALSE;
+		BOOL bDiff = FALSE;
+		
+		while ( TRUE )
+		{
+			while ( *pszBase && ( *pszBase == '!' || *pszBase == '@' || ! _istgraph( *pszBase ) ) ) pszBase++;
+			while ( *pszTest && ( *pszTest == '!' || *pszTest == '@' || ! _istgraph( *pszTest ) ) ) pszTest++;
+			
+			if ( ! *pszBase || ! *pszTest ) break;
+			
+			if ( *pszBase == '.' || *pszTest == '.' )
+			{
+				bDots = TRUE;
+				
+				if ( *pszBase == '.' && *pszTest == '.' )
+				{
+					if ( bDiff )
+					{
+						bDiff = FALSE;
+						break;
+					}
+				}
+				else
+				{
+					bDiff = FALSE;
+					break;
+				}
+			}
+			
+			TCHAR cBaseChar = {0}; TCHAR cTestChar = {0};
+			if ( *pszBase == 0x3C2 )
+				cBaseChar = ToLowerCase[ *pszBase + 1 ]; // replace the last greek sigma with an ordinary
+			else
+				cBaseChar = ToLowerCase[ *pszBase ];
+
+			if ( *pszTest == 0x3C2 )
+				cTestChar = ToLowerCase[ *pszTest + 1 ];
+			else
+				cTestChar = ToLowerCase[ *pszTest ];
+
+			if ( ! bDiff && cBaseChar != cTestChar ) bDiff = TRUE;
+			
+			pszBase++;
+			pszTest++;
+		}
+		
+		if ( bDots && bDiff )
+		{
+			if ( ++nBogus >= 2 ) break;
+		}
 	}
 	
 	if ( nBogus < 2 ) return FALSE;
@@ -637,14 +666,14 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize)
 	
 	if ( nSize >= 9 && strncmp( (LPCSTR)pRaw, "{deflate}", 9 ) == 0 )
 	{
-		auto_array< BYTE > pText( CZLib::Decompress( pRaw + 9, nSize - 10, (DWORD*)&nSize ) );
+		BYTE* pText = (BYTE*)CZLib::Decompress( pRaw + 9, nSize - 10, (DWORD*)&nSize );
 		
-		if ( pText.get() != NULL )
+		if ( pText != NULL )
 		{
 			LPTSTR pOut = strXML.GetBuffer( nSize );
-			for ( int nPos = 0 ; nPos < nSize ; nPos++ )
-				pOut[ nPos ] = (TCHAR)pText[ nPos ];
+			for ( int nPos = 0 ; nPos < nSize ; nPos++ ) pOut[ nPos ] = (TCHAR)pText[ nPos ];
 			strXML.ReleaseBuffer( nSize );
+			delete [] pText;
 		}
 	}
 	else if ( nSize >= 11 && strncmp( (LPCSTR)pRaw, "{plaintext}", 11 ) == 0 )
@@ -652,17 +681,12 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize)
 		LPCSTR pszRaw = (LPCSTR)pRaw + 11;
 		if ( strlen( pszRaw ) == (DWORD)nSize - 12 ) strXML = pszRaw;
 	}
-	else if ( nSize >= 2 && strncmp( (LPCSTR)pRaw, "{}", 2 ) == 0 )
-	{
-		LPCSTR pszRaw = (LPCSTR)pRaw + 2;
-		if ( strlen( pszRaw ) == (DWORD)nSize - 3 ) strXML = pszRaw;
-	}
 	else
 	{
 		LPCSTR pszRaw = (LPCSTR)pRaw;
 		if ( strlen( pszRaw ) == (DWORD)nSize - 1 ) strXML = pszRaw;
 	}
-
+	
 	delete [] pRaw;
 	
 	CXMLElement* pRoot	= NULL;
@@ -717,7 +741,7 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 	}
 
 	strData		= pPacket->ReadString();
-
+	
 	if ( m_sName.GetLength() > 160 )
 	{
 		m_bBogus = TRUE;
@@ -758,22 +782,22 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 			{
 				if ( pItem->m_pBuffer[0] > 0 && pItem->m_pBuffer[0] < 3 )
 				{
-                    std::copy( &pItem->m_pBuffer[21], &pItem->m_pBuffer[21] + 20, &m_oSHA1[ 0 ] );
-                    m_oSHA1.validate();
+					CopyMemory( &m_pSHA1, &pItem->m_pBuffer[1], 20 );
+					m_bSHA1 = ! CSHA::IsNull(&m_pSHA1);
 				}
 				if ( pItem->m_pBuffer[0] == 2 && pItem->m_nLength >= 24 + 20 + 1 )
 				{
-                    std::copy( &pItem->m_pBuffer[21], &pItem->m_pBuffer[21] + 24, &m_oTiger[ 0 ] );
-                    m_oTiger.validate();
+					CopyMemory( &m_pTiger, &pItem->m_pBuffer[21], 24 );
+					m_bTiger = ! CTigerNode::IsNull(&m_pTiger);
 				}
 			}
 			else if ( CGGEPItem* pItem = pGGEP.Find( _T("u"), 5 + 32 ) )
 			{
 				strData = pItem->ToString();
 				
-				if ( !m_oSHA1 ) m_oSHA1.fromUrn( strData );
-				if ( !m_oTiger ) m_oTiger.fromUrn( strData );
-				if ( !m_oED2K ) m_oED2K.fromUrn( strData );
+				m_bSHA1		|= CSHA::HashFromURN( strData, &m_pSHA1 );
+				m_bTiger	|= CTigerNode::HashFromURN( strData, &m_pTiger );
+				m_bED2K		|= CED2K::HashFromURN( strData, &m_pED2K );
 			}
 			
 			if ( CGGEPItem* pItem = pGGEP.Find( _T("ALT"), 6 ) )
@@ -786,13 +810,13 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 		}
 		
 		LPCTSTR pszSep = _tcschr( pszData, 0x1C );
-		size_t nLength = pszSep ? pszSep - pszData : _tcslen( pszData );
+		int nLength = pszSep ? pszSep - pszData : _tcslen( pszData );
 		
 		if ( _tcsnicmp( pszData, _T("urn:"), 4 ) == 0 )
 		{
-			if ( !m_oSHA1 ) m_oSHA1.fromUrn( pszData );
-			if ( !m_oTiger ) m_oTiger.fromUrn( pszData );
-			if ( !m_oED2K ) m_oED2K.fromUrn( pszData );
+			m_bSHA1		|= CSHA::HashFromURN( pszData, &m_pSHA1 );
+			m_bTiger	|= CTigerNode::HashFromURN( pszData, &m_pTiger );
+			m_bED2K		|= CED2K::HashFromURN( pszData, &m_pED2K );
 		}
 		else if ( nLength > 4 )
 		{
@@ -802,16 +826,14 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 		if ( pszSep ) pszData = pszSep + 1;
 		else break;
 	}
-	if ( !m_oSHA1 && !m_oTiger && !m_oED2K )
-		AfxThrowUserException();
 }
 
 //////////////////////////////////////////////////////////////////////
 // CQueryHit G1 attributes suffix
 
-void CQueryHit::ParseAttributes(const Hashes::Guid& oClientID, CVendor* pVendor, BYTE* nFlags, BOOL bChat, BOOL bBrowseHost)
+void CQueryHit::ParseAttributes(GGUID* pClientID, CVendor* pVendor, BYTE* nFlags, BOOL bChat, BOOL bBrowseHost)
 {
-	m_oClientID		= oClientID;
+	m_pClientID		= *pClientID;
 	m_pVendor		= pVendor;
 	m_bChat			= bChat;
 	m_bBrowseHost	= bBrowseHost;
@@ -848,29 +870,31 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength)
 			
 			if ( nPacket >= 20 && strURN == _T("sha1") )
 			{
-				pPacket->Read( m_oSHA1 );
-                m_oSHA1.validate();
+				pPacket->Read( &m_pSHA1, sizeof(SHA1) );
+				m_bSHA1 = ! CSHA::IsNull(&m_pSHA1);
 			}
 			else if ( nPacket >= 44 && ( strURN == _T("bp") || strURN == _T("bitprint") ) )
 			{
-				pPacket->Read( m_oSHA1 );
-                m_oSHA1.validate();
+				pPacket->Read( &m_pSHA1, sizeof(SHA1) );
+				m_bSHA1 = ! CSHA::IsNull(&m_pSHA1);
 
-				pPacket->Read( m_oTiger );
-				m_oTiger.validate();
+				pPacket->Read( &m_pTiger, sizeof(TIGEROOT) );
+				m_bTiger = ! CTigerNode::IsNull(&m_pTiger);
 			}
 			else if ( nPacket >= 24 && ( strURN == _T("ttr") || strURN == _T("tree:tiger/") ) )
 			{
-				pPacket->Read( m_oTiger );
-				m_oTiger.validate();
+				pPacket->Read( &m_pTiger, sizeof(TIGEROOT) );
+				m_bTiger = ! CTigerNode::IsNull(&m_pTiger);
 			}
 			else if ( nPacket >= 16 && strURN == _T("ed2k") )
 			{
-				pPacket->Read( m_oED2K );
+				m_bED2K = TRUE;
+				pPacket->Read( &m_pED2K, sizeof(MD4) );
 			}
 			else if ( nPacket >= 20 && strURN == _T("btih") )
 			{
-				pPacket->Read( m_oBTH );
+				m_bBTH = TRUE;
+				pPacket->Read( &m_pBTH, sizeof(SHA1) );
 			}
 		}
 		else if ( strcmp( szType, "URL" ) == 0 )
@@ -996,7 +1020,7 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength)
 		pPacket->m_nPosition = nSkip;
 	}
 	
-	if ( !m_oSHA1 && !m_oTiger && !m_oED2K && !m_oBTH ) AfxThrowUserException();
+	if ( ! m_bSHA1 && ! m_bTiger && ! m_bED2K && ! m_bBTH ) AfxThrowUserException();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1006,13 +1030,12 @@ BOOL CQueryHit::ReadEDPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_n
 {
 	CString strLength(_T("")), strBitrate(_T("")), strCodec(_T(""));
 	DWORD nLength = 0;
-	pPacket->Read( m_oED2K );
+	m_bED2K = TRUE;
+	pPacket->Read( &m_pED2K, sizeof(MD4) );
 	
 	ReadEDAddress( pPacket, pServer );
 	
 	DWORD nTags = pPacket->ReadLongLE();
-
-	QWORD nSize = 0;
 	
 	while ( nTags-- > 0 )
 	{
@@ -1031,11 +1054,8 @@ BOOL CQueryHit::ReadEDPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_n
 		}
 		else if ( pTag.m_nKey == ED2K_FT_FILESIZE )
 		{
-			nSize += pTag.m_nValue;
-		}
-		else if ( pTag.m_nKey == ED2K_FT_FILESIZEUPPER )
-		{
-			nSize += ( (QWORD)pTag.m_nValue << 32 );
+			m_bSize = TRUE;
+			m_nSize = pTag.m_nValue;
 		}
 		else if ( pTag.m_nKey == ED2K_FT_LASTSEENCOMPLETE )
 		{
@@ -1051,9 +1071,9 @@ BOOL CQueryHit::ReadEDPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_n
 		}
 		else if ( pTag.m_nKey == ED2K_FT_COMPLETESOURCES )
 		{
-			if ( ! pTag.m_nValue ) //If there are no complete sources
+			if ( ! pTag.m_nValue ) // If there are no complete sources
 			{
-				//Assume this file is 50% complete. (we can't tell yet, but at least this will warn the user)
+				// Assume this file is 50% complete. (we can't tell yet, but at least this will warn the user)
 				m_nPartial = (DWORD)m_nSize >> 2;
 				//theApp.Message( MSG_SYSTEM, _T("ED2K_FT_COMPLETESOURCES tag reports no complete sources.") );				
 			}
@@ -1063,15 +1083,15 @@ BOOL CQueryHit::ReadEDPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_n
 			}
 		}
 		else if ( pTag.m_nKey == ED2K_FT_LENGTH )
-		{	//Length- new style (DWORD)
+		{	// Length- new style (DWORD)
 			nLength = pTag.m_nValue;	
 		}
-		else if ( ( pTag.m_nKey == ED2K_FT_BITRATE ) )
-		{	//Bitrate- new style
+		else if ( pTag.m_nKey == ED2K_FT_BITRATE )
+		{	// Bitrate- new style
 			strBitrate.Format( _T("%lu"), pTag.m_nValue );
 		}
-		else if  ( ( pTag.m_nKey == ED2K_FT_CODEC ) )
-		{	//Codec - new style
+		else if  ( pTag.m_nKey == ED2K_FT_CODEC )
+		{	// Codec - new style
 			strCodec = pTag.m_sValue;
 		}
 		else if  ( pTag.m_nKey == ED2K_FT_FILERATING )
@@ -1099,9 +1119,9 @@ BOOL CQueryHit::ReadEDPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_n
 			// = ( pTag.m_nValue >> 8 ) & 0xFF;
 			// We could use this in the future to weight the rating...
 		}
-		//Note: Maybe ignore these keys? They seem to have a lot of bad values....
+		// Note: Maybe ignore these keys? They seem to have a lot of bad values....
 		else if ( ( pTag.m_nKey == 0 ) && ( pTag.m_nType == ED2K_TAG_STRING ) && ( pTag.m_sKey == _T("length") )  )
-		{	//Length- old style (As a string- x:x:x, x:x or x)
+		{	// Length- old style (As a string- x:x:x, x:x or x)
 			DWORD nSecs = 0, nMins = 0, nHours = 0;
 
 			if ( pTag.m_sValue.GetLength() < 3 )
@@ -1120,11 +1140,11 @@ BOOL CQueryHit::ReadEDPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_n
 			nLength = (nHours * 60 * 60) + (nMins * 60) + (nSecs);
 		}
 		else if ( ( pTag.m_nKey == 0 ) && ( pTag.m_nType == ED2K_TAG_INT ) && ( pTag.m_sKey == _T("bitrate") ) )
-		{	//Bitrate- old style			
+		{	// Bitrate- old style			
 			strBitrate.Format( _T("%lu"), pTag.m_nValue );
 		}
 		else if ( ( pTag.m_nKey == 0 ) && ( pTag.m_nType == ED2K_TAG_STRING ) && ( pTag.m_sKey == _T("codec") ) )
-		{	//Codec - old style
+		{	// Codec - old style
 			strCodec = pTag.m_sValue;
 		}
 		else
@@ -1142,12 +1162,6 @@ BOOL CQueryHit::ReadEDPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_n
 			theApp.Message( MSG_SYSTEM, s );
 			*/
 		}
-	}
-
-	if ( nSize )
-	{
-		m_bSize = TRUE;
-		m_nSize = nSize;
 	}
 
 	// Verify and set metadata
@@ -1238,15 +1252,12 @@ BOOL CQueryHit::ReadEDPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_n
 void CQueryHit::ReadEDAddress(CEDPacket* pPacket, SOCKADDR_IN* pServer)
 {
 	DWORD nAddress = m_pAddress.S_un.S_addr = pPacket->ReadLongLE();
-	if ( Network.IsReserved( (IN_ADDR*)&nAddress ) )
-		nAddress = 0;
 	m_nPort = pPacket->ReadShortLE();
 	
-	Hashes::Guid::iterator i = m_oClientID.begin();
-	*i++ = pServer->sin_addr.S_un.S_addr;
-	*i++ = htons( pServer->sin_port );
-	*i++ = nAddress;
-	*i++ = m_nPort;
+	m_pClientID.w[0] = pServer->sin_addr.S_un.S_addr;
+	m_pClientID.w[1] = htons( pServer->sin_port );
+	m_pClientID.w[2] = nAddress;
+	m_pClientID.w[3] = m_nPort;
 	
 	if ( nAddress == 0 )
 	{
@@ -1268,11 +1279,11 @@ void CQueryHit::ReadEDAddress(CEDPacket* pPacket, SOCKADDR_IN* pServer)
 
 void CQueryHit::Resolve()
 {
-	if ( m_bPreview && m_oSHA1 && m_sPreview.IsEmpty() )
+	if ( m_bPreview && m_bSHA1 && m_sPreview.IsEmpty() )
 	{
 		m_sPreview.Format( _T("http://%s:%i/gnutella/preview/v1?%s"),
 			(LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort,
-			(LPCTSTR)m_oSHA1.toUrn() );
+			(LPCTSTR)CSHA::HashToString( &m_pSHA1, TRUE ) );
 	}
 	
 	if ( m_sURL.GetLength() )
@@ -1290,41 +1301,41 @@ void CQueryHit::Resolve()
 		if ( m_bPush == TS_TRUE )
 		{
 			m_sURL.Format( _T("ed2kftp://%lu@%s:%i/%s/%I64i/"),
-				m_oClientID.begin()[2],
-				(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)m_oClientID.begin()[0] ) ),
-				m_oClientID.begin()[1],
-				(LPCTSTR)m_oED2K.toString(), m_nSize );
+				m_pClientID.w[2],
+				(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)m_pClientID.w[0] ) ),
+				m_pClientID.w[1],
+				(LPCTSTR)CED2K::HashToString( &m_pED2K ), m_nSize );
 		}
 		else
 		{
 			m_sURL.Format( _T("ed2kftp://%s:%i/%s/%I64i/"),
 				(LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort,
-				(LPCTSTR)m_oED2K.toString(), m_nSize );
+				(LPCTSTR)CED2K::HashToString( &m_pED2K ), m_nSize );
 		}
 		return;
 	}
 	
-	if ( m_nIndex == 0 || m_oTiger || m_oED2K || Settings.Downloads.RequestHash )
+	if ( m_nIndex == 0 || m_bTiger || m_bED2K || Settings.Downloads.RequestHash )
 	{
-		if ( m_oSHA1 )
+		if ( m_bSHA1 )
 		{
 			m_sURL.Format( _T("http://%s:%i/uri-res/N2R?%s"),
 				(LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort,
-				(LPCTSTR)m_oSHA1.toUrn() );
+				(LPCTSTR)CSHA::HashToString( &m_pSHA1, TRUE ) );
 			return;
 		}
-		else if ( m_oTiger )
+		else if ( m_bTiger )
 		{
 			m_sURL.Format( _T("http://%s:%i/uri-res/N2R?%s"),
 				(LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort,
-				(LPCTSTR)m_oTiger.toUrn() );
+				(LPCTSTR)CTigerNode::HashToString( &m_pTiger, TRUE ) );
 			return;
 		}
-		else if ( m_oED2K )
+		else if ( m_bED2K )
 		{
 			m_sURL.Format( _T("http://%s:%i/uri-res/N2R?%s"),
 				(LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort,
-                (LPCTSTR)m_oED2K.toUrn() );
+				(LPCTSTR)CED2K::HashToString( &m_pED2K, TRUE ) );
 			return;
 		}
 	}
@@ -1367,8 +1378,7 @@ BOOL CQueryHit::ParseXML(CXMLElement* pMetaData, DWORD nRealIndex)
 				
 				if ( m_sSchemaPlural.GetLength() > 0 && m_sSchemaURI.GetLength() > 0 )
 				{
-					if ( m_pXML )
-						delete m_pXML;
+					if ( m_pXML ) delete m_pXML;
 					m_pXML = pHit->Detach();
 					pIndex->Delete();
 				}
@@ -1433,8 +1443,8 @@ void CQueryHit::Copy(CQueryHit* pOther)
 {
 	if ( m_pXML ) delete m_pXML;
 
-	m_oSearchID		= pOther->m_oSearchID;
-	m_oClientID		= pOther->m_oClientID;
+	m_pSearchID		= pOther->m_pSearchID;
+	m_pClientID		= pOther->m_pClientID;
 	m_pAddress		= pOther->m_pAddress;
 	m_nPort			= pOther->m_nPort;
 	m_nSpeed		= pOther->m_nSpeed;
@@ -1447,9 +1457,9 @@ void CQueryHit::Copy(CQueryHit* pOther)
 	m_bChat			= pOther->m_bChat;
 	m_bBrowseHost	= pOther->m_bBrowseHost;
 
-	m_oSHA1			= pOther->m_oSHA1;
-	m_oTiger		= pOther->m_oTiger;
-	m_oED2K			= pOther->m_oED2K;
+	m_bSHA1			= pOther->m_bSHA1;
+	m_bTiger		= pOther->m_bTiger;
+	m_bED2K			= pOther->m_bED2K;
 	m_sURL			= pOther->m_sURL;
 	m_sName			= pOther->m_sName;
 	m_nIndex		= pOther->m_nIndex;
@@ -1460,10 +1470,13 @@ void CQueryHit::Copy(CQueryHit* pOther)
 	m_pXML			= pOther->m_pXML;
 
 	m_bMatched		= pOther->m_bMatched;
-	m_bExactMatch	= pOther->m_bExactMatch;
 	m_bBogus		= pOther->m_bBogus;
 	m_bFiltered		= pOther->m_bFiltered;
 	m_bDownload		= pOther->m_bDownload;
+
+	if ( m_bSHA1 ) m_pSHA1 = pOther->m_pSHA1;
+	if ( m_bTiger ) m_pTiger = pOther->m_pTiger;
+	if ( m_bED2K ) m_pED2K = pOther->m_pED2K;
 
 	pOther->m_pXML = NULL;
 }
@@ -1499,10 +1512,10 @@ void CQueryHit::Serialize(CArchive& ar, int nVersion)
 {
 	if ( ar.IsStoring() )
 	{
-		ar.Write( &m_oSearchID[ 0 ], Hashes::Guid::byteCount );
+		ar.Write( &m_pSearchID, sizeof(GGUID) );
 		
 		ar << m_nProtocol;
-		ar.Write( &m_oClientID[ 0 ], Hashes::Guid::byteCount );
+		ar.Write( &m_pClientID, sizeof(GGUID) );
 		ar.Write( &m_pAddress, sizeof(IN_ADDR) );
 		ar << m_nPort;
 		ar << m_nSpeed;
@@ -1518,15 +1531,12 @@ void CQueryHit::Serialize(CArchive& ar, int nVersion)
 		ar << m_bChat;
 		ar << m_bBrowseHost;
 		
-//		ar << m_bSHA1;
-//		if ( m_bSHA1 ) ar.Write( &m_pSHA1, sizeof(SHA1) );
-        SerializeOut( ar, m_oSHA1 );
-//		ar << m_bTiger;
-//		if ( m_bTiger ) ar.Write( &m_pTiger, sizeof(TIGEROOT) );
-        SerializeOut( ar, m_oTiger );
-//		ar << m_bED2K;
-//		if ( m_bED2K ) ar.Write( &m_pED2K, sizeof(MD4) );
-        SerializeOut( ar, m_oED2K );
+		ar << m_bSHA1;
+		if ( m_bSHA1 ) ar.Write( &m_pSHA1, sizeof(SHA1) );
+		ar << m_bTiger;
+		if ( m_bTiger ) ar.Write( &m_pTiger, sizeof(TIGEROOT) );
+		ar << m_bED2K;
+		if ( m_bED2K ) ar.Write( &m_pED2K, sizeof(MD4) );
 
 		ar << m_sURL;
 		ar << m_sName;
@@ -1547,18 +1557,15 @@ void CQueryHit::Serialize(CArchive& ar, int nVersion)
 		ar << m_sComments;
 		
 		ar << m_bMatched;
-		ar << m_bExactMatch;
 		ar << m_bBogus;
 		ar << m_bDownload;
 	}
 	else
 	{
-		ar.Read( &m_oSearchID[ 0 ], Hashes::Guid::byteCount );
-		m_oSearchID.validate();
+		ar.Read( &m_pSearchID, sizeof(GGUID) );
 		
 		if ( nVersion >= 9 ) ar >> m_nProtocol;
-		ar.Read( &m_oClientID[ 0 ], Hashes::Guid::byteCount );
-		m_oClientID.validate();
+		ar.Read( &m_pClientID, sizeof(GGUID) );
 		ar.Read( &m_pAddress, sizeof(IN_ADDR) );
 		ar >> m_nPort;
 		ar >> m_nSpeed;
@@ -1575,15 +1582,12 @@ void CQueryHit::Serialize(CArchive& ar, int nVersion)
 		ar >> m_bChat;
 		ar >> m_bBrowseHost;
 
-//		ar >> m_bSHA1;
-//		if ( m_bSHA1 ) ar.Read( &m_pSHA1, sizeof(SHA1) );
-        SerializeIn( ar, m_oSHA1, nVersion );
-//		ar >> m_bTiger;
-//		if ( m_bTiger ) ar.Read( &m_pTiger, sizeof(TIGEROOT) );
-        SerializeIn( ar, m_oTiger, nVersion );
-//		ar >> m_bED2K;
-//		if ( m_bED2K ) ar.Read( &m_pED2K, sizeof(MD4) );
-        SerializeIn( ar, m_oED2K, nVersion );
+		ar >> m_bSHA1;
+		if ( m_bSHA1 ) ar.Read( &m_pSHA1, sizeof(SHA1) );
+		ar >> m_bTiger;
+		if ( m_bTiger ) ar.Read( &m_pTiger, sizeof(TIGEROOT) );
+		ar >> m_bED2K;
+		if ( m_bED2K ) ar.Read( &m_pED2K, sizeof(MD4) );
 
 		ar >> m_sURL;
 		ar >> m_sName;
@@ -1620,7 +1624,6 @@ void CQueryHit::Serialize(CArchive& ar, int nVersion)
 		ar >> m_sComments;
 		
 		ar >> m_bMatched;
-		if ( nVersion >= 12 ) ar >> m_bExactMatch;
 		ar >> m_bBogus;
 		ar >> m_bDownload;
 		

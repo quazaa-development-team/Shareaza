@@ -38,7 +38,7 @@ public:
 	virtual void DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct);
 	virtual void OnSkinChange();
 public:
-	DWORD_PTR GetNetwork();
+	int		GetNetwork();
 	void	SetNetwork(int nProtocol);
 
 // Attributes

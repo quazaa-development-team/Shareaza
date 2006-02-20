@@ -35,9 +35,8 @@ class CNewSearchDlg : public CSkinDialog
 {
 // Construction
 public:
-	CNewSearchDlg(CWnd* pParent = NULL,
-			auto_ptr< CQuerySearch > pSearch = auto_ptr< CQuerySearch >(),
-			BOOL bLocal = FALSE, BOOL bAgain = FALSE);
+	CNewSearchDlg(CWnd* pParent = NULL, CQuerySearch* pSearch = NULL, BOOL bLocal = FALSE, BOOL bAgain = FALSE);
+	virtual ~CNewSearchDlg();
 
 // Dialog Data
 public:
@@ -50,15 +49,15 @@ public:
 	//}}AFX_DATA
 
 // Attributes
-private:
+protected:
 	CSchemaCtrl		m_wndSchema;
 	BOOL			m_bLocal;
 	BOOL			m_bAgain;
-	auto_ptr< CQuerySearch > m_pSearch;
+	CQuerySearch*	m_pSearch;
 
 // Operations
 public:
-	auto_ptr< CQuerySearch > GetSearch() { return m_pSearch; }
+	CQuerySearch*	GetSearch();
 
 // Overrides
 public:

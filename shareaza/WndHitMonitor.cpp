@@ -80,7 +80,7 @@ int CHitMonitorWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	if ( CSchema* pSchema = SchemaCache.Get( Settings.Search.MonitorSchemaURI ) )
 	{
-		CList< CSchemaMember* > pColumns;
+		CPtrList pColumns;
 		CSchemaColumnsDlg::LoadColumns( pSchema, &pColumns );
 		m_wndList.SelectSchema( pSchema, &pColumns );
 	}

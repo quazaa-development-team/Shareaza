@@ -44,8 +44,7 @@ public:
 	DWORD			m_nFlags;
 	CString			m_sText;
 	CString			m_sLink;
-	HANDLE			m_hImage;
-	int				m_nImageIndex;
+	DWORD			m_hImage;
 	COLORREF		m_cColour;
 
 // Operations

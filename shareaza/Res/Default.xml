@@ -271,7 +271,7 @@
 	</toolbar>
 	<!-- MEDIA WINDOW -->
 	<toolbar name="CMediaFrame.Basic">
-		<button id="ID_MEDIA_PLAY" text="Play&nbsp;&nbsp;&nbsp;"/>
+		<button id="ID_MEDIA_PLAY" text="Play"/>
 		<button id="ID_MEDIA_PAUSE" text="Pause" visible="false"/>
 		<button id="ID_MEDIA_STOP" text="Stop"/>
 		<separator/>
@@ -288,7 +288,7 @@
 		<button id="ID_MEDIA_PLAYLIST" text="Playlist"/>
 	</toolbar>
 	<toolbar name="CMediaFrame">
-		<button id="ID_MEDIA_PLAY" text="Play&nbsp;&nbsp;&nbsp;"/>
+		<button id="ID_MEDIA_PLAY" text="Play"/>
 		<button id="ID_MEDIA_PAUSE" text="Pause" visible="false"/>
 		<button id="ID_MEDIA_STOP" text="Stop"/>
 		<separator/>
@@ -448,9 +448,9 @@
 				<item id="ID_HELP_HOMEPAGE" text="_Shareaza.com"/>
 				<separator/>
 				<item id="ID_HELP_FORUMS" text="Shareaza _Forums"/>
-				<!-- <item id="ID_HELP_UPDATE" text="Latest news"/>
+				<item id="ID_HELP_UPDATE" text="Latest news"/>
 				<item id="ID_HELP_WEB_1" text="Zeropaid.com"/>
-				<item id="ID_HELP_WEB_2" text="P2PForums.com"/> -->
+				<item id="ID_HELP_WEB_2" text="P2PForums.com"/>
 			</menu>
 			<separator/>
 			<item id="ID_HELP_ABOUT" text="_About Shareaza..."/>
@@ -539,9 +539,9 @@
 				<item id="ID_HELP_HOMEPAGE" text="_Shareaza.com"/>
 				<separator/>
 				<item id="ID_HELP_FORUMS" text="Shareaza _Forums"/>
-				<!-- <item id="ID_HELP_UPDATE" text="Latest news"/>
+				<item id="ID_HELP_UPDATE" text="Latest news"/>
 				<item id="ID_HELP_WEB_1" text="Zeropaid.com"/>
-				<item id="ID_HELP_WEB_2" text="P2PForums.com"/> -->
+				<item id="ID_HELP_WEB_2" text="P2PForums.com"/>
 			</menu>
 			<separator/>
 			<item id="ID_HELP_ABOUT" text="_About Shareaza..."/>
@@ -624,9 +624,9 @@
 				<item id="ID_HELP_HOMEPAGE" text="_Shareaza.com"/>
 				<separator/>
 				<item id="ID_HELP_FORUMS" text="Shareaza _Forums"/>
-				<!-- <item id="ID_HELP_UPDATE" text="Latest news"/>
+				<item id="ID_HELP_UPDATE" text="Latest news"/>
 				<item id="ID_HELP_WEB_1" text="Zeropaid.com"/>
-				<item id="ID_HELP_WEB_2" text="P2PForums.com"/> -->
+				<item id="ID_HELP_WEB_2" text="P2PForums.com"/>
 			</menu>
 			<separator/>
 			<item id="ID_HELP_ABOUT" text="_About Shareaza..."/>
@@ -1287,7 +1287,6 @@
 		<separator/>
 		<item id="ID_MEDIA_OPEN" text="_Open Playlist..."/>
 		<item id="ID_MEDIA_SAVE" text="_Save Playlist..."/>
-		<item id="ID_MEDIA_EXPORT_COLLECTION" text="E_xport Collection..."/>
 		<item id="ID_MEDIA_CLEAR" text="_Clear Playlist"/>
 		<separator/>
 		<item id="ID_MEDIA_PLAYLIST" text="Show Pla_ylist"/>
@@ -1495,15 +1494,7 @@
 		<link target="raza:command:ID_HELP_FAQ" format="bu" align="middle">Quick Help</link>
 		<text align="middle">&#160;- Get some basic help using Shareaza</text>
 		<newline gap="18" indent="0"/>
-
-		<icon res="136" width="32" height="32" target="raza:shell:downloads"/>
-		<gap size="8"/>
-		<heading align="middle">M Y &#160; D O W N L O A D S</heading>
-		<newline gap="8" indent="42"/>
-		<text>To open the folder with your downloads </text>
-		<link target="raza:shell:downloads">click here</link>
-		<newline gap="18" indent="0"/>
-
+		
 		<group id="5">
 			<icon res="128" width="32" height="32"/><gap size="8"/>
 			<heading align="middle">R E M O T E &#160; A C C E S S &#160; I S &#160; E N A B L E D</heading>

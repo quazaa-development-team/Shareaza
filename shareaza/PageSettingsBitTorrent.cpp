@@ -113,7 +113,7 @@ BOOL CBitTorrentSettingsPage::OnInitDialog()
 	m_wndClearPercentage.EnableWindow( m_bAutoClear );
 
 	DWORD nMaxTorrents = ( Settings.GetOutgoingBandwidth() / 2 ) + 2;
-	nMaxTorrents = min ( 10u, nMaxTorrents);
+	nMaxTorrents = min (DWORD(10), nMaxTorrents);
 
 	m_wndClearPercentageSpin.SetRange( 100, 999 );
 
@@ -127,7 +127,7 @@ BOOL CBitTorrentSettingsPage::OnInitDialog()
 BOOL CBitTorrentSettingsPage::OnSetActive() 
 {
 	DWORD nMaxTorrents = ( Settings.GetOutgoingBandwidth() / 2 ) + 2;
-	nMaxTorrents = min( 10u, nMaxTorrents );
+	nMaxTorrents = min (DWORD(10), nMaxTorrents);
 
 	m_nDownloads	= min( m_nDownloads, (int)nMaxTorrents );
 	m_wndDownloadsSpin.SetRange( 0, (WORD)nMaxTorrents );
@@ -149,8 +149,9 @@ void CBitTorrentSettingsPage::OnTorrentsBrowse()
 	TCHAR szPath[MAX_PATH];
 	LPITEMIDLIST pPath;
 	LPMALLOC pMalloc;
+	BROWSEINFO pBI;
 		
-	BROWSEINFO pBI = {};
+	ZeroMemory( &pBI, sizeof(pBI) );
 	pBI.hwndOwner		= AfxGetMainWnd()->GetSafeHwnd();
 	pBI.pszDisplayName	= szPath;
 	pBI.lpszTitle		= _T("Select folder for torrents:");

@@ -16,11 +16,11 @@ Other:
 	<manifest 
 		name="Deutsch"
 		author="Jann Röder"
-		updatedBy="zero9999 and Jann Röder" 
+		updatedBy="zero9999" 
 		description="Shareaza 2.2 German Skin File"
 		link="http://www.shareaza.com/"
 		email="spooky23 at arcor dot de"
-		version="2.2.2.9"
+		version="2.2.2.8"
 		type="Language"
 		language="de"
 		prompt="Klicken Sie hier um Deutsch als Sprache zu wählen."
@@ -1322,7 +1322,6 @@ Other:
 			<separator />
 			<item id="ID_MEDIA_OPEN" text="Wiedergabeliste _öffnen..."/>
 			<item id="ID_MEDIA_SAVE" text="Wiedergabeliste _Speichern..."/>
-			<item id="ID_MEDIA_EXPORT_COLLECTION" text="Kollektion e_xportieren..."/>
 			<item id="ID_MEDIA_CLEAR" text="Wiedergabeliste _löschen"/>
 			<separator />
 			<item id="ID_MEDIA_PLAYLIST" text="Wiedergabeliste _anzeigen"/>
@@ -1929,10 +1928,10 @@ Other:
 		<document name="DownloadHelp.DiskFull">
 			<text format="b">Die Festplatte ist voll</text>
 			<newline gap="8"/>
-			<text>Shareaza hat diesen Download automatisch angehalten, weil die Festplatte voll zu sein scheint,
-               oder die Datei nicht geschrieben werden kann.  Wenn Sie den Download fortsetzen möchten,
-               machen Sie bitte etwas Platz auf ihrer Festplatte und / oder prüfen Sie, ob auf das Verzeichnis für unvollständige Dateien
-               zugegriffen werden kann und nehmen Sie dann den Download wieder auf.</text>
+			<text>Shareaza hat diesen Download automatisch angehalten, weil Festplatte voll zu sein scheint,
+               oder in die Downloaddatei kann nicht geschrieben werden.  Wenn Sie den Download fortsetzen möchten,
+               machen Sie bitte etwas platz auf ihrer Festplatte und / oder prüfen Sie, ob auf das Verzeichnis für unvollständige Dateien
+               zugegriffen werden kann und nehmen Sie den Download wieder auf.</text>
 		</document>
 
 		<document name="DownloadHelp.Verifying">
@@ -2342,7 +2341,6 @@ Other:
 		<tip id="ID_MEDIA_ASPECT_DEFAULT" message="Das Originalseitenverhältnis benutzen."/>
 		<tip id="ID_MEDIA_CLEAR" message="Die Wiedergabeliste löschen."/>
 		<tip id="ID_MEDIA_CLOSE" message="Die aktuelle Datei schließen um Speicher freizugeben."/>
-		<tip id="ID_MEDIA_EXPORT_COLLECTION" message="Die Playlist als Rich-Collection-Datei speichern..."/>
 		<tip id="ID_MEDIA_FULLSCREEN" message="In den Vollbild Modus wechseln."/>
 		<tip id="ID_MEDIA_MUTE" message="Audiowiedergabe stummschalten"/>
 		<tip id="ID_MEDIA_NEXT" message="Die nächste Datei in der Wiedergabeliste wiedergeben." tip="Nächste Datei"/>
@@ -2514,9 +2512,6 @@ Other:
 		<string id="7003" value="Multiple"/>
 		<string id="7004" value="Es existiert bereits ein Filter mit dem Namen &quot;%s&quot;, möchten Sie ihn ersetzen?"/>
 		<string id="7005" value="Bitte geben Sie dem Filter einen Namen."/>
-		<string id="7100" value="Diese Vorlage ist ungültig."/>
-  	    <string id="7101" value="Diese Vorlage kann nicht angepasst werden."/>
-  	    <string id="7102" value="Sind Sie sicher, dass Sie die &quot;%s&quot;-Vorlage löschen wollen?\nDieser Schritt kann nicht rückgängig gemacht werden."/>
 		<string id="8000" value="Einstellungen"/>
 		<string id="8001" value="Willkommen bei Shareaza"/>
 		<string id="8002" value="Datei Eigenschaften"/>
@@ -2529,7 +2524,6 @@ Other:
 		<string id="8009" value="Wollen Sie den Skin &quot;%s&quot; wirklich löschen?  Dies kann nicht rückgängig gemacht werden."/>
 		<string id="8010" value="Das ist eine pre-release Version von Shareaza. Die beta-Test Periode ist abgelaufen.  Bitte laden Sie die offizielle Version www.shareaza.com herunter."/>
 		<string id="8011" value="Das Wechseln der Ansicht schließt alle offenen Fenster.  Wollen Sie die Ansicht jetzt wechseln?"/>
-		<string id="8012" value="Torrent-Informationen"/>
 		<string id="8060" value="Hub/Ultrapeer Modus mit %lu Leaves.  %s in ihrer Bibliothek."/>
 		<string id="8061" value="Ultrapeer Modus mit %lu Leaves.  %s in ihrer Bibliothek."/>
 		<string id="8062" value="Hub Modus mit %lu Leaves.  %s in ihrer Bibliothek."/>
@@ -2615,7 +2609,6 @@ Other:
 		<string id="8240" value="Shareaza verschiebt den Download:"/>
 		<string id="8241" value="Shareaza überprüft den Download auf Fehler:"/>
 		<string id="8243" value="Hochgeladen: "/>
-		<string id="8244" value="Anzahl der Rezensionen:"/>
 		<string id="8288" value="Bibliothek durchsuchen"/>
 		<string id="8289" value=" "/>
 		<string id="8290" value="Inhalt von %i Ordnern anzeigen"/>
@@ -2656,7 +2649,6 @@ Other:
 		<string id="8334" value="Quellen für diese Datei haben zur Zeit keine freien Uploadslots"/>
 		<string id="8335" value="Quellen für diese Datei sind hinter einer Firewall"/>
 		<string id="8336" value="Quellen für diese Datei könnten instabil sein"/>
-		<string id="8337" value="nicht vertraut"/>
 		<string id="16064" value="Der Shareaza Netzwerkkern wird gestartet..."/>
 		<string id="16065" value="Kann nicht an %s Port %i für eingehende Verbindungen binden.  Eingehende Verbindungen werden nicht unterstützt"/>
 		<string id="16066" value="Der Shareaza Netzwerkkern wird heruntergefahren..."/>
@@ -2675,7 +2667,7 @@ Other:
 		<string id="16079" value="Sind Sie sicher, dass Sie die Verbindung trennen möchten?"/>
 		<string id="16081" value="Suchanfrage für &quot;%s&quot; an %s senden."/>
 		<string id="16083" value="Das Erzwingen des HUB Modus kann negative Auswirkungen auf das Netzwerk und die Ausführgeschwindigkeit von Shareaza haben. Es ist generell besser Shareaza diese Entscheidung selbst treffen zu lassen.\n\nDer Hub Modus führt NICHT zu besseren Suchergebnissen, und hat auch keine anderen Vorteile für Sie.\n\nWollen Sie wirklich Fortfahren?"/>
-		<string id="16084" value="Die Deaktivierung des Gnutella1-Protokolls kann ihre Suchergebnisse begrenzen. Wenn Sie ein Hub sind trifft dies auch für andere Benutzer zu. Sind Sie sicher, dass Sie das tun wollen?"/>
+		<string id="16084" value="Die Deaktivierung des Gnutella-1 Protokolls kann ihre Suchergebnisse begrenzen. Wenn Sie ein Hub sind trifft dies auch für andere Benutzer zu. Sind Sie sicher, dass Sie das tun wollen?"/>
 		<string id="16085" value="Gnutella2 ist Shareazas Hauptnetzwerk.  Wenn sie die Unterstützung für Gnutella2 deaktivieren könnten sich die Anzahl und die Qualität ihrer Suchergebnisse stark verschlechtern.  Sind Sie SICHER, dass Sie das wollen?"/>
 		<string id="16087" value="Ihre ausgehende Bandbreite reicht nicht aus, um dieses Netzwerk zu aktivieren"/>
 		<string id="16128" value="Eingehende Verbindung von %s Port %i akzeptiert."/>
@@ -2697,6 +2689,7 @@ Other:
 		<string id="16146" value="Handshake mit %s fehlgeschlagen (ungültige Daten in der Leitung)."/>
 		<string id="16147" value="Überflüssige Verbindung mit %s geschlossen, Host Liste übertragen (%s Port %i)."/>
 		<string id="16148" value="Verbindung zu %s zurückgewiesen (%s)."/>
+		<string id="16149" value="Gnutella 0.6 Handshake mit %s fehlgeschlagen, erneut versuchen mit 0.4."/>
 		<string id="16150" value="Überflüssige Verbindung mit %s geschlossen."/>
 		<string id="16151" value="Verbindung von %s verweigert weil Shareaza im shielded leaf Modus läuft."/>
 		<string id="16152" value="Das Hub %s akzeptiert uns nicht als Hub, beendet."/>
@@ -2875,7 +2868,7 @@ Other:
 		<string id="16408" value="&amp;URI kopieren"/>
 		<string id="16409" value="&amp;URIs exportieren..."/>
 		<string id="16410" value="Ein Unterordner des ausgewählten Ordners &quot;%s&quot; befindet sich schon in ihrer Bibliothek.\nDas Hinzufügen dieses Ordners hat zur Folge, dass einige Dateien neu gehasht werden müssen.\n\nMöchten Sie fortfahren?"/>
-		<string id="16411" value="Kann Datei %s nicht verschieben. Es ist möglich, dass eine andere Anwendung die Datei gerade verwendet.\n\nMöchten Sie stattdessen versuchen die Datei zu kopieren?"/>
+		<string id="16411" value="Kann Datei %s nicht verschieben. Es ist möglich, dass eine andere Anwendung Datei gerade verwendet.\n\nMöchten Sie stattdessen versuchen die Datei zu kopieren?"/>
 		<string id="16448" value="Verbunden mit %s, handshaking..."/>
 		<string id="16449" value="Chatten mit %s (%s)."/>
 		<string id="16450" value="Verbindung zu %s beendet."/>
@@ -2966,7 +2959,6 @@ Other:
 		<string id="16942" value="&quot;Durchsuchen&quot; Verbindung zu %s wird beendet."/>
 		<string id="16943" value="%s durchsuchen"/>
 		<string id="16944" value="%i freigegebene Dateien in %s's Bibliothek gefunden."/>
-		<string id="16991" value="Shareaza Media Player"/>
 		<string id="16992" value="Shareaza konnte das MediaServices Plugin nicht laden.  Bitte installieren Sie Shareaza erneut und stellen Sie sicher, dass Sie die nötigen Codecs und Ausgabetreiber installiert haben."/>
 		<string id="16993" value="Alle Multimedia Dateien|*.asx;*.wax;*.m3u;*.wvx;*.wmx;*.asf;*.wav;*.snd;*.au;*.aif;*.aifc;*.aiff;*.wma;*.rm;*.mp3;*.ogg;*.ogm;*.cda;*.mid;*.rmi;*.midi;*.avi;*.asf;*.mpeg;*.mpg;*.m1v;*.mp2;*.mpa;*.mpe;*.wmv|Wiedergabelisten|*.asx;*.wax;*.m3u;*.wvx;*.wmx|Audio Dateien|*.asf;*.wav;*.snd;*.au;*.aif;*.aifc;*.aiff;*.wma;*.rm;*.mp3;*.ogg;|Video Dateien|*.avi;*.asf;*.mpeg;*.mpg;*.m1v;*.mp2;*.mpa;*.mpe;*.ogm;*.wmv|CD Audio Tracks|*.cda|MIDI Dateien|*.mid;*.rmi;*.midi|Alle Dateien|*.*||"/>
 		<string id="16994" value="Fehler beim Laden von &quot;%s&quot;"/>
@@ -3061,14 +3053,14 @@ Other:
 		<string id="17472" value="Einkommende Verbindung von %s ist eine BitTorrent Kopplung, Protokollverhandlung..."/>
 		<string id="17473" value="Zeitüberschreitung beim Verbinden zu BitTorrent Client %s."/>
 		<string id="17474" value="Zeitüberschreitung beim Handshake mit BitTorrent Client %s."/>
-		<string id="17475" value="BitTorrent-Kopplung mit %s mangels Aktivität geschlossen."/>
-		<string id="17476" value="BitTorrent-Kopplung mit %s fehlgeschlagen. Remote-Client hat andere PeerID."/>
-		<string id="17477" value="BitTorrent-Kopplung mit %s hat mit der falschen Datei geantwortet."/>
-		<string id="17478" value="BitTorrent-Kopplung mit %s hat eine unbekannte Datei angefordert."/>
-		<string id="17479" value="BitTorrent-Kopplung %s hergestellt für &quot;%s&quot;."/>
-		<string id="17480" value="BitTorrent-Kopplung mit %s hat eine inaktive Datei angefordert."/>
-		<string id="17481" value="BitTorrent-Datei (Descriptor): &quot;%s&quot; empfangen"/>
-		<string id="17482" value="Auswertung der vorgeladenen BitTorrent-Datei &quot;%s&quot; nicht möglich."/>
+		<string id="17475" value="BitTorrent Kopplung mit %s mangels Aktivität geschlossen."/>
+		<string id="17476" value="BitTorrent Kopplung mit %s fehlgeschlagen. Remote-Client hat andere PeerID."/>
+		<string id="17477" value="BitTorrent Kopplung mit %s hat mit der falschen Datei geantwortet."/>
+		<string id="17478" value="BitTorrent Kopplung mit %s hat eine unbekannte Datei angefordert."/>
+		<string id="17479" value="BitTorrent Kopplung %s hergestellt für &quot;%s&quot;."/>
+		<string id="17480" value="BitTorrent Kopplung mit %s hat eine inaktive Datei angefordert."/>
+		<string id="17481" value="BitTorrent Datei (Descriptor): &quot;%s&quot; empfangen"/>
+		<string id="17482" value="Auswertung der vorgeladenen BitTorrent Datei &quot;%s&quot; nicht möglich."/>
 		<string id="17483" value="Fehler von BitTorrent Tracker für &quot;%s&quot; : &quot;%s&quot;."/>
 		<string id="17484" value="Fehler beim auswerten der BitTorrent tracker Antwort."/>
 		<string id="17485" value="BitTorrent Tracker Antwort für &quot;%s&quot; erhalten, %i neue Quellen."/>
@@ -3087,14 +3079,11 @@ Other:
 		<string id="17498" value="In der Datei &quot;%s&quot; wurde ein Fehler gefunden."/>
 		<string id="17500" value="Tracker hat nicht geantwortet - Announce erneut versuchen (%i von %i)"/>
 		<string id="17501" value="Kommunikation mit dem Tracker nicht möglich"/>
-	    <string id="17503" value="Verbindung mit Tracker fehlgeschlagen- Verbinde mit nächstem Tracker (%i of %i)"/>
-		<string id="17505" value="BitTorrent-Verbindung mit %s wurde unterbrochen."/>
-		<string id="17506" value="BitTorrent-Handshake mit %s wurde unterbrochen."/>		
-		<string id="17507" value="BitTorrent-Kopplung mit %s wurde unterbrochen."/>
+		<string id="17505" value="BitTorrent-Verbindung mit %s wurde verworfen."/>
+		<string id="17506" value="BitTorrent-Handshake mit %s wurde verworfen."/>		
+		<string id="17507" value="BitTorrent-Kopplung mit %s wurde verworfen."/>
 		<string id="17510" value="BitTorrent-Kopplung mit %s wurde nicht akzeptiert, da bereits eine Verbindung mit diesem Client besteht."/>
 		<string id="17511" value="BitTorrent-Kopplung mit %s wurde nicht akzeptiert, da die maximale Anzahl an Verbindungen erreicht ist."/>
-		<string id="17512" value="Privater Torrent"/>
-		<string id="17513" value="Enkodierungsfehler"/>
 		<string id="18496" value="Sie haben das Namensfeld geändert.  Sind Sie sicher, dass Sie diesen Download umbenennen wollen?"/>
 		<string id="18497" value="Sie haben einen ungültigen SHA1 Hash angegeben.  Bitte überprüfen Sie ihre Eingabe und versuchen Sie es erneut."/>
 		<string id="18498" value="Sie haben einen ungültigen tiger-tree root Hash angegeben.  Bitte überprüfen Sie ihre Eingabe und versuchen Sie es erneut."/>
@@ -3110,7 +3099,6 @@ Other:
 		<string id="18508" value="Downloadquelle %s für &quot;%s&quot; entfernt, weil die Warteschlangenposition %i zu hoch ist."/>
 		<string id="18509" value="Sie können diesen Download nicht als komplett annehemen und verifizieren, weil Sie keine Verifizierungsdaten (tiger-tree Volumen, ed2k hashset oder BitTorrent hashset) haben. Ohne Verifizierungsinformationen kann der Download nicht erneut verifiziert werden."/>
 		<string id="18510" value="Sind Sie sicher, dass Sie diesen Download als komplett annehemen und neu verifizieren wollen?  Die ganze Datei wird untersucht und Shareaza wird die Teile akzeptieren, die die Verifizierung bestehen und die die sie nicht bestehen neu herunterladen."/>
-		<string id="18511" value="Sie haben Änderungen an der Dateigröße vorgenommen. Sind Sie sicher, dass Sie die Dateigröße dieses Downloads ändern wollen?"/>
 		<string id="19000" value="Remote Access ist deaktiviert."/>
 		<string id="19001" value="Sie müssen Benutzername und Passwort angeben."/>
 		<string id="19002" value="Kann keine Verbindungen akzeptieren, URL nicht verfügbar."/>
@@ -3120,8 +3108,6 @@ Other:
 		<string id="20005" value="Nein"/>
 		<string id="20006" value="Ja"/>
 		<string id="20007" value="Auto"/>
-		<string id="20008" value="Vorgabe"/>
-		<string id="20009" value="Benutzerdefiniert"/>
 		<string id="20100" value="Verbinden"/>
 		<string id="20101" value="Anfordern"/>
 		<string id="20102" value="Antwort"/>
@@ -3241,20 +3227,17 @@ Other:
 			<control /><control />
 		</dialog>
 
-		<dialog name="CMediaSettingsPage" cookie="BuCoBuBuBuCoBuBuBuBuBuStSt" caption="Media Player">
-		    <control caption="_Optionen:"/>
-		    <control/>
+		<dialog name="CMediaSettingsPage" cookie="BuBuBuBuCoBuBuBuBuBuCo" caption="Media Player">
+			<control caption="_Optionen:"/>
 			<control caption="D_en Media Player benutzen um folgende Dateitypen wiederzugeben"/>
-			<control caption="_Die Shareaza Wiedergabeliste für folgende Dateitypen benutzen"/>
+			<control caption="_Die Shareaza Wiedergabeliste für folgende Dateitypen benutzen."/>
 			<control caption="Datei_typen:"/>
 			<control />
 			<control caption="_Hinzufügen"/>
 			<control caption="_Entfernen"/>
 			<control caption="_Visualisierungs Plugin:"/>
 			<control caption="Plugin _wählen..."/>
-			<control caption="_Medienverwaltung"/>
-			<control caption="Media Player wählen:"/>
-			<control caption="Warnung: Wenn Sie ihre Medien durch einen externen Player verwalten lassen, deaktiviert dies automatisch alle Medien- und Visualisierungsplugins!"/>
+			<control caption="Media Services _Plugin:"/>
 			<control />
 		</dialog>
 
@@ -3287,8 +3270,8 @@ Other:
 
 		<dialog name="CInternetSettingsGroup" caption="Internet"/>
 
-		<dialog name="CConnectionSettingsPage" cookie="BuStCoStCoStEdBuBuBuStCoStCoBuStCoBuBuBuStEdmsStEdms" caption="Verbindung">
-			<control caption="_Inbound-Adresse:"/>
+		<dialog name="CConnectionSettingsPage" cookie="BuStCoStCoStEdBuBuBuStCoStCoBuStCoBuBuStEdmsStEdms" caption="Verbindung">
+			<control caption="_Inbound Adresse:"/>
 			<control caption="Adresse:"/>
 			<control caption="Automatisch"/>
 			<control caption="Geschw.:"/>
@@ -3297,7 +3280,7 @@ Other:
 			<control />
 			<control caption="Zufällig"/>
 			<control caption="Diese Adresse erzwingen"/>
-			<control caption="_Outbound-Adresse:"/>
+			<control caption="_Outbound Adresse:"/>
 			<control caption="Adresse:"/>
 			<control caption="Automatisch"/>
 			<control caption="Geschw.:"/>
@@ -3306,7 +3289,6 @@ Other:
 			<control caption="Eingehende Verbindungen möglich"/>
 			<control />
 			<control caption="_Private Netzwerk IPs ignorieren"/>
-			<control caption="UPnP-Geräte automatisch einstellen"/>
 			<control caption="_Wartezeiten:"/>
 			<control caption="Verbindung:"/>
 			<control /><control />
@@ -3781,7 +3763,7 @@ Other:
 			<control caption="Abbrechen"/>
 		</dialog>
 
-		<dialog name="CFilterSearchDlg" cookie="BuEdStBuStEdStEdStEdmsStBuBuBuBuBuBuBuBuBuCoBuBuBuBuBuBuBu" caption="Ergebnisse filtern">
+		<dialog name="CFilterSearchDlg" cookie="BuEdStBuStEdStEdStEdmsStBuBuBuBuBuBuBuBuBuCoBuBuBuBu" caption="Ergebnisse filtern">
 			<control caption="Nur Ergebnisse die folgende _Wörter enthalten:"/>
 			<control />
 			<control caption="( Sie können Wörter mit &quot;-Wort&quot; ausschließen )"/>
@@ -3807,9 +3789,6 @@ Other:
 			<control caption="_Speichern als"/>
 			<control caption="_Löschen"/>
 			<control caption="Filter:"/>
-			<control caption="DRM-Dateien"/>
-  	        <control caption="Verdächtige Dateien"/>
-  	        <control caption="Erotikfilter"/>
 		</dialog>
 
 		<dialog name="CSaveFilterAsDlg" cookie="EdBuBuSt" caption="Filter speichern als">
@@ -3823,7 +3802,7 @@ Other:
 			<control caption="Service _Adresse:"/>
 			<control />
 			<control caption="Service Typ:"/>
-			<control caption="Gnutella Bootstrap|GWebCache|Server.met URL"/>
+			<control />
 			<control caption="OK"/>
 			<control caption="Abbrechen"/>
 		</dialog>
@@ -4121,41 +4100,27 @@ Other:
 			<control />
 		</dialog>
 
-		<dialog name="CCollectionExportDlg" cookie="StSyBuStStStStStEdBuBuBu" caption="Kollektion exportieren">
-			<control caption="Diese Funktion exportiert den Inhalt eines Albumordners oder einer Playlist als eine Rich-Collection-Datei. Bitte wählen Sie eine Vorlage und klicken auf weiter um fortzufahren.|Um ihre Kollektion anzupassen, geben Sie bitte folgende Daten an:"/>
-			<control/>
-			<control caption="Infos:"/>
-  	        <control caption="Name:"/>
-  	        <control/>
-  	        <control caption="Autor:"/>
-  	        <control/>
-  	        <control caption="Beschreibung:"/>
-  	        <control/>
-  	        <control caption="Löschen|_Zurück"/>
-  	        <control caption="W_eiter|Exportieren"/>
-  	        <control caption="Abbre_chen"/>
+		<dialog name="CCollectionExportDlg" cookie="StBuBu" caption="Kollektion exportieren">
+			<control caption="Diese Funktion exportiert den Inhalt eines Albumordners als Rich Collection XML Datei."/>
+			<control caption="Exportieren..."/>
+			<control caption="Abbrechen"/>
 		</dialog>
 
-		<dialog name="CDownloadEditDlg" cookie="StBuStEdEdStEdBuStStEdBuStEdBuStEdBuBuStStStStBuStEdStEdBuBuBuBu" caption="Download bearbeiten (erweitert)">
+		<dialog name="CDownloadEditDlg" cookie="StBuEdBuStEdStEdStEdBuStStStBuStEdStEdBuBuBuBu" caption="Download bearbeiten (erweitert)">
 			<control caption="ACHTUNG: Dieser Dialog stellt erweiterte Funktionen für PowerUser zur Verfügung. Diese Funktionen führen bei falscher Anwendung zu Dateikorruption."/>
-			<control caption="Dateiname- und Größe:"/>
-  	        <control caption="Datei_name:"/>
-  	        <control/><control/>
-  	        <control caption="Dateigröße (Byte):"/>
+			<control caption="Datei_name:"/>
 			<control />
 			<control caption="_URNs:"/>
-			<control caption="Vertraut"/>
 			<control caption="SHA1:"/>
-			<control/><control/>
+			<control />
 			<control caption="Tiger-Root:"/>
-			<control/><control/>
+			<control />
 			<control caption="ED2K:"/>
-			<control/><control/>
+			<control />
 			<control caption="_Aktionen:"/>
 			<control caption="Datei erneut verifizieren (TTH oder ed2k Hashset)"/>
 			<control caption="Datei als 100% komplett annehmen und erneut verifizieren"/>
 			<control caption="Alle Quellen vergessen"/>
-			<control caption="Mit lokaler Datei zusammenführen und erneut verifizieren"/>
 			<control caption="Data _Eraser:"/>
 			<control caption="Bytes löschen:"/>
 			<control />
@@ -4177,8 +4142,8 @@ Other:
 			<control />
 		</dialog>
 
-		<dialog name="CTorrentGeneralPage" cookie="BuStEdStEdStEdStEdBuStCoEdStStEd" caption="Übersicht">
-			<control caption="Torrent-_Informationen:"/>
+		<dialog name="CTorrentTrackerDlg" cookie="BuStEdStEdStEdStEdStEdBuStEdStEdBuStCoBuSyBuCoBu" caption="BitTorrent Tracker Viewer">
+			<control caption="Torrent _Informationen:"/>
 			<control caption="Name:"/>
 			<control/>
 			<control caption="Erstellt:"/>
@@ -4187,39 +4152,21 @@ Other:
 			<control/>
 			<control caption="Kommentare:"/>
 			<control />
-			<control caption="Transfer:"/>
-  	        <control caption="Neue Download-Transfer starten:"/>
-  	        <control caption="&#160;Wenn nötig| Wenn U/D Verhältnis über 100%| Nur wenn angefordert| Nie"/>
-  	        <control/>
-  	        <control caption="Gesamt hochgeladen:"/>
-  	        <control caption="Notizen:"/>
-  	        <control/>
-  	    </dialog>
-  	 
-  	         <dialog name="CTorrentFilesPage" cookie="BuStEdBuSy" caption="Dateien">
-  	                 <control caption="Torrent-_Informationen:"/>
-  	                 <control caption="Name:"/>
-  	                 <control/>
-  	                 <control caption="_Dateien:"/>
-  	                 <control/>
-  	         </dialog>
-  	 
-  	    <dialog name="CTorrentTrackersPage" cookie="BuStEdStEdBuStEdStEdBuBuSyStCo" caption="Tracker">
-  	        <control caption="Torrent-_Informationen:"/>
-  	        <control caption="Name:"/>
-  	        <control/>
 			<control caption="Tracker:"/>
 			<control />
-			<control caption="Aktueller Tra_cker:"/>
+			<control caption="_Quellen:"/>
 			<control caption="Vollständig (Seeds):"/>
 			<control />
 			<control caption="Unvollständig:"/>
 			<control />
-			<control caption="_Aktualisieren"/>
-			<control caption="_Trackers:"/>
+			<control caption="Transfer:"/>
+			<control caption="Neue Downloadtransfer starten:"/>
+			<control caption="Wenn benötigt|Wenn U/D Verhältnis über 100%|Nur auf Anforderung|Nie"/>
+			<control caption="_Dateien:"/>
 			<control />
-			<control caption="Tracker-Modus:"/>
-  	        <control caption="Deaktiviert|Benutzerdefiniert|Einzel-Tracker|Multi-tracker|Multi-tracker (locked)"/>		
+			<control caption="_Aktualisieren"/>
+			<control />
+			<control caption="Schließen"/>			
 		</dialog>
 
 		<dialog name="CDownloadGroupDlg" cookie="BuEdSyBuCoBuBuBuBuBuEdBu" caption="Download Gruppe Eigenschaften">
@@ -4369,20 +4316,15 @@ Other:
 			<column from="URL" to="URL"/>
 			<column from="Expires" to="Läuft ab"/>
 		</list>
-		<list name="CTorrentFileList">
+		<list name="CTorrentTrackerList">
 			<column from="Filename" to="Dateiname"/>
 			<column from="Size" to="Größe"/>
 		</list>
-		<list name="CTorrentTrackerList">
-  	        <column from="Tracker" to="Tracker"/>
-  	        <column from="Status" to="Status"/>
-  	        <column from="Type" to="Typ"/>
-  	         </list>
 		<list name="CReviewList">
 			<column from="User" to="Benutzer"/>
 			<column from="Rating" to="Bewertung"/>
 			<column from="Comments" to="Kommentare"/>
-			<column from="Order" to="Reihenfolge"/>
+			<column from="Order" to=""/>
 		</list>
 	</listColumns>
 </skin>

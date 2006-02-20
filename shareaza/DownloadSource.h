@@ -1,11 +1,7 @@
 //
 // DownloadSource.h
 //
-//	Date:			"$Date: 2006/01/11 20:32:05 $"
-//	Revision:		"$Revision: 1.10 $"
-//  Last change by:	"$Author: spooky23 $"
-//
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -41,9 +37,9 @@ class CDownloadSource
 public:
 	CDownloadSource(CDownload* pDownload);
 	CDownloadSource(CDownload* pDownload, CQueryHit* pHit);
-	CDownloadSource(CDownload* pDownload, DWORD nClientID, WORD nClientPort, DWORD nServerIP, WORD nServerPort, const Hashes::Guid& oGUID);
-    CDownloadSource(CDownload* pDownload, const Hashes::BtGuid& oGUID, IN_ADDR* pAddress, WORD nPort);
-	CDownloadSource(CDownload* pDownload, LPCTSTR pszURL, BOOL bSHA1 = FALSE, BOOL bHashAuth = FALSE, FILETIME* pLastSeen = NULL, int nRedirectionCount = 0);
+	CDownloadSource(CDownload* pDownload, DWORD nClientID, WORD nClientPort, DWORD nServerIP, WORD nServerPort, GGUID* pGUID = NULL);
+	CDownloadSource(CDownload* pDownload, SHA1* pGUID, IN_ADDR* pAddress, WORD nPort);
+	CDownloadSource(CDownload* pDownload, LPCTSTR pszURL, BOOL bSHA1 = FALSE, BOOL bHashAuth = FALSE, FILETIME* pLastSeen = NULL);
 	virtual ~CDownloadSource();
 private:
 	inline void Construct(CDownload* pDownload);
@@ -58,7 +54,8 @@ public:
 public:
 	CString				m_sURL;
 	PROTOCOLID			m_nProtocol;
-	Hashes::Guid		m_oGUID;
+	BOOL				m_bGUID;
+	GGUID				m_pGUID;
 	IN_ADDR				m_pAddress;
 	WORD				m_nPort;
 	IN_ADDR				m_pServerAddress;
@@ -85,9 +82,8 @@ public:
 	int					m_nColour;
 	DWORD				m_tAttempt;
 	int					m_nFailures;
-	int					m_nRedirectionCount;
-	Fragments::List		m_oAvailable;
-	Fragments::List		m_oPastFragments;
+    FF::SimpleFragmentList m_oAvailable;
+    FF::SimpleFragmentList m_oPastFragments;
 
 // Operations
 public:
@@ -102,12 +98,12 @@ public:
 	void		SetValid();
 	void		SetLastSeen();
 	void		SetGnutella(int nGnutella);
-    BOOL		CheckHash(const Hashes::Sha1Hash& oSHA1);
-    BOOL		CheckHash(const Hashes::TigerHash& oTiger);
-    BOOL		CheckHash(const Hashes::Ed2kHash& oED2K);
+	BOOL		CheckHash(const SHA1* pSHA1);
+	BOOL		CheckHash(const TIGEROOT* pTiger);
+	BOOL		CheckHash(const MD4* pED2K);
 public:
 	BOOL		PushRequest();
-	BOOL		CheckPush(const Hashes::Guid& oClientID);
+	BOOL		CheckPush(GGUID* pClientID);
 	BOOL		CheckDonkey(CEDClient* pClient);
 public:
 	void		AddFragment(QWORD nOffset, QWORD nLength, BOOL bMerge = FALSE);
@@ -120,11 +116,10 @@ public:
 
 // Inlines
 public:
-	inline bool CDownloadSource::Equals(CDownloadSource* pSource) const
+	inline BOOL CDownloadSource::Equals(CDownloadSource* pSource) const
 	{
-		if ( m_oGUID.isValid() && pSource->m_oGUID.isValid() )
-			return m_oGUID == pSource->m_oGUID;
-		
+		if ( m_bGUID && pSource->m_bGUID ) return m_pGUID == pSource->m_pGUID;
+
 		if ( m_nServerPort != pSource->m_nServerPort )
 		{
 			return FALSE;

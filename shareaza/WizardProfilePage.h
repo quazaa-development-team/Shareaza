@@ -25,6 +25,7 @@
 #pragma once
 
 #include "WizardSheet.h"
+#include "afxwin.h"
 
 class CWorldGPS;
 

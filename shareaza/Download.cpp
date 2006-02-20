@@ -65,7 +65,7 @@ CDownload::CDownload()
 	m_tCompleted	= 0;
 	m_tSaved		= 0;
 	m_tBegan		= 0;
-	
+
 	m_bDownloading	= FALSE;
 	
 	DownloadGroups.Link( this );
@@ -80,9 +80,9 @@ CDownload::~CDownload()
 	{
 		CloseTransfers();
 		CloseTorrentUploads();
-		Uploads.OnRename( m_sDiskName, NULL );
-		if ( ! ::DeleteFile( m_sDiskName ) )
-			theApp.WriteProfileString( _T("Delete"), m_sDiskName, _T("") );
+		Uploads.OnRename( m_sLocalName, NULL );
+		if ( ! ::DeleteFile( m_sLocalName ) )
+			theApp.WriteProfileString( _T("Delete"), m_sLocalName, _T("") );
 	}
 }
 
@@ -129,7 +129,7 @@ void CDownload::Resume()
 	m_bTorrentTrackerError	= FALSE;
 	m_nTorrentTrackerErrors = 0;
 
-	if ( m_oBTH )
+	if( m_bBTH )
 	{
 		if ( Downloads.GetTryingCount( TRUE ) < Settings.BitTorrent.DownloadTorrents ) 
 			SetStartTimer();
@@ -167,7 +167,7 @@ void CDownload::Remove(BOOL bDelete)
 	DeleteFile( bDelete );
 	DeletePreviews();
 	
-	::DeleteFile( m_sDiskName + _T(".sd") );
+	::DeleteFile( m_sLocalName + _T(".sd") );
 	
 	Downloads.Remove( this );
 }
@@ -204,15 +204,8 @@ void CDownload::Share(BOOL bShared)
 
 BOOL CDownload::Rename(LPCTSTR pszName)
 {
-	// Don't bother if renaming to same name.
-	if ( m_sDisplayName == pszName ) return FALSE;
-
-	// Set new name
-	m_sDisplayName = pszName;
-
-	// Set the new safe name. (Can be used for previews, etc)
-	m_sSafeName = CDownloadTask::SafeFilename( m_sDisplayName.Right( 64 ) );
-
+	if ( m_sRemoteName == pszName ) return FALSE;
+	m_sRemoteName = pszName;
 	SetModified();
 	return TRUE;
 }
@@ -223,10 +216,10 @@ BOOL CDownload::Rename(LPCTSTR pszName)
 void CDownload::StopTrying()
 {
 	if ( m_bComplete ) return;
-	m_tBegan = 0;
+	m_tBegan		= 0;
 	m_bDownloading	= FALSE;
 
-	if ( m_oBTH ) CloseTorrent();
+	if ( m_bBTH ) CloseTorrent();
 	CloseTransfers();
 	CloseFile();
 	StopSearch();
@@ -290,7 +283,7 @@ BOOL CDownload::IsTrying() const
 
 BOOL CDownload::IsShared() const
 {
-	return m_bShared || m_oBTH || Settings.eDonkey.EnableToday;
+	return m_bShared || m_bBTH || Settings.eDonkey.EnableToday;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -316,9 +309,9 @@ void CDownload::OnRun()
 				if (  ( tNow - m_tReceived ) > ( tHoursToTry * 60 * 60 * 1000 ) )
 				{	//And have had no new data for 5-14 hours	
 
-					if ( m_oBTH )	//If it's a torrent
+					if( m_bBTH )	//If it's a torrent
 					{
-						if ( Downloads.GetTryingCount( TRUE ) >= Settings.BitTorrent.DownloadTorrents )
+						if( Downloads.GetTryingCount( TRUE ) >= Settings.BitTorrent.DownloadTorrents )
 						{	//If there are other torrents that could start
 							StopTrying();		//Give up for now, try again later
 							return;
@@ -326,7 +319,7 @@ void CDownload::OnRun()
 					}
 					else			//It's a regular download
 					{
-						if ( Downloads.GetTryingCount( FALSE ) >= ( Settings.Downloads.MaxFiles + Settings.Downloads.MaxFileSearches ) )
+						if( Downloads.GetTryingCount( FALSE ) >= ( Settings.Downloads.MaxFiles + Settings.Downloads.MaxFileSearches ) )
 						{	//If there are other downloads that could try
 							StopTrying();		//Give up for now, try again later
 							return;
@@ -369,24 +362,20 @@ void CDownload::OnRun()
 		}
 		else if ( ! m_bComplete )
 		{	//If this download isn't trying to download, see if it can try
-			if ( IsDownloading() )
-			{	// This download was probably started by a push/etc
-				SetStartTimer();
-			}
-			if ( m_oBTH )
+			if( m_bBTH )
 			{	//Torrents only try when 'ready to go'. (Reduce tracker load)
-				if ( Downloads.GetTryingCount( TRUE ) < Settings.BitTorrent.DownloadTorrents )
+				if( Downloads.GetTryingCount( TRUE ) < Settings.BitTorrent.DownloadTorrents )
 					SetStartTimer();
 			}
 			else
 			{	//We have extra regular downloads 'trying' so when a new slot is ready, a download
 				//has sources and is ready to go.	
-				if ( Downloads.GetTryingCount( FALSE ) < ( Settings.Downloads.MaxFiles + Settings.Downloads.MaxFileSearches ) )
+				if( Downloads.GetTryingCount( FALSE ) < ( Settings.Downloads.MaxFiles + Settings.Downloads.MaxFileSearches ) )
 					SetStartTimer();
 			}
 		}
 	}
-	
+
 	// Set the currently downloading state (Used to optimise display in Ctrl/Wnd functions)
 	m_bDownloading = bDownloading;
 	
@@ -459,15 +448,15 @@ void CDownload::OnTaskComplete(CDownloadTask* pTask)
 
 void CDownload::OnMoved(CDownloadTask* pTask)
 {
-	CString strDiskFileName = m_sDiskName;
+	CString strLocalName = m_sLocalName;
 	ASSERT( m_pFile == NULL );
 	
 	if ( pTask->m_bSuccess )
 	{
-		m_sDiskName = pTask->m_sFilename;
+		m_sLocalName = pTask->m_sFilename;
 		
 		theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_MOVED,
-			(LPCTSTR)GetDisplayName(), (LPCTSTR)m_sDiskName );
+			(LPCTSTR)GetDisplayName(), (LPCTSTR)m_sLocalName );
 		
 		if ( m_pXML != NULL && Settings.Downloads.Metadata )
 			WriteMetadata( pTask->m_sPath );
@@ -487,30 +476,29 @@ void CDownload::OnMoved(CDownloadTask* pTask)
 	m_bComplete		= TRUE;
 	m_tCompleted	= GetTickCount();
 	
-	// Delete the SD file
-	::DeleteFile( strDiskFileName + _T(".sd") );
+	::DeleteFile( strLocalName + _T(".sd") );
 	
 	if ( m_nTorrentBlock > 0 && m_nTorrentSuccess >= m_nTorrentBlock )
 	{
 		CBTTrackerRequest::SendCompleted( this );
 	}
 	
-	LibraryBuilder.RequestPriority( m_sDiskName );
+	LibraryBuilder.RequestPriority( m_sLocalName );
 	
-    if ( m_oSHA1 || m_oED2K )
+	if ( m_bSHA1 || m_bED2K )
 	{
-		LibraryHistory.Add( m_sDiskName, m_oSHA1,
-			m_oED2K, GetSourceURLs( NULL, 0, PROTOCOL_NULL, NULL ) );
+		LibraryHistory.Add( m_sLocalName, m_bSHA1 ? &m_pSHA1 : NULL,
+			m_bED2K ? &m_pED2K : NULL, GetSourceURLs( NULL, 0, PROTOCOL_NULL, NULL ) );
 	}
 	else
 	{
-        LibraryHistory.Add( m_sDiskName, Hashes::Sha1Hash(), m_oED2K, NULL );
+		LibraryHistory.Add( m_sLocalName, NULL, NULL, NULL );
 	}
 	
 	ClearSources();
 	SetModified();
 	
-	if ( IsFullyVerified() ) OnVerify( m_sDiskName, TRUE );
+	if ( IsFullyVerified() ) OnVerify( m_sLocalName, TRUE );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -521,8 +509,8 @@ BOOL CDownload::OnVerify(LPCTSTR pszPath, BOOL bVerified)
 	if ( m_bVerify != TS_UNKNOWN ) return FALSE;
 	if ( m_pFile != NULL ) return FALSE;
 	
-	if ( pszPath != (LPCTSTR)m_sDiskName &&
-		 m_sDiskName.CompareNoCase( pszPath ) != 0 ) return FALSE;
+	if ( pszPath != (LPCTSTR)m_sLocalName &&
+		 m_sLocalName.CompareNoCase( pszPath ) != 0 ) return FALSE;
 	
 	m_bVerify = bVerified ? TS_TRUE : TS_FALSE;
 	SetModified();
@@ -538,10 +526,10 @@ BOOL CDownload::Load(LPCTSTR pszName)
 	BOOL bSuccess = FALSE;
 	CFile pFile;
 	
-	m_sDiskName = pszName;
-	m_sDiskName = m_sDiskName.Left( m_sDiskName.GetLength() - 3 );
+	m_sLocalName = pszName;
+	m_sLocalName = m_sLocalName.Left( m_sLocalName.GetLength() - 3 );
 	
-	if ( pFile.Open( m_sDiskName + _T(".sd"), CFile::modeRead ) )
+	if ( pFile.Open( m_sLocalName + _T(".sd"), CFile::modeRead ) )
 	{
 		try
 		{
@@ -557,7 +545,7 @@ BOOL CDownload::Load(LPCTSTR pszName)
 		pFile.Close();
 	}
 	
-	if ( ! bSuccess && pFile.Open( m_sDiskName + _T(".sd.sav"), CFile::modeRead ) )
+	if ( ! bSuccess && pFile.Open( m_sLocalName + _T(".sd.sav"), CFile::modeRead ) )
 	{
 		try
 		{
@@ -588,10 +576,10 @@ BOOL CDownload::Save(BOOL bFlush)
 	
 	if ( m_bComplete ) return TRUE;
 	
-	GenerateDiskName();
-	::DeleteFile( m_sDiskName + _T(".sd.sav") );
+	GenerateLocalName();
+	::DeleteFile( m_sLocalName + _T(".sd.sav") );
 	
-	if ( ! pFile.Open( m_sDiskName + _T(".sd.sav"),
+	if ( ! pFile.Open( m_sLocalName + _T(".sd.sav"),
 		CFile::modeReadWrite|CFile::modeCreate|CFile::osWriteThrough ) ) return FALSE;
 	
 	{
@@ -609,13 +597,13 @@ BOOL CDownload::Save(BOOL bFlush)
 	
 	if ( szID[0] == 'S' && szID[1] == 'D' && szID[2] == 'L' )
 	{
-		::DeleteFile( m_sDiskName + _T(".sd") );
-		MoveFile( m_sDiskName + _T(".sd.sav"), m_sDiskName + _T(".sd") );
+		::DeleteFile( m_sLocalName + _T(".sd") );
+		MoveFile( m_sLocalName + _T(".sd.sav"), m_sLocalName + _T(".sd") );
 		return TRUE;
 	}
 	else
 	{
-		::DeleteFile( m_sDiskName + _T(".sd.sav") );
+		::DeleteFile( m_sLocalName + _T(".sd.sav") );
 		return FALSE;
 	}
 }
@@ -680,26 +668,24 @@ void CDownload::SerializeOld(CArchive& ar, int nVersion)
 {
 	ASSERT( ar.IsLoading() );
 	
-	ar >> m_sDiskName;
-	ar >> m_sDisplayName;
+	ar >> m_sLocalName;
+	ar >> m_sRemoteName;
 	
 	DWORD nSize;
 	ar >> nSize;
 	m_nSize = nSize;
 	
-    Hashes::Sha1Hash oSHA1;
-    SerializeIn( ar, oSHA1, nVersion );
-    m_oSHA1 = oSHA1;
-    m_oSHA1.signalTrusted();
+	ar >> m_bSHA1;
+	if ( m_bSHA1 ) ar.Read( &m_pSHA1, sizeof(SHA1) );
 	
 	ar >> m_bPaused;
 	ar >> m_bExpanded;
 	if ( nVersion >= 6 ) ar >> m_bBoosted;
 	
 	m_pFile->Serialize( ar, nVersion );
-	GenerateDiskName();
+	GenerateLocalName();
 	
-	for ( DWORD_PTR nSources = ar.ReadCount() ; nSources ; nSources-- )
+	for ( int nSources = ar.ReadCount() ; nSources ; nSources-- )
 	{
 		CDownloadSource* pSource = new CDownloadSource( this );
 		pSource->Serialize( ar, nVersion );

@@ -118,7 +118,7 @@ void CChatWnd::OnSize(UINT nType, int cx, int cy)
 	}
 }
 
-void CChatWnd::OnTimer(UINT_PTR nIDEvent)
+void CChatWnd::OnTimer(UINT nIDEvent)
 {
 	if ( nIDEvent == 1 && m_pFrame != NULL && IsActive( TRUE ) )
 	{

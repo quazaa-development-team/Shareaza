@@ -24,6 +24,10 @@
 #include "WndSettingsSheet.h"
 #include "WndSettingsPage.h"
 
+#include <afxpriv.h>
+#include <..\src\mfc\afximpl.h>
+//#include "C:\Development\VisualStudio2003\Vc7\atlmfc\src\mfc\afximpl.h"
+
 #include "Skin.h"
 
 #ifdef _DEBUG

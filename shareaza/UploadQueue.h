@@ -36,8 +36,8 @@ public:
 
 // Attributes
 protected:
-	CList< CUploadTransfer* > m_pActive;
-	CArray< CUploadTransfer* > m_pQueued;
+	CPtrList	m_pActive;
+	CPtrArray	m_pQueued;
 public:
 	int			m_nIndex;
 	CString		m_sName;
@@ -74,8 +74,8 @@ public:
 	BOOL		StealPosition(CUploadTransfer* pTarget, CUploadTransfer* pSource);
 	BOOL		Start(CUploadTransfer* pUpload, BOOL bPeek = FALSE);
 public:
-	INT_PTR		GetBandwidthPoints(INT_PTR nTransfers = -1) const;
-	DWORD		GetBandwidthLimit(INT_PTR nTransfers = -1) const;
+	int			GetBandwidthPoints(int nTransfers = -1) const;
+	DWORD		GetBandwidthLimit(int nTransfers = -1) const;
 	DWORD		GetAvailableBandwidth() const;
 	DWORD		GetPredictedBandwidth() const;
 	void		SpreadBandwidth();
@@ -85,10 +85,11 @@ protected:
 
 // Utilities
 public:
-	inline INT_PTR GetTransferCount(BOOL bMax = FALSE) const
+	inline int GetTransferCount(BOOL bMax = FALSE) const
 	{
-		INT_PTR nActive = m_pActive.GetCount();
-		return bMax ?  max( nActive, m_nMinTransfers ) : nActive;
+		if ( ! bMax ) return m_pActive.GetCount();
+		int nActive = m_pActive.GetCount();
+		return max( nActive, m_nMinTransfers );
 	}
 
 	inline int GetQueueCapacity() const
@@ -96,12 +97,12 @@ public:
 		return m_nCapacity;
 	}
 
-	inline INT_PTR GetQueuedCount() const
+	inline int GetQueuedCount() const
 	{
 		return m_pQueued.GetSize();
 	}
 
-	inline INT_PTR GetQueueRemaining() const
+	inline int GetQueueRemaining() const
 	{
 		return GetQueueCapacity() - GetQueuedCount();
 	}

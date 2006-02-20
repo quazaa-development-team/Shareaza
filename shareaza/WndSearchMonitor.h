@@ -26,7 +26,6 @@
 
 #include "WndPanel.h"
 
-class CLiveItem;
 
 class CSearchMonitorWnd : public CPanelWnd
 {
@@ -44,7 +43,7 @@ protected:
 	CLiveListSizer	m_pSizer;
 	BOOL			m_bPaused;
 protected:
-	CList< CLiveItem* >			m_pQueue;
+	CPtrList			m_pQueue;
 	CCriticalSection	m_pSection;
 
 // Operations
@@ -70,7 +69,7 @@ protected:
 	afx_msg void OnUpdateSearchMonitorSearch(CCmdUI* pCmdUI);
 	afx_msg void OnSearchMonitorSearch();
 	afx_msg void OnDblClkList(NMHDR* pNotifyStruct, LRESULT *pResult);
-	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg void OnTimer(UINT nIDEvent);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };

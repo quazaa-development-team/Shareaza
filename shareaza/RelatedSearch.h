@@ -40,9 +40,12 @@ public:
 
 // Attributes
 public:
-    Hashes::Sha1Hash m_oSHA1;
-    Hashes::TigerHash m_oTiger;
-    Hashes::Ed2kHash m_oED2K;
+	BOOL		m_bSHA1;
+	SHA1		m_pSHA1;
+	BOOL		m_bTiger;
+	TIGEROOT	m_pTiger;
+	BOOL		m_bED2K;
+	MD4			m_pED2K;
 public:
 	CString			m_sName;
 	CSchema*		m_pSchema;

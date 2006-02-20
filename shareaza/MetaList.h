@@ -40,7 +40,7 @@ public:
 
 // Attributes
 protected:
-	CList< CMetaItem* >	m_pItems;
+	CPtrList	m_pItems;
 
 // Operations
 public:
@@ -62,22 +62,23 @@ public:
 public:
 	inline POSITION GetIterator() const
 	{
-		return m_pItems.GetHeadPosition();
+		return (POSITION)m_pItems.GetHeadPosition();
 	}
 
 	inline CMetaItem* GetNext(POSITION& pos) const
 	{
-		return pos ? m_pItems.GetNext( pos ) : NULL;
+		return pos ? (CMetaItem*)m_pItems.GetNext( pos ) : NULL;
 	}
 
-	inline INT_PTR GetCount() const
+	inline int GetCount() const
 	{
 		return m_pItems.GetCount();
 	}
 
 	inline CMetaItem* GetFirst() const
 	{
-		return m_pItems.IsEmpty() ? NULL : m_pItems.GetHead();
+		if ( m_pItems.GetCount() == 0 ) return NULL;
+		return (CMetaItem*)m_pItems.GetHead();
 	}
 
 };
@@ -94,7 +95,7 @@ public:
 	CSchemaMember*	m_pMember;
 	CString			m_sKey;
 	CString			m_sValue;
-	CMap< CString, const CString&, int, int > m_pVote;
+	CMapStringToPtr	m_pVote;
 public:
 	CRect			m_rect;
 	BOOL			m_bLink;

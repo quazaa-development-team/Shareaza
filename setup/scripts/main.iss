@@ -1,3 +1,5 @@
+; WARNING: Compile repair.iss first!
+
 ; Uncomment the next line to compile a debug build without any files.
 ;#define debug
 
@@ -96,12 +98,10 @@ Source: "Data\*.*"; DestDir: "{app}\Data"; Flags: ignoreversion overwritereadonl
 
 ; Plugins
 ; Don't register RazaWebHook.dll since it will setup Shareaza as download manager
-Source: "setup\plugins\*.dll"; DestDir: "{app}\Plugins"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension regserver; Excludes: "RazaWebHook.dll,libgfl240.dll"; MinVersion: 0,4.0
-Source: "setup\plugins\*.dll"; DestDir: "{app}\Plugins"; Flags: overwritereadonly replacesameversion uninsremovereadonly sortfilesbyextension regserver; Excludes: "RazaWebHook.dll,libgfl240.dll"; MinVersion: 4.0,0
+Source: "setup\plugins\*.dll"; DestDir: "{app}\Plugins"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension regserver; Excludes: "RazaWebHook.dll"; MinVersion: 0,4.0
+Source: "setup\plugins\*.dll"; DestDir: "{app}\Plugins"; Flags: overwritereadonly replacesameversion uninsremovereadonly sortfilesbyextension regserver; Excludes: "RazaWebHook.dll"; MinVersion: 4.0,0
 Source: "setup\plugins\RazaWebHook.dll"; DestDir: "{app}\Plugins"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension; MinVersion: 0,4.0
 Source: "setup\plugins\RazaWebHook.dll"; DestDir: "{app}\Plugins"; Flags: overwritereadonly replacesameversion uninsremovereadonly sortfilesbyextension; MinVersion: 4.0,0
-Source: "setup\plugins\libgfl240.dll"; DestDir: "{app}\Plugins"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension; MinVersion: 0,4.0
-Source: "setup\plugins\libgfl240.dll"; DestDir: "{app}\Plugins"; Flags: overwritereadonly replacesameversion uninsremovereadonly sortfilesbyextension; MinVersion: 4.0,0
 
 ; Uninstall icon for software panel
 Source: "setup\misc\uninstall.ico"; DestDir: "{app}\Uninstall"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension
@@ -160,15 +160,13 @@ Source: "{ini:{param:SETTINGS|},Locations,UserPath|{reg:HKCU\Software\Shareaza\S
 #endif
 
 ; Copy installer into download and uninstall dir
-;Source: "{srcexe}"; DestDir: "{ini:{param:SETTINGS|},Locations,CompletePath|{reg:HKCU\Software\Shareaza\Shareaza\Downloads,CompletePath|{userdocs}\Downloads}}"; DestName: "Shareaza_{#version}.exe"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension external onlyifdoesntexist; Tasks: multiuser
-;Source: "{srcexe}"; DestDir: "{ini:{param:SETTINGS|},Locations,CompletePath|{reg:HKCU\Software\Shareaza\Shareaza\Downloads,CompletePath|{app}\Downloads}}"; DestName: "Shareaza_{#version}.exe"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension external onlyifdoesntexist; Tasks: not multiuser
+Source: "{srcexe}"; DestDir: "{ini:{param:SETTINGS|},Locations,CompletePath|{reg:HKCU\Software\Shareaza\Shareaza\Downloads,CompletePath|{userdocs}\Downloads}}"; DestName: "Shareaza_{#version}.exe"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension external onlyifdoesntexist; Tasks: multiuser
+Source: "{srcexe}"; DestDir: "{ini:{param:SETTINGS|},Locations,CompletePath|{reg:HKCU\Software\Shareaza\Shareaza\Downloads,CompletePath|{app}\Downloads}}"; DestName: "Shareaza_{#version}.exe"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension external onlyifdoesntexist; Tasks: not multiuser
 Source: "{srcexe}"; DestDir: "{app}\Uninstall"; DestName: "setup.exe"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension external
 
 [Icons]
 ; Shareaza icons
-Name: "{userprograms}\{groupname}\Shareaza ({cm:icons_basicmode})"; Filename: "{app}\Shareaza.exe"; Parameters: "-basic"; WorkingDir: "{app}"; Comment: "{cm:reg_apptitle}"
-Name: "{userprograms}\{groupname}\Shareaza ({cm:icons_tabbedmode})"; Filename: "{app}\Shareaza.exe"; Parameters: "-tabbed"; WorkingDir: "{app}"; Comment: "{cm:reg_apptitle}"
-Name: "{userprograms}\{groupname}\Shareaza ({cm:icons_windowedmode})"; Filename: "{app}\Shareaza.exe"; Parameters: "-windowed"; WorkingDir: "{app}"; Comment: "{cm:reg_apptitle}"
+Name: "{userprograms}\{groupname}\Shareaza"; Filename: "{app}\Shareaza.exe"; WorkingDir: "{app}"; Comment: "{cm:reg_apptitle}"
 Name: "{userdesktop}\Shareaza"; Filename: "{app}\Shareaza.exe"; WorkingDir: "{app}"; Comment: "{cm:reg_apptitle}"; Tasks: desktopicon
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\Shareaza"; Filename: "{app}\Shareaza.exe"; WorkingDir: "{app}"; Comment: "{cm:reg_apptitle}"; Tasks: quicklaunch
 
@@ -318,8 +316,8 @@ Type: filesandordirs; Name: "{app}\Skins\Languages"; Components: not language
 Type: filesandordirs; Name: "{userappdata}\Shareaza\Skins\Languages"; Components: not language
 
 ; Delete old Shareaza installers
-;Type: files; Name: "{ini:{param:SETTINGS|},Locations,CompletePath|{reg:HKCU\Software\Shareaza\Shareaza\Downloads,CompletePath|{userdocs}\Downloads}}\Shareaza*.exe"; Tasks: deleteoldsetup and multiuser
-;Type: files; Name: "{ini:{param:SETTINGS|},Locations,CompletePath|{reg:HKCU\Software\Shareaza\Shareaza\Downloads,CompletePath|{app}\Downloads}}\Shareaza*.exe"; Tasks: deleteoldsetup and not multiuser
+Type: files; Name: "{ini:{param:SETTINGS|},Locations,CompletePath|{reg:HKCU\Software\Shareaza\Shareaza\Downloads,CompletePath|{userdocs}\Downloads}}\Shareaza*.exe"; Tasks: deleteoldsetup and multiuser
+Type: files; Name: "{ini:{param:SETTINGS|},Locations,CompletePath|{reg:HKCU\Software\Shareaza\Shareaza\Downloads,CompletePath|{app}\Downloads}}\Shareaza*.exe"; Tasks: deleteoldsetup and not multiuser
 
 [UninstallDelete]
 ; Clean up files created after installation
@@ -342,7 +340,6 @@ const
   NET_FW_SCOPE_ALL = 0;
   NET_FW_IP_VERSION_ANY = 2;
 var
-  CurrentPath: string;
   Installed: Boolean;
   FirewallFailed: string;
 
@@ -354,16 +351,6 @@ End;
 Function NSISUsed(): boolean;
 Begin
     Result := RegKeyExists(HKEY_LOCAL_MACHINE, KeyLoc2);
-End;
-
-// check if the current install path exists
-Function DoesPathExist(): boolean;
-Begin
-    if RegQueryStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\Shareaza','', CurrentPath) then
-        Result := DirExists(CurrentPath)
-    else
-        Result := False;
-
 End;
 
 Function NextButtonClick(CurPageID: integer): Boolean;
@@ -390,7 +377,7 @@ end;
 Function InitializeSetup: Boolean;
 Begin
   Result := True;
-  Installed := (RegValueExists(HKEY_LOCAL_MACHINE, KeyLoc1, KeyName) or RegValueExists(HKEY_LOCAL_MACHINE, KeyLoc2, KeyName)) and DoesPathExist();
+  Installed := RegValueExists(HKEY_LOCAL_MACHINE, KeyLoc1, KeyName) or RegValueExists(HKEY_LOCAL_MACHINE, KeyLoc2, KeyName);
 End;
 
 Function EnableDeleteOldSetup: Boolean;

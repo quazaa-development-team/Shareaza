@@ -139,19 +139,26 @@ void CFilePropertiesDlg::Update()
 	m_sSize = Settings.SmartVolume( pFile->GetSize(), FALSE );
 	m_sIndex.Format( _T("# %lu"), pFile->m_nIndex );
 
-	if ( pFile->m_oSHA1 )
+	if ( pFile->m_bSHA1 )
 	{
 		if ( m_bHexHash )
-			m_sSHA1 = _T("sha1:") + pFile->m_oSHA1.toString< Hashes::base16Encoding >();
+			m_sSHA1 = _T("sha1:") + CSHA::HashToHexString( &pFile->m_pSHA1 );
 		else
-			m_sSHA1 = pFile->m_oSHA1.toShortUrn();
+			m_sSHA1 = _T("sha1:") + CSHA::HashToString( &pFile->m_pSHA1 );
 	}
 	else
 	{
 		LoadString(m_sSHA1, IDS_GENERAL_NOURNAVAILABLE );
 	}
 
-	m_sTiger = pFile->m_oTiger.toShortUrn();
+	if ( pFile->m_bTiger )
+	{
+		m_sTiger = _T("tree:tiger/:") + CTigerNode::HashToString( &pFile->m_pTiger );
+	}
+	else
+	{
+		m_sTiger.Empty();
+	}
 
 	CString strExt = pFile->m_sName;
 	int nPeriod = strExt.ReverseFind( '.' );
@@ -175,8 +182,8 @@ void CFilePropertiesDlg::Update()
 	{
 		CXMLElement* pXML = pFile->m_pMetadata->Clone();
 
-		if ( pFile->m_oSHA1 )
-            pXML->AddAttribute( _T("SHA1"), pFile->m_oSHA1.toString() );
+		if ( pFile->m_bSHA1 )
+			pXML->AddAttribute( _T("SHA1"), CSHA::HashToString( &pFile->m_pSHA1 ) );
 		else if ( CXMLAttribute* pSHA1 = pXML->GetAttribute( _T("SHA1") ) )
 			pSHA1->Delete();
 
@@ -220,7 +227,7 @@ void CFilePropertiesDlg::OnSize(UINT nType, int cx, int cy)
 	m_wndCancel.SetWindowPos( NULL, rc.right + 8, cy - 32, 0, 0, SWP_NOZORDER|SWP_NOSIZE );
 }
 
-void CFilePropertiesDlg::OnTimer(UINT_PTR /*nIDEvent*/)
+void CFilePropertiesDlg::OnTimer(UINT nIDEvent)
 {
 	CRect rc;
 	GetClientRect( &rc );

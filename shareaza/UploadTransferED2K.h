@@ -46,12 +46,12 @@ public:
 	DWORD			m_tRankingCheck;			// The time the queue position was last checked.
 	DWORD			m_tLastRun;					// The time the transfer was last run
 private:
-	Fragments::Queue m_oRequested;
-	Fragments::Queue m_oServed;
+    FF::SimpleFragmentQueue m_oRequested;
+    FF::SimpleFragmentQueue m_oServed;
 
 // Operations
 public:
-    BOOL			Request(const Hashes::Ed2kHash& oED2K);
+	BOOL			Request(MD4* pMD4);
 	virtual void	Close(BOOL bMessage = FALSE);
 	virtual BOOL	OnRun();
 	virtual BOOL	OnConnected();

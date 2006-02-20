@@ -72,15 +72,15 @@ void CLibraryDictionary::Add(CLibraryFile* pFile)
 {
 	ProcessFile( pFile, TRUE );
 	
-	if ( ( pFile->m_oSHA1 || pFile->m_oED2K ) && ! BuildHashTable() )
+	if ( ( pFile->m_bSHA1 || pFile->m_bED2K ) && ! BuildHashTable() )
 	{
-		if ( pFile->m_oSHA1 )
+		if ( pFile->m_bSHA1 )
 		{
-			m_pTable->AddString( pFile->m_oSHA1.toUrn() );
+			m_pTable->AddString( CSHA::HashToString( &pFile->m_pSHA1, TRUE ) );
 		}
-		if ( pFile->m_oED2K )
+		if ( pFile->m_bED2K )
 		{
-			m_pTable->AddString( pFile->m_oED2K.toUrn() );
+			m_pTable->AddString( CED2K::HashToString( &pFile->m_pED2K, TRUE ) );
 		}
 	}
 }
@@ -92,7 +92,7 @@ void CLibraryDictionary::Remove(CLibraryFile* pFile)
 	// TODO: Always invalidate the table when removing a hashed
 	// file... is this wise???  It will happen all the time.
 	
-	if ( pFile->m_oSHA1 || pFile->m_oED2K ) m_bTable = FALSE;
+	if ( pFile->m_bSHA1 || pFile->m_bED2K ) m_bTable = FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -106,7 +106,7 @@ void CLibraryDictionary::ProcessFile(CLibraryFile* pFile, BOOL bAdd)
 	if ( pFile->m_pMetadata && pFile->m_pSchema )
 	{
 		ProcessWord( pFile, pFile->m_pSchema->m_sURI, bAdd );
-		ProcessPhrase( pFile, pFile->GetMetadataWords(), bAdd, FALSE );
+		ProcessPhrase( pFile, pFile->GetMetadataWords(), bAdd );
 	}
 }
 
@@ -115,98 +115,84 @@ void CLibraryDictionary::ProcessFile(CLibraryFile* pFile, BOOL bAdd)
 
 int CLibraryDictionary::ProcessPhrase(CLibraryFile* pFile, const CString& strPhrase, BOOL bAdd, BOOL bLowercase)
 {
-	CString strTransformed( strPhrase );
-	if ( bLowercase )
-		ToLower( strTransformed );
-
-	LPCTSTR pszPtr = strTransformed;
+	LPCTSTR pszPtr = strPhrase;
 	CString strWord;
 	int nCount = 0;
-	ScriptType boundary[ 2 ] = { sNone, sNone };
-    int nPos = 0;
-	int nPrevWord = 0, nNextWord = 0;
-
+	
+    int nStart = 0, nPos = 0;
 	for ( ; *pszPtr ; nPos++, pszPtr++ )
 	{
-		// boundary[ 0 ] -- previous character;
-		// boundary[ 1 ] -- current character;
-		boundary[ 0 ] = boundary[ 1 ];
-
-		if ( IsKanji( *pszPtr ) )
-			boundary[ 1 ] = sKanji;
-		else if ( IsKatakana( *pszPtr ) && IsHiragana( *pszPtr ) )
+		if ( ! IsCharacter( *pszPtr ) )
 		{
-			if ( boundary[ 0 ] == sKatakana || boundary[ 0 ] == sHiragana )
-				boundary[ 1 ] = boundary[ 0 ];
-		}
-		else if ( IsKatakana( *pszPtr ) )
-			boundary[ 1 ] = sKatakana;
-		else if ( IsHiragana( *pszPtr ) )
-			boundary[ 1 ] = sHiragana;
-		else
-			boundary[ 1 ] = sRegular;
-
-		bool bCharacter = IsCharacter( *pszPtr );
-		int nDistance = !bCharacter ? 1 : 0;
-
-		if ( !bCharacter || boundary[ 0 ] != boundary[ 1 ] && nPos )
-		{
-			// Join two adjacent script phrases
-			// nNextWord == nPrevWord when previous word was regular
-			if ( nPos > nNextWord && nNextWord > nPrevWord )
+			if ( nStart < nPos && IsWord( strPhrase, nStart, nPos - nStart ) )
 			{
-				strWord = strTransformed.Mid( nPrevWord, nPos - nPrevWord );
-				nCount += MakeKeywords( pFile, strWord, bAdd );
-			}
-			if ( nPos > nNextWord )
-			{
-				strWord = strTransformed.Mid( nNextWord, nPos - nNextWord );
-				nCount += MakeKeywords( pFile, strWord, bAdd );
-				if ( nNextWord > nPrevWord )
+				strWord = strPhrase.Mid( nStart, nPos - nStart );
+				if ( bLowercase ) 
 				{
-					strWord = strTransformed.Mid( nPrevWord, nNextWord - nPrevWord );
-					nCount += MakeKeywords( pFile, strWord, bAdd );
+					CharLower( strWord.GetBuffer() );
+					strWord.GetBuffer();
+				}
+				ProcessWord( pFile, strWord, bAdd );
+				nCount++;
+				
+				if ( nPos - nStart >= 5 && Settings.Library.PartialMatch )
+				{
+					strWord = strPhrase.Mid( nStart, nPos - nStart - 1 );
+					if ( bLowercase ) 
+					{
+						CharLower( strWord.GetBuffer() );
+						strWord.GetBuffer();
+					}
+					ProcessWord( pFile, strWord, bAdd );
+					nCount++;
+					
+					strWord = strPhrase.Mid( nStart, nPos - nStart - 2 );
+					if ( bLowercase ) 
+					{
+						CharLower( strWord.GetBuffer() );
+						strWord.GetBuffer();
+					}
+					ProcessWord( pFile, strWord, bAdd );
+					nCount++;
 				}
 			}
-			if ( nNextWord > nPrevWord )
-				nPrevWord = nNextWord;
-			nNextWord = nPos + nDistance;
-			if ( boundary[ 0 ] < sKanji && boundary[ 1 ] < sKanji || !bCharacter ||
-				 boundary[ 0 ] < sKanji && boundary[ 1 ] > sRegular ||
-				 boundary[ 0 ] > sRegular && boundary[ 1 ] < sKanji )
-				nPrevWord = nNextWord;
+			nStart = nPos + 1;
 		}
 	}
 	
-	strWord = strTransformed.Mid( nPrevWord, nPos - nPrevWord );
-	nCount += MakeKeywords( pFile, strWord, bAdd );
-	return nCount;
-}
-
-//////////////////////////////////////////////////////////////////////
-// CLibraryDictionary keyword maker
-int CLibraryDictionary::MakeKeywords(CLibraryFile* pFile, const CString& strWord, BOOL bAdd)
-{
-	int nCount = 0;
-	int nLength = strWord.GetLength();
-	CString strKeyword( strWord );
-
-	if ( nLength && IsWord( strKeyword, 0, nLength ) )
+	if ( nStart < nPos && IsWord( strPhrase, nStart, nPos - nStart ) )
 	{
-		ProcessWord( pFile, strKeyword, bAdd );
+		strWord = strPhrase.Mid( nStart, nPos - nStart );
+		if ( bLowercase ) 
+		{
+			CharLower( strWord.GetBuffer() );
+			strWord.GetBuffer();
+		}
+		ProcessWord( pFile, strWord, bAdd );
 		nCount++;
 		
-		if ( nLength >= 5 && Settings.Library.PartialMatch )
+		if ( nPos - nStart >= 5 && Settings.Library.PartialMatch )
 		{
-			strKeyword = strWord.Left( nLength - 1 );
-			ProcessWord( pFile, strKeyword, bAdd );
+			strWord = strPhrase.Mid( nStart, nPos - nStart - 1 );
+			if ( bLowercase ) 
+			{
+				CharLower( strWord.GetBuffer() );
+				strWord.GetBuffer();
+			}
+			ProcessWord( pFile, strWord, bAdd );
 			nCount++;
 			
-			strKeyword = strWord.Left( nLength - 2 );
-			ProcessWord( pFile, strKeyword, bAdd );
+			strWord = strPhrase.Mid( nStart, nPos - nStart - 2 );
+			if ( bLowercase ) 
+			{
+				CharLower( strWord.GetBuffer() );
+				strWord.GetBuffer();
+			}
+			ProcessWord( pFile, strWord, bAdd );
 			nCount++;
 		}
 	}
+	
 	return nCount;
 }
 
@@ -217,7 +203,7 @@ void CLibraryDictionary::ProcessWord(CLibraryFile* pFile, const CString& strWord
 {
 	CLibraryWord* pWord;
 	
-	if ( m_pWords.Lookup( strWord, pWord ) )
+	if ( m_pWords.Lookup( strWord, (void*&)pWord ) )
 	{
 		if ( bAdd )
 		{
@@ -264,7 +250,7 @@ BOOL CLibraryDictionary::BuildHashTable()
 		CLibraryWord* pWord;
 		CString strWord;
 		
-		m_pWords.GetNextAssoc( pos, strWord, pWord );
+		m_pWords.GetNextAssoc( pos, strWord, (void*&)pWord );
 		
 		CLibraryFile* pFileTemp = *(pWord->m_pList); 
 
@@ -299,13 +285,13 @@ BOOL CLibraryDictionary::BuildHashTable()
 			if ( ( pFile->IsGhost() ) || ( UploadQueues.CanUpload( PROTOCOL_HTTP, pFile, FALSE ) ) ) // Check if a queue exists
 			{
 				//Add the hashes to the table
-				if ( pFile->m_oSHA1 )
+				if ( pFile->m_bSHA1 )
 				{
-					m_pTable->AddString( pFile->m_oSHA1.toUrn() );
+					m_pTable->AddString( CSHA::HashToString( &pFile->m_pSHA1, TRUE ) );
 				}
-				if ( pFile->m_oED2K )
+				if ( pFile->m_bED2K )
 				{
-					m_pTable->AddString( pFile->m_oED2K.toUrn() );
+					m_pTable->AddString( CED2K::HashToString( &pFile->m_pED2K, TRUE ) );
 				}
 /*
 				CString str;
@@ -356,7 +342,7 @@ void CLibraryDictionary::Clear()
 		CLibraryWord* pWord;
 		CString strWord;
 		
-		m_pWords.GetNextAssoc( pos, strWord, pWord );
+		m_pWords.GetNextAssoc( pos, strWord, (void*&)pWord );
 		delete pWord;
 	}
 	
@@ -372,26 +358,31 @@ void CLibraryDictionary::Clear()
 //////////////////////////////////////////////////////////////////////
 // CLibraryDictionary search
 
-CList< CLibraryFile* >* CLibraryDictionary::Search(CQuerySearch* pSearch, int nMaximum, BOOL bLocal)
+CPtrList* CLibraryDictionary::Search(CQuerySearch* pSearch, int nMaximum, BOOL bLocal)
 {
 	BuildHashTable();
-
+	
 	// Only check the hash when a search comes from other client. 
 	if ( ! bLocal && ! m_pTable->Check( pSearch ) ) return NULL;
-
+	
 	DWORD nCookie = m_nSearchCookie++;
-
+	
 	CLibraryFile* pHit = NULL;
-
-	for ( CQuerySearch::const_iterator pWordEntry = pSearch->begin(); pWordEntry != pSearch->end(); ++pWordEntry )
+	
+	LPCTSTR* pWordPtr	= pSearch->m_pWordPtr;
+	DWORD* pWordLen		= pSearch->m_pWordLen;
+	
+	for ( int nWord = pSearch->m_nWords ; nWord > 0 ; nWord--, pWordPtr++, pWordLen++ )
 	{
-		if ( pWordEntry->first[ 0 ] == '-' ) continue;
-
-		CString sWord( pWordEntry->first, (int)pWordEntry->second );
-
+		if ( **pWordPtr == '-' ) continue;
+		
+		LPTSTR pszNull = (LPTSTR)(*pWordPtr) + *pWordLen;
+		TCHAR cNull = *pszNull;
+		*pszNull = 0;
+		
 		CLibraryWord* pWord;
-
-		if ( m_pWords.Lookup( sWord, pWord ) )
+		
+		if ( m_pWords.Lookup( *pWordPtr, (void*&)pWord ) )
 		{
 			CLibraryFile** pFiles	= pWord->m_pList;
 			CLibraryFile* pLastFile	= NULL;
@@ -418,16 +409,15 @@ CList< CLibraryFile* >* CLibraryDictionary::Search(CQuerySearch* pSearch, int nM
 				}
 			}
 		}
-
+		
+		*pszNull = cNull;
 	}
-
-	size_t nLowerBound = pSearch->tableSize() >= 3
-		? pSearch->tableSize() * 2 / 3
-		: pSearch->tableSize();
-
-	CList< CLibraryFile* >* pHits = NULL;
+	
+	DWORD nLowerBound = pSearch->m_nWords >= 3 ? pSearch->m_nWords * 2 / 3 : pSearch->m_nWords;
+	
+	CPtrList* pHits = NULL;
 	int nCount = 0;
-
+	
 	for ( ; pHit ; pHit = pHit->m_pNextHit )
 	{
 		if ( pHit->m_nSearchCookie == nCookie && pHit->m_nSearchWords >= nLowerBound )
@@ -435,19 +425,19 @@ CList< CLibraryFile* >* CLibraryDictionary::Search(CQuerySearch* pSearch, int nM
 			if ( pSearch->Match( pHit->GetSearchName(), pHit->m_nSize,
 					pHit->m_pSchema ? (LPCTSTR)pHit->m_pSchema->m_sURI : NULL,
 					pHit->m_pMetadata,
-					pHit->m_oSHA1,
-					pHit->m_oTiger,
-					pHit->m_oED2K ) )
+					pHit->m_bSHA1 ? &pHit->m_pSHA1 : NULL,
+					pHit->m_bTiger ? &pHit->m_pTiger : NULL,
+					pHit->m_bED2K ? &pHit->m_pED2K : NULL ) )
 			{
-				if ( ! pHits ) pHits = new CList< CLibraryFile* >;
+				if ( ! pHits ) pHits = new CPtrList();
 				pHits->AddTail( pHit );
-
+				
 				if ( ! bLocal )
 				{
 					pHit->m_nHitsToday++;
 					pHit->m_nHitsTotal++;
 				}
-
+				
 				if ( pHit->m_nCollIndex )
 				{
 					if ( CLibraryFile* pCollection = LibraryMaps.LookupFile( pHit->m_nCollIndex, ! bLocal, TRUE ) )
@@ -463,12 +453,12 @@ CList< CLibraryFile* >* CLibraryDictionary::Search(CQuerySearch* pSearch, int nM
 						pHit->m_nCollIndex = 0;
 					}
 				}
-
+				
 				if ( nMaximum && ++nCount >= nMaximum ) break;
 			}
 		}
 	}
-
+	
 	return pHits;
 }
 
