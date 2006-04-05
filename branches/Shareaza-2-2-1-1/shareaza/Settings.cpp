@@ -138,6 +138,7 @@ void CSettings::Setup()
 	Add( _T("MediaPlayer.VisCLSID"), &MediaPlayer.VisCLSID, _T("{591A5CFF-3172-4020-A067-238542DDE9C2}") );
 	Add( _T("MediaPlayer.VisPath"), &MediaPlayer.VisPath, _T("") );
 	Add( _T("MediaPlayer.VisSize"), &MediaPlayer.VisSize, 1 );
+	Add( _T("MediaPlayer.ShortPaths"), &MediaPlayer.ShortPaths, FALSE );
 	
 	Add( _T("Web.Magnet"), &Web.Magnet, TRUE );
 	Add( _T("Web.Gnutella"), &Web.Gnutella, TRUE );

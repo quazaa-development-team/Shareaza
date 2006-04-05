@@ -147,6 +147,7 @@ public:
 		CString		VisCLSID;
 		CString		VisPath;
 		INT			VisSize;
+		BOOL		ShortPaths;		// Some players differently handle unicode paths but they can launch files using 8.3 paths
 	} MediaPlayer;
 	
 	struct sWeb
