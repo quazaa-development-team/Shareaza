@@ -31,22 +31,24 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
-#define HASH_SIZE			1024
-#define HASH_MASK			0x3FF
+#undef HASH_SIZE
+#undef HASH_MASK
+const unsigned HASH_SIZE = 1024u;
+const unsigned HASH_MASK = 0x3FF;
 
-#define MIN_BUFFER_SIZE		1024
-#define MAX_BUFFER_SIZE		40960
-#define BUFFER_BLOCK_SIZE	1024
+const DWORD MIN_BUFFER_SIZE = 1024u;
+const DWORD MAX_BUFFER_SIZE = 40960u;
+const unsigned BUFFER_BLOCK_SIZE = 1024u;
 
 
 //////////////////////////////////////////////////////////////////////
 // CRouteCache construction
 
-CRouteCache::CRouteCache()
+CRouteCache::CRouteCache() 
+	: m_nSeconds( 60 * 20 )
+	, m_pRecent( &m_pTable[0] )
+	, m_pHistory ( &m_pTable[1] )
 {
-	m_nSeconds	= 60 * 20;
-	m_pRecent	= &m_pTable[0];
-	m_pHistory	= &m_pTable[1];
 }
 
 CRouteCache::~CRouteCache()
@@ -70,17 +72,19 @@ BOOL CRouteCache::Add(const GGUID* pGUID, const CNeighbour* pNeighbour)
 		return FALSE;
 	}
 
+	CSingleLock pLock1( &m_pRecent->m_pSection, TRUE );
 	if ( m_pRecent->IsFull() )
 	{
+		CSingleLock pLock2( &m_pHistory->m_pSection, TRUE );
 		CRouteCacheTable* pTemp = m_pRecent;
 		m_pRecent = m_pHistory;
 		m_pHistory = pTemp;
 
 		m_pRecent->Resize( m_pHistory->GetNextSize( m_nSeconds ) );
 	}
-
+	
 	m_pRecent->Add( pGUID, pNeighbour, NULL );
-
+	
 	return TRUE;
 }
 
@@ -93,17 +97,19 @@ BOOL CRouteCache::Add(const GGUID* pGUID, const SOCKADDR_IN* pEndpoint)
 		return FALSE;
 	}
 
+	CSingleLock pLock1( &m_pRecent->m_pSection, TRUE );
 	if ( m_pRecent->IsFull() )
 	{
+		CSingleLock pLock2( &m_pHistory->m_pSection, TRUE );
 		CRouteCacheTable* pTemp = m_pRecent;
 		m_pRecent = m_pHistory;
 		m_pHistory = pTemp;
 
 		m_pRecent->Resize( m_pHistory->GetNextSize( m_nSeconds ) );
 	}
-
+	
 	m_pRecent->Add( pGUID, NULL, pEndpoint );
-
+	
 	return TRUE;
 }
 
@@ -113,8 +119,10 @@ CRouteCacheItem* CRouteCache::Add(const GGUID* pGUID, const CNeighbour* pNeighbo
 	SOCKADDR_IN cEndpoint;
 	if ( pEndpoint != NULL ) cEndpoint = *pEndpoint;
 
+	CSingleLock pLock1( &m_pRecent->m_pSection, TRUE );
 	if ( m_pRecent->IsFull() )
 	{
+		CSingleLock pLock2( &m_pHistory->m_pSection, TRUE );
 		CRouteCacheTable* pTemp = m_pRecent;
 		m_pRecent = m_pHistory;
 		m_pHistory = pTemp;
@@ -127,10 +135,12 @@ CRouteCacheItem* CRouteCache::Add(const GGUID* pGUID, const CNeighbour* pNeighbo
 
 CRouteCacheItem* CRouteCache::Lookup(const GGUID* pGUID, CNeighbour** ppNeighbour, SOCKADDR_IN* pEndpoint)
 {
+	CSingleLock pLock1( &m_pRecent->m_pSection, TRUE );
 	CRouteCacheItem* pItem = m_pRecent->Find( pGUID );
 
 	if ( pItem == NULL )
 	{
+		CSingleLock pLock2( &m_pHistory->m_pSection, TRUE );
 		pItem = m_pHistory->Find( pGUID );
 
 		if ( pItem == NULL )
@@ -153,12 +163,16 @@ CRouteCacheItem* CRouteCache::Lookup(const GGUID* pGUID, CNeighbour** ppNeighbou
 
 void CRouteCache::Remove(CNeighbour* pNeighbour)
 {
+	CSingleLock pLock1( &m_pRecent->m_pSection, TRUE );
+	CSingleLock pLock2( &m_pHistory->m_pSection, TRUE );
 	m_pTable[0].Remove( pNeighbour );
 	m_pTable[1].Remove( pNeighbour );
 }
 
 void CRouteCache::Clear()
 {
+	CSingleLock pLock1( &m_pRecent->m_pSection, TRUE );
+	CSingleLock pLock2( &m_pHistory->m_pSection, TRUE );
 	m_pTable[0].Clear();
 	m_pTable[1].Clear();
 }
@@ -168,10 +182,10 @@ void CRouteCache::Clear()
 // CRouteCacheTable construction
 
 CRouteCacheTable::CRouteCacheTable()
+	: m_pBuffer( NULL )
+	, m_nBuffer( 0 )
+	, m_nUsed( 0 )
 {
-	m_pBuffer	= NULL;
-	m_nBuffer	= 0;
-	m_nUsed		= 0;
 	Clear();
 }
 
@@ -201,7 +215,7 @@ CRouteCacheItem* CRouteCacheTable::Find(const GGUID* pGUID)
 CRouteCacheItem* CRouteCacheTable::Add(const GGUID* pGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD nTime)
 {
 	if ( m_nUsed == m_nBuffer || ! m_pFree ) return NULL;
-
+	
 	WORD nGUID = 0, *ppGUID = (WORD*)pGUID;
 	for ( int nIt = 8 ; nIt ; nIt-- ) nGUID += *ppGUID++;
 
