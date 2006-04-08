@@ -126,8 +126,8 @@ IDR_BITTORRENT_ICON     ICON                    "res\\Bittorrent.ico"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,2,2,0
- PRODUCTVERSION 2,2,2,0
+ FILEVERSION 2,2,1,1
+ PRODUCTVERSION 2,2,1,1
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -145,12 +145,12 @@ BEGIN
             VALUE "Comments", "Shareaza Ultimate File Sharing"
             VALUE "CompanyName", "Shareaza Development Team"
             VALUE "FileDescription", "Shareaza Ultimate File Sharing"
-            VALUE "FileVersion", "2, 2, 2, 0"
+            VALUE "FileVersion", "2, 2, 1, 1"
             VALUE "InternalName", "Shareaza"
             VALUE "LegalCopyright", "Copyright © Shareaza Development Team, 2002-2006."
             VALUE "OriginalFilename", "Shareaza.exe"
             VALUE "ProductName", "Shareaza"
-            VALUE "ProductVersion", "2, 2, 2, 0"
+            VALUE "ProductVersion", "2, 2, 1, 1"
         END
     END
     BLOCK "VarFileInfo"
@@ -1356,7 +1356,7 @@ BEGIN
     CONTROL         154,IDC_STATIC,"Static",SS_BITMAP,0,0,367,31
     LTEXT           "Shareaza File Sharing Client ",IDC_TITLE,20,45,262,10,
                     SS_CENTERIMAGE
-    LTEXT           "Copyright © Shareaza Development Team, 2002-2005.",
+    LTEXT           "Copyright © Shareaza Development Team, 2002-2006.",
                     IDC_STATIC,20,60,262,12
     LTEXT           "Shareaza is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.",
                     IDC_STATIC,20,75,262,24
