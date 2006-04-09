@@ -51,6 +51,7 @@ public:
 	BOOL			m_bFilterBogus;
 	BOOL			m_bFilterDRM;
 	BOOL			m_bFilterAdult;
+	BOOL			m_bFilterSuspicious;
 	QWORD			m_nFilterMinSize;
 	QWORD			m_nFilterMaxSize;
 	DWORD			m_nFilterSources;
@@ -146,7 +147,8 @@ public:
 	int			m_nRating;
 	int			m_nRated;
 	BOOL		m_bDRM;
-	BOOL		m_bCollection;
+	BOOL		m_bSuspicious;			// Appears to be a suspicious file (small exe, vbs, etc)
+	BOOL		m_bCollection;			// Appears to be a collection
 public:
 	BOOL		m_bExpanded;
 	BOOL		m_bSelected;
@@ -178,6 +180,8 @@ public:
 	inline DWORD GetFilteredCount() const
 	{
 		if ( m_pList->m_bFilterLocal && m_bExisting ) return 0;
+		if ( m_pList->m_bFilterDRM && m_bDRM ) return 0;
+		if ( m_pList->m_bFilterSuspicious && m_bSuspicious ) return 0;
 		if ( m_nSources < m_pList->m_nFilterSources ) return 0;
 		if ( m_pBest == NULL ) return 0;
 
@@ -187,6 +191,8 @@ public:
 	inline DWORD GetItemCount() const
 	{
 		if ( m_pList->m_bFilterLocal && m_bExisting ) return 0;
+			if ( m_pList->m_bFilterDRM && m_bDRM ) return 0;
+		if ( m_pList->m_bFilterSuspicious && m_bSuspicious ) return 0;
 		if ( m_nSources < m_pList->m_nFilterSources ) return 0;
 		if ( m_pBest == NULL ) return 0;
 

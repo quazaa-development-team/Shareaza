@@ -41,6 +41,11 @@
 #include "TigerTree.h"
 #include "ED2K.h"
 
+#include <vector>
+#include <list>
+#include <string>
+#include <iterator>
+
 #ifdef _DEBUG
 #undef THIS_FILE
 static char THIS_FILE[]=__FILE__;
@@ -94,6 +99,7 @@ CQueryHit::CQueryHit(PROTOCOLID nProtocol, GGUID* pSearchID)
 	
 	m_bBogus		= FALSE;
 	m_bMatched		= FALSE;
+	m_bExactMatch	= FALSE;
 	m_bFiltered		= FALSE;
 	m_bDownload		= FALSE;
 	m_bNew			= FALSE;
@@ -138,6 +144,9 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 		DWORD	nAddress	= pPacket->ReadLongLE();
 		DWORD	nSpeed		= pPacket->ReadLongLE();
 		
+		if ( Network.IsReserved( (IN_ADDR*)&nAddress ), false )
+			AfxThrowUserException();
+
 		if ( ! nCount ) AfxThrowUserException();
 		
 		while ( nCount-- )
@@ -201,7 +210,7 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 		if ( ( nFlags[0] & G1_QHD_GGEP ) && ( nFlags[1] & G1_QHD_GGEP ) &&
 			 Settings.Gnutella1.EnableGGEP )
 		{
-			ReadGGEP( pPacket, &bBrowseHost );
+			ReadGGEP( pPacket, &bBrowseHost, &bChat );
 		}
 		
 		if ( nXMLSize > 0 )
@@ -284,6 +293,8 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 		BOOL bCompound;
 		CHAR szType[9];
 		DWORD nLength;
+		bool bSpam = false;
+		DWORD nPrevHubAddress = 0;
 		
 		while ( pPacket->ReadPacket( szType, nLength, &bCompound ) )
 		{
@@ -349,6 +360,13 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 				pHub.sin_addr.S_un.S_addr	= pPacket->ReadLongLE();
 				pHub.sin_port				= htons( pPacket->ReadShortBE() );
 				
+				// ToDo: We should check if ALL hubs are unique
+				if ( nPrevHubAddress == pHub.sin_addr.S_un.S_addr )
+				{
+					bSpam = true;
+				}
+				nPrevHubAddress = pHub.sin_addr.S_un.S_addr;
+
 				pIncrID.n[15] ++;
 				Network.NodeRoute->Add( &pIncrID, &pHub );
 			}
@@ -361,6 +379,8 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 			else if ( ( strcmp( szType, "NA" ) == 0 || strcmp( szType, "NI" ) == 0 ) && nLength >= 6 )
 			{
 				nAddress	= pPacket->ReadLongLE();
+				if ( Network.IsReserved( (IN_ADDR*)&nAddress ), false )
+					AfxThrowUserException();
 				nPort		= pPacket->ReadShortBE();
 			}
 			else if ( strcmp( szType, "V" ) == 0 && nLength >= 4 )
@@ -388,6 +408,7 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 			{
 				CHAR szInner[9];
 				DWORD nInner;
+				DWORD ip;
 				
 				while ( pPacket->m_nPosition < nSkip && pPacket->ReadPacket( szInner, nInner ) )
 				{
@@ -395,6 +416,11 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 					if ( strcmp( szInner, "NICK" ) == 0 )
 					{
 						strNick = pPacket->ReadString( nInner );
+						USES_CONVERSION;
+						LPCSTR pszIP = CT2CA( (LPCTSTR)strNick );
+						ip = inet_addr( pszIP );
+						if ( ip != INADDR_NONE && nAddress != ip )
+							bSpam = true;
 					}
 					pPacket->m_nPosition = nSkipInner;
 				}
@@ -485,7 +511,15 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 			if ( pXML ) pLastHit->ParseXML( pXML, nIndex );
 		}
 		
-		CheckBogus( pFirstHit );
+		if ( bSpam == true && pFirstHit )
+		{
+			for ( CQueryHit* pHit = pFirstHit ; pHit ; pHit = pHit->m_pNext )
+			{
+				pHit->m_bBogus = TRUE;
+			}			
+		}
+		else
+			CheckBogus( pFirstHit );
 	}
 	catch ( CException* pException )
 	{
@@ -580,75 +614,75 @@ CQueryHit* CQueryHit::FromPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD
 
 BOOL CQueryHit::CheckBogus(CQueryHit* pFirstHit)
 {
-	CString strBase, strTest;
-	int nBogus = 0;
-	
+	typedef std::vector< std::wstring > StringList;
+	std::wstring strTemp;
+
 	if ( pFirstHit == NULL ) return TRUE;
+
+	StringList pList;
+	if ( pFirstHit->m_bSHA1 )
+	{
+		strTemp.assign( (LPCTSTR)CSHA::HashToString( &pFirstHit->m_pSHA1, TRUE ) );
+		pList.push_back( strTemp );
+	}
+	if ( pFirstHit->m_bED2K )
+	{
+		strTemp.assign( (LPCTSTR)CED2K::HashToString( &pFirstHit->m_pED2K, TRUE ) );
+		pList.push_back( strTemp );
+	}
 	
 	for ( CQueryHit* pHit = pFirstHit->m_pNext ; pHit ; pHit = pHit->m_pNext )
 	{
-		LPCTSTR pszBase = pFirstHit->m_sName;
-		LPCTSTR pszTest = pHit->m_sName;
-		
-		if ( *pszBase == 0 || *pszTest == 0 ) continue;
-		
-		BOOL bDots = FALSE;
-		BOOL bDiff = FALSE;
-		
-		while ( TRUE )
+		if ( pHit->m_bSHA1 )
 		{
-			while ( *pszBase && ( *pszBase == '!' || *pszBase == '@' || ! _istgraph( *pszBase ) ) ) pszBase++;
-			while ( *pszTest && ( *pszTest == '!' || *pszTest == '@' || ! _istgraph( *pszTest ) ) ) pszTest++;
-			
-			if ( ! *pszBase || ! *pszTest ) break;
-			
-			if ( *pszBase == '.' || *pszTest == '.' )
-			{
-				bDots = TRUE;
-				
-				if ( *pszBase == '.' && *pszTest == '.' )
-				{
-					if ( bDiff )
-					{
-						bDiff = FALSE;
-						break;
-					}
-				}
-				else
-				{
-					bDiff = FALSE;
-					break;
-				}
-			}
-			
-			TCHAR cBaseChar = {0}; TCHAR cTestChar = {0};
-			if ( *pszBase == 0x3C2 )
-				cBaseChar = ToLowerCase[ *pszBase + 1 ]; // replace the last greek sigma with an ordinary
-			else
-				cBaseChar = ToLowerCase[ *pszBase ];
-
-			if ( *pszTest == 0x3C2 )
-				cTestChar = ToLowerCase[ *pszTest + 1 ];
-			else
-				cTestChar = ToLowerCase[ *pszTest ];
-
-			if ( ! bDiff && cBaseChar != cTestChar ) bDiff = TRUE;
-			
-			pszBase++;
-			pszTest++;
+			strTemp.assign( (LPCTSTR)CSHA::HashToString( &pHit->m_pSHA1, TRUE ) );
+			pList.push_back( strTemp );
 		}
-		
-		if ( bDots && bDiff )
+		if ( pHit->m_bED2K )
 		{
-			if ( ++nBogus >= 2 ) break;
+			strTemp.assign( (LPCTSTR)CED2K::HashToString( &pHit->m_pED2K, TRUE ) );
+			pList.push_back( strTemp );
 		}
 	}
 	
-	if ( nBogus < 2 ) return FALSE;
+	size_t nBogus = pList.size();
+
+	StringList::iterator it, it2;
+	bool bDuplicate = false;
+
+	for ( it = pList.begin() ; it != pList.end() && !it->empty() ; ++it )
+	{
+		for ( it2 = it + 1 ; it2 != pList.end() ; )
+		{
+			if ( *it2 == *it )
+			{
+				it2 = pList.erase( it2 ); // remove duplicates
+				bDuplicate = true;
+			}
+			else
+				++it2;
+		}
+		if ( bDuplicate )
+		{
+			it = pList.erase( it );
+			bDuplicate = false;
+		}
+	}
+	
+	nBogus -= pList.size();
+
+	if ( nBogus == 0 ) return FALSE;
 	
 	for ( CQueryHit* pHit = pFirstHit ; pHit ; pHit = pHit->m_pNext )
 	{
-		pHit->m_bBogus = TRUE;
+		if ( pHit->m_bSHA1 )
+			strTemp.assign( (LPCTSTR)CSHA::HashToString( &pHit->m_pSHA1, TRUE ) );
+		else if ( pHit->m_bED2K )
+			strTemp.assign( (LPCTSTR)CED2K::HashToString( &pHit->m_pED2K, TRUE ) );
+		else continue;
+
+		if ( std::find( pList.begin(), pList.end(), strTemp ) == pList.end() )
+			pHit->m_bBogus = TRUE;
 	}
 	
 	return TRUE;
@@ -681,6 +715,11 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize)
 		LPCSTR pszRaw = (LPCSTR)pRaw + 11;
 		if ( strlen( pszRaw ) == (DWORD)nSize - 12 ) strXML = pszRaw;
 	}
+	else if ( nSize >= 2 && strncmp( (LPCSTR)pRaw, "{}", 2 ) == 0 )
+	{
+		LPCSTR pszRaw = (LPCSTR)pRaw + 2;
+		if ( strlen( pszRaw ) == (DWORD)nSize - 3 ) strXML = pszRaw;
+	}
 	else
 	{
 		LPCSTR pszRaw = (LPCSTR)pRaw;
@@ -709,13 +748,14 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize)
 //////////////////////////////////////////////////////////////////////
 // CQueryHit GGEP reader
 
-BOOL CQueryHit::ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost)
+BOOL CQueryHit::ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat)
 {
 	CGGEPBlock pGGEP;
 	
 	if ( ! pGGEP.ReadFromPacket( pPacket ) ) return FALSE;
 	
 	if ( pGGEP.Find( _T("BH") ) ) *pbBrowseHost = TRUE;
+	if ( pGGEP.Find( _T("CHAT") ) ) *pbChat = TRUE;
 	
 	return TRUE;
 }
@@ -826,6 +866,8 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 		if ( pszSep ) pszData = pszSep + 1;
 		else break;
 	}
+	if ( ! m_bSHA1 && ! m_bTiger && ! m_bED2K )
+		AfxThrowUserException();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1252,6 +1294,8 @@ BOOL CQueryHit::ReadEDPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_n
 void CQueryHit::ReadEDAddress(CEDPacket* pPacket, SOCKADDR_IN* pServer)
 {
 	DWORD nAddress = m_pAddress.S_un.S_addr = pPacket->ReadLongLE();
+	if ( Network.IsReserved( (IN_ADDR*)&nAddress ), false )
+		nAddress = 0;
 	m_nPort = pPacket->ReadShortLE();
 	
 	m_pClientID.w[0] = pServer->sin_addr.S_un.S_addr;
@@ -1470,6 +1514,7 @@ void CQueryHit::Copy(CQueryHit* pOther)
 	m_pXML			= pOther->m_pXML;
 
 	m_bMatched		= pOther->m_bMatched;
+	m_bExactMatch	= pOther->m_bExactMatch;
 	m_bBogus		= pOther->m_bBogus;
 	m_bFiltered		= pOther->m_bFiltered;
 	m_bDownload		= pOther->m_bDownload;
@@ -1557,6 +1602,7 @@ void CQueryHit::Serialize(CArchive& ar, int nVersion)
 		ar << m_sComments;
 		
 		ar << m_bMatched;
+		ar << m_bExactMatch;
 		ar << m_bBogus;
 		ar << m_bDownload;
 	}
@@ -1624,6 +1670,7 @@ void CQueryHit::Serialize(CArchive& ar, int nVersion)
 		ar >> m_sComments;
 		
 		ar >> m_bMatched;
+		if ( nVersion >= 12 ) ar >> m_bExactMatch;
 		ar >> m_bBogus;
 		ar >> m_bDownload;
 		

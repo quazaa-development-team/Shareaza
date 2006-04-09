@@ -309,7 +309,9 @@
 #define IDC_SOURCES                     1101
 #define IDC_SCAN_VOLUME                 1102
 #define IDC_URL                         1102
+#define IDC_FILTER_DRM                  1102
 #define IDC_CAPTION                     1103
+#define IDC_FILTER_SUS                  1103
 #define IDC_PROGRESS                    1104
 #define IDC_PROGRESS_FILE               1105
 #define IDC_DOWNLOAD_GRAPH              1105

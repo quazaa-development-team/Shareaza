@@ -1,9 +1,9 @@
 //
 // MatchObjects.cpp
 //
-//	Date:			"$Date: 2005/10/15 10:18:04 $"
-//	Revision:		"$Revision: 1.19 $"
-//  Last change by:	"$Author: mogthecat $"
+//	Date:			"$Date: 2006/04/09 10:29:57 $"
+//	Revision:		"$Revision: 1.19.2.1 $"
+//  Last change by:	"$Author: rolandas $"
 //
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
@@ -78,6 +78,7 @@ CMatchList::CMatchList()
 		m_bFilterBogus		= m_pResultFilters->m_pFilters[nDefaultFilter]->m_bFilterBogus;
 		m_bFilterDRM		= m_pResultFilters->m_pFilters[nDefaultFilter]->m_bFilterDRM;
 		m_bFilterAdult		= m_pResultFilters->m_pFilters[nDefaultFilter]->m_bFilterAdult;
+		m_bFilterSuspicious	= m_pResultFilters->m_pFilters[nDefaultFilter]->m_bFilterSuspicious;
 		m_nFilterMinSize	= m_pResultFilters->m_pFilters[nDefaultFilter]->m_nFilterMinSize;
 		m_nFilterMaxSize	= m_pResultFilters->m_pFilters[nDefaultFilter]->m_nFilterMaxSize;
 		m_nFilterSources	= m_pResultFilters->m_pFilters[nDefaultFilter]->m_nFilterSources;
@@ -92,6 +93,7 @@ CMatchList::CMatchList()
 		m_bFilterBogus		= ( Settings.Search.FilterMask & ( 1 << 5 ) ) > 0;
 		m_bFilterDRM		= ( Settings.Search.FilterMask & ( 1 << 6 ) ) > 0;
 		m_bFilterAdult		= ( Settings.Search.FilterMask & ( 1 << 7 ) ) > 0;
+		m_bFilterSuspicious	= ( Settings.Search.FilterMask & ( 1 << 8 ) ) > 0;
 		m_nFilterMinSize	= 1;
 		m_nFilterMaxSize	= 0;
 		m_nFilterSources	= 1;
@@ -170,6 +172,9 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 		
 		if ( pFilter != NULL )
 		{
+			if ( BOOL bName = _tcsistr( pFilter->m_sSearch, pHit->m_sName ) == 0 )
+				pHit->m_bExactMatch = TRUE;
+
 			pHit->m_bMatched = pFilter->Match(
 				pHit->m_sName, pHit->m_nSize, pHit->m_sSchemaURI, pHit->m_pXML,
 				pHit->m_bSHA1 ? &pHit->m_pSHA1 : NULL,
@@ -635,6 +640,7 @@ void CMatchList::Filter()
 	if ( m_bFilterBogus	)		Settings.Search.FilterMask |= ( 1 << 5 );
 	if ( m_bFilterDRM )			Settings.Search.FilterMask |= ( 1 << 6 );
 	if ( m_bFilterAdult	)		Settings.Search.FilterMask |= ( 1 << 7 );
+	if ( m_bFilterSuspicious )	Settings.Search.FilterMask |= ( 1 << 8 );
 	
 	if ( m_pszFilter ) delete [] m_pszFilter;
 	m_pszFilter = NULL;
@@ -978,7 +984,7 @@ void CMatchList::ClearNew()
 
 void CMatchList::Serialize(CArchive& ar)
 {
-	int nVersion = 11;
+	int nVersion = 12;
 	
 	if ( ar.IsStoring() )
 	{
@@ -991,6 +997,11 @@ void CMatchList::Serialize(CArchive& ar)
 		ar << m_bFilterReject;
 		ar << m_bFilterLocal;
 		ar << m_bFilterBogus;
+		ar << m_bFilterDRM;
+		ar << m_bFilterAdult;
+		ar << m_bFilterSuspicious;
+		ar << FALSE; // Temp Placeholder
+
 		ar << m_nFilterMinSize;
 		ar << m_nFilterMaxSize;
 		ar << m_nFilterSources;
@@ -1017,6 +1028,15 @@ void CMatchList::Serialize(CArchive& ar)
 		ar >> m_bFilterReject;
 		ar >> m_bFilterLocal;
 		ar >> m_bFilterBogus;
+		
+		if ( nVersion >= 12 )
+		{
+			BOOL bTemp;
+			ar >> m_bFilterDRM;
+			ar >> m_bFilterAdult;
+			ar >> m_bFilterSuspicious;
+			ar >> bTemp; // Temp Placeholder
+		}
 		
 		if ( nVersion >= 10 )
 		{
@@ -1104,6 +1124,7 @@ CMatchFile::CMatchFile(CMatchList* pList, CQueryHit* pHit)
 	m_nRating		= 0;
 	m_nRated		= 0;
 	m_bDRM			= FALSE;
+	m_bSuspicious	= FALSE;
 	m_bCollection	= FALSE;
 	
 	m_bExpanded		= Settings.Search.ExpandMatches;
@@ -1165,6 +1186,16 @@ BOOL CMatchFile::Add(CQueryHit* pHit, BOOL bForce)
 			
 			if ( ! bForce && bName ) bForce = TRUE;
 			
+			 // cross-packet checking
+			if ( pHit->m_bBogus && !pOld->m_bBogus || !pHit->m_bBogus && pOld->m_bBogus ||
+				 !bName && pHit->m_pAddress.S_un.S_addr == pOld->m_pAddress.S_un.S_addr &&
+				 pHit->m_nPort == pOld->m_nPort )
+			{
+				pHit->m_bBogus = TRUE;
+				pOld->m_bBogus = TRUE;
+				m_bSuspicious = TRUE;
+			}
+
 			if ( bName && pHit->m_pAddress.S_un.S_addr == pOld->m_pAddress.S_un.S_addr &&
 				 pHit->m_nPort == pOld->m_nPort )
 			{
@@ -1316,6 +1347,7 @@ DWORD CMatchFile::Filter()
 	m_nRating		= 0;
 	m_nRated		= 0;
 	m_bDRM			= FALSE;
+	m_bSuspicious	= FALSE;
 	m_bCollection	= FALSE;
 	
 	m_nFiltered		= 0;
@@ -1337,6 +1369,7 @@ DWORD CMatchFile::Filter()
 	if ( m_pBest == NULL ) return 0;	// If we filtered all hits, don't try to display
 	if ( m_pList->m_bFilterLocal && m_bExisting ) return 0;
 	if ( m_pList->m_bFilterDRM && m_bDRM ) return 0;
+	if ( m_pList->m_bFilterSuspicious && m_bSuspicious ) return 0;
 
 	if ( m_nSources < m_pList->m_nFilterSources ) return 0;
 	// if ( m_nFiltered < m_pList->m_nFilterSources ) return 0;
@@ -1438,6 +1471,75 @@ void CMatchFile::Added(CQueryHit* pHit)
 	{
 		if ( pHit->m_pXML->GetAttributeValue( _T("DRM") ).GetLength() > 0 )
 			m_bDRM = TRUE;
+	}
+	
+	// Get extention
+	if ( LPCTSTR pszExt = _tcsrchr( pHit->m_sName, '.' ) )
+	{
+		pszExt++;
+
+		// Check if file is suspicious
+		if ( ! m_bSuspicious )
+		{
+			// Unshared types are suspicious. (A user is assumed to want to exclude these entirely)
+			if ( LPCTSTR pszFind = _tcsistr( Settings.Library.PrivateTypes, pszExt ) )
+			{
+				if ( pszFind[ _tcslen( pszExt ) ] == 0 ||
+					pszFind[ _tcslen( pszExt ) ] == '|' )
+				{
+					if ( pszFind == Settings.Library.PrivateTypes ||
+						pszFind[-1] == '|' )
+					{
+						m_bSuspicious = TRUE;
+					}
+				}
+			}
+
+			// These are basically always viral or useless
+			if ( ( _tcsicmp( pszExt, _T("vbs") ) == 0 ) ||
+				 ( _tcsicmp( pszExt, _T("lnk") ) == 0 ) ||
+				 ( _tcsicmp( pszExt, _T("pif") ) == 0 ) )
+			{
+				m_bSuspicious = TRUE;
+			}
+
+			// Basic viral check. User still needs a virus scanner, but this may help. ;)
+			if ( ( _tcsicmp( pszExt, _T("exe") ) == 0 ) ||
+				 ( _tcsicmp( pszExt, _T("com") ) == 0 ) )
+			{
+				if ( m_nSize < 128 * 1024 ) 
+				{
+					// It's really likely to be viral.
+					m_bSuspicious = TRUE;
+				}
+			}
+
+			// Really common spam types
+			if ( ( _tcsicmp( pszExt, _T("wmv") ) == 0 ) ||
+				 ( _tcsicmp( pszExt, _T("wma") ) == 0 ) )
+			{
+				if ( m_nSize < 256 * 1024 ) 
+				{
+					// A movie file this small is very odd.
+					m_bSuspicious = TRUE;
+				}
+			}
+
+			// ZIP/RAR spam
+			if ( ( _tcsicmp( pszExt, _T("zip") ) == 0 ) ||
+				 ( _tcsicmp( pszExt, _T("rar") ) == 0 ) )
+			{
+				if ( m_nSize < 128 * 1024 ) 
+				{
+					m_bSuspicious = TRUE;
+				}
+				else if ( ( m_nSize < 512 * 1024 ) && ( pHit->m_bExactMatch ) )
+				{
+					m_bSuspicious = TRUE;
+				}
+			}
+		}
+
 	}
 	
 	if ( m_bDownload ) pHit->m_bDownload = TRUE;

@@ -1,9 +1,9 @@
 //
 // DlgFilterSearch.cpp
 //
-//	Date:			"$Date: 2005/06/19 10:00:18 $"
-//	Revision:		"$Revision: 1.6 $"
-//  Last change by:	"$Author: spooky23 $"
+//	Date:			"$Date: 2006/04/09 10:29:57 $"
+//	Revision:		"$Revision: 1.6.6.1 $"
+//  Last change by:	"$Author: rolandas $"
 //
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
@@ -61,6 +61,9 @@ CFilterSearchDlg::CFilterSearchDlg(CWnd* pParent, CMatchList* pMatches) : CSkinD
 	m_bHideReject = FALSE;
 	m_bHideUnstable = FALSE;
 	m_bHideBogus = FALSE;
+	m_bHideDRM= FALSE;
+	m_bHideAdult= FALSE;
+	m_bHideSuspicious= FALSE;
 	m_nSources = 0;
 	m_sMaxSize = _T("");
 	m_sMinSize = _T("");
@@ -81,6 +84,9 @@ void CFilterSearchDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_FILTER_REJECT, m_bHideReject);
 	DDX_Check(pDX, IDC_FILTER_UNSTABLE, m_bHideUnstable);
 	DDX_Check(pDX, IDC_FILTER_BOGUS, m_bHideBogus);
+	DDX_Check(pDX, IDC_FILTER_DRM, m_bHideDRM);
+	DDX_Check(pDX, IDC_ADULT_FILTER, m_bHideAdult);
+	DDX_Check(pDX, IDC_FILTER_SUS, m_bHideSuspicious);
 	DDX_Text(pDX, IDC_SOURCES, m_nSources);
 	DDX_Text(pDX, IDC_MAX_SIZE, m_sMaxSize);
 	DDX_Text(pDX, IDC_MIN_SIZE, m_sMinSize);
@@ -128,6 +134,9 @@ void CFilterSearchDlg::OnOK()
 		m_pMatches->m_bFilterLocal		= m_bHideLocal;
 		m_pMatches->m_bFilterReject		= m_bHideReject;
 		m_pMatches->m_bFilterBogus		= m_bHideBogus;
+		m_pMatches->m_bFilterDRM		= m_bHideDRM;
+		m_pMatches->m_bFilterAdult		= m_bHideAdult;
+		m_pMatches->m_bFilterSuspicious	= m_bHideSuspicious;
 		m_pMatches->m_nFilterMinSize	= Settings.ParseVolume( m_sMinSize, FALSE );
 		m_pMatches->m_nFilterMaxSize	= Settings.ParseVolume( m_sMaxSize, FALSE );
 		m_pMatches->m_nFilterSources	= m_nSources;
@@ -164,6 +173,9 @@ void CFilterSearchDlg::OnBnClickedSaveFilter()
 		pOptions->m_bFilterLocal	= m_bHideLocal;
 		pOptions->m_bFilterReject	= m_bHideReject;
 		pOptions->m_bFilterBogus	= m_bHideBogus;
+		pOptions->m_bFilterDRM			= m_bHideDRM;
+		pOptions->m_bFilterAdult		= m_bHideAdult;
+		pOptions->m_bFilterSuspicious	= m_bHideSuspicious;
 		pOptions->m_nFilterMinSize	= Settings.ParseVolume( m_sMinSize, FALSE );
 		pOptions->m_nFilterMaxSize	= Settings.ParseVolume( m_sMaxSize, FALSE );
 		pOptions->m_nFilterSources	= m_nSources;
@@ -191,6 +203,9 @@ void CFilterSearchDlg::UpdateFields()
 	m_bHideLocal	= m_pMatches->m_bFilterLocal;
 	m_bHideReject	= m_pMatches->m_bFilterReject;
 	m_bHideBogus	= m_pMatches->m_bFilterBogus;
+	m_bHideDRM			= m_pMatches->m_bFilterDRM;
+	m_bHideAdult		= m_pMatches->m_bFilterAdult;
+	m_bHideSuspicious	= m_pMatches->m_bFilterSuspicious;
 	m_nSources		= m_pMatches->m_nFilterSources;
 
 	if ( m_pMatches->m_nFilterMinSize > 0 )
@@ -244,6 +259,9 @@ void CFilterSearchDlg::OnCbnSelChangeFilters()
 		m_bHideLocal		= pOptions->m_bFilterLocal;
 		m_bHideReject		= pOptions->m_bFilterReject;
 		m_bHideBogus		= pOptions->m_bFilterBogus;
+		m_bHideDRM			= pOptions->m_bFilterDRM;
+		m_bHideAdult		= pOptions->m_bFilterAdult;
+		m_bHideSuspicious	= pOptions->m_bFilterSuspicious;
 		m_nSources			= pOptions->m_nFilterSources;
 
 		if ( pOptions->m_nFilterMinSize > 0 )

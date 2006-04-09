@@ -76,6 +76,7 @@ public:
 	void		AcquireLocalAddress(LPCTSTR pszHeader);
 	BOOL		Resolve(LPCTSTR pszHost, int nPort, SOCKADDR_IN* pHost, BOOL bNames = TRUE) const;
 	BOOL		AsyncResolve(LPCTSTR pszAddress, WORD nPort, PROTOCOLID nProtocol, BYTE nCommand);
+	BOOL		IsReserved(IN_ADDR* pAddress, bool bCheckLocal=true);
 	WORD		RandomPort() const;
 	void		CreateID(GGUID& oID);
 	BOOL		IsFirewalledAddress(LPVOID pAddress, BOOL bIncludeSelf = FALSE);
