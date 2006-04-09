@@ -1,9 +1,9 @@
 //
 // DiscoveryServices.cpp
 //
-//	Date:			"$Date: 2005/10/04 02:44:01 $"
-//	Revision:		"$Revision: 1.38 $"
-//  Last change by:	"$Author: mogthecat $"
+//	Date:			"$Date: 2006/04/09 08:39:36 $"
+//	Revision:		"$Revision: 1.38.2.1 $"
+//  Last change by:	"$Author: rolandas $"
 //
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
@@ -116,21 +116,9 @@ CDiscoveryService* CDiscoveryServices::Add(LPCTSTR pszAddress, int nType, PROTOC
 	CString strAddress( pszAddress );
 
 	// Trim any excess whitespace.
-	strAddress.TrimLeft();
-	strAddress.TrimRight();
-
 	// Trim garbage on the end- sometimes you get "//", "./", "./." etc. (Bad caches)
-	while ( strAddress.GetLength() >= 8 )
-	{
-		if ( strAddress.Right( 2 ) == _T("//") )
-			strAddress = strAddress.Left( strAddress.GetLength() - 1 );
-		else if ( strAddress.Right( 2 ) == _T("./") )
-			strAddress = strAddress.Left( strAddress.GetLength() - 2 );
-		else if ( strAddress.GetAt( strAddress.GetLength() - 1 ) == '.' )
-			strAddress = strAddress.Left( strAddress.GetLength() - 1 );
-		else break;
-
-	}
+	strAddress.TrimLeft();
+	strAddress.TrimRight( L"./" );
 
 	/*
 	// Although this is part of the spec, it was removed at the request of the GDF.
@@ -326,7 +314,7 @@ CDiscoveryService* CDiscoveryServices::GetByAddress(LPCTSTR pszAddress) const
 		CDiscoveryService* pService = GetNext( pos );
 		
 		int nLen = pService->m_sAddress.GetLength();
-		if ( nLen > 20 )
+		if ( nLen > 45 )
 		{
 			// If it's a long webcache address, ignore the last few characters when checking
 			if ( _tcsnicmp( pService->m_sAddress, pszAddress, nLen - 2 ) == 0 )
@@ -1238,6 +1226,7 @@ BOOL CDiscoveryServices::RunWebCacheGet(BOOL bCaches)
 			m_pWebCache->m_bGnutella2 = FALSE;
 			m_pWebCache->m_bGnutella1 = TRUE;
 			bSuccess = TRUE;
+			nIPs ++;
 		}
 		else
 		{
@@ -1252,7 +1241,8 @@ BOOL CDiscoveryServices::RunWebCacheGet(BOOL bCaches)
 	if ( bSuccess )
 	{
 		m_pWebCache->OnSuccess();
-		if ( HostCache.Gnutella2.GetNewest() != NULL && nIPs > 0 ) m_tQueried = time( NULL );
+		if ( m_pWebCache->m_bGnutella2 && HostCache.Gnutella2.GetNewest() != NULL && nIPs > 0 ) m_tQueried = time( NULL );
+		if ( m_pWebCache->m_bGnutella1 && HostCache.Gnutella1.GetNewest() != NULL && nIPs > 0 ) m_tQueried = time( NULL );
 		return TRUE;
 	}
 	
