@@ -1,8 +1,8 @@
 //
 // DiscoveryServices.cpp
 //
-//	Date:			"$Date: 2006/04/09 08:39:36 $"
-//	Revision:		"$Revision: 1.38.2.1 $"
+//	Date:			"$Date: 2006/04/09 08:41:34 $"
+//	Revision:		"$Revision: 1.38.2.2 $"
 //  Last change by:	"$Author: rolandas $"
 //
 // Copyright (c) Shareaza Development Team, 2002-2005.
@@ -118,6 +118,7 @@ CDiscoveryService* CDiscoveryServices::Add(LPCTSTR pszAddress, int nType, PROTOC
 	// Trim any excess whitespace.
 	// Trim garbage on the end- sometimes you get "//", "./", "./." etc. (Bad caches)
 	strAddress.TrimLeft();
+	strAddress.TrimRight();
 	strAddress.TrimRight( L"./" );
 
 	/*
