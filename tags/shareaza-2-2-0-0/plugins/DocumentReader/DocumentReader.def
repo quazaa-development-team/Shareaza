@@ -1,9 +1,0 @@
-; DocumentReader.def : Declares the module parameters.
-
-LIBRARY      "DocumentReader.DLL"
-
-EXPORTS
-	DllCanUnloadNow		PRIVATE
-	DllGetClassObject	PRIVATE
-	DllRegisterServer	PRIVATE
-	DllUnregisterServer	PRIVATE
