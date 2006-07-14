@@ -1514,6 +1514,9 @@
 					RelativePath="CtrlDragList.cpp">
 				</File>
 				<File
+					RelativePath="CtrlFontCombo.cpp">
+				</File>
+				<File
 					RelativePath="CtrlHomePanel.cpp">
 				</File>
 				<File
@@ -1524,6 +1527,12 @@
 				</File>
 				<File
 					RelativePath="CtrlIconButton.cpp">
+				</File>
+				<File
+					RelativePath="CtrlIRCFrame.cpp">
+				</File>
+				<File
+					RelativePath="CtrlIRCPanel.cpp">
 				</File>
 				<File
 					RelativePath="CtrlLibraryAlbumView.cpp">
@@ -1740,6 +1749,9 @@
 					RelativePath="DlgHitColumns.cpp">
 				</File>
 				<File
+					RelativePath="DlgIrcInput.cpp">
+				</File>
+				<File
 					RelativePath="DlgLanguage.cpp">
 				</File>
 				<File
@@ -1835,6 +1847,9 @@
 				</File>
 				<File
 					RelativePath="WndHostCache.cpp">
+				</File>
+				<File
+					RelativePath="WndIRC.cpp">
 				</File>
 				<File
 					RelativePath="WndLibrary.cpp">
@@ -2078,6 +2093,9 @@
 					RelativePath="PageSettingsInterface.cpp">
 				</File>
 				<File
+					RelativePath="PageSettingsIRC.cpp">
+				</File>
+				<File
 					RelativePath="PageSettingsLibrary.cpp">
 				</File>
 				<File
@@ -2114,13 +2132,13 @@
 					RelativePath="PageSettingsWeb.cpp">
 				</File>
 				<File
-					RelativePath=".\PageTorrentFiles.cpp">
+					RelativePath="PageTorrentFiles.cpp">
 				</File>
 				<File
-					RelativePath=".\PageTorrentGeneral.cpp">
+					RelativePath="PageTorrentGeneral.cpp">
 				</File>
 				<File
-					RelativePath=".\PageTorrentTrackers.cpp">
+					RelativePath="PageTorrentTrackers.cpp">
 				</File>
 			</Filter>
 		</Filter>
@@ -2410,7 +2428,7 @@
 				RelativePath="MetaPanel.h">
 			</File>
 			<File
-				RelativePath=".\MinMax.hpp">
+				RelativePath="MinMax.hpp">
 			</File>
 			<File
 				RelativePath="Neighbour.h">
@@ -2699,6 +2717,9 @@
 					RelativePath="CtrlDragList.h">
 				</File>
 				<File
+					RelativePath="CtrlFontCombo.h">
+				</File>
+				<File
 					RelativePath="CtrlHomePanel.h">
 				</File>
 				<File
@@ -2709,6 +2730,12 @@
 				</File>
 				<File
 					RelativePath="CtrlIconButton.h">
+				</File>
+				<File
+					RelativePath="CtrlIRCFrame.h">
+				</File>
+				<File
+					RelativePath="CtrlIRCPanel.h">
 				</File>
 				<File
 					RelativePath="CtrlLibraryAlbumView.h">
@@ -2871,6 +2898,9 @@
 					RelativePath="WndHostCache.h">
 				</File>
 				<File
+					RelativePath="WndIRC.h">
+				</File>
+				<File
 					RelativePath="WndLibrary.h">
 				</File>
 				<File
@@ -3008,6 +3038,9 @@
 				</File>
 				<File
 					RelativePath="DlgHitColumns.h">
+				</File>
+				<File
+					RelativePath="DlgIrcInput.h">
 				</File>
 				<File
 					RelativePath="DlgLanguage.h">
@@ -3251,6 +3284,9 @@
 					RelativePath="PageSettingsInterface.h">
 				</File>
 				<File
+					RelativePath="PageSettingsIRC.h">
+				</File>
+				<File
 					RelativePath="PageSettingsLibrary.h">
 				</File>
 				<File
@@ -3287,13 +3323,13 @@
 					RelativePath="PageSettingsWeb.h">
 				</File>
 				<File
-					RelativePath=".\PageTorrentFiles.h">
+					RelativePath="PageTorrentFiles.h">
 				</File>
 				<File
-					RelativePath=".\PageTorrentGeneral.h">
+					RelativePath="PageTorrentGeneral.h">
 				</File>
 				<File
-					RelativePath=".\PageTorrentTrackers.h">
+					RelativePath="PageTorrentTrackers.h">
 				</File>
 			</Filter>
 			<Filter
