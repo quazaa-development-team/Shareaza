@@ -46,7 +46,9 @@
     <watermarks> 
       <watermark target="CCoolMenu" path="sos_menuwm.bmp"/>
       <watermark target="CHomePanel" path="sos_sidebg.bmp" />
+      <watermark target="CIRCPanel" path="sos_sidebg.bmp" />
       <watermark target="CSearchPanel" path="sos_sidebg.bmp" />
+      <watermark target="CIRCWaterMarkPanel" path="sos_menuwm.bmp" />
       <watermark target="CHomeDownloadsBox.Caption" path="sos_box.bmp"/>
       <watermark target="CHomeLibraryBox.Caption" path="sos_box.bmp"/>
       <watermark target="CHomeConnectionBox.Caption" path="sos_box.bmp"/>
@@ -56,6 +58,8 @@
       <watermark target="CSearchResultsBox.Caption" path="sos_box.bmp"/>
       <watermark target="CSearchSchemaBox.Caption" path="sos_box.bmp"/>
       <watermark target="CSearchAdvancedBox.Caption" path="sos_box.bmp"/>
+      <watermark target="CIRCUsersBox.Caption" path="sos_box.bmp"/>
+      <watermark target="CIRCChannelsBox.Caption" path="sos_box.bmp"/>
     </watermarks>
     <windowSkins> 
       <!-- Main window -->
@@ -213,6 +217,20 @@
         <anchors> 
           <anchor name="Close" rect="-44,6,42,16"/>
         </anchors>
+        <caption align="left" rect="40,-2,500,30" fontFace="Tahoma" fontSize="14" colour="333333" inactivecolour="999999" />
+      </windowSkin>
+      <!-- IRC -->
+      <windowSkin> 
+        <image path="sos_area.bmp"/>
+        <target window="CIRCWnd.Panel"/>
+        <parts> 
+          <part name="TopLeft" rect="16,96,40,29"/>
+          <part name="Top" rect="56,3,5,29"/>
+          <part name="TopRight" rect="66,189,76,29"/>
+          <part name="Close" rect="48,225,42,16"/>
+          <part name="CloseDown" rect="48,225,42,16"/>
+          <part name="CloseHover" rect="98,225,42,16"/>
+        </parts>
         <caption align="left" rect="40,-2,500,30" fontFace="Tahoma" fontSize="14" colour="333333" inactivecolour="999999" />
       </windowSkin>
       <!-- MEDIA PLAYER -->
