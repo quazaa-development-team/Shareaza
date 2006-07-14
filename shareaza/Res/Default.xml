@@ -20,6 +20,7 @@
 		<button id="ID_TAB_HOME" text="Home"/>
 		<button id="ID_TAB_LIBRARY" text="Library"/>
 		<button id="ID_TAB_MEDIA" text="Media"/>
+		<button id="ID_TAB_IRC" text="Chat"/>
 		<button id="ID_TAB_SEARCH" text="Search"/>
 		<button id="ID_TAB_TRANSFERS" text="Transfers"/>
 		<button id="ID_TAB_NETWORK" text="Network"/>
@@ -35,6 +36,7 @@
 		<button id="ID_VIEW_UPLOADS"/>
 		<button id="ID_VIEW_LIBRARY"/>
 		<button id="ID_VIEW_MEDIA"/>
+		<button id="ID_TAB_IRC"/>
 		<button id="ID_VIEW_SECURITY"/>
 		<button id="ID_VIEW_HOSTS"/>
 		<button id="ID_VIEW_DISCOVERY"/>
@@ -317,6 +319,13 @@
 		<button id="ID_MEDIA_CLEAR" text="Clear"/>
 		<button id="ID_MEDIA_SAVE" text="Save"/>
 	</toolbar>
+	<!-- IRC WINDOW -->
+	<toolbar name="CMainIrcBar">
+		<button id="ID_IRC_CONNECT" text="Connect" tip="Connect to IRC"/>
+		<button id="ID_IRC_DISCONNECT" text="Disconnect" tip="Disconnect from IRC"/>
+		<rightAlign/>
+		<button id="ID_IRC_SETTINGS" text="Settings" tip="Configure IRC Settings"/>
+	</toolbar>
 	<!-- NEIGHBOURS WINDOW -->
 	<toolbar name="CNeighboursWnd.Basic">
 		<button id="ID_BROWSE_LAUNCH" text="Browse User"/>
@@ -420,6 +429,7 @@
 			<item id="ID_TAB_HOME" text="_Home"/>
 			<item id="ID_TAB_LIBRARY" text="_Library"/>
 			<item id="ID_TAB_MEDIA" text="_Media Player"/>
+			<item id="ID_TAB_IRC" text="_Chat"/>
 			<item id="ID_TAB_SEARCH" text="_Search"/>
 			<item id="ID_TAB_TRANSFERS" text="_Downloads"/>
 			<separator/>
@@ -664,6 +674,7 @@
 		<item id="ID_TAB_HOME" text="_Home"/>
 		<item id="ID_TAB_LIBRARY" text="_Library"/>
 		<item id="ID_TAB_MEDIA" text="_Media"/>
+		<item id="ID_TAB_IRC" text="_Chat"/>
 		<item id="ID_TAB_SEARCH" text="_Search"/>
 		<item id="ID_TAB_TRANSFERS" text="_Transfers"/>
 		<item id="ID_TAB_NETWORK" text="_Network"/>
@@ -732,6 +743,7 @@
 		<item id="ID_TAB_HOME" text="_Home"/>
 		<item id="ID_TAB_LIBRARY" text="_Library"/>
 		<item id="ID_TAB_MEDIA" text="_Media"/>
+		<item id="ID_TAB_IRC" text="_Chat"/>
 		<item id="ID_TAB_SEARCH" text="_Search"/>
 		<item id="ID_TAB_TRANSFERS" text="_Transfers"/>
 		<item id="ID_TAB_NETWORK" text="_Network"/>
@@ -1419,6 +1431,34 @@
 		<item id="ID_CHAT_TIMESTAMP" text="_Timestamp"/>
 		<item id="ID_CHAT_CLEAR" text="C_lear Window"/>
 	</menu>
+		<!-- IRC WINDOW -->
+		<menu name="CIRCTabRClick">
+			<item id="ID_IRC_CLOSETAB" text="_Close"/>
+		</menu>
+		<menu name="CIRCUserList">
+			<item id="ID_IRC_WHOIS" text="_Whois"/>
+			<item id="ID_IRC_QUERY" text="_Query"/>
+			<separator/>
+			<menu text="Actions">
+				<item id="ID_IRC_TIME" text="_Time"/>
+				<item id="ID_IRC_VERSION" text="_Version"/>
+			</menu>
+			<separator/>
+			<menu text="Control">
+				<item id="ID_IRC_IGNORE" text="_Ignore"/>
+				<item id="ID_IRC_UNIGNORE" text="_Unignore"/>
+				<item id="ID_IRC_OP" text="_Op"/>
+				<item id="ID_IRC_DEOP" text="_Deop"/>
+				<item id="ID_IRC_VOICE" text="_Voice"/>
+				<item id="ID_IRC_DEVOICE" text="D_evoice"/>
+				<item id="ID_IRC_KICK" text="_Kick"/>
+				<item id="ID_IRC_KICKWHY" text="Kick (why?)"/>
+				<item id="ID_IRC_BAN" text="_Ban"/>
+				<item id="ID_IRC_UNBAN" text="_Unban"/>
+				<item id="ID_IRC_BANKICK" text="Kick+Ban"/>
+				<item id="ID_IRC_BANKICKWHY" text="Kick+Ban (why?)"/>
+			</menu>
+		</menu>
 </menus>
 
 <!-- Watermarks -->
@@ -1429,7 +1469,10 @@
 
 <!-- Documents -->
 <documents>
-	
+	<!-- IRC View -->
+	<document name="CIRCUsersBox" title="Users" leftMargin="6" topMargin="6"></document>
+	<document name="CIRCChannelsBox" title="Channels" leftMargin="6" topMargin="6"></document>
+
 	<!-- Home View -->
 	
 	<document name="CHomeViewCtrl" crBackground="FFFFFF" leftMargin="16" topMargin="0">
@@ -2435,7 +2478,7 @@
 		<image id="ID_VIEW_RESULTS_MONITOR"/>
 		<image id="ID_TOOLS_SKIN"/>
 		<image id="ID_TOOLS_WIZARD"/>
-		<image id="ID_TOOLS_SETTINGS" id1="ID_NEIGHBOURS_SETTINGS" id2="ID_DOWNLOADS_SETTINGS" id3="ID_UPLOADS_SETTINGS" id4="ID_MEDIA_SETTINGS" id5="ID_UPLOADS_EDIT_QUEUE"/>
+		<image id="ID_TOOLS_SETTINGS" id1="ID_NEIGHBOURS_SETTINGS" id2="ID_DOWNLOADS_SETTINGS" id3="ID_UPLOADS_SETTINGS" id4="ID_MEDIA_SETTINGS" id5="ID_UPLOADS_EDIT_QUEUE" id6="ID_IRC_SETTINGS"/>
 		<image id="ID_TOOLS_DOWNLOAD"/>
 		<image id="ID_TOOLS_LANGUAGE" id1="ID_LIBRARY_REBUILD_ANSI"/>
 		<!-- Messy Now -->
@@ -2487,6 +2530,30 @@
 		<image id="ID_NETWORK_HTTP"/>
 		<image id="ID_NETWORK_FTP"/>
 		<image id="ID_NETWORK_BT" id1="ID_DOWNLOADS_TORRENT_INFO"/>
+		</bitmap>
+		<bitmap id="999">
+			<image id="ID_IRC_WHOIS"/>
+			<image id="ID_IRC_VOICE"/>
+			<image id="ID_IRC_UNIGNORE"/>
+			<image id="ID_IRC_TIME"/>
+			<image id="ID_TAB_IRC"/>
+			<image id="ID_IRC_REMOVE"/>
+			<image id="ID_IRC_QUERY"/>
+			<image id="ID_IRC_OP"/>
+			<image id="ID_IRC_KICKWHY"/>
+			<image id="ID_IRC_KICK"/>
+			<image id="ID_IRC_CLOSETAB"/>
+			<image id="ID_IRC_CONNECT"/>
+			<image id="ID_IRC_IGNORE"/>
+			<image id="ID_IRC_DISCONNECT"/>
+			<image id="ID_IRC_DEVOICE"/>
+			<image id="ID_IRC_DEOP"/>
+			<image id="ID_IRC_BANKICKWHY"/>
+			<image id="ID_IRC_BANKICK"/>
+			<image id="ID_IRC_BAN"/>
+			<image id="ID_IRC_ADD"/>
+			<image id="ID_IRC_VERSION"/>
+			<image id="ID_IRC_UNBAN"/>
 	</bitmap>
 	<icon res="261" id="ID_TRAY_OPEN"/>
 	<icon res="203" id="ID_DOWNLOADS_MONITOR"/>

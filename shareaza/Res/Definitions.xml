@@ -21,6 +21,7 @@
 	<command code="143" id="WINDOW_BROWSEHOST"/>
 	<command code="144" id="WINDOW_HOME"/>
 	<command code="145" id="WINDOW_MEDIA"/>
+	<command code="994" id="WINDOW_IRC"/>
 	<command code="146" id="WINDOW_SEARCHPAD"/>
 	<command code="147" id="WINDOW_HELP"/>
 	<command code="159" id="WINDOW_CHILD"/>
@@ -138,6 +139,7 @@
 	<command code="32912" id="ID_SECURITY_MOVE_UP"/>
 	<command code="32913" id="ID_SECURITY_MOVE_DOWN"/>
 	<command code="32914" id="ID_SECURITY_BAN"/>
+	<command code="33221" id="ID_TAB_IRC"/>
 	<command code="32918" id="ID_TAB_NETWORK"/>
 	<command code="32919" id="ID_TAB_LIBRARY"/>
 	<command code="32920" id="ID_TAB_TRANSFERS"/>
@@ -328,6 +330,29 @@
 	<command code="33124" id="ID_HELP_ROUTER"/>
 	<command code="33125" id="ID_HELP_SECURITY"/>
 	<command code="33126" id="ID_HELP_CODEC"/>
+	<command code="33139" id="ID_IRC_CONNECT"/>
+	<command code="33140" id="ID_IRC_DISCONNECT"/>
+	<command code="33141" id="ID_IRC_ADD"/>
+	<command code="33142" id="ID_IRC_REMOVE"/>
+	<command code="33143" id="ID_IRC_EDITBOX"/>
+	<command code="33201" id="ID_IRC_WHOIS"/>
+	<command code="33202" id="ID_IRC_QUERY"/>
+	<command code="33204" id="ID_IRC_TIME"/>
+	<command code="33205" id="ID_IRC_VERSION"/>
+	<command code="33206" id="ID_IRC_IGNORE"/>
+	<command code="33207" id="ID_IRC_UNIGNORE"/>
+	<command code="33208" id="ID_IRC_OP"/>
+	<command code="33209" id="ID_IRC_DEOP"/>
+	<command code="33210" id="ID_IRC_VOICE"/>
+	<command code="33211" id="ID_IRC_DEVOICE"/>
+	<command code="33212" id="ID_IRC_KICK"/>
+	<command code="33213" id="ID_IRC_KICKWHY"/>
+	<command code="33214" id="ID_IRC_BAN"/>
+	<command code="33215" id="ID_IRC_BANKICK"/>
+	<command code="33216" id="ID_IRC_BANKICKWHY"/>
+	<command code="33217" id="ID_IRC_UNBAN"/>
+	<command code="33219" id="ID_IRC_CLOSETAB"/>
+	<command code="33220" id="ID_IRC_SETTINGS"/>
 	<command code="57650" id="ID_WINDOW_CASCADE"/>
 	<command code="57651" id="ID_WINDOW_TILE_HORZ"/>
 	<command code="57652" id="ID_WINDOW_TILE_VERT"/>
