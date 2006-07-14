@@ -483,6 +483,23 @@ public:
 		BOOL		LimitedNetworks;			// Only connect to G2/BT when limited
 		BOOL		AllowHub;					// Allow hub mode while scheduler is active
 	} Scheduler;
+
+	struct sIRC
+	{
+		COLORREF		Colors[11];
+		BOOL			Show;
+		BOOL			FloodEnable;
+		BOOL			Timestamp;
+		CString			UserName;
+		CString			RealName;
+		CString			Nick;
+		CString			Alternate;
+		CString			ServerName;
+		CString			ServerPort;
+		CString			FloodLimit;
+		BOOL			Updated;
+		CString			ScreenFont;
+	} IRC;
 	
 	struct sLive
 	{

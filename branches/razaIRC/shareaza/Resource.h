@@ -175,6 +175,15 @@
 #define IDB_NAVBAR_ALPHA_RTL            274
 #define IDI_COLORS                      275
 #define IDD_PLUGIN_EXT_SETUP            276
+#define IDR_CHANSFRAME                  991
+#define IDI_IRCHEADER                   992
+#define IDI_IRCHEADER32                 993
+#define IDR_IRCFRAME                    994
+#define IDR_USERSFRAME                  995
+#define IDB_FONT_SYMBOLS                996
+#define IDD_SETTINGS_IRC                997
+#define IDD_IRC_INPUTBOX                998
+#define IDB_IRCICONS                    999
 #define IDC_CONNECT_HOST                1000
 #define IDC_CONNECT_PORT                1001
 #define IDC_SCHEMAS                     1002
@@ -690,6 +699,27 @@
 #define IDC_CONNECTION_PROGRESS         1429
 #define IDC_CONNECTION_STATUS           1430
 #define IDC_MESSAGE_DUPLICATES          1431
+#define IDC_IRC_PROMPT                  1432
+#define IDC_IRC_INPUT                   1433
+#define IDC_IRC_FLOODENABLE             1434
+#define IDC_IRC_FLOODLIMIT              1435
+#define IDC_IRC_NICK                    1436
+#define IDC_IRC_ALTERNATE               1437
+#define IDC_IRC_USERNAME                1438
+#define IDC_IRC_SHOW                    1439
+#define IDC_IRC_TIMESTAMP               1440
+#define IDC_IRC_REALNAME                1441
+#define IDC_IRC_NICK2                   1442
+#define IDC_IRC_TEXTFONT                1443
+#define IDC_IRC_COLOR_SERVER            1444
+#define IDC_IRC_SERVERNAME              1445
+#define IDC_IRC_SERVERPORT              1446
+#define IDC_IRC_COLOR_TOPIC             1447
+#define IDC_IRC_COLOR_ACTION            1448
+#define IDC_IRC_COLOR_NOTICE            1449
+#define IDC_IRC_COLOR_BG                1450
+#define IDC_IRC_COLOR_TEXT              1451
+#define IDC_IRC_COLOR_SERVER5           1452
 #define IDC_FILTERS                     1500
 #define IDC_SAVE_FILTER                 1501
 #define IDC_SET_DEFAULT_FILTER          1502
@@ -1334,6 +1364,11 @@
 #define IDS_REMOTE_DISABLED             19000
 #define IDS_REMOTE_ENABLED              19001
 #define IDS_REMOTE_UNAVAILABLE          19002
+#define IDS_IRC_USERLIST                19100
+#define IDS_IRC_CHANLIST                19101
+#define IDS_IRC_HEADERTITLE             19103
+#define IDS_IRC_HEADERSUBTITLE          19104
+#define IDS_IRC_HEADERCHAT              19105
 #define IDS_GENERAL_NOURNAVAILABLE      20000
 #define IDS_GENERAL_CLOSE               20001
 #define IDS_GENERAL_OF                  20002
@@ -1706,6 +1741,33 @@
 #define ID_HELP_DISKWRITEFAIL           33131
 #define ID_HELP_CONNECTIONFAIL          33132
 #define ID_HELP_DONKEYSERVERS           33134
+#define ID_IRC_CONNECT                  33139
+#define ID_IRC_DISCONNECT               33140
+#define ID_IRC_ADD                      33141
+#define ID_IRC_REMOVE                   33142
+#define ID_IRC_EDITBOX                  33143
+#define ID_IRC_INFO                     33200
+#define ID_IRC_WHOIS                    33201
+#define ID_IRC_QUERY                    33202
+#define ID_IRC_PING                     33203
+#define ID_IRC_TIME                     33204
+#define ID_IRC_VERSION                  33205
+#define ID_IRC_IGNORE                   33206
+#define ID_IRC_UNIGNORE                 33207
+#define ID_IRC_OP                       33208
+#define ID_IRC_DEOP                     33209
+#define ID_IRC_VOICE                    33210
+#define ID_IRC_DEVOICE                  33211
+#define ID_IRC_KICK                     33212
+#define ID_IRC_KICKWHY                  33213
+#define ID_IRC_BAN                      33214
+#define ID_IRC_BANKICK                  33215
+#define ID_IRC_BANKICKWHY               33216
+#define ID_IRC_UNBAN                    33217
+#define ID_IRC_SLAP                     33218
+#define ID_IRC_CLOSETAB                 33219
+#define ID_IRC_SETTINGS                 33220
+#define ID_TAB_IRC                      33221
 
 // Next default values for new objects
 // 
@@ -1714,7 +1776,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        277
 #define _APS_NEXT_COMMAND_VALUE         33136
-#define _APS_NEXT_CONTROL_VALUE         1432
+#define _APS_NEXT_CONTROL_VALUE         1453
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

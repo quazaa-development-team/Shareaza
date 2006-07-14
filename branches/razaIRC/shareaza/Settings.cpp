@@ -429,6 +429,30 @@ void CSettings::Setup()
 	Add( _T("Scheduler.LimitedBandwidth"), &Scheduler.LimitedBandwidth, 50 );
 	Add( _T("Scheduler.LimitedNetworks"), &Scheduler.LimitedNetworks, TRUE );
 	Add( _T("Scheduler.AllowHub"), &Scheduler.AllowHub, TRUE );
+
+	Add( _T("IRC.Colors[0]"), &IRC.Colors[0], RGB(244,0,0) );
+	Add( _T("IRC.Colors[1]"), &IRC.Colors[1], RGB(0,0,0) );
+	Add( _T("IRC.Colors[2]"), &IRC.Colors[2], RGB(0,0,244) );
+	Add( _T("IRC.Colors[3]"), &IRC.Colors[3], RGB(200,100,120) );
+	Add( _T("IRC.Colors[4]"), &IRC.Colors[4], RGB(0,144,0) );
+	Add( _T("IRC.Colors[5]"), &IRC.Colors[5], RGB(244,0,0) );
+	Add( _T("IRC.Colors[6]"), &IRC.Colors[6], RGB(230,230,230) );
+	Add( _T("IRC.Colors[7]"), &IRC.Colors[7], RGB(0xF8,0xF8,0xF8) );
+	Add( _T("IRC.Colors[8]"), &IRC.Colors[8], RGB(0,0,0) );
+	Add( _T("IRC.Colors[9]"), &IRC.Colors[9], RGB(200,30,30) );
+	Add( _T("IRC.Colors[10]"), &IRC.Colors[10], RGB(200,130,230) );
+	Add( _T("IRC.Show"), &IRC.Show, TRUE );
+	Add( _T("IRC.FloodEnable"), &IRC.FloodEnable, TRUE );
+	Add( _T("IRC.Nick"), &IRC.Nick, _T("") );
+	Add( _T("IRC.Alternate"), &IRC.Alternate, _T("") );
+	Add( _T("IRC.ServerName"), &IRC.ServerName, _T("irc.p2pchat.net") );
+	Add( _T("IRC.ServerPort"), &IRC.ServerPort, _T("6667") );
+	Add( _T("IRC.FloodLimit"), &IRC.FloodLimit, _T("24") );
+	Add( _T("IRC.Timestamp"), &IRC.Timestamp, FALSE );
+	Add( _T("IRC.UserName"), &IRC.UserName, _T("razaIRC") );
+	Add( _T("IRC.RealName"), &IRC.RealName, _T("razaIRC") );
+	Add( _T("IRC.ScreenFont"), &IRC.ScreenFont, _T("") );
+	Add( _T("IRC.Updated"), &IRC.Updated, FALSE );
 }
 
 
