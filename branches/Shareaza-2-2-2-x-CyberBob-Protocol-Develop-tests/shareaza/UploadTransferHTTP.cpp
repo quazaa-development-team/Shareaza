@@ -825,7 +825,7 @@ BOOL CUploadTransferHTTP::QueueRequest()
 	}
 
 
-	if ( Uploads.CanUploadFileTo( &m_pHost.sin_addr, m_oSHA1 )  && _tcsistr( m_sUserAgent, L"LimeWire" ) == NULL )	//if ( Uploads.AllowMoreTo( &m_pHost.sin_addr ) )
+	if ( Uploads.CanUploadFileTo( &m_pHost.sin_addr, m_oSHA1 ) ) //if ( Uploads.AllowMoreTo( &m_pHost.sin_addr ) )
 	{
 		if ( ( nPosition = UploadQueues.GetPosition( this, TRUE ) ) >= 0 )
 		{
@@ -851,7 +851,7 @@ BOOL CUploadTransferHTTP::QueueRequest()
 				// Queued, but must wait
 			}
 		}
-		else if ( UploadQueues.Enqueue( this ) && _tcsistr( m_sUserAgent, L"LimeWire" ) == NULL )
+		else if ( UploadQueues.Enqueue( this ) )
 		{
 			ASSERT( m_pQueue != NULL );
 			ASSERT( m_pQueue->CanAccept( m_nProtocol, m_sFileName, m_nFileSize, m_bFilePartial, m_sFileTags ) );
@@ -890,7 +890,7 @@ BOOL CUploadTransferHTTP::QueueRequest()
 		nError = IDS_UPLOAD_BUSY_HOST;
 	}
 	
-	if ( m_pQueue != NULL && _tcsistr( m_sUserAgent, L"LimeWire" ) == NULL )
+	if ( m_pQueue != NULL )
 	{
 		CString strHeader, strName;
 		
@@ -1000,10 +1000,6 @@ void CUploadTransferHTTP::SendDefaultHeaders()
 			m_nGnutella == 1 ? Settings.Gnutella1.RequeryDelay * 60 
 							 : Settings.Gnutella2.RequeryDelay * 3600 );
 		m_pOutput->Print( strLine + _T("\r\n") );
-	}
-	else if (  _tcsistr( m_sUserAgent, L"LimeWire" ) != NULL )
-	{
-		m_pOutput->Print( "Retry-After: 43200\r\n" );
 	}
 	else if ( m_bKeepAlive )
 	{
