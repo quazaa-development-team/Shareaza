@@ -43,6 +43,7 @@ public:
 		DWORD		DiskSpaceWarning;			// Value at which to warn the user about low disk space
 		DWORD		DiskSpaceStop;				// Value at which to pause all downloads due to low disk space
 		DWORD		MinTransfersRest;			// For how long at least to suspend Transfers each round
+		BOOL		ShowFilesizeInByte;			// Display filesizes in exact byte instead of rounded value
 		INT			GUIMode;
 		BOOL		CloseMode;
 		BOOL		TrayMinimise;
@@ -235,6 +236,7 @@ public:
 		DWORD		FailureLimit;
 		DWORD		UpdatePeriod;
 		DWORD		DefaultUpdate;
+		BOOL		DisableService;
 		DWORD		BootstrapCount;
 		CString		G2DAddress;
 		DWORD		G2DRetryAfter;
@@ -426,6 +428,7 @@ public:
 		BOOL		RequestURLENC;
 		DWORD		SaveInterval;
 		BOOL		FlushSD;
+		BOOL		SavePushSource;
 		BOOL		ShowSources;
 		BOOL		SimpleBar;					// Displays a simplified progress bar (lower CPU use)
 		BOOL		ShowPercent;				// Display small green % complete bar on progress graphic
@@ -533,6 +536,7 @@ public:
 	CString	SmartAgent();
 	CString	SmartVolume(QWORD nVolume, BOOL bInKB, BOOL bRateInBits = FALSE, BOOL bTruncate = FALSE );
 	QWORD	ParseVolume(LPCTSTR psz, BOOL bSpeedInBits);
+	CString ExactVolume(QWORD nVolume, BOOL bForceEnabled = FALSE);
 	DWORD	GetOutgoingBandwidth();						//Returns available outgoing bandwidth in KB/s
 	BOOL	CheckStartup();
 	void	SetStartup(BOOL bStartup);

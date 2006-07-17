@@ -57,6 +57,7 @@
 #include "SHA.h"
 #include "TigerTree.h"
 #include "ED2K.h"
+#include "MD5.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -121,7 +122,7 @@ INT_PTR CLocalSearch::Execute(INT_PTR nMaximum)
 		if ( UploadQueues.GetQueueRemaining() == 0 ) return 0;
 	}
 
-	if ( nMaximum < 0 ) nMaximum = Settings.Gnutella.MaxHits;
+	if ( nMaximum == 0 ) nMaximum = Settings.Gnutella.MaxHits;
 
 	if ( m_pSearch )
 	{
@@ -214,6 +215,11 @@ BOOL CLocalSearch::AddHitG1(CLibraryFile* pFile, int nIndex)
 	// queue. Although the remote client could/should handle this by itself, we really should give
 	// Gnutella some protection against 'extreme' settings (if only to reduce un-necessary traffic.)
 
+
+	// CyberBob's comment.
+	// above comment is just a complain but it is because the main developer, not gonna mention the name, never
+	// gonna support PARQ queue.
+
 	m_pPacket->WriteLongLE( pFile->m_nIndex );
 	m_pPacket->WriteLongLE( (DWORD)min( pFile->GetSize(), 0xFFFFFFFF ) );
 	if ( Settings.Gnutella1.QueryHitUTF8 ) //Support UTF-8 Query
@@ -225,31 +231,74 @@ BOOL CLocalSearch::AddHitG1(CLibraryFile* pFile, int nIndex)
 		m_pPacket->WriteString( pFile->m_sName );
 	}
 	
-	if ( pFile->m_oSHA1 )
-	{
-		CString strHash = pFile->m_oSHA1.toUrn();
-		m_pPacket->WriteString( strHash );
+	CGGEPBlock pBlock;
+	BOOL	bHuge	= FALSE;
+	CString strHash;
 
-		/*
-		CGGEPBlock pBlock;
+	if ( pFile->m_oSHA1 &&  pFile->m_oTiger )
+	{
+		strHash = "urn:bitprint:" + pFile->m_oSHA1.toString() + "." + pFile->m_oTiger.toString();
+		m_pPacket->WriteString( strHash );
+		bHuge	= TRUE;
+
+		CGGEPItem* pItem = pBlock.Add( _T("H") );
+		pItem->WriteByte( 2 );
+		pItem->Write( &pFile->m_oSHA1[ 0 ], 20 );
+		pItem->Write( &pFile->m_oTiger[ 0 ], 24 );
+
+	}
+	else if ( pFile->m_oSHA1 )
+	{
+		strHash = pFile->m_oSHA1.toUrn();
+		m_pPacket->WriteString( strHash );
+		bHuge	= TRUE;
 
 		CGGEPItem* pItem = pBlock.Add( _T("H") );
 		pItem->WriteByte( 1 );
-		pItem->Write( &pFile->m_pSHA1, 20 );
-
-		pBlock.Write( m_pPacket );
-		m_pPacket->WriteByte( 0 );
-		*/
+		pItem->Write( &pFile->m_oSHA1[ 0 ], 20 );
 	}
 	else if ( pFile->m_oTiger )
 	{
-		CString strHash = pFile->m_oTiger.toUrn();
+		strHash = pFile->m_oTiger.toUrn();
 		m_pPacket->WriteString( strHash );
+		bHuge	= TRUE;
 	}
-	else if ( pFile->m_oED2K )
+
+	if ( pFile->m_oED2K )
 	{
-		CString strHash = pFile->m_oED2K.toUrn();
-		m_pPacket->WriteString( strHash );
+		if ( !bHuge )
+		{
+			strHash = pFile->m_oED2K.toUrn();
+			m_pPacket->WriteString( strHash );
+			bHuge	= TRUE;
+		}
+		CGGEPItem* pItem;
+		pItem = pBlock.Add( L"u" );
+		pItem->UnsetCOBS();
+		pItem->UnsetSmall();
+		strHash = "ed2khash:"+ pFile->m_oED2K.toString();
+		pItem->WriteUTF8(strHash);
+	}
+
+	if ( pFile->m_oMD5 )
+	{
+		if ( !bHuge )
+		{
+			strHash = pFile->m_oMD5.toUrn();
+			m_pPacket->WriteString( strHash );
+			bHuge	= TRUE;
+		}
+
+		CGGEPItem* pItem;
+		pItem = pBlock.Add( _T("H") );
+		pItem->WriteByte( 3 );
+		pItem->Write( &pFile->m_oMD5[ 0 ], 16 );
+
+		pItem = pBlock.Add( L"u" );
+		pItem->UnsetCOBS();
+		pItem->UnsetSmall();
+		strHash = "md5:"+ pFile->m_oMD5.toString();
+		pItem->WriteUTF8(strHash);
 	}
 	else
 	{
@@ -260,6 +309,9 @@ BOOL CLocalSearch::AddHitG1(CLibraryFile* pFile, int nIndex)
 	{
 		AddMetadata( pFile->m_pSchema, pFile->m_pMetadata, nIndex );
 	}
+
+	pBlock.Write( m_pPacket );
+	m_pPacket->WriteByte( 0 );
 
 	return TRUE;
 }
@@ -289,7 +341,12 @@ BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int /*nIndex*/)
 	
 	if ( pFile->m_oED2K )
 	{
-        nGroup += 5 + 5 + Hashes::Ed2kHash::byteCount;
+		nGroup += 5 + 5 + Hashes::Ed2kHash::byteCount;
+	}
+
+	if ( pFile->m_oMD5 )
+	{
+		nGroup += 5 + 4 + Hashes::Md5Hash::byteCount;
 	}
 
 	if ( m_pSearch == NULL || m_pSearch->m_bWantDN )
@@ -414,9 +471,16 @@ BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int /*nIndex*/)
 	
 	if ( pFile->m_oED2K )
 	{
-        pPacket->WritePacket( "URN", 5 + Hashes::Ed2kHash::byteCount );
+		pPacket->WritePacket( "URN", 5 + Hashes::Ed2kHash::byteCount );
 		pPacket->WriteString( "ed2k" );
 		pPacket->Write( pFile->m_oED2K );
+	}
+
+	if ( pFile->m_oMD5 )
+	{
+		pPacket->WritePacket( "URN", 4 + Hashes::Md5Hash::byteCount );
+		pPacket->WriteString( "md5" );
+		pPacket->Write( pFile->m_oMD5 );
 	}
 
 	if ( m_pSearch == NULL || m_pSearch->m_bWantDN )
@@ -514,6 +578,7 @@ int CLocalSearch::ExecutePartialFiles(INT_PTR /*nMaximum*/)
 		if (	validAndEqual( m_pSearch->m_oTiger, pDownload->m_oTiger )
 			||	validAndEqual( m_pSearch->m_oSHA1, pDownload->m_oSHA1 )
 			||	validAndEqual( m_pSearch->m_oED2K, pDownload->m_oED2K )
+			||	validAndEqual( m_pSearch->m_oMD5, pDownload->m_oMD5 ) 
 			||	validAndEqual( m_pSearch->m_oBTH, pDownload->m_oBTH ) )
 		{
 			if ( pDownload->m_oBTH || pDownload->IsStarted() )
@@ -558,9 +623,14 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 	
 	if ( pDownload->m_oED2K )
 	{
-        nGroup += 5 + 5 + Hashes::Ed2kHash::byteCount;
+		nGroup += 5 + 5 + Hashes::Ed2kHash::byteCount;
 	}
-	
+
+	if ( pDownload->m_oMD5 )
+	{
+		nGroup += 5 + 4 + Hashes::Md5Hash::byteCount;
+	}
+
 	if ( pDownload->m_oBTH )
 	{
 		nGroup += 5 + 5 + Hashes::BtHash::byteCount;
@@ -610,13 +680,20 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 		pPacket->Write( pDownload->m_oSHA1 );
 	}
 	
-    if ( pDownload->m_oED2K )
+	if ( pDownload->m_oED2K )
 	{
-        pPacket->WritePacket( "URN", 5 + Hashes::Ed2kHash::byteCount );
+		pPacket->WritePacket( "URN", 5 + Hashes::Ed2kHash::byteCount );
 		pPacket->WriteString( "ed2k" );
 		pPacket->Write( pDownload->m_oED2K );
 	}
-	
+
+	if ( pDownload->m_oMD5 )
+	{
+		pPacket->WritePacket( "URN", 4 + Hashes::Ed2kHash::byteCount );
+		pPacket->WriteString( "md5" );
+		pPacket->Write( pDownload->m_oMD5 );
+	}
+
 	if ( pDownload->m_oBTH )
 	{
         pPacket->WritePacket( "URN", 5 + Hashes::BtHash::byteCount );
@@ -719,7 +796,7 @@ void CLocalSearch::CreatePacketG2()
 	pPacket->WritePacket( "V", 4 );
 	pPacket->WriteString( SHAREAZA_VENDOR_A, FALSE );
 
-	if ( ! Network.IsStable() || ! Datagrams.IsStable() )
+	if ( ! Network.IsStable() || ! Datagrams.IsStable() ||  Network.IsFirewalled() )
 	{
 		pPacket->WritePacket( "FW", 0 );
 	}

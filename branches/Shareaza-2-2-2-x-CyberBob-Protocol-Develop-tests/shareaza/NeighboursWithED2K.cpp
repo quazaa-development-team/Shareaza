@@ -129,8 +129,10 @@ void CNeighboursWithED2K::SendDonkeyDownload(CDownload* pDownload)
 // Takes a client ID (do), the IP address of an eDonkey2000 computer we're connected to, nServerPort unused (do)
 // Finds the computer we're connected to with that IP address, and sends it a call back request with the client ID
 // Returns true if we sent the packet, false if we couldn't find the computer
-BOOL CNeighboursWithED2K::PushDonkey(DWORD nClientID, IN_ADDR* pServerAddress, WORD) // Was named nServerPort (do)
+BOOL CNeighboursWithED2K::PushDonkey(DWORD nClientID, IN_ADDR* pServerAddress, WORD nServerPort) // Was named nServerPort (do)
 {
+	BOOL ReqSucceed = FALSE;
+
 	// If we don't have a socket listening for incoming connections, leave now
 	if ( ! Network.IsListening() ) return FALSE;
 
@@ -143,23 +145,17 @@ BOOL CNeighboursWithED2K::PushDonkey(DWORD nClientID, IN_ADDR* pServerAddress, W
 		// Make a new eDonkey2000 call back request packet, write in the client ID, and send it to the eDonkey2000 computer
 		CEDPacket* pPacket = CEDPacket::New( ED2K_C2S_CALLBACKREQUEST );
 		pPacket->WriteLongLE( nClientID );
-		pNeighbour->Send( pPacket );
-
-		// Report we found the computer and sent the packet
-		return TRUE;
+		ReqSucceed = pNeighbour->Send( pPacket );
 	}
 
-	/*
-	lugdunum requests no more of this
+	// lugdunum requests no more of this
 	CEDPacket* pPacket = CEDPacket::New( ED2K_C2SG_CALLBACKREQUEST );
 	pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
 	pPacket->WriteShortLE( htons( Network.m_pHost.sin_port ) );
 	pPacket->WriteLongLE( nClientID );
-	Datagrams.Send( pServerAddress, nServerPort + 4, pPacket );
-	return TRUE;
-	*/
+	ReqSucceed = ( ReqSucceed || Datagrams.Send( pServerAddress, nServerPort + 4, pPacket ) );
 
-	return FALSE;
+	return ReqSucceed;
 }
 
 //////////////////////////////////////////////////////////////////////

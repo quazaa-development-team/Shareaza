@@ -58,6 +58,7 @@ public:
 	Hashes::Sha1Hash	m_oSHA1;
 	Hashes::TigerHash	m_oTiger;
 	Hashes::Ed2kHash	m_oED2K;
+	Hashes::Md5Hash		m_oMD5;
 	Hashes::BtHash		m_oBTH;
 	Hashes::Ed2kHash	m_oSimilarED2K;
 public:
@@ -72,6 +73,11 @@ public:
 	SOCKADDR_IN		m_pEndpoint;
 	DWORD			m_nKey;
 	BOOL			m_bFirewall;
+	
+	// For Helping search by firewalled node
+	std::list<SOCKADDR_IN> m_pHubList;
+	typedef std::list<SOCKADDR_IN>::iterator HubIndex;
+
 private:
 	typedef std::pair< LPCTSTR, size_t > WordEntry;
 	struct CompareWordEntries
@@ -115,7 +121,8 @@ private:
 
 // Operations
 public:
-	BOOL		Match(LPCTSTR pszFilename, QWORD nSize, LPCTSTR pszSchemaURI, CXMLElement* pXML, const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, const Hashes::Ed2kHash& oED2K);
+	BOOL		Match(LPCTSTR pszFilename, QWORD nSize, LPCTSTR pszSchemaURI, CXMLElement* pXML, const Hashes::Sha1Hash& oSHA1,
+						const Hashes::TigerHash& oTiger, const Hashes::Ed2kHash& oED2K, const Hashes::Md5Hash& oMD5);
 	TRISTATE	MatchMetadata(LPCTSTR pszSchemaURI, CXMLElement* pXML);
 	BOOL		MatchMetadataShallow(LPCTSTR pszSchemaURI, CXMLElement* pXML, bool* bReject=NULL);
 	void		BuildWordList(bool bExpression=true, bool bLocal=false);
@@ -132,6 +139,7 @@ private:
 public:
 	static BOOL	WordMatch(LPCTSTR pszString, LPCTSTR pszFind, bool* bReject=NULL);
 	static BOOL	NumberMatch(const CString& strValue, const CString& strRange);
+	static SplitPosNeg( LPCTSTR pszString, WordTable * oWords = NULL , WordTable * oNegWords = NULL );
 };
 
 #endif // !defined(AFX_QUERYSEARCH_H__2141B926_3F6B_4A5D_9FBD_C67FD0A5C46C__INCLUDED_)

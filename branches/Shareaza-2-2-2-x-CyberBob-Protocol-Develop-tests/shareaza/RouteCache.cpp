@@ -1,6 +1,10 @@
 //
 // RouteCache.cpp
 //
+//	Date:			"$Date: 2006/03/31 15:22:51 $"
+//	Revision:		"$Revision: 1.92 $"
+//  Last change by:	"$Author: CyberBob $"
+//
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
@@ -31,6 +35,8 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
+#undef HASH_SIZE
+#undef HASH_MASK
 const unsigned HASH_SIZE = 1024u;
 const unsigned HASH_MASK = 0x3FF;
 
@@ -42,11 +48,12 @@ const unsigned BUFFER_BLOCK_SIZE = 1024u;
 //////////////////////////////////////////////////////////////////////
 // CRouteCache construction
 
-CRouteCache::CRouteCache()
+CRouteCache::CRouteCache() 
 	: m_nSeconds( 60 * 20 )
 	, m_pRecent( &m_pTable[0] )
 	, m_pHistory ( &m_pTable[1] )
 {
+	m_bLocked	= FALSE;
 }
 
 CRouteCache::~CRouteCache()
@@ -54,17 +61,17 @@ CRouteCache::~CRouteCache()
 }
 
 //////////////////////////////////////////////////////////////////////
-// CRouteCache operations
+// CRouteCache Protected operations
 
-void CRouteCache::SetDuration(DWORD nSeconds)
+void CRouteCache::RC_SetDuration(DWORD nSeconds)
 {
 	m_nSeconds = nSeconds;
-	Clear();
+	RC_Clear();
 }
 
-BOOL CRouteCache::Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour)
+BOOL CRouteCache::RC_Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour)
 {
-	if ( CRouteCacheItem* pItem = Lookup( oGUID ) )
+	if ( CRouteCacheItem* pItem = RC_Lookup( oGUID ) )
 	{
 		pItem->m_pNeighbour = pNeighbour;
 		return FALSE;
@@ -84,9 +91,9 @@ BOOL CRouteCache::Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour)
 	return TRUE;
 }
 
-BOOL CRouteCache::Add(const Hashes::Guid& oGUID, const SOCKADDR_IN* pEndpoint)
+BOOL CRouteCache::RC_Add(const Hashes::Guid& oGUID, const SOCKADDR_IN* pEndpoint)
 {
-	if ( CRouteCacheItem* pItem = Lookup( oGUID ) )
+	if ( CRouteCacheItem* pItem = RC_Lookup( oGUID ) )
 	{
 		pItem->m_pNeighbour	= NULL;
 		pItem->m_pEndpoint	= *pEndpoint;
@@ -107,7 +114,7 @@ BOOL CRouteCache::Add(const Hashes::Guid& oGUID, const SOCKADDR_IN* pEndpoint)
 	return TRUE;
 }
 
-CRouteCacheItem* CRouteCache::Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD tAdded)
+CRouteCacheItem* CRouteCache::RC_Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD tAdded)
 {
 	SOCKADDR_IN cEndpoint;
 	if ( pEndpoint != NULL ) cEndpoint = *pEndpoint;
@@ -124,7 +131,7 @@ CRouteCacheItem* CRouteCache::Add(const Hashes::Guid& oGUID, const CNeighbour* p
 	return m_pRecent->Add( oGUID, pNeighbour, pEndpoint != NULL ? &cEndpoint : NULL, tAdded );
 }
 
-CRouteCacheItem* CRouteCache::Lookup(const Hashes::Guid& oGUID, CNeighbour** ppNeighbour, SOCKADDR_IN* pEndpoint)
+CRouteCacheItem* CRouteCache::RC_Lookup(const Hashes::Guid& oGUID, CNeighbour** ppNeighbour, SOCKADDR_IN* pEndpoint)
 {
 	CRouteCacheItem* pItem = m_pRecent->Find( oGUID );
 
@@ -135,12 +142,12 @@ CRouteCacheItem* CRouteCache::Lookup(const Hashes::Guid& oGUID, CNeighbour** ppN
 		if ( pItem == NULL )
 		{
 			if ( ppNeighbour ) *ppNeighbour = NULL;
-			if ( pEndpoint ) ZeroMemory( pEndpoint, sizeof(SOCKADDR_IN) );
+			if ( pEndpoint ) ZeroMemory( pEndpoint, sizeof(*pEndpoint) );
 
 			return NULL;
 		}
 
-		pItem = Add( pItem->m_oGUID, pItem->m_pNeighbour,
+		pItem = RC_Add( pItem->m_oGUID, pItem->m_pNeighbour,
 			pItem->m_pNeighbour ? NULL : &pItem->m_pEndpoint, pItem->m_tAdded );
 	}
 
@@ -150,18 +157,17 @@ CRouteCacheItem* CRouteCache::Lookup(const Hashes::Guid& oGUID, CNeighbour** ppN
 	return pItem;
 }
 
-void CRouteCache::Remove(CNeighbour* pNeighbour)
+void CRouteCache::RC_Remove(CNeighbour* pNeighbour)
 {
 	m_pTable[0].Remove( pNeighbour );
 	m_pTable[1].Remove( pNeighbour );
 }
 
-void CRouteCache::Clear()
+void CRouteCache::RC_Clear()
 {
 	m_pTable[0].Clear();
 	m_pTable[1].Clear();
 }
-
 
 //////////////////////////////////////////////////////////////////////
 // CRouteCacheTable construction
@@ -171,6 +177,7 @@ CRouteCacheTable::CRouteCacheTable()
 	, m_nBuffer( 0 )
 	, m_nUsed( 0 )
 {
+	m_bLocked	= FALSE;
 	Clear();
 }
 
@@ -180,9 +187,9 @@ CRouteCacheTable::~CRouteCacheTable()
 }
 
 //////////////////////////////////////////////////////////////////////
-// CRouteCacheTable operations
+// CRouteCacheTable Protected operations
 
-CRouteCacheItem* CRouteCacheTable::Find(const Hashes::Guid& oGUID)
+CRouteCacheItem* CRouteCacheTable::RCT_Find(const Hashes::Guid& oGUID)
 {
 	WORD nGUID = 0, *ppGUID = (WORD*)&oGUID[ 0 ];
 	for ( int nIt = 8 ; nIt ; nIt-- ) nGUID = WORD( nGUID + *ppGUID++ );
@@ -197,7 +204,7 @@ CRouteCacheItem* CRouteCacheTable::Find(const Hashes::Guid& oGUID)
 	return NULL;
 }
 
-CRouteCacheItem* CRouteCacheTable::Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD nTime)
+CRouteCacheItem* CRouteCacheTable::RCT_Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD nTime)
 {
 	if ( m_nUsed == m_nBuffer || ! m_pFree ) return NULL;
 	
@@ -233,7 +240,7 @@ CRouteCacheItem* CRouteCacheTable::Add(const Hashes::Guid& oGUID, const CNeighbo
 	return pItem;
 }
 
-void CRouteCacheTable::Remove(CNeighbour* pNeighbour)
+void CRouteCacheTable::RCT_Remove(CNeighbour* pNeighbour)
 {
 	CRouteCacheItem** pHash = m_pHash;
 
@@ -262,7 +269,7 @@ void CRouteCacheTable::Remove(CNeighbour* pNeighbour)
 	}
 }
 
-void CRouteCacheTable::Resize(DWORD nSize)
+void CRouteCacheTable::RCT_Resize(DWORD nSize)
 {
 	nSize = min( max( nSize, MIN_BUFFER_SIZE ), MAX_BUFFER_SIZE );
 	nSize = ( ( nSize + BUFFER_BLOCK_SIZE - 1 ) / BUFFER_BLOCK_SIZE * BUFFER_BLOCK_SIZE );
@@ -297,7 +304,7 @@ void CRouteCacheTable::Resize(DWORD nSize)
 	}
 }
 
-DWORD CRouteCacheTable::GetNextSize(DWORD nDesired)
+DWORD CRouteCacheTable::RCT_GetNextSize(DWORD nDesired)
 {
 	DWORD nSeconds = ( m_tLast - m_tFirst ) / 1000;
 	if ( ! nSeconds ) nSeconds = 1;
@@ -305,7 +312,7 @@ DWORD CRouteCacheTable::GetNextSize(DWORD nDesired)
 	return m_nBuffer * nDesired / nSeconds;
 }
 
-void CRouteCacheTable::Clear()
+void CRouteCacheTable::RCT_Clear()
 {
-	Resize( 0 );
+	RCT_Resize( 0 );
 }

@@ -151,7 +151,6 @@
 #define IDB_NAVBAR_ALPHA                246
 #define IDD_TORRENT_SEED                247
 #define IDB_REMOTE_SKIN                 248
-#define IDD_DOWNLOAD_EDIT               248
 #define IDD_SETTINGS_REMOTE             249
 #define IDD_SETTINGS_SCHEDULER          250
 #define IDD_DOWNLOAD_REVIEWS            251
@@ -175,6 +174,9 @@
 #define IDB_NAVBAR_ALPHA_RTL            274
 #define IDI_COLORS                      275
 #define IDD_PLUGIN_EXT_SETUP            276
+#define IDD_DOWNLOADEDITPAGE_GENERAL    280
+#define IDD_DOWNLOADEDITPAGE_HASHES     281
+#define IDD_DOWNLOADEDITPAGE_ACTIONS    282
 #define IDC_CONNECT_HOST                1000
 #define IDC_CONNECT_PORT                1001
 #define IDC_SCHEMAS                     1002
@@ -646,6 +648,7 @@
 #define IDC_ERASE                       1372
 #define IDC_MERGE_AND_VERIFY            1373
 #define IDC_THROTTLE_MODE               1374
+#define IDC_PURGE_HASHSET               1374
 #define IDC_REMOTE_ENABLE               1377
 #define IDC_REMOTE_USERNAME             1378
 #define IDC_REMOTE_PASSWORD             1379
@@ -680,6 +683,7 @@
 #define IDC_SCHEDULER_DISPLAY           1405
 #define IDC_G2_ALWAYS                   1409
 #define IDC_DISKNAME                    1418
+#define IDC_SEARCHKEYWORD               1419
 #define IDC_TRUST_SHA1                  1420
 #define IDC_FILESIZE                    1421
 #define IDC_TRUST_TIGER                 1422
@@ -690,6 +694,8 @@
 #define IDC_CONNECTION_PROGRESS         1429
 #define IDC_CONNECTION_STATUS           1430
 #define IDC_MESSAGE_DUPLICATES          1431
+#define IDC_DOWNLOADEDITPAGE_GENERAL_APPLY 1432
+#define IDC_DOWNLOADEDITPAGE_HASHES_APPLY 1433
 #define IDC_FILTERS                     1500
 #define IDC_SAVE_FILTER                 1501
 #define IDC_SET_DEFAULT_FILTER          1502
@@ -1331,6 +1337,7 @@
 #define IDS_DOWNLOAD_EDIT_COMPLETE_VERIFY 18510
 #define IDS_DOWNLAOD_EDIT_CHANGE_SIZE   18511
 #define IDS_DOWNLOAD_EDIT_CHANGE_SIZE   18511
+#define IDS_DOWNLOAD_EDIT               18512
 #define IDS_REMOTE_DISABLED             19000
 #define IDS_REMOTE_ENABLED              19001
 #define IDS_REMOTE_UNAVAILABLE          19002
@@ -1712,9 +1719,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
-#define _APS_NEXT_RESOURCE_VALUE        277
-#define _APS_NEXT_COMMAND_VALUE         33136
-#define _APS_NEXT_CONTROL_VALUE         1432
+#define _APS_NEXT_RESOURCE_VALUE        284
+#define _APS_NEXT_COMMAND_VALUE         33137
+#define _APS_NEXT_CONTROL_VALUE         1434
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

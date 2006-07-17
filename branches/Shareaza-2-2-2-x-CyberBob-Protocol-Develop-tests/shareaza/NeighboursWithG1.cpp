@@ -141,10 +141,11 @@ void CNeighboursWithG1::OnG1Pong(CG1Neighbour* pFrom, IN_ADDR* pAddress, WORD nP
 {
 	// Add the information from the pong packet to the pong cache (do)
 	CPongItem* pPongCache = m_pPongCache->Add( pFrom, pAddress, nPort, nHops, nFiles, nVolume );
-	if ( pPongCache == NULL ) return; // If Add didn't return a CPongItem, (do)
+	if ( TRUE || pPongCache == NULL ) return; // If Add didn't return a CPongItem, (do)
+
+	CPongItem pPong = *pPongCache;
 
 	CSingleLock pLock( &Network.m_pSection, TRUE );
-
 	// Loop through each neighbour we're connected to
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
@@ -155,7 +156,7 @@ void CNeighboursWithG1::OnG1Pong(CG1Neighbour* pFrom, IN_ADDR* pAddress, WORD nP
 		if ( pNeighbour->m_nProtocol == PROTOCOL_G1 && pNeighbour != pFrom )
 		{
 			// Send the pong to this remote computer, if it needs it according to its pong needed array
-			pNeighbour->OnNewPong( pPongCache );
+			pNeighbour->OnNewPong( &pPong );
 		}
 	}
 }

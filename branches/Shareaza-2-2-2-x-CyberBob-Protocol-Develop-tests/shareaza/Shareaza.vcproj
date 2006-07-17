@@ -568,6 +568,9 @@
 				RelativePath="HostCache.cpp">
 			</File>
 			<File
+				RelativePath="HTTPClient.cpp">
+			</File>
+			<File
 				RelativePath="HttpRequest.cpp">
 			</File>
 			<File
@@ -1689,7 +1692,10 @@
 					RelativePath="DlgDownload.cpp">
 				</File>
 				<File
-					RelativePath="DlgDownloadEdit.cpp">
+					RelativePath="DlgDownloadEditPage.cpp">
+				</File>
+				<File
+					RelativePath="DlgDownloadEditSheet.cpp">
 				</File>
 				<File
 					RelativePath="DlgDownloadGroup.cpp">
@@ -1779,10 +1785,10 @@
 					RelativePath="DlgSplash.cpp">
 				</File>
 				<File
-					RelativePath=".\DlgTorrentInfoPage.cpp">
+					RelativePath="DlgTorrentInfoPage.cpp">
 				</File>
 				<File
-					RelativePath=".\DlgTorrentInfoSheet.cpp">
+					RelativePath="DlgTorrentInfoSheet.cpp">
 				</File>
 				<File
 					RelativePath="DlgTorrentSeed.cpp">
@@ -2007,10 +2013,77 @@
 				<File
 					RelativePath="TigerTree.cpp">
 				</File>
+				<Filter
+					Name="Policies"
+					Filter="">
+					<File
+						RelativePath="Hashes\HashDescriptors.cpp">
+						<FileConfiguration
+							Name="Debug|Win32">
+							<Tool
+								Name="VCCLCompilerTool"
+								UsePrecompiledHeader="0"/>
+						</FileConfiguration>
+						<FileConfiguration
+							Name="Release|Win32">
+							<Tool
+								Name="VCCLCompilerTool"
+								UsePrecompiledHeader="0"/>
+						</FileConfiguration>
+						<FileConfiguration
+							Name="Debug x64|Win32">
+							<Tool
+								Name="VCCLCompilerTool"
+								UsePrecompiledHeader="0"/>
+						</FileConfiguration>
+						<FileConfiguration
+							Name="Release x64|Win32">
+							<Tool
+								Name="VCCLCompilerTool"
+								UsePrecompiledHeader="0"/>
+						</FileConfiguration>
+					</File>
+					<File
+						RelativePath="Hashes\HashStringConversion.cpp">
+						<FileConfiguration
+							Name="Debug|Win32">
+							<Tool
+								Name="VCCLCompilerTool"
+								UsePrecompiledHeader="0"/>
+						</FileConfiguration>
+						<FileConfiguration
+							Name="Release|Win32">
+							<Tool
+								Name="VCCLCompilerTool"
+								UsePrecompiledHeader="0"/>
+						</FileConfiguration>
+						<FileConfiguration
+							Name="Debug x64|Win32">
+							<Tool
+								Name="VCCLCompilerTool"
+								UsePrecompiledHeader="0"/>
+						</FileConfiguration>
+						<FileConfiguration
+							Name="Release x64|Win32">
+							<Tool
+								Name="VCCLCompilerTool"
+								UsePrecompiledHeader="0"/>
+						</FileConfiguration>
+					</File>
+				</Filter>
 			</Filter>
 			<Filter
 				Name="Pages"
 				Filter="">
+				<File
+					RelativePath="PageDownloadEditActions.cpp">
+				</File>
+				<File
+					RelativePath="PageDownloadEditGeneral.cpp">
+				</File>
+				<File
+					RelativePath="PageDownloadEditHashes.cpp">
+				</File>
 				<File
 					RelativePath="PageFileComments.cpp">
 				</File>
@@ -2114,13 +2187,13 @@
 					RelativePath="PageSettingsWeb.cpp">
 				</File>
 				<File
-					RelativePath=".\PageTorrentFiles.cpp">
+					RelativePath="PageTorrentFiles.cpp">
 				</File>
 				<File
-					RelativePath=".\PageTorrentGeneral.cpp">
+					RelativePath="PageTorrentGeneral.cpp">
 				</File>
 				<File
-					RelativePath=".\PageTorrentTrackers.cpp">
+					RelativePath="PageTorrentTrackers.cpp">
 				</File>
 			</Filter>
 		</Filter>
@@ -2173,7 +2246,7 @@
 				RelativePath="ComMenu.h">
 			</File>
 			<File
-				RelativePath=".\CommonInclude.hpp">
+				RelativePath="CommonInclude.hpp">
 			</File>
 			<File
 				RelativePath="ComObject.h">
@@ -2341,6 +2414,9 @@
 				RelativePath="HostCache.h">
 			</File>
 			<File
+				RelativePath="HTTPClient.h">
+			</File>
+			<File
 				RelativePath="HttpRequest.h">
 			</File>
 			<File
@@ -2410,7 +2486,7 @@
 				RelativePath="MetaPanel.h">
 			</File>
 			<File
-				RelativePath=".\MinMax.hpp">
+				RelativePath="MinMax.hpp">
 			</File>
 			<File
 				RelativePath="Neighbour.h">
@@ -2959,7 +3035,10 @@
 					RelativePath="DlgDownload.h">
 				</File>
 				<File
-					RelativePath="DlgDownloadEdit.h">
+					RelativePath="DlgDownloadEditPage.h">
+				</File>
+				<File
+					RelativePath="DlgDownloadEditSheet.h">
 				</File>
 				<File
 					RelativePath="DlgDownloadGroup.h">
@@ -3049,10 +3128,10 @@
 					RelativePath="DlgSplash.h">
 				</File>
 				<File
-					RelativePath=".\DlgTorrentInfoPage.h">
+					RelativePath="DlgTorrentInfoPage.h">
 				</File>
 				<File
-					RelativePath=".\DlgTorrentInfoSheet.h">
+					RelativePath="DlgTorrentInfoSheet.h">
 				</File>
 				<File
 					RelativePath="DlgTorrentSeed.h">
@@ -3138,37 +3217,7 @@
 						RelativePath="Hashes\Hash.hpp">
 					</File>
 					<File
-						RelativePath="Hashes\HashDescriptors.cpp">
-						<FileConfiguration
-							Name="Debug|Win32">
-							<Tool
-								Name="VCCLCompilerTool"
-								UsePrecompiledHeader="0"/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|Win32">
-							<Tool
-								Name="VCCLCompilerTool"
-								UsePrecompiledHeader="0"/>
-						</FileConfiguration>
-					</File>
-					<File
 						RelativePath="Hashes\HashDescriptors.hpp">
-					</File>
-					<File
-						RelativePath="Hashes\HashStringConversion.cpp">
-						<FileConfiguration
-							Name="Debug|Win32">
-							<Tool
-								Name="VCCLCompilerTool"
-								UsePrecompiledHeader="0"/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|Win32">
-							<Tool
-								Name="VCCLCompilerTool"
-								UsePrecompiledHeader="0"/>
-						</FileConfiguration>
 					</File>
 					<File
 						RelativePath="Hashes\HashStringConversion.hpp">
@@ -3184,6 +3233,15 @@
 			<Filter
 				Name="Pages"
 				Filter="">
+				<File
+					RelativePath="PageDownloadEditActions.h">
+				</File>
+				<File
+					RelativePath="PageDownloadEditGeneral.h">
+				</File>
+				<File
+					RelativePath="PageDownloadEditHashes.h">
+				</File>
 				<File
 					RelativePath="PageFileComments.h">
 				</File>
@@ -3287,13 +3345,13 @@
 					RelativePath="PageSettingsWeb.h">
 				</File>
 				<File
-					RelativePath=".\PageTorrentFiles.h">
+					RelativePath="PageTorrentFiles.h">
 				</File>
 				<File
-					RelativePath=".\PageTorrentGeneral.h">
+					RelativePath="PageTorrentGeneral.h">
 				</File>
 				<File
-					RelativePath=".\PageTorrentTrackers.h">
+					RelativePath="PageTorrentTrackers.h">
 				</File>
 			</Filter>
 			<Filter

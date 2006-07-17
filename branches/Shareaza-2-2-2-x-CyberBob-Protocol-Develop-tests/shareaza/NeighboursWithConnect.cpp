@@ -78,13 +78,14 @@ CNeighbour* CNeighboursWithConnect::ConnectTo(
 	WORD       nPort,        // Port number that goes with that IP address, like 6346
 	PROTOCOLID nProtocol,    // Protocol name, like PROTOCOL_G1 for Gnutella
 	BOOL       bAutomatic,   // True to (do)
-	BOOL       bNoUltraPeer) // By default, false to not (do)
+	BOOL       bNoUltraPeer, // By default, false to not (do)
+	BOOL	   bFirewallTest)
 {
 	// Get this thread exclusive access to the network (do) while this method runs 
 	CSingleLock pLock( &Network.m_pSection, TRUE ); // When control leaves the method, pLock will go out of scope and release access
 
-	// If the list of connected computers already has this IP address
-	if ( Get( pAddress ) )
+	// If the list of connected computers already has this IP address and not testing firewall
+	if ( !bFirewallTest && Get( pAddress ) )
 	{
 		// If automatic (do) leave without making a note of the error
 		if ( bAutomatic ) return NULL;
@@ -168,7 +169,7 @@ CNeighbour* CNeighboursWithConnect::ConnectTo(
 	{
 		// Make a new CShakeNeighbour object, connect it to the IP address, and return a pointer to it
 		CShakeNeighbour* pNeighbour = new CShakeNeighbour();
-		if ( pNeighbour->ConnectTo( pAddress, nPort, bAutomatic, bNoUltraPeer ) ) // Started connecting to a Gnutella or Gnutella2 neighbour
+		if ( pNeighbour->ConnectTo( pAddress, nPort, bAutomatic, bNoUltraPeer, bFirewallTest ) ) // Started connecting to a Gnutella or Gnutella2 neighbour
 		{
 			// Started connecting to a G1/G2 neighbour
 
@@ -407,7 +408,7 @@ DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bDebug)
 		}
 
 		// Make sure the datagram is stable (do)
-		if ( !Datagrams.IsStable() )
+		if ( !Datagrams.IsStable() && Network.IsFirewalled() )
 		{
 			// Record this is why we can't be a hub, and return no
 			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: datagram not stable") );
@@ -668,7 +669,7 @@ DWORD CNeighboursWithConnect::IsG1UltrapeerCapable(BOOL bDebug)
 		}
 
 		// Make sure the datagram is stable (do)
-		if ( ! Datagrams.IsStable() )
+		if ( ! Datagrams.IsStable() &&  Network.IsFirewalled() )
 		{
 			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: datagram not stable") );
 			return FALSE;
@@ -993,7 +994,10 @@ void CNeighboursWithConnect::OnRun()
 void CNeighboursWithConnect::Maintain()
 {
 	// Make 4-by-3 arrays that count how many connections of each network and role we have and need
-	int nCount[4][3], nLimit[4][3];
+	// int nCount[4][3], nLimit[4][3];
+
+	// modifying to 4 by 5 array in order to have extra connection types
+	int nCount[4][5], nLimit[4][5];
 
 	// Get the time
 	DWORD tTimer = GetTickCount();							// The tick count (milliseconds)
@@ -1115,8 +1119,8 @@ void CNeighboursWithConnect::Maintain()
 	} // We're a leaf on the Gnutella network
 	else if ( m_bG1Leaf )
 	{
-		// Set the limit for Gnutella hub connections as whichever is smaller, the number from settings, or 2
-		nLimit[ PROTOCOL_G1 ][ ntHub ] = min( Settings.Gnutella1.NumHubs, 2 ); // NumHubs is 2 by default
+		// Set the limit for Gnutella hub connections as whichever is smaller, the number from settings, or 5
+		nLimit[ PROTOCOL_G1 ][ ntHub ] = min( Settings.Gnutella1.NumHubs, 5 ); // NumHubs is 2 by default
 
 	} // We're an ultrapeer on the Gnutella network
 	else

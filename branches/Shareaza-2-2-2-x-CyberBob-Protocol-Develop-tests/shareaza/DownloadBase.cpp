@@ -45,6 +45,7 @@ static char THIS_FILE[]=__FILE__;
 // CDownloadBase construction
 
 CDownloadBase::CDownloadBase()
+: m_sSearchKeyword()
 {
 	m_nCookie		= 1;
 	m_nSize			= SIZE_UNKNOWN;

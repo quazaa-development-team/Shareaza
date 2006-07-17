@@ -53,7 +53,7 @@ public:
 	void		CloseTransfers();
 	DWORD		GetAverageSpeed() const;
 	DWORD		GetMeasuredSpeed() const;
-	BOOL		OnAcceptPush(const Hashes::Guid& oClientID, CConnection* pConnection);
+	BOOL		OnAcceptPush(const Hashes::Guid& oClientID, CConnection* pConnection, DWORD nFileIndex = 0);
 	BOOL		OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept = NULL);
 	BOOL		StartNewTransfer(DWORD tNow = 0);
 	BOOL		CanStartTransfers(DWORD tNow);

@@ -24,7 +24,8 @@
 
 #pragma once
 
-#pragma pack(1)
+// Instruct the compiler to align bytes and DWORDs in a structure on a 1 byte boundary
+#pragma pack(1) // This means, don't put any space between anything
 
 typedef struct
 {
@@ -56,6 +57,7 @@ typedef struct
 
 class CBuffer;
 class CPacket;
+class CG1Packet;
 class CG2Packet;
 class CDatagramIn;
 class CDatagramOut;
@@ -126,18 +128,33 @@ protected:
 	void	Rerequest(CDatagramIn* pDG);
 	void	Remove(CDatagramIn* pDG, BOOL bReclaimOnly = FALSE);
 protected:
+	BOOL	OnPacket(SOCKADDR_IN* pHost, CG1Packet* pPacket);
 	BOOL	OnPacket(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnPing(SOCKADDR_IN* pHost, CG1Packet* pPacket);
 	BOOL	OnPing(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket);
 	BOOL	OnPong(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnCommonQueryHash(SOCKADDR_IN* pHost, CG1Packet* pPacket);
+	BOOL	OnQuery(SOCKADDR_IN* pHost, CG1Packet* pPacket);
 	BOOL	OnQuery(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnQueryAck(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnHit(SOCKADDR_IN* pHost, CG1Packet* pPacket);
 	BOOL	OnHit(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnQueryKeyRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnQueryKeyAnswer(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnPush(SOCKADDR_IN* pHost, CG1Packet* pPacket);
 	BOOL	OnPush(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnRUDP(SOCKADDR_IN* pHost, CG1Packet* pPacket);
+	BOOL	OnVendor(SOCKADDR_IN* pHost, CG1Packet* pPacket);
 	BOOL	OnCrawlRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnCrawlAnswer(SOCKADDR_IN* pHost, CG2Packet* pPacket);
-
+	BOOL	OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnKHLR(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnModeChangeReq(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnModeChangeAck(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnPrivateMessage(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnBye(SOCKADDR_IN* pHost, CG1Packet* pPacket);
+	BOOL	OnClose(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 };
 
 extern CDatagrams Datagrams;

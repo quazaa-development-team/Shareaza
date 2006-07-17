@@ -534,7 +534,7 @@ void CEDClients::RunGlobalStatsRequests(DWORD tNow)
 	CHostCacheHost *pHost;
 
 	// Don't send stat requests or time out servers if we're not stable
-	if ( ! Datagrams.IsStable() ) return;
+	if ( ! Datagrams.IsStable() && Network.IsFirewalled() ) return;
 
 	if ( m_nLastServerKey != 0 )
 	{

@@ -39,17 +39,88 @@ public:
 // Attributes
 protected:
 	CList< CPongItem* >	m_pCache;
-	DWORD		m_nTime;
+	DWORD				m_nTime;
+	BOOL				m_bLocked;
 
-// Operations
+// Protected Operations 
+protected:
+	void		PC_Clear();
+	BOOL		PC_ClearIfOld();
+	CPongItem*	PC_Add(CNeighbour* pNeighbour, IN_ADDR* pAddress, WORD nPort, BYTE nHops, DWORD nFiles, DWORD nVolume);
+	CPongItem*	PC_Lookup(CNeighbour* pNotFrom, BYTE nHops, CList< CPongItem* >* pIgnore);
+	POSITION	PC_GetIterator() const;
+	CPongItem*	PC_GetNext(POSITION& pos) const;
+
+	// This is some experimental Object base Locking mechanism
+	class Lock
+	{
+		private:
+			CPongCache* m_pPC;
+		public:
+			// Lock the Object when you make instance of this lock class;
+			Lock(CPongCache* pPC)
+			{
+				while (pPC->m_bLocked)	// 1.Wait until the resource gets free
+				{
+					// Wait loop
+				}
+				pPC->m_bLocked	= TRUE;	// 2.Lock
+				m_pPC = pPC;			// 3.Copy Pointer of the Object so Distructor can 
+										//	track object for unlocking process
+			}
+
+			// UnLock Automatically whenever you exit Function with instance of This Lock Object
+			~Lock()
+			{
+				m_pPC->m_bLocked	= FALSE; // UnLock
+			}
+
+			//In case you wanna unlock in Middle of Function
+			inline void UnLock()
+			{
+				m_pPC->m_bLocked	= FALSE; // UnLock
+			}
+	};
+
+	friend class CPongCache::Lock;
+
+// Public Operations 
 public:
-	void		Clear();
-	BOOL		ClearIfOld();
-	CPongItem*	Add(CNeighbour* pNeighbour, IN_ADDR* pAddress, WORD nPort, BYTE nHops, DWORD nFiles, DWORD nVolume);
-	CPongItem*	Lookup(CNeighbour* pNotFrom, BYTE nHops, CList< CPongItem* >* pIgnore);
-public:
-	POSITION	GetIterator() const;
-	CPongItem*	GetNext(POSITION& pos) const;
+	inline void Clear()
+	{
+		Lock pLock(this);
+		PC_Clear();
+	}
+
+	inline BOOL ClearIfOld()
+	{
+		Lock pLock(this);
+		return PC_ClearIfOld();
+	}
+
+	inline CPongItem* Add(CNeighbour* pNeighbour, IN_ADDR* pAddress, WORD nPort, BYTE nHops, DWORD nFiles, DWORD nVolume)
+	{
+		Lock pLock(this);
+		return PC_Add(pNeighbour, pAddress, nPort, nHops, nFiles, nVolume);
+	}
+
+	inline CPongItem* Lookup(CNeighbour* pNotFrom, BYTE nHops, CList< CPongItem* >* pIgnore)
+	{
+		Lock pLock(this);
+		return PC_Lookup(pNotFrom, nHops, pIgnore);
+	}
+
+	inline POSITION GetIterator() const
+	{
+		//Lock pLock(this);
+		return PC_GetIterator();
+	}
+
+	inline CPongItem* GetNext(POSITION& pos) const
+	{
+		//Lock pLock(this);
+		return PC_GetNext(pos);
+	}
 
 };
 

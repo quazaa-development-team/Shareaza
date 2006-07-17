@@ -55,6 +55,7 @@
 #include "SHA.h"
 #include "ED2K.h"
 #include "TigerTree.h"
+#include "MD5.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -68,7 +69,7 @@ static char THIS_FILE[]=__FILE__;
 
 CUploadTransferHTTP::CUploadTransferHTTP() : CUploadTransfer( PROTOCOL_HTTP )
 {
-	m_bKeepAlive		= TRUE;
+	m_bKeepAlive		= FALSE;
 	m_nGnutella			= 0;
 	m_nReaskMultiplier	= 1;
 	m_bNotShareaza		= FALSE;
@@ -151,12 +152,13 @@ BOOL CUploadTransferHTTP::ReadRequest()
 		Close();
 		return FALSE;
 	}
+
+	theApp.Message( MSG_SYSTEM, _T("Recieved HTTP request: %s "),strLine);
 	
 	ClearRequest();
 	
 	m_bHead			= ( strLine.Left( 5 ) == _T("HEAD ") );
 	m_bConnectHdr	= FALSE;
-	m_bKeepAlive	= TRUE;
 	m_bHostBrowse	= FALSE;
 	m_bDeflate		= FALSE;
 	m_bBackwards	= FALSE;
@@ -166,6 +168,8 @@ BOOL CUploadTransferHTTP::ReadRequest()
 
 	m_bMetadata		= FALSE;
 	m_bTigerTree	= FALSE;
+	m_bHttp11		= _tcsistr( strLine.Mid(nChar), _T(" HTTP/1.1") ) != NULL;
+	m_bKeepAlive	= m_bHttp11;
 	
 	m_sLocations.Empty();
 	m_sRanges.Empty();
@@ -212,6 +216,7 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 	if ( strHeader.CompareNoCase( _T("Connection") ) == 0 )
 	{
 		if ( strValue.CompareNoCase( _T("close") ) == 0 ) m_bKeepAlive = FALSE;
+		if ( strValue.CompareNoCase( _T("keep-alive") ) == 0 ) m_bKeepAlive = TRUE;
 		m_bConnectHdr = TRUE;
 	}
 	else if ( strHeader.CompareNoCase( _T("Accept") ) == 0 )
@@ -257,8 +262,7 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 	{
 		if ( Settings.Library.SourceMesh )
 		{
-			if ( strValue.Find( _T("Zhttp://") ) < 0 ) 
-				m_sLocations = strValue;
+			if ( strValue.Find( _T("Zhttp://") ) < 0 ) m_sLocations = strValue;
 		}
 		m_nGnutella |= 1;
 	}
@@ -309,7 +313,24 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 	{
 		m_nGnutella |= 1;
 	}
-	
+	else if ( strHeader.CompareNoCase( _T("X-Hubs") ) == 0 )
+	{	
+		// The remote computer is giving us a list G2 hubs the remote node is connected to
+		// Not really Useful here because there is no way to find/store both Hub address and
+		// GUID to PUSH connect to remote node at this time... but might be useful in future.
+		int nCount = 0;
+		CString sHublist(strValue);
+		for ( sHublist += ',' ; ; ) 
+		{
+			int nPos = sHublist.Find( ',' );		// Set nPos to the distance in characters from the start to the comma
+			if ( nPos < 0 ) break;					// If no comma was found, leave the loop
+			CString sHub = sHublist.Left( nPos );	// Copy the text up to the comma into strHost
+			sHublist = sHublist.Mid( nPos + 1 );    // Clip that text and the comma off the start of strValue
+
+			nCount++;
+		}
+	}
+
 	return CUploadTransfer::OnHeaderLine( strHeader, strValue );
 }
 
@@ -634,6 +655,11 @@ BOOL CUploadTransferHTTP::IsNetworkDisabled()
 	{
 		if ( ! Settings.Gnutella1.EnableToday ) return TRUE;
 	}
+	else
+	{
+		if ( ! Settings.Gnutella1.EnableToday &&
+			 ! Settings.Gnutella2.EnableToday ) return TRUE;
+	}
 	
 	return FALSE;
 }
@@ -675,7 +701,7 @@ BOOL CUploadTransferHTTP::RequestSharedFile(CLibraryFile* pFile, CSingleLock& oL
 	m_bTigerTree	= bool( m_oTiger );
 	m_bMetadata		= ( pFile->m_pMetadata != NULL && ( pFile->m_bMetadataAuto == FALSE || pFile->m_nVirtualSize > 0 ) );
 	
-	if ( ! m_oSHA1 && ! m_oTiger && ! m_oED2K ) m_sLocations.Empty();
+	if ( ! m_oSHA1 && ! m_oTiger && ! m_oED2K && ! m_oMD5 ) m_sLocations.Empty();
 	
 	if ( m_nLength == SIZE_UNKNOWN ) m_nLength = m_nFileSize - m_nOffset;
 	
@@ -688,11 +714,8 @@ BOOL CUploadTransferHTTP::RequestSharedFile(CLibraryFile* pFile, CSingleLock& oL
 	}
 	
 	CString strLocations;
-	if ( Settings.Library.SourceMesh ) 
-		strLocations = pFile->GetAlternateSources( &m_pSourcesSent, 15, 
-			m_nGnutella > 2 ? PROTOCOL_HTTP : PROTOCOL_G1 );
-	if ( m_sLocations.GetLength() )
-		pFile->AddAlternateSources( m_sLocations );
+	if ( Settings.Library.SourceMesh ) strLocations = pFile->GetAlternateSources( &m_pSourcesSent, 15, PROTOCOL_HTTP );
+	if ( m_sLocations.GetLength() ) pFile->AddAlternateSources( m_sLocations );
 	m_sLocations = strLocations;
 	
 	oLibraryLock.Unlock();
@@ -721,7 +744,7 @@ BOOL CUploadTransferHTTP::RequestPartialFile(CDownload* pDownload)
 	m_bMetadata		= ( pDownload->m_pXML != NULL );
 	
 	if ( m_sLocations.GetLength() ) pDownload->AddSourceURLs( m_sLocations, TRUE );
-
+	// if ( Settings.Library.SourceMesh ) m_sLocations = pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_HTTP, NULL );
 	if ( Settings.Library.SourceMesh ) 
 	{
 		if ( m_nGnutella == 1 )
@@ -802,7 +825,7 @@ BOOL CUploadTransferHTTP::QueueRequest()
 	}
 
 
-	if ( Uploads.CanUploadFileTo( &m_pHost.sin_addr, m_oSHA1 ) )	//if ( Uploads.AllowMoreTo( &m_pHost.sin_addr ) )
+	if ( Uploads.CanUploadFileTo( &m_pHost.sin_addr, m_oSHA1 )  && _tcsistr( m_sUserAgent, L"LimeWire" ) == NULL )	//if ( Uploads.AllowMoreTo( &m_pHost.sin_addr ) )
 	{
 		if ( ( nPosition = UploadQueues.GetPosition( this, TRUE ) ) >= 0 )
 		{
@@ -828,7 +851,7 @@ BOOL CUploadTransferHTTP::QueueRequest()
 				// Queued, but must wait
 			}
 		}
-		else if ( UploadQueues.Enqueue( this ) )
+		else if ( UploadQueues.Enqueue( this ) && _tcsistr( m_sUserAgent, L"LimeWire" ) == NULL )
 		{
 			ASSERT( m_pQueue != NULL );
 			ASSERT( m_pQueue->CanAccept( m_nProtocol, m_sFileName, m_nFileSize, m_bFilePartial, m_sFileTags ) );
@@ -867,7 +890,7 @@ BOOL CUploadTransferHTTP::QueueRequest()
 		nError = IDS_UPLOAD_BUSY_HOST;
 	}
 	
-	if ( m_pQueue != NULL )
+	if ( m_pQueue != NULL && _tcsistr( m_sUserAgent, L"LimeWire" ) == NULL )
 	{
 		CString strHeader, strName;
 		
@@ -903,6 +926,7 @@ BOOL CUploadTransferHTTP::QueueRequest()
 		pLock.Unlock();
 		
 		m_pOutput->Print( strHeader );
+
 		m_pOutput->Print( "Content-Length: 0\r\n" );
 		m_pOutput->Print( "\r\n" );
 		
@@ -938,11 +962,48 @@ void CUploadTransferHTTP::SendDefaultHeaders()
 			(LPCTSTR)CString( inet_ntoa( m_pHost.sin_addr ) ) );
 		m_pOutput->Print( strLine );
 	}
+	else
+	{
+		CNeighbour * NHubs;
+		CString strPort;
+		int nHubCount = 0;
+		strLine = "X-Hubs: ";
+
+		CSingleLock pNetLock( &Network.m_pSection );
+		if ( pNetLock.Lock( 50 ) )
+		{
+			for (POSITION pos = Neighbours.GetIterator() ;pos;)
+			{
+				NHubs = Neighbours.GetNext(pos);
+				if ( NHubs->m_nProtocol == PROTOCOL_G2 && NHubs->m_nNodeType != ntLeaf )
+				{
+					if ( nHubCount ) strLine	+= _T(",");
+					strLine	+= CString( inet_ntoa( NHubs->m_pHost.sin_addr ) ) + _T(':');
+					strPort.Format( _T("%hu") ,ntohs( NHubs->m_pHost.sin_port ) );
+					strLine += strPort;
+					nHubCount++;
+				}
+			}
+		}
+
+		if (nHubCount)
+		{
+			strLine += "\r\n";
+			m_pOutput->Print( strLine );
+		}
+	}
 	
 	if ( IsNetworkDisabled() )
 	{
 		// Ask to retry after some delay in seconds
-		m_pOutput->Print( strLine + _T("Retry-After: 7200\r\n") );
+		strLine.Format( L"Retry-After: %lu", 
+			m_nGnutella == 1 ? Settings.Gnutella1.RequeryDelay * 60 
+							 : Settings.Gnutella2.RequeryDelay * 3600 );
+		m_pOutput->Print( strLine + _T("\r\n") );
+	}
+	else if (  _tcsistr( m_sUserAgent, L"LimeWire" ) != NULL )
+	{
+		m_pOutput->Print( "Retry-After: 43200\r\n" );
 	}
 	else if ( m_bKeepAlive )
 	{
@@ -997,11 +1058,18 @@ void CUploadTransferHTTP::SendFileHeaders()
 	
 	if ( m_oED2K )
 	{
-        strHeader = _T("X-Content-URN: ") + m_oED2K.toUrn()
-            + _T("\r\n");
+		strHeader = _T("X-Content-URN: ") + m_oED2K.toUrn()
+			+ _T("\r\n");
 		m_pOutput->Print( strHeader );
 	}
-	
+
+	if ( m_oMD5 )
+	{
+		strHeader = _T("X-Content-URN: ") + m_oMD5.toUrn()
+			+ _T("\r\n");
+		m_pOutput->Print( strHeader );
+	}
+
 	if ( m_bTigerTree && Settings.Uploads.ShareTiger )
 	{
 		strHeader	= _T("X-Thex-URI: /gnutella/thex/v1?")
@@ -1459,6 +1527,23 @@ BOOL CUploadTransferHTTP::RequestTigerTreeDIME(CTigerTree* pTigerTree, int nDept
 					_T("\t<serializedtree depth=\"%i\" type=\"http://open-content.net/spec/thex/breadthfirst\" uri=\"%s\"/>\r\n")
 					_T("</hashtree>"),
 					m_nFileSize, nDepth, (LPCTSTR)strUUID );
+
+					//test code for put additional hash info in XML/DIME
+/*
+	strXML.Format(	_T("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n")
+					_T("<!DOCTYPE hashtree SYSTEM \"http://open-content.net/spec/thex/thex.dtd\">\r\n")
+					_T("<hashtree>\r\n")
+					_T("\t<file size=\"%I64i\" segmentsize=\"1024\">\r\n")
+					_T("\t\t<hash SHA1=\"%s\"/>\r\n")
+					_T("\t\t<hash TTH=\"%s\"/>\r\n")
+					_T("\t\t<hash ED2K=\"%s\"/>\r\n")
+					_T("\t\t<hash MD5=\"%s\"/>\r\n")
+					_T("\t</file>\r\n")
+					_T("\t<digest algorithm=\"http://open-content.net/spec/digest/tiger\" outputsize=\"24\"/>\r\n")
+					_T("\t<serializedtree depth=\"%i\" type=\"http://open-content.net/spec/thex/breadthfirst\" uri=\"%s\"/>\r\n")
+					_T("</hashtree>"),
+					m_nFileSize, pFile->m_oSHA1->toString, pFile->m_oTiger->toString, pFile->m_oED2K->toString, pFile->m_oMD5->toString, nDepth, (LPCTSTR)strUUID );
+*/
 	
 	int nXML = WideCharToMultiByte( CP_UTF8, 0, strXML, -1, NULL, 0, NULL, NULL );
 	LPSTR pszXML = new CHAR[ nXML ];
@@ -1552,6 +1637,7 @@ BOOL CUploadTransferHTTP::RequestPreview(CLibraryFile* pFile, CSingleLock& oLibr
 	m_oSHA1			= pFile->m_oSHA1;
 	m_oTiger		= pFile->m_oTiger;
 	m_oED2K			= pFile->m_oED2K;
+	m_oMD5			= pFile->m_oMD5;
 	DWORD nIndex	= pFile->m_nIndex;
 	BOOL bCached	= pFile->m_bCachedPreview;
 	
@@ -1650,9 +1736,14 @@ BOOL CUploadTransferHTTP::RequestPreview(CLibraryFile* pFile, CSingleLock& oLibr
 	else if ( m_oED2K )
 	{
 		strHeader.Format( _T("X-Previewed-URN: %s\r\n"),
-            (LPCTSTR)m_oED2K.toUrn() );
+			(LPCTSTR)m_oED2K.toUrn() );
 	}
-	
+	else if ( m_oMD5 )
+	{
+		strHeader.Format( _T("X-Previewed-URN: %s\r\n"),
+			(LPCTSTR)m_oMD5.toUrn() );
+	}
+
 	m_pOutput->Print( strHeader );
 	
 	m_pOutput->Print( "Content-Type: image/jpeg\r\n" );

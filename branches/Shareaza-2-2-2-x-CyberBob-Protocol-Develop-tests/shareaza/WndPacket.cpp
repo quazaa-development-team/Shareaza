@@ -56,7 +56,9 @@ BEGIN_MESSAGE_MAP(CPacketWnd, CPanelWnd)
 	ON_UPDATE_COMMAND_UI_RANGE(1, 3200, OnUpdateBlocker)
 END_MESSAGE_MAP()
 
-LPCSTR CPacketWnd::m_pszG2[] = { "PI", "PO", "LNI", "KHL", "HAW", "QKR", "QKA", "Q1", "QH1", "Q2", "QH2", "QA", "QHT", "PUSH", "UPROC", "UPROD", NULL };
+LPCSTR CPacketWnd::m_pszG2[] = { "PI", "PO", "LNI", "KHL", "HAW", "QKR", "QKA", "Q1",
+								"QH1", "Q2", "QH2", "QA", "QHT", "PUSH", "UPROC", 
+								"UPROD", "CRAWLA", "CRAWLR", "CLOSE", NULL };
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -115,7 +117,7 @@ int CPacketWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_bPaused		= FALSE;
 
 	for ( int nType = 0 ; nType < G1_PACKTYPE_MAX ; nType++ ) m_bTypeG1[ nType ] = TRUE;
-	for ( int nType = 0 ; nType < 16 ; nType++ ) m_bTypeG2[ nType ] = TRUE;
+	for ( int nType = 0 ; nType < 19 ; nType++ ) m_bTypeG2[ nType ] = TRUE;
 	m_bTypeED = TRUE;
 
 	SetTimer( 2, 500, NULL );
@@ -424,7 +426,7 @@ void CPacketWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 
 		return;
 	}
-	else if ( nCmd >= 3100 && nCmd < 3100 + 16 )
+	else if ( nCmd >= 3100 && nCmd < 3100 + 19 )
 	{
 		nCmd -= 3100;
 

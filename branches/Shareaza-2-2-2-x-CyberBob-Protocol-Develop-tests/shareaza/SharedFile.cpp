@@ -72,6 +72,7 @@ CLibraryFile::CLibraryFile(CLibraryFolder* pFolder, LPCTSTR pszName)
 	m_pNextSHA1		= NULL;
 	m_pNextTiger	= NULL;
 	m_pNextED2K		= NULL;
+	m_pNextMD5		= NULL;
 	m_nScanCookie	= 0;
 	m_nUpdateCookie	= 0;
 	m_nSelectCookie	= 0;
@@ -780,6 +781,7 @@ void CLibraryFile::Serialize(CArchive& ar, int nVersion)
 		
 		ar >> m_nHitsTotal;
 		ar >> m_nUploadsTotal;
+
 		if ( nVersion >= 14 ) ar >> m_bCachedPreview;
 		if ( nVersion >= 20 ) ar >> m_bBogus;
 		
@@ -1135,7 +1137,8 @@ BOOL CLibraryFile::OnVerifyDownload(const Hashes::Sha1Hash& oSHA1, const Hashes:
 		{
 			m_bVerify = ( m_oSHA1 == oSHA1 ) ? TS_TRUE : TS_FALSE;
 		}
-		else if ( m_oED2K && oED2K )
+
+		if ( m_oED2K && oED2K )
 		{
 			m_bVerify = ( m_oED2K == oED2K ) ? TS_TRUE : TS_FALSE;
 		}
@@ -1238,6 +1241,89 @@ BOOL CSharedSource::IsExpired(FILETIME& tNow)
 	return nElapse > (LONGLONG)Settings.Library.SourceExpire * 10000000;
 }
 
+
+CSharedSourceAddr::CSharedSourceAddr( NodeType nType, CString pNode, FILETIME* pTime, FILETIME* pMinLastTime)
+{
+	if ( nType != PROTOCOL_NULL && !pNode.IsEmpty() )
+	{
+		m_nType = nType;
+		m_pNode = pNode;
+		Freshen( pTime );
+		m_pMinLastTime = *pMinLastTime;
+	}
+}
+
+void CSharedSourceAddr::Serialize(CArchive& ar, int nVersion)
+{
+	if ( ar.IsStoring() )
+	{
+		ar << (DWORD)m_nType;
+		ar << m_pNode;
+		ar.Write( &m_pTime, sizeof(FILETIME) );
+		ar.Write( &m_pMinLastTime, sizeof(FILETIME) );
+	}
+	else
+	{
+		if ( nVersion >= 24 )
+		{
+			DWORD nNodeTypeTemp;
+			ar >> nNodeTypeTemp;
+			m_nType = (NodeType)nNodeTypeTemp;
+			ar >> m_pNode;
+			ar.Read( &m_pTime, sizeof(FILETIME) );
+			ar.Read( &m_pMinLastTime, sizeof(FILETIME) );
+		}
+		else if ( nVersion >= 10 )
+		{
+			m_nType = PROTOCOL_URL;
+			ar >> m_pNode;
+			ar.Read( &m_pTime, sizeof(FILETIME) );
+		}
+		else
+		{
+			DWORD nTemp;
+			m_nType = PROTOCOL_URL;
+			ar >> m_pNode;
+			ar >> nTemp;
+			Freshen();
+		}
+	}
+}
+
+void CSharedSourceAddr::Freshen(FILETIME* pTime)
+{
+	SYSTEMTIME tNow1;
+	GetSystemTime( &tNow1 );
+
+	if ( pTime != NULL )
+	{
+		FILETIME tNow2;
+
+		SystemTimeToFileTime( &tNow1, &tNow2 );
+		(LONGLONG&)tNow2 += 10000000;
+
+		if ( CompareFileTime( pTime, &tNow2 ) <= 0 )
+		{
+			m_pTime = *pTime;
+		}
+		else
+		{
+			SystemTimeToFileTime( &tNow1, &m_pTime );
+		}
+	}
+	else
+	{
+		SystemTimeToFileTime( &tNow1, &m_pTime );
+	}
+}
+
+BOOL CSharedSourceAddr::IsExpired(FILETIME& tNow)
+{
+	LONGLONG nElapse = *((LONGLONG*)&tNow) - *((LONGLONG*)&m_pTime);
+	return ! ( (nElapse <= (LONGLONG)Settings.Library.SourceExpire * 10000000) || 
+				*((LONGLONG*)&tNow) >= *((LONGLONG*)&m_pMinLastTime) );
+}
+
 //////////////////////////////////////////////////////////////////////
 // CLibraryFile automation
 
@@ -1329,6 +1415,10 @@ STDMETHODIMP CLibraryFile::XLibraryFile::get_URN(BSTR sURN, BSTR FAR* psURN)
 			strURN = _T("urn:tree:tiger/");
 		else if ( pThis->m_oSHA1 )
 			strURN = _T("urn:sha1");
+		else if ( pThis->m_oED2K )
+			strURN = _T("urn:ed2khash");
+		else if ( pThis->m_oMD5 )
+			strURN = _T("urn:md5");
 		else
 			return E_FAIL;
 	}

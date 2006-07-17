@@ -141,7 +141,7 @@ int CLibraryDetailView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if ( m_nStyle == LVS_REPORT )
 	{
 		pList->InsertColumn( 1, _T("Extension"), LVCFMT_CENTER, 40, 0 );
-		pList->InsertColumn( 2, _T("Size"), LVCFMT_CENTER, 60, 1 );
+		pList->InsertColumn( 2, _T("Size"), LVCFMT_RIGHT, 60, 1 );
 		pList->InsertColumn( 3, _T("Folder"), LVCFMT_LEFT, 0, 2 );
 		pList->InsertColumn( 4, _T("Hits"), LVCFMT_CENTER, 70, 3 );
 		pList->InsertColumn( 5, _T("Uploads"), LVCFMT_CENTER, 70, 4 );
@@ -425,7 +425,7 @@ void CLibraryDetailView::CacheItem(int nItem)
 	else
 		pText->SetAt( 1, _T("") );
 	
-	pText->SetAt( 2, Settings.SmartVolume( pFile->GetSize(), FALSE ) );
+	pText->SetAt( 2, Settings.ExactVolume( pFile->GetSize() ) );
 	if ( pFile->m_pFolder != NULL ) pText->SetAt( 3, pFile->m_pFolder->m_sPath );
 	
 	CString str;

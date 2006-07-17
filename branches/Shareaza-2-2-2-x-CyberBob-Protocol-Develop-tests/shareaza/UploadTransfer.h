@@ -56,7 +56,8 @@ public:
 public:
 	Hashes::Sha1Hash m_oSHA1;		// Hash of requested file
     Hashes::TigerHash m_oTiger;     // ..
-    Hashes::Ed2kHash m_oED2K;       // ..
+	Hashes::Ed2kHash m_oED2K;       // ..
+	Hashes::Md5Hash m_oMD5;         // ..
 	CString			m_sFileName;	// Name of requested file
 	CString			m_sFilePath;	// Path of requested file
 	QWORD			m_nFileBase;	// Base offset in requested file

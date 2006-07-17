@@ -83,6 +83,7 @@ private:
 	
 	friend class CEDClient; // AddSourceED2K && m_nHashsetBlock && m_pHashsetBlock
 	friend class CDownloadTipCtrl;
+	friend class CDownloadEditActionsPage;
 };
 
 #endif // !defined(AFX_DOWNLOADWITHTIGER_H__8F105434_164D_4F58_BAA4_8DB2B29CA259__INCLUDED_)

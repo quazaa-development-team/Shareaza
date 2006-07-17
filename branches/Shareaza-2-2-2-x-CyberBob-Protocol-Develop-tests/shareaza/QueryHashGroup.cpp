@@ -47,12 +47,12 @@ CQueryHashGroup::CQueryHashGroup(DWORD nHash)
 CQueryHashGroup::~CQueryHashGroup()
 {
 #ifdef _DEBUG
-	BYTE* pTest = m_pHash;
+//	BYTE* pTest = m_pHash;
 
-	for ( DWORD nHash = m_nHash ; nHash ; nHash-- )
-	{
-		ASSERT( *pTest++ == 0 );
-	}
+//	for ( DWORD nHash = m_nHash ; nHash ; nHash-- )
+//	{
+//		ASSERT( *pTest++ == 0 );
+//	}
 #endif
 
 	delete [] m_pHash;

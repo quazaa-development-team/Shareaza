@@ -88,3 +88,36 @@ BOOL CTransfer::OnHeaderLine(CString& strHeader, CString& strValue)
 
 	return CConnection::OnHeaderLine( strHeader, strValue );
 }
+
+BOOL CTransfer::StrToSockaddr( LPCTSTR pszHost, SOCKADDR_IN & pHost )
+{
+	CString strHost( pszHost );
+	int nPort = 0;
+
+	strHost.TrimLeft();
+	strHost.TrimRight();
+
+	int nPos = strHost.Find( ':' );
+	if ( nPos < 0 )
+	{
+		nPort = GNUTELLA_DEFAULT_PORT;
+	}
+	else
+	{
+		if ( _stscanf( strHost.Mid( nPos + 1 ), _T("%i"), &nPort ) != 1 ) return FALSE;
+	}
+
+	strHost = strHost.Left( nPos );
+
+	USES_CONVERSION;
+	DWORD nAddress = inet_addr( T2CA( (LPCTSTR)strHost ) );
+
+	// Don't add invalid addresses
+	if ( ! nPort ) return FALSE;
+	if ( ! nAddress )  return FALSE;
+
+	pHost.sin_addr.S_un.S_addr = nAddress;
+	pHost.sin_port = htons((WORD)nPort);
+
+	return TRUE;
+}

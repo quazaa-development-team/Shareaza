@@ -127,7 +127,7 @@ int CMatchCtrl::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	
 	InsertColumn( MATCH_COL_NAME, _T("File"), HDF_LEFT, 200 );
 	InsertColumn( MATCH_COL_TYPE, _T("Extension"), HDF_CENTER, 40 );
-	InsertColumn( MATCH_COL_SIZE, _T("Size"), HDF_CENTER, 60 );
+	InsertColumn( MATCH_COL_SIZE, _T("Size"), HDF_RIGHT, 60 );
 	InsertColumn( MATCH_COL_RATING, _T("Rating"), HDF_CENTER, 12*5 );
 	InsertColumn( MATCH_COL_STATUS, _T("Status"), HDF_CENTER, 16*3 );
 	InsertColumn( MATCH_COL_COUNT, _T("Host/Count"), HDF_CENTER, 120 );
@@ -1522,12 +1522,14 @@ void CMatchCtrl::OnLButtonDblClk(UINT nFlags, CPoint point)
 
 void CMatchCtrl::OnRButtonDown(UINT nFlags, CPoint point) 
 {
+//	Don't know why need to call OnLButtonDown here
 	OnLButtonDown( nFlags, point );
 	CWnd::OnRButtonDown( nFlags, point );
 }
 
 void CMatchCtrl::OnRButtonUp(UINT nFlags, CPoint point) 
 {
+//	Don't know why need to call OnLButtonDown here
 	OnLButtonUp( nFlags, point );
 	CWnd::OnRButtonUp( nFlags, point );
 }

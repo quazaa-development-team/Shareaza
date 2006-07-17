@@ -48,7 +48,7 @@ public:
 public:
 
 	// Connect to a computer at an IP address, and accept a connection from a computer that has connected to us
-	CNeighbour* ConnectTo(IN_ADDR* pAddress, WORD nPort, PROTOCOLID nProtocol, BOOL bAutomatic = FALSE, BOOL bNoUltraPeer = FALSE);
+	CNeighbour* ConnectTo(IN_ADDR* pAddress, WORD nPort, PROTOCOLID nProtocol, BOOL bAutomatic = FALSE, BOOL bNoUltraPeer = FALSE, BOOL bFirewallTest = FALSE );
 	CNeighbour* OnAccept(CConnection* pConnection);
 
 public:

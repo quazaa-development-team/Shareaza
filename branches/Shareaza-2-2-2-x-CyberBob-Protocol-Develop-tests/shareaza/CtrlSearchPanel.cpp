@@ -64,6 +64,10 @@ BEGIN_MESSAGE_MAP(CSearchAdvancedBox, CTaskBox)
 	ON_WM_CREATE()
 	ON_WM_SIZE()
 	ON_WM_PAINT()
+	ON_BN_CLICKED(IDC_SEARCH_GNUTELLA2, OnG2Clicked)
+	ON_BN_CLICKED(IDC_SEARCH_GNUTELLA1, OnG1Clicked)
+	ON_BN_CLICKED(IDC_SEARCH_EDONKEY, OnED2KClicked)
+//	ON_BN_CLICKED(IDC_SEARCH_PARTIAL, OnPartialClicked)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -114,7 +118,8 @@ int CSearchPanel::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_bAdvanced = ( Settings.General.GUIMode != GUI_BASIC ) &&  ( Settings.Search.AdvancedPanel );
 	
 	m_boxSearch.Create( this, 136, _T("Search"), IDR_SEARCHFRAME );
-	m_boxAdvanced.Create( this, 100, _T("Advanced"), IDR_SEARCHFRAME );
+//	m_boxAdvanced.Create( this, 100, _T("Advanced"), IDR_SEARCHFRAME );
+	m_boxAdvanced.Create( this, 110, _T("Advanced"), IDR_SEARCHFRAME );
 	m_boxSchema.Create( this, 0, _T("Schema"), IDR_SEARCHFRAME );
 	m_boxResults.Create( this, 80, _T("Results"), IDR_HOSTCACHEFRAME );
 	
@@ -210,6 +215,7 @@ void CSearchPanel::ShowSearch(CManagedSearch* pSearch)
 
 	if ( m_bAdvanced )
 	{
+/*
 		if ( pSearch->m_bAllowG2 && ! pSearch->m_bAllowG1 && ! pSearch->m_bAllowED2K )
 			m_boxAdvanced.m_wndNetworks.SetNetwork( PROTOCOL_G2 );
 		else if ( ! pSearch->m_bAllowG2 && pSearch->m_bAllowG1 && ! pSearch->m_bAllowED2K )
@@ -218,7 +224,31 @@ void CSearchPanel::ShowSearch(CManagedSearch* pSearch)
 			m_boxAdvanced.m_wndNetworks.SetNetwork( PROTOCOL_ED2K );
 		else
 			m_boxAdvanced.m_wndNetworks.SetNetwork( PROTOCOL_NULL );
-
+*/
+		if ( pSearch->m_bAllowG2 )
+		{
+			m_boxAdvanced.m_wndCheckBoxG2.SetCheck(BST_CHECKED);
+		}
+		else
+		{
+			m_boxAdvanced.m_wndCheckBoxG2.SetCheck(BST_UNCHECKED);
+		}
+		if ( pSearch->m_bAllowG1 )
+		{
+			m_boxAdvanced.m_wndCheckBoxG1.SetCheck(BST_CHECKED);
+		}
+		else
+		{
+			m_boxAdvanced.m_wndCheckBoxG1.SetCheck(BST_UNCHECKED);
+		}
+		if ( pSearch->m_bAllowED2K )
+		{
+			m_boxAdvanced.m_wndCheckBoxED2K.SetCheck(BST_CHECKED);
+		}
+		else
+		{
+			m_boxAdvanced.m_wndCheckBoxED2K.SetCheck(BST_UNCHECKED);
+		}
 
 		CString strSize;
 		if ( pSearch->m_pSearch->m_nMinSize > 0 )
@@ -316,7 +346,7 @@ auto_ptr< CManagedSearch > CSearchPanel::GetSearch()
 	}
 	if ( m_bAdvanced )
 	{
-		if ( m_boxAdvanced.m_wndNetworks.m_hWnd != NULL )
+/*		if ( m_boxAdvanced.m_wndNetworks.m_hWnd != NULL )
 		{
 			switch ( m_boxAdvanced.m_wndNetworks.GetNetwork() )
 			{
@@ -341,6 +371,22 @@ auto_ptr< CManagedSearch > CSearchPanel::GetSearch()
 				pSearch->m_bAllowED2K	= TRUE;
 				break;
 			}
+		}
+*/
+		pSearch->m_bAllowG2			= m_boxAdvanced.m_wndCheckBoxG2.GetCheck();
+		pSearch->m_bAllowG1			= m_boxAdvanced.m_wndCheckBoxG1.GetCheck();
+		pSearch->m_bAllowED2K		= m_boxAdvanced.m_wndCheckBoxED2K.GetCheck();
+//		pSearch->m_bPartialChecks	=  m_boxAdvanced.m_wndCheckBoxPartial.GetCheck();
+//		pSearch->m_pSearch->m_bBypassChecks	=  m_boxAdvanced.m_wndCheckBoxBypass.GetCheck();
+
+		if (!pSearch->m_bAllowG2 && !pSearch->m_bAllowG1 && !pSearch->m_bAllowED2K)
+		{
+			m_boxAdvanced.m_wndCheckBoxG2.SetCheck(BST_CHECKED);
+			m_boxAdvanced.m_wndCheckBoxG1.SetCheck(BST_CHECKED);
+			m_boxAdvanced.m_wndCheckBoxED2K.SetCheck(BST_CHECKED);
+			pSearch->m_bAllowG2	=	TRUE;
+			pSearch->m_bAllowG1	=	TRUE;
+			pSearch->m_bAllowED2K	=	TRUE;
 		}
 
 		if ( m_boxAdvanced.m_wndSizeMin.m_hWnd != NULL )
@@ -434,7 +480,11 @@ void CSearchPanel::Enable()
 	m_boxSearch.m_wndSearch.EnableWindow( TRUE );
 	m_boxSearch.m_wndSchemas.EnableWindow( TRUE );
 
-	m_boxAdvanced.m_wndNetworks.EnableWindow( TRUE );
+//	m_boxAdvanced.m_wndNetworks.EnableWindow( TRUE );
+	m_boxAdvanced.m_wndCheckBoxG1.EnableWindow( TRUE );
+	m_boxAdvanced.m_wndCheckBoxG2.EnableWindow( TRUE );
+	m_boxAdvanced.m_wndCheckBoxED2K.EnableWindow( TRUE );
+//	m_boxAdvanced.m_wndCheckBoxPartial.EnableWindow( TRUE );
 	m_boxAdvanced.m_wndSizeMin.EnableWindow( TRUE );
 	m_boxAdvanced.m_wndSizeMax.EnableWindow( TRUE );
 
@@ -446,7 +496,11 @@ void CSearchPanel::Disable()
 	m_boxSearch.m_wndSearch.EnableWindow( FALSE );
 	m_boxSearch.m_wndSchemas.EnableWindow( FALSE );
 
-	m_boxAdvanced.m_wndNetworks.EnableWindow( FALSE );
+//	m_boxAdvanced.m_wndNetworks.EnableWindow( FALSE );
+	m_boxAdvanced.m_wndCheckBoxG2.EnableWindow( FALSE );
+	m_boxAdvanced.m_wndCheckBoxG1.EnableWindow( FALSE );
+	m_boxAdvanced.m_wndCheckBoxED2K.EnableWindow( FALSE );
+//	m_boxAdvanced.m_wndCheckBoxPartial.EnableWindow( FALSE );
 	m_boxAdvanced.m_wndSizeMin.EnableWindow( FALSE );
 	m_boxAdvanced.m_wndSizeMax.EnableWindow( FALSE );
 
@@ -638,8 +692,16 @@ int CSearchAdvancedBox::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CRect rc( 0, 0, 0, 0 );
 	CString strCaption;
 
-	// Network combo
-	if ( ! m_wndNetworks.Create( WS_TABSTOP, this, IDC_SEARCH_NETWORKS ) ) return -1;
+//	if ( ! m_wndNetworks.Create( WS_TABSTOP, this, IDC_SEARCH_NETWORKS ) ) return -1;
+	if ( ! m_wndCheckBoxG2.Create(L"G2", BS_CHECKBOX, rc, this, IDC_SEARCH_GNUTELLA2 ) ) return -1;
+	if ( ! m_wndCheckBoxG1.Create(L"G1", BS_CHECKBOX, rc, this, IDC_SEARCH_GNUTELLA1 ) ) return -1;
+	if ( ! m_wndCheckBoxED2K.Create(L"ED2K", BS_CHECKBOX, rc, this, IDC_SEARCH_EDONKEY ) ) return -1;
+//	if ( ! m_wndCheckBoxPartial.Create(L"ED2K", BS_CHECKBOX, rc, this, IDC_SEARCH_PARTIAL ) ) return -1;
+
+	m_wndCheckBoxG2.SetCheck(BST_CHECKED);
+	m_wndCheckBoxG1.SetCheck(BST_CHECKED);
+	m_wndCheckBoxED2K.SetCheck(BST_CHECKED);
+//	m_wndCheckBoxPartial.SetCheck(BST_CHECKED);
 
 	// Min combo
 	if ( ! m_wndSizeMin.Create( WS_CHILD|WS_VISIBLE|WS_TABSTOP|CBS_AUTOHSCROLL|CBS_DROPDOWN, rc, this, IDC_SEARCH_SIZEMIN ) ) return -1;
@@ -681,7 +743,7 @@ int CSearchAdvancedBox::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 void CSearchAdvancedBox::OnSkinChange()
 {
-	if ( m_wndNetworks.m_hWnd != NULL ) m_wndNetworks.OnSkinChange();
+//	if ( m_wndNetworks.m_hWnd != NULL ) m_wndNetworks.OnSkinChange();
 }
 
 void CSearchAdvancedBox::OnSize(UINT nType, int cx, int cy) 
@@ -690,13 +752,18 @@ void CSearchAdvancedBox::OnSize(UINT nType, int cx, int cy)
 	
 	HDWP hDWP = BeginDeferWindowPos( 3 );
 
-	if ( m_wndNetworks.m_hWnd != NULL )
-		DeferWindowPos( hDWP, m_wndNetworks, NULL, BOX_MARGIN, 27, cx - BOX_MARGIN * 2, 256, SWP_SHOWWINDOW|SWP_NOZORDER );
-		
+//	if ( m_wndNetworks.m_hWnd != NULL )
+//		DeferWindowPos( hDWP, m_wndNetworks, NULL, BOX_MARGIN, 27, cx - BOX_MARGIN * 2, 256, SWP_SHOWWINDOW|SWP_NOZORDER );
+	if ( m_wndCheckBoxG1.m_hWnd != NULL )
+		DeferWindowPos( hDWP, m_wndCheckBoxG2, NULL, BOX_MARGIN, 27, ( cx - BOX_MARGIN * 4 ) /2, 14, SWP_SHOWWINDOW );
+	if ( m_wndCheckBoxG2.m_hWnd != NULL )
+		DeferWindowPos( hDWP, m_wndCheckBoxG1, NULL, ( cx / 2 ) + BOX_MARGIN, 27, ( cx - BOX_MARGIN * 4 ) /2, 14, SWP_SHOWWINDOW );
+	if ( m_wndCheckBoxED2K.m_hWnd != NULL )
+		DeferWindowPos( hDWP, m_wndCheckBoxED2K, NULL, BOX_MARGIN, 47, ( cx - BOX_MARGIN * 4 ) /2, 14, SWP_SHOWWINDOW );
 	if ( m_wndSizeMin.m_hWnd != NULL )
 	{
-		DeferWindowPos( hDWP, m_wndSizeMin, NULL, BOX_MARGIN, 71, ( cx - BOX_MARGIN * 4 ) /2, 219, SWP_SHOWWINDOW|SWP_NOZORDER );
-		DeferWindowPos( hDWP, m_wndSizeMax, NULL, ( cx / 2 ) + BOX_MARGIN, 71, ( cx - BOX_MARGIN * 4 ) /2, 219, SWP_SHOWWINDOW|SWP_NOZORDER );
+		DeferWindowPos( hDWP, m_wndSizeMin, NULL, BOX_MARGIN, 81, ( cx - BOX_MARGIN * 4 ) /2, 219, SWP_SHOWWINDOW|SWP_NOZORDER );
+		DeferWindowPos( hDWP, m_wndSizeMax, NULL, ( cx / 2 ) + BOX_MARGIN, 81, ( cx - BOX_MARGIN * 4 ) /2, 219, SWP_SHOWWINDOW|SWP_NOZORDER );
 	}
 	
 	EndDeferWindowPos( hDWP );
@@ -737,12 +804,12 @@ void CSearchAdvancedBox::OnPaint()
 	pDC->ExcludeClipRect( &rct );
 
 	LoadString( strControlTitle, IDS_SEARCH_PANEL_INPUT_4 );
-	rct.OffsetRect( 0, 54 - rct.top );
+	rct.OffsetRect( 0, 64 - rct.top );
 	pDC->ExtTextOut( rct.left, rct.top, nFlags, &rct, strControlTitle, NULL );
 	pDC->ExcludeClipRect( &rct );
 
 	LoadString( strControlTitle, IDS_SEARCH_PANEL_INPUT_5 );
-	rct.OffsetRect( ( rc.Width() / 2 ) - ( BOX_MARGIN * 2 ) , 25 );
+	rct.OffsetRect( ( rc.Width() / 2 ) - ( BOX_MARGIN * 2 ) , 15 );
 	pDC->ExtTextOut( rct.left, rct.top, nFlags, &rct, strControlTitle, NULL );
 	pDC->ExcludeClipRect( &rct );
 	
@@ -756,6 +823,43 @@ void CSearchAdvancedBox::OnPaint()
 	else
 	{
 		pDC->FillSolidRect( &rc, CoolInterface.m_crTaskBoxClient );
+	}
+}
+
+// CSearchAdvancedBox Check Boxes
+void CSearchAdvancedBox::OnG2Clicked()
+{
+	if (m_wndCheckBoxG2.GetCheck() == BST_CHECKED)
+	{
+		m_wndCheckBoxG2.SetCheck(BST_UNCHECKED);
+	}
+	else
+	{
+		m_wndCheckBoxG2.SetCheck(BST_CHECKED);
+	}
+}
+
+void CSearchAdvancedBox::OnG1Clicked()
+{
+	if (m_wndCheckBoxG1.GetCheck() == BST_CHECKED)
+	{
+		m_wndCheckBoxG1.SetCheck(BST_UNCHECKED);
+	}
+	else
+	{
+		m_wndCheckBoxG1.SetCheck(BST_CHECKED);
+	}
+}
+
+void CSearchAdvancedBox::OnED2KClicked()
+{
+	if (m_wndCheckBoxED2K.GetCheck() == BST_CHECKED)
+	{
+		m_wndCheckBoxED2K.SetCheck(BST_UNCHECKED);
+	}
+	else
+	{
+		m_wndCheckBoxED2K.SetCheck(BST_CHECKED);
 	}
 }
 

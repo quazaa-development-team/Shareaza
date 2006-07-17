@@ -506,7 +506,7 @@ void CChildWnd::OnSkinChange()
 	}
 }
 
-void CChildWnd::OnQuerySearch(CQuerySearch* /*pSearch*/)
+void CChildWnd::OnQuerySearch(CQuerySearch* /*pSearch*/, BOOL /* bOUT */ )
 {
 }
 

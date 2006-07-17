@@ -1,9 +1,9 @@
 //
 // DiscoveryServices.cpp
 //
-//	Date:			"$Date: 2006/04/09 09:38:02 $"
-//	Revision:		"$Revision: 1.44 $"
-//  Last change by:	"$Author: rolandas $"
+//	Date:			"$Date: 2005/12/06 10:57:27 $"
+//	Revision:		"$Revision: 1.41 $"
+//  Last change by:	"$Author: thetruecamper $"
 //
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
@@ -562,6 +562,9 @@ void CDiscoveryServices::AddDefaults()
 
 BOOL CDiscoveryServices::Update()
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService) return TRUE;
+
 	PROTOCOLID nProtocol;
 	DWORD tNow = (DWORD)time( NULL );
 	
@@ -620,6 +623,9 @@ BOOL CDiscoveryServices::Update()
 
 BOOL CDiscoveryServices::Execute(BOOL bSecondary)
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService) return TRUE;
+
 	CSingleLock pLock( &Network.m_pSection );
 	if ( ! pLock.Lock( 250 ) ) return FALSE;
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
@@ -744,6 +750,9 @@ void CDiscoveryServices::OnGnutellaFailed(IN_ADDR* /*pAddress*/)
 
 BOOL CDiscoveryServices::RequestRandomService(PROTOCOLID nProtocol)
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService) return TRUE;
+
 	//CSingleLock pLock( &Network.m_pSection );	// Note: This shouldn't be necessary, since the
 	//if ( ! pLock.Lock( 250 ) ) return FALSE;	// calling functions should lock...
 
@@ -771,6 +780,9 @@ BOOL CDiscoveryServices::RequestRandomService(PROTOCOLID nProtocol)
 
 CDiscoveryService* CDiscoveryServices::GetRandomService(PROTOCOLID nProtocol)
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService) return NULL;
+
 	CArray< CDiscoveryService* > pServices;
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
 
@@ -820,7 +832,11 @@ CDiscoveryService* CDiscoveryServices::GetRandomService(PROTOCOLID nProtocol)
 // CDiscoveryServices select a random webcache (For updates, etc)
 
 CDiscoveryService* CDiscoveryServices::GetRandomWebCache(PROTOCOLID nProtocol, BOOL bWorkingOnly, CDiscoveryService* pExclude, BOOL bForUpdate)
-{	// Select a random webcache (G1/G2 only)
+{	
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService) return NULL;
+
+	// Select a random webcache (G1/G2 only)
 	CArray< CDiscoveryService* > pWebCaches;
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
 
@@ -875,6 +891,9 @@ CDiscoveryService* CDiscoveryServices::GetRandomWebCache(PROTOCOLID nProtocol, B
 
 BOOL CDiscoveryServices::RequestWebCache(CDiscoveryService* pService, int nMode, PROTOCOLID nProtocol)
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService) return TRUE;
+
 	DWORD tNow = (DWORD)time( NULL );
 	StopWebRequest();
 	DWORD nHosts = 0;
@@ -1021,6 +1040,9 @@ UINT CDiscoveryServices::ThreadStart(LPVOID pParam)
 
 void CDiscoveryServices::OnRun()
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService) return;
+
 	BOOL bSuccess = TRUE;
 	
 	if ( m_nWebCache == wcmServerMet )
@@ -1087,6 +1109,9 @@ void CDiscoveryServices::OnRun()
 
 BOOL CDiscoveryServices::RunWebCacheGet(BOOL bCaches)
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService) return TRUE;
+
 	CSingleLock pLock( &Network.m_pSection, TRUE );
 	CString strURL, strOutput;
 	
@@ -1258,6 +1283,9 @@ BOOL CDiscoveryServices::RunWebCacheGet(BOOL bCaches)
 
 BOOL CDiscoveryServices::RunWebCacheUpdate()
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService) return TRUE;
+
 	CSingleLock pLock( &Network.m_pSection, TRUE );
 	CString strURL, strOutput;
 
@@ -1411,6 +1439,9 @@ BOOL CDiscoveryServices::SendWebCacheRequest(CString strURL, CString& strOutput)
 
 BOOL CDiscoveryServices::RunServerMet()
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService) return TRUE;
+
 	CSingleLock pLock( &Network.m_pSection, TRUE );
 	CString strURL;
 	
@@ -1540,6 +1571,9 @@ void CDiscoveryService::Serialize(CArchive& ar, int /*nVersion*/)
 // Note: This is used by wndDiscovery only
 BOOL CDiscoveryService::Execute(int nMode)
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService) return TRUE;
+
 	CSingleLock pLock( &Network.m_pSection );
 	if ( ! pLock.Lock( 250 ) ) return FALSE;
 	

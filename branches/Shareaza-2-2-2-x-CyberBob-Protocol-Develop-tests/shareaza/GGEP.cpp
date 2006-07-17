@@ -21,6 +21,7 @@
 
 #include "StdAfx.h"
 #include "Shareaza.h"
+#include "Buffer.h"
 #include "Settings.h"
 #include "GGEP.h"
 #include "G1Packet.h"
@@ -42,6 +43,7 @@ CGGEPBlock::CGGEPBlock()
 
 	m_pInput = NULL;
 	m_nInput = 0;
+	m_nItemCount = 0;
 }
 
 CGGEPBlock::~CGGEPBlock()
@@ -57,6 +59,7 @@ void CGGEPBlock::Clear()
 	while ( m_pFirst )
 	{
 		CGGEPItem* pNext = m_pFirst->m_pNext;
+		m_nItemCount--;
 		delete m_pFirst;
 		m_pFirst = pNext;
 	}
@@ -82,7 +85,7 @@ CGGEPItem* CGGEPBlock::Add(LPCTSTR pszID)
 	if ( ! m_pFirst ) m_pFirst = pItem;
 	if ( m_pLast ) m_pLast->m_pNext = pItem;
 	m_pLast = pItem;
-
+	m_nItemCount++;
 	return pItem;
 }
 
@@ -95,7 +98,10 @@ CGGEPItem* CGGEPBlock::Find(LPCTSTR pszID, DWORD nMinLength)
 
 	for ( CGGEPItem* pItem = m_pFirst ; pItem ; pItem = pItem->m_pNext )
 	{
-		if ( pItem->m_sID.CompareNoCase( pszID ) == 0 && pItem->m_nLength >= nMinLength )
+		// think GGEP is Case sensitive so the original code is wrong
+		//if ( pItem->m_sID.CompareNoCase( pszID ) == 0 && pItem->m_nLength >= nMinLength )
+		//	return pItem;
+		if ( pItem->m_sID.Compare( pszID ) == 0 && pItem->m_nLength >= nMinLength )
 			return pItem;
 	}
 
@@ -160,6 +166,7 @@ BOOL CGGEPBlock::ReadInternal()
 			if ( ! m_pFirst ) m_pFirst = pItem;
 			if ( m_pLast ) m_pLast->m_pNext = pItem;
 			m_pLast = pItem;
+			m_nItemCount++;
 		}
 		else
 		{
@@ -193,7 +200,7 @@ void CGGEPBlock::Write(CPacket* pPacket)
 
 	for ( CGGEPItem* pItem = m_pFirst ; pItem ; pItem = pItem->m_pNext )
 	{
-		pItem->WriteTo( pPacket );
+		pItem->WriteTo( pPacket, pItem->m_bSmall, pItem->m_bCOBS );
 	}
 
 	Clear();
@@ -207,12 +214,11 @@ void CGGEPBlock::Write(CString& str)
 
 	for ( CGGEPItem* pItem = m_pFirst ; pItem ; pItem = pItem->m_pNext )
 	{
-		pItem->WriteTo( str );
+		pItem->WriteTo( str, pItem->m_bSmall, pItem->m_bCOBS );
 	}
 
 	Clear();
 }
-
 
 //////////////////////////////////////////////////////////////////////
 // CGGEPItem construction
@@ -223,6 +229,8 @@ CGGEPItem::CGGEPItem(LPCTSTR pszID)
 	m_pBuffer	= NULL;
 	m_nLength	= 0;
 	m_nPosition	= 0;
+	m_bCOBS		= true;
+	m_bSmall	= false;
 
 	if ( pszID ) m_sID = pszID;
 }
@@ -283,6 +291,20 @@ void CGGEPItem::WriteByte(BYTE nValue)
 {
 	Write( &nValue, 1 );
 }
+
+void CGGEPItem::WriteUTF8( LPCWSTR pszText )
+{
+	CBuffer pBuffer;
+
+	pBuffer.Print( pszText, CP_UTF8 );
+	Write( pBuffer.m_pBuffer, pBuffer.m_nLength );
+}
+
+// not yet implemented
+//CString CGGEPItem::ReadAscii()
+//{
+//	
+//}
 
 //////////////////////////////////////////////////////////////////////
 // CGGEPItem string conversion

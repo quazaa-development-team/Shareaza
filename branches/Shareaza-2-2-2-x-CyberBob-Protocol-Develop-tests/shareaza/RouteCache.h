@@ -1,6 +1,10 @@
 //
 // RouteCache.h
 //
+//	Date:			"$Date: 2006/03/31 15:22:13 $"
+//	Revision:		"$Revision: 1.52 $"
+//  Last change by:	"$Author: CyberBob $"
+//
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
@@ -36,6 +40,13 @@ public:
 	Hashes::Guid		m_oGUID;
 	const CNeighbour*	m_pNeighbour;
 	SOCKADDR_IN			m_pEndpoint;
+	DWORD				m_nProtocol;
+	enum
+	{
+		PROTOCOL_G1 = 1,	// Gnutella
+		PROTOCOL_G2 = 2,	// Gnutella2
+		PROTOCOL_MIX = 3	// Gnutella/Gnutela2
+	};
 };
 
 
@@ -55,18 +66,91 @@ protected:
 	DWORD				m_nUsed;
 	DWORD				m_tFirst;
 	DWORD				m_tLast;
+	BOOL				m_bLocked;
 
-// Operations
+// Protected Operations
+protected:
+	CRouteCacheItem*	RCT_Find(const Hashes::Guid& oGUID);
+	CRouteCacheItem*	RCT_Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD nTime = 0);
+	void				RCT_Remove(CNeighbour* pNeighbour);
+	void				RCT_Resize(DWORD nSize);
+	DWORD				RCT_GetNextSize(DWORD nDesired);
+	void				RCT_Clear();
+
+	// This is some experimental Object base Locking mechanism
+	class Lock
+	{
+		private:
+			CRouteCacheTable* m_pRCT;
+		public:
+			// Lock the Object when you make instance of this lock class;
+			Lock(CRouteCacheTable* pRCT)
+			{
+				while (pRCT->m_bLocked)	// 1.Wait until the resource gets free
+				{
+					// Wait loop
+				}
+				pRCT->m_bLocked	= TRUE;	// 2.Lock
+				m_pRCT = pRCT;			// 3.Copy Pointer of the Object so Distructor can 
+										//	track object for unlocking process
+			}
+
+			// UnLock Automatically whenever you exit Function with instance of This Lock Object
+			~Lock()
+			{
+				m_pRCT->m_bLocked	= FALSE; // UnLock
+			}
+
+			//In case you wanna unlock in Middle of Function
+			inline void UnLock()
+			{
+				m_pRCT->m_bLocked	= FALSE; // UnLock
+			}
+	};
+
+	friend class CRouteCacheTable::Lock;
+
+// Public Operations
 public:
-	CRouteCacheItem*	Find(const Hashes::Guid& oGUID);
-	CRouteCacheItem*	Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD nTime = 0);
-	void				Remove(CNeighbour* pNeighbour);
-	void				Resize(DWORD nSize);
-	DWORD				GetNextSize(DWORD nDesired);
-	void				Clear();
+	inline CRouteCacheItem* Find(const Hashes::Guid& oGUID)
+	{
+		Lock pLock(this);
+		return RCT_Find( oGUID );
+	}
+
+	inline CRouteCacheItem* Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD nTime = 0)
+	{
+		Lock pLock(this);
+		return RCT_Add( oGUID, pNeighbour, pEndpoint, nTime);
+	}
+
+	inline void Remove(CNeighbour* pNeighbour)
+	{
+		Lock pLock(this);
+		RCT_Remove( pNeighbour );
+	}
+	inline void Resize(DWORD nSize)
+	{
+		Lock pLock(this);
+		RCT_Resize( nSize );
+	}
+
+	inline DWORD GetNextSize(DWORD nDesired)
+	{
+		Lock pLock(this);
+		return RCT_GetNextSize( nDesired );
+	}
+
+	inline void Clear()
+	{
+		Lock pLock(this);
+		RCT_Clear();
+	}
 
 	inline BOOL IsFull() const
 	{
+		// Can not use this Lock object in Const function member
+		//Lock pLock(this);
 		return m_nUsed == m_nBuffer;
 	}
 };
@@ -85,18 +169,94 @@ protected:
 	CRouteCacheTable	m_pTable[2];
 	CRouteCacheTable*	m_pRecent;
 	CRouteCacheTable*	m_pHistory;
+	BOOL				m_bLocked;
+
+// Protected Operations
+protected:
+	void				RC_SetDuration(DWORD nSeconds);
+	BOOL				RC_Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour);
+	BOOL				RC_Add(const Hashes::Guid& oGUID, const SOCKADDR_IN* pEndpoint);
+	void				RC_Remove(CNeighbour* pNeighbour);
+	void				RC_Clear();
+	CRouteCacheItem*	RC_Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD tAdded);
+	CRouteCacheItem*	RC_Lookup(const Hashes::Guid& oGUID, CNeighbour** ppNeighbour = NULL, SOCKADDR_IN* pEndpoint = NULL);
+
+	// This is some experimental Object base Locking mechanism
+	class Lock
+	{
+		private:
+			CRouteCache* m_pRC;
+		public:
+			// Lock the Object when you make instance of this lock class;
+			Lock(CRouteCache* pRC)
+			{
+				while (pRC->m_bLocked)	// 1.Wait until the resource gets free
+				{
+					// Wait loop
+				}
+				pRC->m_bLocked	= TRUE;	// 2.Lock
+				m_pRC = pRC;			// 3.Copy Pointer of the Object so Distructor can 
+										//	track object for unlocking process
+			}
+
+			// UnLock Automatically whenever you exit Function with instance of This Lock Object
+			~Lock()
+			{
+				m_pRC->m_bLocked	= FALSE; // UnLock
+			}
+
+			//In case you wanna unlock in Middle of Function
+			inline void UnLock()
+			{
+				m_pRC->m_bLocked	= FALSE; // UnLock
+			}
+	};
+
+	friend class CRouteCache::Lock;
 
 // Operations
 public:
-	void		SetDuration(DWORD nSeconds);
-	BOOL		Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour);
-	BOOL		Add(const Hashes::Guid& oGUID, const SOCKADDR_IN* pEndpoint);
-	void		Remove(CNeighbour* pNeighbour);
-	void		Clear();
-public:
-	CRouteCacheItem*	Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD tAdded);
-	CRouteCacheItem*	Lookup(const Hashes::Guid& oGUID, CNeighbour** ppNeighbour = NULL, SOCKADDR_IN* pEndpoint = NULL);
+	inline void SetDuration(DWORD nSeconds)
+	{
+		Lock pLock(this);
+		RC_SetDuration(nSeconds);
+	}
 
+	inline BOOL Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour)
+	{
+		Lock pLock(this);
+		return RC_Add( oGUID, pNeighbour );
+	}
+
+	inline BOOL Add(const Hashes::Guid& oGUID, const SOCKADDR_IN* pEndpoint)
+	{
+		Lock pLock(this);
+		return RC_Add( oGUID, pEndpoint );
+	}
+
+	inline void Remove(CNeighbour* pNeighbour)
+	{
+		Lock pLock(this);
+		RC_Remove( pNeighbour );
+	}
+
+	inline void Clear()
+	{
+		Lock pLock(this);
+		RC_Clear();
+	}
+
+	inline CRouteCacheItem* Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD tAdded)
+	{
+		Lock pLock(this);
+		return RC_Add(oGUID, pNeighbour, pEndpoint, tAdded);
+	}
+
+	inline CRouteCacheItem* Lookup(const Hashes::Guid& oGUID, CNeighbour** ppNeighbour = NULL, SOCKADDR_IN* pEndpoint = NULL)
+	{
+		Lock pLock(this);
+		return RC_Lookup(oGUID, ppNeighbour, pEndpoint);
+	}
 };
 
 #endif // !defined(AFX_ROUTECACHE_H__7FDD7D02_ABC8_4718_A985_C411BCE0D660__INCLUDED_)

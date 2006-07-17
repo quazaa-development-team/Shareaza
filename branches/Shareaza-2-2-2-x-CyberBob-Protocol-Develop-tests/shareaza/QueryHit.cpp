@@ -51,7 +51,8 @@ static char THIS_FILE[]=__FILE__;
 //////////////////////////////////////////////////////////////////////
 // CQueryHit construction
 
-CQueryHit::CQueryHit(PROTOCOLID nProtocol, const Hashes::Guid& oSearchID)
+CQueryHit::CQueryHit(PROTOCOLID nProtocol, const Hashes::Guid& oSearchID) :
+	m_sPreview("")
 {
 	m_pNext = NULL;
 	
@@ -144,8 +145,10 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 		while ( nCount-- )
 		{
 			CQueryHit* pHit = new CQueryHit( PROTOCOL_G1, oQueryID );
+
 			if ( pFirstHit ) pLastHit->m_pNext = pHit;
 			else pFirstHit = pHit;
+			//pHit->m_pNext = NULL;
 			pLastHit = pHit;
 			
 			pHit->m_pAddress	= (IN_ADDR&)nAddress;
@@ -200,11 +203,12 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 		}
 		
 		if ( pPacket->GetRemaining() < 16 + nXMLSize ) nXMLSize = 0;
-		
+
+		std::list<SOCKADDR_IN> pPushProxyList;
 		if ( ( nFlags[0] & G1_QHD_GGEP ) && ( nFlags[1] & G1_QHD_GGEP ) &&
 			 Settings.Gnutella1.EnableGGEP )
 		{
-			ReadGGEP( pPacket, &bBrowseHost, &bChat );
+			ReadGGEP( pPacket, &bBrowseHost, &bChat, &pPushProxyList);
 		}
 		
 		if ( nXMLSize > 0 )
@@ -230,7 +234,7 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 		
 		for ( pLastHit = pFirstHit ; pLastHit ; pLastHit = pLastHit->m_pNext, nIndex++ )
 		{
-			pLastHit->ParseAttributes( oClientID, pVendor, nFlags, bChat, bBrowseHost );
+			pLastHit->ParseAttributes( oClientID, pVendor, nFlags, bChat, bBrowseHost, pPushProxyList );
 			pLastHit->Resolve();
 			if ( pXML ) pLastHit->ParseXML( pXML, nIndex );
 		}
@@ -280,7 +284,9 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 	
 	CString		strNick;
 	DWORD		nGroupState[8][4] = {};
-	
+
+	std::list<SOCKADDR_IN> pHubList; // List of Hubs the Hit Sender is connected to.
+
 	try
 	{
 		BOOL bCompound;
@@ -288,6 +294,7 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 		DWORD nLength;
 		bool bSpam = false;
 		DWORD nPrevHubAddress = 0;
+		WORD nPrevHubPort = 0;
 
 		while ( pPacket->ReadPacket( szType, nLength, &bCompound ) )
 		{
@@ -354,15 +361,15 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 				pHub.sin_port				= htons( pPacket->ReadShortBE() );
 				
 				// ToDo: We should check if ALL hubs are unique
-				if ( nPrevHubAddress == pHub.sin_addr.S_un.S_addr )
+				if ( nPrevHubAddress == pHub.sin_addr.S_un.S_addr && nPrevHubPort == pHub.sin_port)
 				{
 					bSpam = true;
 				}
 				nPrevHubAddress = pHub.sin_addr.S_un.S_addr;
+				nPrevHubPort = pHub.sin_port;
 
-				oIncrID[15]++;
-				oIncrID.validate();
-				Network.NodeRoute->Add( oIncrID, &pHub );
+				pHubList.push_back(pHub);
+
 			}
 			else if ( strcmp( szType, "GU" ) == 0 && nLength == 16 )
 			{
@@ -466,6 +473,14 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 		if ( ! oClientID ) AfxThrowUserException();
 		if ( pPacket->GetRemaining() < 17 ) AfxThrowUserException();
 		
+		for ( HubIndex index = pHubList.begin();index != pHubList.end();index++)
+		{
+
+			oIncrID[15]++;
+			oClientID.validate();
+			Network.NodeRoute->Add( oClientID, &(*index) );
+		}
+
 		BYTE nHops = pPacket->ReadByte() + 1;
 		if ( pnHops ) *pnHops = nHops;
 		
@@ -495,6 +510,7 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 			pLastHit->m_bBrowseHost	= bBrowseHost;
 			pLastHit->m_sNick		= strNick;
 			pLastHit->m_bPreview	&= pLastHit->m_bPush == TS_FALSE;
+			pLastHit->m_pHubList	= pHubList;
 			
 			if ( pLastHit->m_nUpSlots > 0 )
 			{
@@ -741,7 +757,8 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize)
 //////////////////////////////////////////////////////////////////////
 // CQueryHit GGEP reader
 
-BOOL CQueryHit::ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat)
+BOOL CQueryHit::ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat,
+						 std::list<SOCKADDR_IN> * pPushProxyList )
 {
 	CGGEPBlock pGGEP;
 	
@@ -749,7 +766,24 @@ BOOL CQueryHit::ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat)
 	
 	if ( pGGEP.Find( _T("BH") ) ) *pbBrowseHost = TRUE;
 	if ( pGGEP.Find( _T("CHAT") ) ) *pbChat = TRUE;
-	
+
+	if ( pPushProxyList != NULL )
+	{
+		if ( CGGEPItem* pItem = pGGEP.Find( _T("PUSH"), 6 ) )
+		{
+			int nLength = pItem->m_nLength;
+			SOCKADDR_IN pPushProxy;
+			WORD Port;
+			for (;nLength >=6 ; nLength--)
+			{
+				pItem->Read(&pPushProxy.sin_addr, 4);
+				pItem->Read(&Port,2);
+				pPushProxy.sin_port = htons ( Port );
+				pPushProxyList->push_back(pPushProxy);
+			}
+		}
+	}
+
 	return TRUE;
 }
 
@@ -759,7 +793,7 @@ BOOL CQueryHit::ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat)
 void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 {
 	CString strData;
-	
+
 	m_nIndex	= pPacket->ReadLongLE();
 	m_bSize		= TRUE;
 	m_nSize		= pPacket->ReadLongLE();
@@ -810,38 +844,79 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 			
 			CGGEPBlock pGGEP;
 			pGGEP.ReadFromString( pszData );
-			
-			if ( CGGEPItem* pItem = pGGEP.Find( _T("H"), 21 ) )
+
+			CGGEPItem* pItemPos = pGGEP.m_pFirst;
+			if ( pItemPos != NULL && pGGEP.m_nItemCount != 0 )
 			{
-				if ( pItem->m_pBuffer[0] > 0 && pItem->m_pBuffer[0] < 3 )
+				BYTE nItemCount = 0;
+				while ( nItemCount < pGGEP.m_nItemCount )
 				{
-                    std::copy( &pItem->m_pBuffer[1], &pItem->m_pBuffer[1] + 20, &m_oSHA1[ 0 ] );
-                    m_oSHA1.validate();
+					if ( pItemPos->IsNamed( _T("H") ) )
+					{
+						if ( pItemPos->m_pBuffer[0] > 0 && pItemPos->m_pBuffer[0] < 3 && pItemPos->m_nLength >= 20 + 1 )
+						{
+							std::copy( &pItemPos->m_pBuffer[1], &pItemPos->m_pBuffer[1] + 20, &m_oSHA1[ 0 ] );
+							m_oSHA1.validate();
+						}
+						if ( pItemPos->m_pBuffer[0] == 2 && pItemPos->m_nLength >= 24 + 20 + 1 )
+						{
+							std::copy( &pItemPos->m_pBuffer[21], &pItemPos->m_pBuffer[21] + 24, &m_oTiger[ 0 ] );
+							m_oTiger.validate();
+						}
+						if ( pItemPos->m_pBuffer[0] == 3 && pItemPos->m_nLength >= 17 )
+						{
+							std::copy( &pItemPos->m_pBuffer[1], &pItemPos->m_pBuffer[1] + 16, &m_oMD5[ 0 ] );
+							m_oMD5.validate();
+						}
+					}
+
+					if ( pItemPos->IsNamed( _T("u") ) )
+					{
+						strData = pItemPos->ToString();
+
+						if ( !m_oSHA1 ) m_oSHA1.fromUrn( strData );
+						if ( !m_oTiger ) m_oTiger.fromUrn( strData );
+						if ( !m_oED2K ) m_oED2K.fromUrn( strData );
+						if ( !m_oMD5 ) m_oMD5.fromUrn( strData );
+						if ( !m_oBTH ) m_oBTH.fromUrn( strData );
+					}
+
+					if ( pItemPos->IsNamed( _T("LF") ) )
+					{
+						if ( pItemPos->m_nLength <= 8 )
+						{
+							DWORD nByteCount = 0;
+							QWORD nFileSize = 0;
+							BYTE nTempSize = 0;
+
+							while ( nByteCount < pItemPos->m_nLength )
+							{
+								nTempSize = pItemPos->ReadByte();
+								if ( nTempSize == 0 ) break;
+								nFileSize += (QWORD)nTempSize << ( 8 * nByteCount );
+								nByteCount++;
+							}
+
+							if ( nByteCount == ( pItemPos->m_nLength -1 ) )
+								m_nSize = nFileSize;
+							else
+								m_nSize = SIZE_UNKNOWN;
+						}
+					}
+
+					if ( pItemPos->IsNamed( _T("ALT") ) )
+					{
+						// the ip-addresses need not be stored, as they are sent upon the download request in the ALT-loc header
+						m_nSources = pItemPos->m_nLength / 6;	// 6 bytes per source (see ALT GGEP extension specification)
+					}
+					pItemPos = pItemPos->m_pNext;
+					nItemCount++;
 				}
-				if ( pItem->m_pBuffer[0] == 2 && pItem->m_nLength >= 24 + 20 + 1 )
-				{
-                    std::copy( &pItem->m_pBuffer[21], &pItem->m_pBuffer[21] + 24, &m_oTiger[ 0 ] );
-                    m_oTiger.validate();
-				}
+				break;
 			}
-			else if ( CGGEPItem* pItem = pGGEP.Find( _T("u"), 5 + 32 ) )
-			{
-				strData = pItem->ToString();
-				
-				if ( !m_oSHA1 ) m_oSHA1.fromUrn( strData );
-				if ( !m_oTiger ) m_oTiger.fromUrn( strData );
-				if ( !m_oED2K ) m_oED2K.fromUrn( strData );
-			}
-			
-			if ( CGGEPItem* pItem = pGGEP.Find( _T("ALT"), 6 ) )
-			{
-				// the ip-addresses need not be stored, as they are sent upon the download request in the ALT-loc header
-				m_nSources = pItem->m_nLength / 6;	// 6 bytes per source (see ALT GGEP extension specification)
-			}
-			
-			break;
+
 		}
-		
+
 		LPCTSTR pszSep = _tcschr( pszData, 0x1C );
 		size_t nLength = pszSep ? pszSep - pszData : _tcslen( pszData );
 		
@@ -850,6 +925,8 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 			if ( !m_oSHA1 ) m_oSHA1.fromUrn( pszData );
 			if ( !m_oTiger ) m_oTiger.fromUrn( pszData );
 			if ( !m_oED2K ) m_oED2K.fromUrn( pszData );
+			if ( !m_oMD5 ) m_oMD5.fromUrn( pszData );
+			if ( !m_oBTH ) m_oBTH.fromUrn( pszData );
 		}
 		else if ( nLength > 4 )
 		{
@@ -866,13 +943,15 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 //////////////////////////////////////////////////////////////////////
 // CQueryHit G1 attributes suffix
 
-void CQueryHit::ParseAttributes(const Hashes::Guid& oClientID, CVendor* pVendor, BYTE* nFlags, BOOL bChat, BOOL bBrowseHost)
+void CQueryHit::ParseAttributes(const Hashes::Guid& oClientID, CVendor* pVendor, BYTE* nFlags, BOOL bChat, BOOL bBrowseHost
+								,std::list<SOCKADDR_IN> & pPushProxyList)
 {
 	m_oClientID		= oClientID;
 	m_pVendor		= pVendor;
 	m_bChat			= bChat;
 	m_bBrowseHost	= bBrowseHost;
-	
+	if ( !pPushProxyList.empty() ) m_pPushProxyList = pPushProxyList;
+
 	if ( nFlags[1] & G1_QHD_PUSH )
 		m_bPush		= ( nFlags[0] & G1_QHD_PUSH ) ? TS_TRUE : TS_FALSE;
 	if ( nFlags[0] & G1_QHD_BUSY )
@@ -924,6 +1003,10 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength)
 			else if ( nPacket >= 16 && strURN == _T("ed2k") )
 			{
 				pPacket->Read( m_oED2K );
+			}
+			else if ( nPacket >= 16 && strURN == _T("md5") )
+			{
+				pPacket->Read( m_oMD5 );
 			}
 			else if ( nPacket >= 20 && strURN == _T("btih") )
 			{
@@ -1363,7 +1446,14 @@ void CQueryHit::Resolve()
 	
 	if ( m_nIndex == 0 || m_oTiger || m_oED2K || Settings.Downloads.RequestHash )
 	{
-		if ( m_oSHA1 )
+		if ( m_oSHA1 && m_oTiger )
+		{
+			m_sURL.Format( _T("http://%s:%i/uri-res/N2R?%s%s.%s"),
+				(LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort,
+				_T("urn:bitprint:"), (LPCTSTR)m_oSHA1.toString(), (LPCTSTR)m_oTiger.toString() );
+			return;
+		}
+		else if ( m_oSHA1 )
 		{
 			m_sURL.Format( _T("http://%s:%i/uri-res/N2R?%s"),
 				(LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort,
@@ -1381,7 +1471,14 @@ void CQueryHit::Resolve()
 		{
 			m_sURL.Format( _T("http://%s:%i/uri-res/N2R?%s"),
 				(LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort,
-                (LPCTSTR)m_oED2K.toUrn() );
+				(LPCTSTR)m_oED2K.toUrn() );
+			return;
+		}
+		else if ( m_oMD5 )
+		{
+			m_sURL.Format( _T("http://%s:%i/uri-res/N2R?%s"),
+				(LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort,
+				(LPCTSTR)m_oMD5.toUrn() );
 			return;
 		}
 	}
@@ -1507,6 +1604,7 @@ void CQueryHit::Copy(CQueryHit* pOther)
 	m_oSHA1			= pOther->m_oSHA1;
 	m_oTiger		= pOther->m_oTiger;
 	m_oED2K			= pOther->m_oED2K;
+	m_oMD5			= pOther->m_oMD5;
 	m_sURL			= pOther->m_sURL;
 	m_sName			= pOther->m_sName;
 	m_nIndex		= pOther->m_nIndex;

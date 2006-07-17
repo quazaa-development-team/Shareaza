@@ -40,6 +40,8 @@
 #include "GProfile.h"
 #include "CrawlSession.h"
 
+#include "GGEP.h"
+#include "G1Neighbour.h"
 #include "G2Neighbour.h"
 #include "G1Packet.h"
 #include "G2Packet.h"
@@ -48,7 +50,9 @@
 #include "Security.h"
 #include "HostCache.h"
 #include "QueryKeys.h"
+#include "HubHorizon.h"
 #include "LibraryMaps.h"
+#include "VendorCache.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -256,82 +260,98 @@ BOOL CDatagrams::Send(SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease, LPVOI
 
 		return TRUE;
 	}
-	else if ( pPacket->m_nProtocol != PROTOCOL_G2 )
+	else if ( pPacket->m_nProtocol == PROTOCOL_G1 )
 	{
-		if ( bRelease ) pPacket->Release();
-		return FALSE;
-	}
+		// Quick hack
+		CBuffer pBuffer;
 
-	if ( m_pOutputFree == NULL || m_pBufferFree == NULL )
+		((CG1Packet*)pPacket)->ToBuffer( &pBuffer );
+		pPacket->SmartDump( NULL, &pHost->sin_addr, TRUE );
+		if ( bRelease ) pPacket->Release();
+
+		sendto( m_hSocket, (LPSTR)pBuffer.m_pBuffer, pBuffer.m_nLength, 0,
+			(SOCKADDR*)pHost, sizeof(SOCKADDR_IN) );
+
+		m_nOutPackets++;
+
+		return TRUE;
+	}
+	else if ( pPacket->m_nProtocol == PROTOCOL_G2 )
 	{
-		if ( m_pOutputLast == NULL )
+		if ( m_pOutputFree == NULL || m_pBufferFree == NULL )
+		{
+			if ( m_pOutputLast == NULL )
+			{
+				if ( bRelease ) pPacket->Release();
+				theApp.Message( MSG_DEBUG, _T("CDatagrams output frames exhausted.") );
+				return FALSE;
+			}
+			Remove( m_pOutputLast );
+		}
+
+		if ( m_pBufferFree == NULL )
 		{
 			if ( bRelease ) pPacket->Release();
-			theApp.Message( MSG_DEBUG, _T("CDatagrams output frames exhausted.") );
+			theApp.Message( MSG_DEBUG, _T("CDatagrams output frames really exhausted.") );
 			return FALSE;
 		}
-		Remove( m_pOutputLast );
-	}
 
-	if ( m_pBufferFree == NULL )
-	{
-		if ( bRelease ) pPacket->Release();
-		theApp.Message( MSG_DEBUG, _T("CDatagrams output frames really exhausted.") );
-		return FALSE;
-	}
+		CDatagramOut* pDG = m_pOutputFree;
+		m_pOutputFree = m_pOutputFree->m_pNextHash;
 
-	CDatagramOut* pDG = m_pOutputFree;
-	m_pOutputFree = m_pOutputFree->m_pNextHash;
+		if ( m_nInFrags < 1 ) bAck = FALSE;
 
-	if ( m_nInFrags < 1 ) bAck = FALSE;
+		pDG->Create( pHost, (CG2Packet*)pPacket, m_nSequence++, m_pBufferFree, bAck );
 
-	pDG->Create( pHost, (CG2Packet*)pPacket, m_nSequence++, m_pBufferFree, bAck );
+		m_pBufferFree = m_pBufferFree->m_pNext;
+		m_nBufferFree--;
 
-	m_pBufferFree = m_pBufferFree->m_pNext;
-	m_nBufferFree--;
+		pDG->m_pToken		= pToken;
+		pDG->m_pNextTime	= NULL;
+		pDG->m_pPrevTime	= m_pOutputFirst;
 
-	pDG->m_pToken		= pToken;
-	pDG->m_pNextTime	= NULL;
-	pDG->m_pPrevTime	= m_pOutputFirst;
+		if ( m_pOutputFirst )
+			m_pOutputFirst->m_pNextTime = pDG;
+		else
+			m_pOutputLast = pDG;
 
-	if ( m_pOutputFirst )
-		m_pOutputFirst->m_pNextTime = pDG;
-	else
-		m_pOutputLast = pDG;
+		m_pOutputFirst = pDG;
 
-	m_pOutputFirst = pDG;
+		BYTE nHash	= BYTE( pHost->sin_addr.S_un.S_un_b.s_b1
+			+ pHost->sin_addr.S_un.S_un_b.s_b2
+			+ pHost->sin_addr.S_un.S_un_b.s_b3
+			+ pHost->sin_addr.S_un.S_un_b.s_b4
+			+ pHost->sin_port
+			+ pDG->m_nSequence );
 
-	BYTE nHash	= BYTE( pHost->sin_addr.S_un.S_un_b.s_b1
-				+ pHost->sin_addr.S_un.S_un_b.s_b2
-				+ pHost->sin_addr.S_un.S_un_b.s_b3
-				+ pHost->sin_addr.S_un.S_un_b.s_b4
-				+ pHost->sin_port
-				+ pDG->m_nSequence );
+		CDatagramOut** pHash = m_pOutputHash + ( nHash & HASH_MASK );
 
-	CDatagramOut** pHash = m_pOutputHash + ( nHash & HASH_MASK );
+		if ( *pHash ) (*pHash)->m_pPrevHash = &pDG->m_pNextHash;
+		pDG->m_pNextHash = *pHash;
+		pDG->m_pPrevHash = pHash;
+		*pHash = pDG;
 
-	if ( *pHash ) (*pHash)->m_pPrevHash = &pDG->m_pNextHash;
-	pDG->m_pNextHash = *pHash;
-	pDG->m_pPrevHash = pHash;
-	*pHash = pDG;
+		m_nOutPackets++;
 
-	m_nOutPackets++;
-
-	pPacket->SmartDump( NULL, &pHost->sin_addr, TRUE );
+		pPacket->SmartDump( NULL, &pHost->sin_addr, TRUE );
 
 #ifdef DEBUG_UDP
-	pPacket->Debug( _T("UDP Out") );
-	theApp.Message( MSG_DEBUG, _T("UDP: Queued (#%i) x%i for %s:%lu"),
-		pDG->m_nSequence, pDG->m_nCount,
-		(LPCTSTR)CString( inet_ntoa( pDG->m_pHost.sin_addr ) ),
-		htons( pDG->m_pHost.sin_port ) );
+		pPacket->Debug( _T("UDP Out") );
+		theApp.Message( MSG_DEBUG, _T("UDP: Queued (#%i) x%i for %s:%lu"),
+			pDG->m_nSequence, pDG->m_nCount,
+			(LPCTSTR)CString( inet_ntoa( pDG->m_pHost.sin_addr ) ),
+			htons( pDG->m_pHost.sin_port ) );
 #endif
 
+		if ( bRelease ) pPacket->Release();
+
+		TryWrite();
+
+		return TRUE;
+	}
+
 	if ( bRelease ) pPacket->Release();
-
-	TryWrite();
-
-	return TRUE;
+	return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -611,10 +631,16 @@ BOOL CDatagrams::OnDatagram(SOCKADDR_IN* pHost, BYTE* pBuffer, DWORD nLength)
 		&& ( sizeof(GNUTELLAPACKET) + pG1UDP->m_nLength ) == nLength )
 	{
 		CG1Packet* pG1Packet = CG1Packet::New( (GNUTELLAPACKET*)pG1UDP );
+		ASSERT( pG1Packet->m_nReference == 1 );
 		pG1Packet->SmartDump( NULL, &pHost->sin_addr, FALSE );
-		// OnPacket( pHost, pG1Packet );
-		pG1Packet->Release();
-		return TRUE;
+		if ( OnPacket( pHost, pG1Packet ) )
+		{
+			return TRUE;
+		}
+		else
+		{
+			pG1Packet->Release();
+		}
 	}
 
 	ED2K_UDP_HEADER* pMULE = (ED2K_UDP_HEADER*)pBuffer;
@@ -656,7 +682,7 @@ BOOL CDatagrams::OnDatagram(SOCKADDR_IN* pHost, BYTE* pBuffer, DWORD nLength)
 
 		return TRUE;
 	}
-	theApp.Message( MSG_DEBUG, _T("Recieved unknown UDP packet type"));
+	theApp.Message( MSG_ERROR, _T("Recieved unknown UDP packet type") );
 
 	return FALSE;
 }
@@ -879,7 +905,33 @@ void CDatagrams::Remove(CDatagramIn* pDG, BOOL bReclaimOnly)
 }
 
 //////////////////////////////////////////////////////////////////////
-// CDatagrams packet handler
+// CDatagrams G1UDP packet handler
+
+BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG1Packet* pPacket)
+{
+	theApp.Message( MSG_SYSTEM, _T("G1UDP: Received Type(0x%x) TTL(%i) Hops(%i) size(%i) from %s:%i"),
+		pPacket->m_nType, pPacket->m_nTTL, pPacket->m_nHops, pPacket->m_nLength,
+		(LPCTSTR)CString( inet_ntoa( pHost->sin_addr ) ),pHost->sin_port );
+
+	m_nInPackets++;
+	switch ( pPacket->m_nType )
+	{
+		case G1_PACKET_PING:		return OnPing( pHost, pPacket );			// Ping
+		case G1_PACKET_PONG:		return OnPong( pHost, pPacket );			// Pong, response to a ping
+		case G1_PACKET_BYE:			return OnBye( pHost, pPacket );				// Bye message
+		case G1_PACKET_QUERY_ROUTE:	return OnCommonQueryHash( pHost, pPacket );	// Common query hash
+		case G1_PACKET_VENDOR:		return OnVendor( pHost, pPacket );			// Vendor-specific message
+		case G1_PACKET_VENDOR_APP:	return OnVendor( pHost, pPacket );			// Vendor-specific message
+		case G1_PACKET_PUSH:		return OnPush( pHost, pPacket );			// Push open a connection
+		case G1_PACKET_RUDP:		return OnRUDP( pHost, pPacket );				// Push open a connection
+		case G1_PACKET_QUERY:		return OnQuery( pHost, pPacket );			// Search query
+		case G1_PACKET_HIT:			return OnHit( pHost, pPacket );				// Hit, a search result
+	}
+	return FALSE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CDatagrams G2UDP packet handler
 
 BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
@@ -933,16 +985,230 @@ BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	{
 		return OnCrawlAnswer( pHost, pPacket );
 	}
-
+	else if ( pPacket->IsType( G2_PACKET_MODE_CHANGE_REQ ) )
+	{
+		return OnModeChangeReq( pHost, pPacket );
+	}
+	else if ( pPacket->IsType( G2_PACKET_MODE_CHANGE_ACK ) )
+	{
+		return OnModeChangeAck( pHost, pPacket );
+	}
+	else if ( pPacket->IsType( G2_PACKET_PRIVATE_MESSAGE ) )
+	{
+		return OnPrivateMessage( pHost, pPacket );
+	}
+	else if ( pPacket->IsType( G2_PACKET_CLOSE ) )
+	{
+		return OnClose( pHost, pPacket );
+	}
+	else if ( pPacket->IsType( G2_PACKET_KHL_ANS ) )
+	{
+		return OnKHLA( pHost, pPacket );
+	}
+	else if ( pPacket->IsType( G2_PACKET_KHL_REQ ) )
+	{
+		return OnKHLR( pHost, pPacket );
+	}
 	return FALSE;
 }
 
-//////////////////////////////////////////////////////////////////////
-// CDatagrams PING packet handler
-
-BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG2Packet* /*pPacket*/)
+namespace
 {
-	Send( pHost, CG2Packet::New( G2_PACKET_PONG ) );
+	struct CompareNums
+	{
+		bool operator()(WORD lhs, WORD rhs) const
+		{
+			return lhs > rhs;
+		}
+	};
+}
+
+//////////////////////////////////////////////////////////////////////
+// CDatagrams PING packet handler for G1UDP
+
+BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG1Packet* pPacket)
+{
+	BOOL bSCP = FALSE;
+	// If this ping packet strangely has length, and the remote computer does GGEP blocks
+	if ( pPacket->m_nLength )
+	{
+		CGGEPBlock pGGEP;
+		// There is a GGEP block here, and checking and adjusting the TTL and hops counts worked
+		if ( pGGEP.ReadFromPacket( pPacket ) )
+		{
+			if ( CGGEPItem* pItem = pGGEP.Find( _T("SCP") ) )
+			{
+				bSCP = TRUE;
+			}
+		}
+	}
+
+	CGGEPBlock pGGEP;
+	// Received SCP GGEP, send 5 random hosts from the cache
+	// Since we do not provide leaves, ignore the preference data
+	if ( bSCP )
+	{
+		CGGEPItem* pItem = pGGEP.Add( _T("IPP") );
+		DWORD nCount = min( DWORD(50), HostCache.Gnutella1.CountHosts() );
+		WORD nPos = 0;
+
+		// Create 5 random positions from 0 to 50 in the descending order
+		std::vector< WORD > pList;
+		pList.reserve( Settings.Gnutella1.MaxHostsInPongs );
+		for ( WORD nNo = 0 ; nNo < Settings.Gnutella1.MaxHostsInPongs ; nNo++ )
+		{
+			pList.push_back( (WORD)( ( nCount + 1 ) * rand() / ( RAND_MAX + (float)nCount ) ) );
+		}
+		std::sort( pList.begin(), pList.end(), CompareNums() );
+
+		nCount = Settings.Gnutella1.MaxHostsInPongs;
+		CHostCacheHost* pHost = HostCache.Gnutella1.GetNewest();
+		while ( pHost && nCount )
+		{
+			nPos = pList.back(); // take the smallest value;
+			pList.pop_back(); // remove it
+			for ( ; pHost && nPos-- ; pHost = pHost->m_pPrevTime );
+
+			// We won't provide Shareaza hosts for G1 cache, since users may disable
+			// G1 and it will pollute the host caches ( ??? )
+			if ( pHost && pHost->m_pVendor != VendorCache.m_pShareaza )
+			{
+				pItem->Write( (void*)&pHost->m_pAddress, 4 );
+				pItem->Write( (void*)&pHost->m_nPort, 2 );
+				theApp.Message( MSG_DEBUG, _T("Sending G1 host through pong (%s:%i)"), 
+					(LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&pHost->m_pAddress ) ), pHost->m_nPort ); 
+				nCount--;
+			}
+			if ( nCount == 0 ) break;
+		}
+
+		if ( nCount == (DWORD)Settings.Gnutella1.MaxHostsInPongs ) bSCP = FALSE; // the cache is empty
+	}
+
+	// TEST: Try indicate GUESS supported Node.  (GGEP "GUE")
+	pGGEP.Add( L"GUE" );
+	CGGEPItem * pVC = pGGEP.Add( L"VC");
+	pVC->WriteUTF8( L"RAZAA" );
+
+	// Make a new pong packet, the response to a ping
+	CG1Packet* pPong = CG1Packet::New(			// Gets it quickly from the Gnutella packet pool
+		G1_PACKET_PONG,							// We're making a pong packet
+		pPacket->m_nHops,						// Give it TTL same as HOP count of received PING packet
+		pPacket->m_oGUID);						// Give it the same GUID as the ping
+
+	// Get statistics about how many files we are sharing
+	QWORD nMyVolume;
+	DWORD nMyFiles;
+	LibraryMaps.GetStatistics( &nMyFiles, &nMyVolume );
+
+	// Start the pong's payload with the IP address and port number from the Network object (do)
+	pPong->WriteShortLE( htons( Network.m_pHost.sin_port ) );
+	pPong->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
+
+	// Then, write in the information about how many files we are sharing
+	pPong->WriteLongLE( nMyFiles );
+	pPong->WriteLongLE( (DWORD)nMyVolume );
+
+	if ( !pGGEP.IsEmpty() ) pGGEP.Write( pPong );
+
+	// Send the pong packet to the remote computer we are currently looping on
+	Send( pHost, pPong );
+	theApp.Message( MSG_SYSTEM, _T("G1UDP: Sent Pong to %s"), (LPCTSTR)CString( inet_ntoa( pHost->sin_addr ) ) );
+
+	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CDatagrams PING packet handler for G2UDP
+BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG2Packet* pPacket)
+{
+	CHAR szType[9];
+	DWORD nLength;
+	BOOL bConnectRequest = FALSE; // add
+	BOOL bHubMode = FALSE; // add
+	BOOL bVersion = FALSE; // add
+	BOOL bSupportedFeature = FALSE; // add
+	BOOL bWantSourceAddr = FALSE; // add
+	CString sVendorCode, sName, sVersion;
+
+	while ( pPacket->ReadPacket( szType, nLength ) )
+	{
+		DWORD nNext = pPacket->m_nPosition + nLength;
+
+		if ( strcmp( szType, "CR" ) == 0 && nLength >= 1 ) //add G2/1.1, used on GnucDNA
+		{
+			bHubMode = pPacket->ReadByte();
+			bConnectRequest = TRUE;
+		}
+		else if ( strcmp( szType, "VER" ) == 0 )
+		{
+			bVersion = TRUE;
+		}
+		else if ( strcmp( szType, "SFL" ) == 0 ) // Supported Feature List
+		{
+			bSupportedFeature = TRUE;
+		}
+		else if ( strcmp( szType, "SIPP" ) == 0 )	// Sender want IP:Port of the source address of this paclet
+		{											// in order to detect Source NAT
+			bWantSourceAddr = TRUE;
+		}
+
+		pPacket->m_nPosition = nNext;
+	}
+
+	CG2Packet* pPong = CG2Packet::New( G2_PACKET_PONG, TRUE );
+	if (bVersion)
+	{
+		sVendorCode = VENDOR_CODE;
+		sName = CLIENT_NAME;
+		sVersion = theApp.m_sVersion;
+		pPong->WritePacket( "VC", pPong->GetStringLen( sVendorCode ) );
+		pPong->WriteString( sVendorCode, TRUE );
+		pPong->WritePacket( "AN", pPong->GetStringLen( sName ) );
+		pPong->WriteString( sName, TRUE );
+		pPong->WritePacket( "AV", pPong->GetStringLen( sVersion ) );
+		pPong->WriteString( sVersion, TRUE );
+
+	}
+	if ( bWantSourceAddr )
+	{
+		pPong->WritePacket("SIPP", 6);
+		pPong->WriteLongLE( pHost->sin_addr.S_un.S_addr );
+		pPong->WriteShortBE( htons( pHost->sin_port ) );
+	}
+	if ( bSupportedFeature )
+	{
+		// Format of Supported Feature list is feature name feature name followed by 2Byte feature versions
+		// first byte is Major version, and second is Miner version.
+		CG2Packet * pSFL = CG2Packet::New( "SFL", TRUE );
+
+		// indicate G2/1.0
+		pSFL->WritePacket( "G2",2 );
+		pSFL->WriteByte(1);
+		pSFL->WriteByte(0);
+
+		// indicate TFW/1.0 (TestFireWall)
+		pSFL->WritePacket( "TFW",2 );
+		pSFL->WriteByte(1);
+		pSFL->WriteByte(0);
+
+		// indicate UDPKHL/1.0
+		pSFL->WritePacket( "UDPKHL",2 );
+		pSFL->WriteByte(1);
+		pSFL->WriteByte(0);
+
+		// adding SFL packet as conpound packet in PONG
+		pPong->WritePacket( pSFL );
+		pSFL->Release();
+	}
+	Send( pHost, pPong );
+
+	return TRUE;
+}
+
+BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket)
+{
+	//TODO
 	return TRUE;
 }
 
@@ -953,24 +1219,104 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
 	if ( ! pPacket->m_bCompound ) return TRUE;
 
-	BOOL bRelayed = FALSE;
+	BOOL bRelayed = FALSE, bCompound = FALSE;
 	CHAR szType[9];
 	DWORD nLength;
+	CString sVendorCode, sName, sVersion;
+	SOCKADDR_IN	MyAddr;
 
-	while ( pPacket->ReadPacket( szType, nLength ) )
+	while ( pPacket->ReadPacket( szType, nLength, &bCompound ) )
 	{
 		DWORD nOffset = pPacket->m_nPosition + nLength;
-		if ( strcmp( szType, "RELAY" ) == 0 ) bRelayed = TRUE;
+
+		if ( strcmp( szType, "RELAY" ) == 0 )
+		{
+			bRelayed = TRUE;
+		}
+		else if ( strcmp( szType, "CA" ) == 0 ) // add G2/1.1 used on GnucDNA
+		{
+			// TODO
+		}
+		else if ( strcmp( szType, "CH" ) == 0 ) // add G2/1.1 used on GnucDNA as G2 version of UDPHC, but no vendor code exist and
+		{										// possibly only GnucDNA Hub addresses.
+			// TODO
+		}
+		else if ( strcmp( szType, "VC" ) == 0 && nLength >= 4 )	// Vendor Code of Remote Node  (e.g. "RAZA")
+		{
+			sVendorCode = pPacket->ReadStringUTF8(nLength);
+		}
+		else if ( strcmp( szType, "AN" ) == 0 && nLength >= 2 )	// Agent name of Remote Node (e.g. "Shareaza")
+		{
+			sName = pPacket->ReadStringUTF8(nLength);
+		}
+		else if ( strcmp( szType, "AV" ) == 0 && nLength >= 2 )	// Agent version of Remote Node (e.g. 2.2.2.20)
+		{
+			sVersion = pPacket->ReadStringUTF8(nLength);
+		}
+		else if ( strcmp( szType, "SFL" ) == 0 && bCompound == TRUE )	// Agent version of Remote Node (e.g. 2.2.2.20)
+		{
+			CHAR szInner[9];
+			DWORD nInner;
+
+			while ( pPacket->m_nPosition < nOffset && pPacket->ReadPacket( szInner, nInner ) )
+			{
+				DWORD nSkipInner = pPacket->m_nPosition + nInner;
+
+				if ( strcmp( szInner, "G2" ) == 0 && nInner >= 2 )
+				{
+					// G2 = TRUE
+					// G2Version = pPacket->ReadByte() << 8;
+					// G2Version = pPacket->ReadByte();
+				}
+				else if ( strcmp( szInner, "TFW" ) == 0 && nInner >= 2 )
+				{
+					// TFW = TRUE
+					// TFWVersion = pPacket->ReadByte() << 8;
+					// TFWVersion = pPacket->ReadByte();
+				}
+				else if ( strcmp( szInner, "UDPKHL" ) == 0 && nInner >= 2 )
+				{
+					// UDPKHL = TRUE
+					// UDPKHLVersion = pPacket->ReadByte() << 8;
+					// UDPKHLVersion = pPacket->ReadByte();
+				}
+
+				pPacket->m_nPosition = nSkipInner;
+			}
+		}
+		else if ( strcmp( szType, "SIPP" ) == 0 && bCompound == TRUE )	// SIPP: source IP/PORT of UDP Ping packet, this is for
+		{																// UDP ip/port detection on NAT/NAPT to find outside 
+																		// IP/PORT.
+			MyAddr.sin_addr.S_un.S_addr = pPacket->ReadLongLE();
+			MyAddr.sin_port = htons( pPacket->ReadShortBE() );
+		}
 		pPacket->m_nPosition = nOffset;
 	}
 
-	if ( ! bRelayed ) return TRUE;
+	if ( ! bRelayed )
+	{
+		if ( MyAddr.sin_addr.S_un.S_addr != 0 && MyAddr.sin_port != 0 && 
+			MyAddr.sin_addr.S_un.S_addr != Network.m_pHost.sin_addr.S_un.S_addr &&
+			MyAddr.sin_port != Network.m_pHost.sin_port)
+		{
+			CString str = inet_ntoa( pHost->sin_addr );
+			theApp.Message( MSG_SYSTEM, _T("Pong from %s:%u said IP:PORT is not same as setting, possibly on NAT, %s:%u"), 
+			str, pHost->sin_port, inet_ntoa( MyAddr.sin_addr ),  ntohs(MyAddr.sin_port) );
+		}
+		return TRUE;
+	}
 
 	if ( ! Network.IsConnectedTo( &pHost->sin_addr ) ) m_bStable = TRUE;
 
-	//CString str = inet_ntoa( pHost->sin_addr );
-	//theApp.Message( MSG_ERROR, _T("Relayed Pong from %s:%u"), str, pHost->sin_port );
+	CString str = inet_ntoa( pHost->sin_addr );
+	theApp.Message( MSG_SYSTEM, _T("Relayed Pong from %s:%u"), str, ntohs(pHost->sin_port) );
 
+	return TRUE;
+}
+
+BOOL CDatagrams::OnQuery(SOCKADDR_IN* pHost, CG1Packet* pPacket)
+{
+	//TODO
 	return TRUE;
 }
 
@@ -1084,6 +1430,12 @@ BOOL CDatagrams::OnQueryAck(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	return TRUE;
 }
 
+BOOL CDatagrams::OnHit(SOCKADDR_IN* pHost, CG1Packet* pPacket)
+{
+	//TODO
+	return TRUE;
+}
+
 //////////////////////////////////////////////////////////////////////
 // CDatagrams HIT packet handler
 
@@ -1094,7 +1446,7 @@ BOOL CDatagrams::OnHit(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 
 	if ( pHits == NULL )
 	{
-		pPacket->Debug( _T("BadHit") );
+//		pPacket->Debug( _T("BadHit") );
 		theApp.Message( MSG_ERROR, IDS_PROTOCOL_BAD_HIT,
 			(LPCTSTR)CString( inet_ntoa( pHost->sin_addr ) ) );
 		Statistics.Current.Gnutella2.Dropped++;
@@ -1148,6 +1500,10 @@ BOOL CDatagrams::OnQueryKeyRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 			else if ( strcmp( szType, "SNA" ) == 0 && nLength >= 4 )
 			{
 				nSendingAddress		= pPacket->ReadLongLE();
+			}
+			else if ( strcmp( szType, "dna" ) == 0 ) // add G2/1.1 dna
+			{
+				// TODO
 			}
 
 			pPacket->m_nPosition = nOffset;
@@ -1256,14 +1612,131 @@ BOOL CDatagrams::OnQueryKeyAnswer(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 
 //////////////////////////////////////////////////////////////////////
 // CDatagrams PUSH packet handler
+BOOL CDatagrams::OnPush(SOCKADDR_IN* pHost, CG1Packet* pPacket)
+{
+	// Push packets should be 26 bytes long, if it's too short, or too long and settings say to care
+	if ( pPacket->m_nLength < 26 || ( pPacket->m_nLength > 26 && Settings.Gnutella1.StrictPackets 
+		&& !Settings.Gnutella1.EnableGGEP ) )
+	{
+		// Record the weird packet and don't do anything else with it
+		theApp.Message( MSG_ERROR, IDS_PROTOCOL_SIZE_PUSH, (LPCTSTR)inet_ntoa( pHost->sin_addr ) );
+		Statistics.Current.Gnutella1.Dropped++;
+		return FALSE;
+	}
 
-BOOL CDatagrams::OnPush(SOCKADDR_IN* /*pHost*/, CG2Packet* pPacket)
+	// The first 16 bytes of the packet payload are the Gnutella client ID GUID, read them into pClientID
+	Hashes::Guid oClientID;
+	pPacket->Read( oClientID );
+
+	// After that are the file index, IP address, and port number, read them
+	DWORD nFileIndex = pPacket->ReadLongLE();  // 4 bytes, the file index (do)
+	DWORD nAddress   = pPacket->ReadLongLE();  // 4 bytes, the IP address of (do)
+	WORD nPort       = pPacket->ReadShortLE(); // 2 bytes, the port number
+
+	// Assume this push packet does not have a GGEP block
+	BOOL bGGEP = FALSE;
+
+	// Check the security list to make sure the IP address isn't on it
+	if ( Security.IsDenied( (IN_ADDR*)&nAddress ) )
+	{
+		// It is, count this packet as dropped and do nothing more with it
+		Statistics.Current.Gnutella1.Dropped++;
+		return TRUE;
+	}
+
+	// If the packet is longer than a normal push packet, and the remote computer said it supports GGEP blocks in the handshake
+	if ( pPacket->m_nLength > 26 && Settings.Gnutella1.EnableGGEP )
+	{
+		// Read the next byte from the packet and make sure it's 0xC3, the magic code for a GGEP block
+		if ( pPacket->ReadByte() != GGEP_MAGIC )
+		{
+			// It's not, drop the packet, but stay connected
+			theApp.Message( MSG_ERROR, IDS_PROTOCOL_GGEP_REQUIRED, (LPCTSTR)inet_ntoa( pHost->sin_addr ) );
+			Statistics.Current.Gnutella1.Dropped++;
+			return FALSE;
+		}
+
+		// This push packet does have a GGEP block
+		bGGEP = TRUE;
+	}
+	if ( Security.IsDenied( (IN_ADDR*)&nAddress ) )
+	{
+		theApp.Message( MSG_ERROR, _T("G2UDP: PUSH connection request from %s requested PUSH connection to Blocked Node %s"), 
+			(LPCTSTR)inet_ntoa( pHost->sin_addr ), (LPCTSTR)inet_ntoa( *(IN_ADDR*)&nAddress ) );
+		Statistics.Current.Gnutella1.Dropped++;
+		return FALSE;
+	}
+
+	// If there is no port number specified in the packet, or we know the IP address to be firewalled
+	if ( ! nPort || Network.IsFirewalledAddress( &nAddress ) )
+	{
+		// Then we can't push open a connection, do nothing more with the packet
+		theApp.Message( MSG_ERROR, IDS_PROTOCOL_ZERO_PUSH, (LPCTSTR)inet_ntoa( pHost->sin_addr ) );
+		Statistics.Current.Gnutella1.Dropped++;
+		return FALSE;
+	}
+
+	// If the push packet contains our own client ID, this is someone asking us to push open a connection
+	if ( validAndEqual( oClientID, Hashes::Guid( MyProfile.oGUID ) ) )
+	{
+		// Push open the connection
+		Handshakes.PushTo( (IN_ADDR*)&nAddress, nPort, nFileIndex );
+		return TRUE;
+	}
+
+
+	if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG2Hub() )
+	{
+		// Otherwise, the push packet is for another computer that we can hopefully can send it to, try to find it
+		CNeighbour* pOrigin;
+		Network.NodeRoute->Lookup( oClientID, (CNeighbour**)&pOrigin );
+
+		// If we are connected to a computer with that client ID, and the packet's TTL and hop counts are OK
+		if ( pOrigin && pPacket->Hop() ) // Calling Hop moves 1 from TTL to hops
+		{
+			// If the remote computer the push packet is for is running Gnutella
+			if ( pOrigin->m_nProtocol == PROTOCOL_G1 )
+			{
+				// If this packet has a GGEP block, but the computer its for doesn't support them, cut it off
+				if ( bGGEP && ! pOrigin->m_bGGEP ) pPacket->Shorten( 26 );
+
+				// Send the push packet to the computer that needs to do it
+				pOrigin->Send( pPacket, FALSE, TRUE );
+
+			} // If instead it's running Gnutella2 software like Shareaza
+			else if ( pOrigin->m_nProtocol == PROTOCOL_G2 )
+			{
+				// Create a new Gnutella2 push packet with the same information as this one, and send it
+				CG2Packet* pWrap = CG2Packet::New( G2_PACKET_PUSH, TRUE );
+				pWrap->WritePacket( "TO", 16 );
+				pWrap->Write( oClientID );
+				pWrap->WriteByte( 0 );
+				pWrap->WriteLongLE( nAddress );
+				pWrap->WriteShortLE( nPort );
+				pOrigin->Send( pWrap, TRUE, TRUE );
+			}
+
+			// Record that we routed one more packet
+			Statistics.Current.Gnutella1.Routed++;
+		}
+	}
+
+	// The PUSH packet destination is not (me) but (I'm) not Ultrapeer nor Hub, packet should not be forwarded to
+	// anywhere else.
+	theApp.Message( MSG_ERROR, _T("G1UDP: PUSH packet received from %s is destinated to unknown node"), 
+		(LPCTSTR)inet_ntoa( pHost->sin_addr ) );
+	Statistics.Current.Gnutella1.Dropped++;
+	return FALSE;
+}
+
+BOOL CDatagrams::OnPush(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
 	DWORD nLength = pPacket->GetRemaining();
 
 	if ( ! pPacket->SkipCompound( nLength, 6 ) )
 	{
-		pPacket->Debug( _T("BadPush") );
+		theApp.Message( MSG_ERROR, _T("G2UDP: Invalid PUSH packet received from %s"), 
+			(LPCTSTR)inet_ntoa( pHost->sin_addr ) );
 		Statistics.Current.Gnutella2.Dropped++;
 		return FALSE;
 	}
@@ -1271,16 +1744,30 @@ BOOL CDatagrams::OnPush(SOCKADDR_IN* /*pHost*/, CG2Packet* pPacket)
 	DWORD nAddress	= pPacket->ReadLongLE();
 	WORD nPort		= pPacket->ReadShortBE();
 
-	if ( Security.IsDenied( (IN_ADDR*)&nAddress ) ||
-		 Network.IsFirewalledAddress( &nAddress ) )
+	if ( Security.IsDenied( (IN_ADDR*)&nAddress ) )
 	{
+		theApp.Message( MSG_ERROR, _T("G2UDP: PUSH connection request from %s requested PUSH connection to Blocked Node %s"), 
+			(LPCTSTR)inet_ntoa( pHost->sin_addr ), (LPCTSTR)inet_ntoa( *(IN_ADDR*)&nAddress ) );
 		Statistics.Current.Gnutella2.Dropped++;
-		return TRUE;
+		return FALSE;
+	}
+
+	if ( Network.IsFirewalledAddress( &nAddress ) )
+	{
+		theApp.Message( MSG_ERROR, IDS_PROTOCOL_ZERO_PUSH, (LPCTSTR)inet_ntoa( pHost->sin_addr ) );
+		Statistics.Current.Gnutella2.Dropped++;
+		return FALSE;
 	}
 
 	Handshakes.PushTo( (IN_ADDR*)&nAddress, nPort );
 
 	return TRUE;
+}
+
+BOOL CDatagrams::OnRUDP(SOCKADDR_IN* pHost, CG1Packet* pPacket)
+{
+	// To do: should implement asap, since a lot of request for this.
+	return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1456,8 +1943,372 @@ BOOL CDatagrams::OnCrawlRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	return TRUE;
 }
 
+// packet for answer to Crawler request. 
+// the code to send Crawler request is not really used, possibly just there for debug network
 BOOL CDatagrams::OnCrawlAnswer(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
 	CrawlSession.OnCrawl( pHost, pPacket );
 	return TRUE;
 }
+
+// this is packet GnucDNA use to request remote node to change more either to Hub or Leaf
+BOOL CDatagrams::OnModeChangeReq(SOCKADDR_IN* pHost, CG2Packet* pPacket)
+{
+	//TODO
+	return TRUE;
+}
+
+// this is packet GnucDNA use as Acknowledgment to mode change request
+BOOL CDatagrams::OnModeChangeAck(SOCKADDR_IN* pHost, CG2Packet* pPacket)
+{
+	//TODO
+	return TRUE;
+}
+
+// Private Message packet GnucDNA use 
+BOOL CDatagrams::OnPrivateMessage(SOCKADDR_IN* pHost, CG2Packet* pPacket)
+{
+	//TODO
+	return TRUE;
+}
+
+// little Question, is this needed for UDP?
+BOOL CDatagrams::OnClose(SOCKADDR_IN* pHost, CG2Packet* pPacket)
+{
+	return TRUE;
+}
+
+BOOL CDatagrams::OnVendor(SOCKADDR_IN* pHost, CG1Packet* pPacket)
+{
+	if ( pPacket->m_nLength < 8 || ! Settings.Gnutella1.VendorMsg )
+	{
+		return FALSE;
+	}
+
+	// Read the vendor, function, and version numbers from the packet payload
+	DWORD nVendor  = pPacket->ReadLongBE();  // 4 bytes, vendor code in ASCII characters, like "RAZA" (do)
+	WORD nFunction = pPacket->ReadShortLE(); // 2 bytes, function (do)
+	WORD nVersion  = pPacket->ReadShortLE(); // 2 bytes, version (do)
+
+	// If the packet has 0 for the vendor and function (do)
+	if ( nVendor == 0 && nFunction == 0 )
+	{
+		// Supported vendor messages array (do)
+		return FALSE;
+	} // The packet has vendor or function numbers, and the 2 bytes of function are all 1s
+	else if ( nFunction == 0xFFFF )
+	{
+		// Vendor is 0
+		if ( nVendor == 0 )
+		{
+			// Vendor code query (do)
+			CG1Packet* pReply = CG1Packet::New( pPacket->m_nType, 1, pPacket->m_oGUID ); // Create a reply packet
+			pReply->WriteLongLE( 0 );
+			pReply->WriteShortLE( 0xFFFE );
+			pReply->WriteShortLE( 1 );
+			pReply->WriteLongBE( 'RAZA' );
+			pReply->WriteLongBE( 'BEAR' );
+			Send( pHost, pReply ); // Send the reply packet to the remote computer
+
+		} // Vendor is the ASCII text "RAZA" for Shareaza
+		else if ( nVendor == 'AZAR' ) // It's backwards because of network byte order
+		{
+			// Function code query for "RAZA" (do)
+			CG1Packet* pReply = CG1Packet::New( pPacket->m_nType, 1, pPacket->m_oGUID ); // Create a reply packet
+			pReply->WriteLongBE( 'RAZA' );
+			pReply->WriteShortLE( 0xFFFE );
+			pReply->WriteShortLE( 1 );
+			pReply->WriteShortLE( 0x0001 );
+			pReply->WriteShortLE( 1 );
+			pReply->WriteShortLE( 0x0002 );
+			pReply->WriteShortLE( 1 );
+			pReply->WriteShortLE( 0x0003 );
+			pReply->WriteShortLE( 1 );
+			Send( pHost, pReply ); // Send the reply packet to the remote computer
+
+		} // Vendor is the ASCII text "BEAR" for BearShare
+		else if ( nVendor == 'BEAR' ) // It's backwards because of network byte order
+		{
+			// Function code query for "BEAR"
+			CG1Packet* pReply = CG1Packet::New( pPacket->m_nType, 1, pPacket->m_oGUID ); // Create a reply packet
+			pReply->WriteLongBE( 'BEAR' );
+			pReply->WriteShortLE( 0xFFFE );
+			pReply->WriteShortLE( 1 );
+			pReply->WriteShortLE( 0x0004 );
+			pReply->WriteShortLE( 1 );
+			pReply->WriteShortLE( 0x000B );
+			pReply->WriteShortLE( 1 );
+			pReply->WriteShortLE( 0x000C );
+			pReply->WriteShortLE( 1 );
+			Send( pHost, pReply ); // Send the reply packet to the remote computer
+		}
+	}
+	else if ( nVendor == 'RAZA' )
+	{
+		// Switch on what the function is
+		switch ( nFunction )
+		{
+
+			// Version Query (do)
+		case 0x0001:
+
+			// The version number from the packet is 0 or 1
+			if ( nVersion <= 1 )
+			{
+				// Send a response packet (do)
+				CG1Packet* pReply = CG1Packet::New( pPacket->m_nType, 1, pPacket->m_oGUID );
+				pReply->WriteLongBE( 'RAZA' );
+				pReply->WriteShortLE( 0x0002 );
+				pReply->WriteShortLE( 1 );
+				pReply->WriteShortLE( theApp.m_nVersion[0] );
+				pReply->WriteShortLE( theApp.m_nVersion[1] );
+				pReply->WriteShortLE( theApp.m_nVersion[2] );
+				pReply->WriteShortLE( theApp.m_nVersion[3] );
+				Send( pHost, pReply ); // Send the reply packet to the remote computer
+			}
+
+			break;
+
+			// Version Response (do)
+		case 0x0002:
+
+			// The version number we read from the packet is 0 or 1, and there are 8 bytes of payload left to read
+			if ( nVersion <= 1 && pPacket->GetRemaining() >= 8 )
+			{
+				// Read those 8 bytes (do)
+				WORD nVersion[4];
+				nVersion[0] = pPacket->ReadShortLE();
+				nVersion[1] = pPacket->ReadShortLE();
+				nVersion[2] = pPacket->ReadShortLE();
+				nVersion[3] = pPacket->ReadShortLE();
+			}
+
+			break;
+
+			// Cluster Advisor (do)
+		case 0x0003:
+
+			// The version number we read from the packet is 0 or 1, and there are 28 bytes of payload left to read
+			if ( nVersion <= 1 && pPacket->GetRemaining() >= 28 )
+			{
+				// Does not look like this is needed anymore.
+				// specially on G1
+
+				// This is a cluster advisor packet
+				//OnClusterAdvisor( pPacket );
+			}
+			else
+			{
+				return FALSE;
+			}
+			break;
+
+		default:
+			return FALSE;
+		}
+
+	}
+	else if ( nVendor == 'BEAR' )
+	{
+		// Sort by the function number to see what the vendor specific packet from BearShare wants
+		switch ( nFunction )
+		{
+
+			// Super Pong (do)
+		case 0x0001:
+
+			break;
+
+			// Product Identifiers (do)
+		case 0x0003:
+
+			break;
+
+			// Hops Flow (do)
+		case 0x0004:
+
+			break;
+
+			// Horizon Ping (do)
+		case 0x0005:
+
+			break;
+
+			// Horizon Pong (do)
+		case 0x0006:
+
+			break;
+
+			// Query Status Request (do)
+		case 0x000B:
+
+			// If the version is 0 or 1, then we can deal with this
+			if ( nVersion <= 1 )
+			{
+				// Send a response packet (do)
+				CG1Packet* pReply = CG1Packet::New( pPacket->m_nType, 1, pPacket->m_oGUID );
+				pReply->WriteLongLE( 'BEAR' );
+				pReply->WriteShortLE( 0x000C );
+				pReply->WriteShortLE( 1 );
+				pReply->WriteShortLE( SearchManager.OnQueryStatusRequest( pPacket->m_oGUID ) );
+				Send( pHost, pReply );
+			}
+
+			break;
+
+			// Query Status Response
+		case 0x000C:
+
+			break;
+		}
+	}
+	else if ( nVendor == 'LIME' )
+	{
+		//TODO
+	}
+	else if ( nVendor == 'GTKG' )
+	{
+		//TODO
+	}
+	else if ( nVendor == 'GNUC' )
+	{
+		//TODO
+	}
+
+	return TRUE;
+}
+
+BOOL CDatagrams::OnCommonQueryHash(SOCKADDR_IN* pHost, CG1Packet* pPacket)
+{
+	//TODO
+	return TRUE;
+}
+
+// little Question, is this needed for UDP?
+BOOL CDatagrams::OnBye(SOCKADDR_IN* pHost, CG1Packet* pPacket)
+{
+	//TODO
+	return TRUE;
+}
+
+// KHLA - KHL(Known Hub List) Answer, go over G2 UDP packet more like Gnutella2 version of UDPHC
+// Better put cache as security to prevent attack, such as flooding cache with invalid host addresses.
+BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
+{
+	if ( /* ! pPacket->m_bCompound */ TRUE ) return FALSE; // block execution of code for above reason
+
+	if ( Security.IsDenied( &pHost->sin_addr ) || Network.IsFirewalledAddress( (LPVOID*)&pHost->sin_addr, TRUE ) ||
+		! Network.IsReserved( &pHost->sin_addr ) ) return FALSE;
+
+	CHAR szType[9], szInner[9];
+	DWORD nLength, nInner;
+	BOOL bCompound, bCachedKeys;
+
+	DWORD tNow = static_cast< DWORD >( time( NULL ) );
+
+	while ( pPacket->ReadPacket( szType, nLength, &bCompound ) )
+	{
+		DWORD nNext = pPacket->m_nPosition + nLength;
+
+		if (	strcmp( szType, "NH" ) == 0 ||
+				strcmp( szType, "CH" ) == 0 )
+		{
+			DWORD nAddress = 0, nKey = 0, tSeen = tNow;
+			WORD nPort = 0;
+			CString strVendor;
+
+			if ( bCompound || 0 == strcmp( szType, "NH" ) )
+			{
+				while ( pPacket->m_nPosition < nNext && pPacket->ReadPacket( szInner, nInner ) )
+				{
+					DWORD nNextX = pPacket->m_nPosition + nInner;
+
+					if ( strcmp( szInner, "NA" ) == 0 && nInner >= 6 )
+					{
+						nAddress = pPacket->ReadLongLE();
+						nPort = pPacket->ReadShortBE();
+					}
+					else if ( strcmp( szInner, "V" ) == 0 && nInner >= 4 )
+					{
+						strVendor = pPacket->ReadString( 4 );
+					}
+					else if ( strcmp( szInner, "QK" ) == 0 && nInner >= 4 )
+					{
+						nKey = pPacket->ReadLongBE();
+						bCachedKeys = TRUE;
+					}
+					else if ( strcmp( szInner, "TS" ) == 0 && nInner >= 4 )
+					{
+						tSeen = pPacket->ReadLongBE() + tNow;
+					}
+
+					pPacket->m_nPosition = nNextX;
+				}
+
+			}
+
+			if ( bCompound || 0 == strcmp( szType, "CH" ) )
+			{
+				while ( pPacket->m_nPosition < nNext && pPacket->ReadPacket( szInner, nInner ) )
+				{
+					DWORD nNextX = pPacket->m_nPosition + nInner;
+
+					if ( strcmp( szInner, "NA" ) == 0 && nInner >= 6 )
+					{
+						nAddress = pPacket->ReadLongLE();
+						nPort = pPacket->ReadShortBE();
+					}
+					else if ( strcmp( szInner, "V" ) == 0 && nInner >= 4 )
+					{
+						strVendor = pPacket->ReadString( 4 );
+					}
+					else if ( strcmp( szInner, "QK" ) == 0 && nInner >= 4 )
+					{
+						nKey = pPacket->ReadLongBE();
+						bCachedKeys = TRUE;
+					}
+					else if ( strcmp( szInner, "TS" ) == 0 && nInner >= 4 )
+					{
+						tSeen = pPacket->ReadLongBE() + tNow;
+					}
+
+					pPacket->m_nPosition = nNextX;
+				}
+
+			}
+
+			if ( ! Security.IsDenied( (IN_ADDR*)&nAddress ) && ! Network.IsFirewalledAddress( &nAddress, TRUE ) &&
+                ! Network.IsReserved((IN_ADDR*)&nAddress) && strVendor.GetLength() == 4 && nPort != 0 && 
+				nAddress != Network.m_pHost.sin_addr.S_un.S_addr)
+			{
+				CHostCacheHost* pCached = HostCache.Gnutella2.Add(
+					(IN_ADDR*)&nAddress, nPort, tSeen, strVendor );
+
+
+				if ( pCached != NULL )
+				{
+					pCached->m_pVendor->m_sCode = strVendor;
+					if ( pCached->m_nKeyValue == 0 ||
+						 pCached->m_nKeyHost != Network.m_pHost.sin_addr.S_un.S_addr )
+					{
+						pCached->SetKey( nKey, (IN_ADDR*)&nAddress );
+					}
+				}
+				HubHorizonPool.Add( (IN_ADDR*)&nAddress, nPort );
+			}
+		}
+
+		pPacket->m_nPosition = nNext;
+	}
+
+	return TRUE;
+}
+
+// KHLR - KHL(Known Hub List) request, go over UDP packet more like UDPHC for G1.
+BOOL CDatagrams::OnKHLR(SOCKADDR_IN* pHost, CG2Packet* pPacket)
+{
+	//TODO
+
+	return TRUE;
+}
+

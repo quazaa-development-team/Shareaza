@@ -34,6 +34,7 @@
 #include "GProfile.h"
 #include "Transfers.h"
 #include "Downloads.h"
+#include "DownloadSource.h"
 #include "Statistics.h"
 #include "DiscoveryServices.h"
 #include "HttpRequest.h"
@@ -80,8 +81,11 @@ CNetwork::CNetwork()
 
 	m_nSequence				= 0;
 	m_hThread				= NULL;
+
 	ZeroMemory( &m_pHost, sizeof( m_pHost ) );
 	m_pHost.sin_family		= AF_INET;
+
+	m_tLastFirewallTest		= 0;
 }
 
 CNetwork::~CNetwork()
@@ -127,6 +131,30 @@ BOOL CNetwork::IsStable() const
 {
 	return IsListening() && ( Handshakes.m_nStableCount > 0 );
 }
+BOOL CNetwork::IsFirewalled()
+{
+	return !( Datagrams.IsStable() && IsStable() );
+}
+
+BOOL CNetwork::CanTestFirewall() 
+{
+	DWORD tNow = GetTickCount();
+
+	if ( ( tNow - m_tLastFirewallTest ) >= 60 * 1000 )	// One test in 10 sec.
+		return TRUE;
+
+	return FALSE;
+}
+void CNetwork::TestRemoteFirewall(DWORD nAddress, WORD nPort)
+{
+	if ( nAddress != 0 && nPort != 0 && m_FWTestQueue.GetSize() <= 20 )	// max 20 queued tests to avoid flooding
+	{
+		sockaddr_in pHost;
+		pHost.sin_addr = *(in_addr*)&nAddress;
+		pHost.sin_port = nPort;
+		m_FWTestQueue.AddTail( pHost );
+	}
+}
 
 DWORD CNetwork::GetStableTime() const
 {
@@ -166,13 +194,6 @@ BOOL CNetwork::ReadyToTransfer(DWORD tNow) const
 
 BOOL CNetwork::Connect(BOOL bAutoConnect)
 {
-	if ( bAutoConnect && !m_bEnabled )
-	{
-		Settings.Gnutella1.EnableToday = Settings.Gnutella1.EnableAlways;
-		Settings.Gnutella2.EnableToday = Settings.Gnutella2.EnableAlways;
-		Settings.eDonkey.EnableToday = Settings.eDonkey.EnableAlways;
-	}
-
 	CSingleLock pLock( &m_pSection, TRUE );
 	
 	Settings.Live.AutoClose = FALSE;
@@ -250,9 +271,9 @@ void CNetwork::Disconnect()
 	
 	if ( ! m_bEnabled ) return;
 	
-	Settings.Gnutella1.EnableToday = !Settings.Connection.RequireForTransfers;
-	Settings.Gnutella2.EnableToday = !Settings.Connection.RequireForTransfers;
-	Settings.eDonkey.EnableToday = !Settings.Connection.RequireForTransfers;
+	Settings.Gnutella1.EnableToday = FALSE;
+	Settings.Gnutella2.EnableToday = FALSE;
+	Settings.eDonkey.EnableToday = FALSE;
 
 	theApp.Message( MSG_DEFAULT, _T("") );
 	theApp.Message( MSG_SYSTEM, IDS_NETWORK_DISCONNECTING );
@@ -588,6 +609,21 @@ void CNetwork::OnRun()
 			QueryHashMaster.Build();
 			
 			if ( CrawlSession.m_bActive ) CrawlSession.OnRun();
+
+			if ( m_FWTestQueue.GetSize() )
+			{
+				if ( CanTestFirewall() )
+				{
+					sockaddr_in pHost;
+					pHost = m_FWTestQueue.GetHead();
+
+					theApp.Message( MSG_SYSTEM, _T("Making a firewall test for %s, port %lu"), (CString)inet_ntoa( pHost.sin_addr ), pHost.sin_port );
+					Neighbours.ConnectTo( (IN_ADDR*)&pHost.sin_addr, pHost.sin_port, PROTOCOL_G2, FALSE, FALSE, TRUE );
+					m_tLastFirewallTest = GetTickCount();
+
+                    m_FWTestQueue.RemoveHead();
+				}	
+			}
 			
 			m_pSection.Unlock();
 		}
@@ -747,6 +783,46 @@ BOOL CNetwork::SendPush(const Hashes::Guid& oGUID, DWORD nIndex)
 	return nCount > 0;
 }
 
+BOOL CNetwork::SendPush( CDownloadSource * pSource )
+{
+	BOOL bSent = FALSE;
+	if ( ! IsListening() ) return FALSE;
+	
+	if ( !pSource->m_pPushProxyList.empty() )
+	{
+		for ( CDownloadSource::HubIndex POS = pSource->m_pPushProxyList.begin();POS != pSource->m_pPushProxyList.end();POS++)
+		{
+			CPacket* pPacket = CG1Packet::New( G1_PACKET_PUSH,
+				Settings.Gnutella1.MaximumTTL - 1 );
+
+			pPacket->Write( pSource->m_oGUID );
+			pPacket->WriteLongLE( pSource->m_nIndex );
+			pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
+			pPacket->WriteShortLE( htons( m_pHost.sin_port ) );
+
+			Datagrams.Send( &(*POS), pPacket );
+		}
+		bSent = TRUE;
+	}
+	else if ( !pSource->m_pHubList.empty() )
+	{
+		for ( CDownloadSource::HubIndex POS = pSource->m_pHubList.begin();POS != pSource->m_pHubList.end();POS++)
+		{
+			CG2Packet* pPacket = CG2Packet::New( G2_PACKET_PUSH, TRUE );
+
+			pPacket->WritePacket( G2_PACKET_TO, 16 );
+			pPacket->Write( pSource->m_oGUID );
+
+			pPacket->WriteByte( 0 );
+			pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
+			pPacket->WriteShortBE( htons( m_pHost.sin_port ) );
+			Datagrams.Send( &(*POS), pPacket );
+		}
+		bSent = TRUE;
+	}
+	return bSent;
+}
+
 //////////////////////////////////////////////////////////////////////
 // CNetwork hit routing
 
@@ -789,7 +865,7 @@ BOOL CNetwork::RouteHits(CQueryHit* pHits, CPacket* pPacket)
 	{
 		if ( pOrigin->m_nProtocol == pPacket->m_nProtocol )
 		{
-			pOrigin->Send( pPacket, FALSE, FALSE );	// Dont buffer
+			pOrigin->Send( pPacket, FALSE, FALSE );	// Don't buffer
 		}
 		else if ( pOrigin->m_nProtocol == PROTOCOL_G1 && pPacket->m_nProtocol == PROTOCOL_G2 )
 		{
@@ -800,7 +876,7 @@ BOOL CNetwork::RouteHits(CQueryHit* pHits, CPacket* pPacket)
 		else if ( pOrigin->m_nProtocol == PROTOCOL_G2 && pPacket->m_nProtocol == PROTOCOL_G1 )
 		{
 			pPacket = CG2Packet::New( G2_PACKET_HIT_WRAP, (CG1Packet*)pPacket );
-			pOrigin->Send( pPacket, TRUE, FALSE );	// Dont buffer
+			pOrigin->Send( pPacket, TRUE, FALSE );	// Don't buffer
 		}
 		else
 		{
@@ -831,8 +907,11 @@ BOOL CNetwork::RouteHits(CQueryHit* pHits, CPacket* pPacket)
 //////////////////////////////////////////////////////////////////////
 // CNetwork common handler functions
 
-void CNetwork::OnQuerySearch(CQuerySearch* pSearch)
+void CNetwork::OnQuerySearch(CQuerySearch* pSearch, BOOL bOUT)
 {
+	
+	if (bOUT) return;
+
 	CSingleLock pLock( &theApp.m_pSection );
 	
 	if ( pLock.Lock( 10 ) )
@@ -845,7 +924,7 @@ void CNetwork::OnQuerySearch(CQuerySearch* pSearch)
 
 			while ( ( pChildWnd = pWindows->Find( pClass, pChildWnd ) ) != NULL )
 			{
-				pChildWnd->OnQuerySearch( pSearch );
+				pChildWnd->OnQuerySearch( pSearch, bOUT );
 			}
 		}
 

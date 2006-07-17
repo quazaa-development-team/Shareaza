@@ -50,6 +50,7 @@ void CSettings::Setup()
 	Add( _T(".DiskSpaceWarning"), &General.DiskSpaceWarning, 500 );
 	Add( _T(".DiskSpaceStop"), &General.DiskSpaceStop, 25 );
 	Add( _T(".MinTransfersRest"), &General.MinTransfersRest, 15 );
+	Add( _T(".ShowFilesizeInByte"), &General.ShowFilesizeInByte, FALSE );
 	Add( _T("Settings.GUIMode"), &General.GUIMode, GUI_BASIC );
 	Add( _T("Settings.CloseMode"), &General.CloseMode, 0 );
 	Add( _T("Settings.TrayMinimise"), &General.TrayMinimise, FALSE );
@@ -212,6 +213,7 @@ void CSettings::Setup()
 	Add( _T("Discovery.FailureLimit"), &Discovery.FailureLimit, 2 );
 	Add( _T("Discovery.UpdatePeriod"), &Discovery.UpdatePeriod, 1800 );
 	Add( _T("Discovery.DefaultUpdate"), &Discovery.DefaultUpdate, 3600 );
+	Add( _T("Discovery.DisableService"), &Discovery.DisableService, 0 );
 	Add( _T("Discovery.BootstrapCount"), &Discovery.BootstrapCount, 10 );
 	Add( _T("Discovery.G2DAddress"), &Discovery.G2DAddress, _T("stats.shareaza.com:6446") );
 	Add( _T("Discovery.G2DRetryAfter"), &Discovery.G2DRetryAfter, 0 );
@@ -219,7 +221,7 @@ void CSettings::Setup()
 	
 	Add( _T("Gnutella.ConnectFactor"), &Gnutella.ConnectFactor, 4 );
 	Add( _T("Gnutella.DeflateHub2Hub"), &Gnutella.DeflateHub2Hub, TRUE );
-	Add( _T("Gnutella.DeflateLeaf2Hub"), &Gnutella.DeflateLeaf2Hub, FALSE );
+	Add( _T("Gnutella.DeflateLeaf2Hub"), &Gnutella.DeflateLeaf2Hub, TRUE );
 	Add( _T("Gnutella.DeflateHub2Leaf"), &Gnutella.DeflateHub2Leaf, TRUE );
 	Add( _T("Gnutella.MaxResults"), &Gnutella.MaxResults, 100 );
 	Add( _T("Gnutella.MaxHits"), &Gnutella.MaxHits, 64 );
@@ -263,7 +265,7 @@ void CSettings::Setup()
 	Add( _T("Gnutella2.HubVerified"), &Gnutella2.HubVerified, FALSE );
 	Add( _T("Gnutella2.EnableAlways"), &Gnutella2.EnableAlways, TRUE );
 	Add( _T("Gnutella2.NumHubs"), &Gnutella2.NumHubs, 2 );
-	Add( _T("Gnutella2.NumLeafs"), &Gnutella2.NumLeafs, 300 );
+	Add( _T("Gnutella2.NumLeafs"), &Gnutella2.NumLeafs, 50 );
 	Add( _T("Gnutella2.NumPeers"), &Gnutella2.NumPeers, 6 );
 	Add( _T("Gnutella2.PingRelayLimit"), &Gnutella2.PingRelayLimit, 10);
 	Add( _T("Gnutella2.UdpMTU"), &Gnutella2.UdpMTU, 500 );
@@ -382,6 +384,7 @@ void CSettings::Setup()
 	Add( _T("Downloads.RequestURLENC"), &Downloads.RequestURLENC, TRUE );
 	Add( _T("Downloads.SaveInterval"), &Downloads.SaveInterval, 60000 );
 	Add( _T("Downloads.FlushSD"), &Downloads.FlushSD, TRUE );
+	Add( _T("Downloads.SavePush"), &Downloads.SavePushSource, TRUE );
 	Add( _T("Downloads.ShowSources"), &Downloads.ShowSources, FALSE );
 	Add( _T("Downloads.SimpleBar"), &Downloads.SimpleBar, FALSE );
 	Add( _T("Downloads.ShowPercent"), &Downloads.ShowPercent, FALSE );
@@ -570,11 +573,11 @@ void CSettings::Load()
 	Gnutella1.RequeryDelay		= max( Gnutella1.RequeryDelay, 45*60u );
 	Gnutella2.RequeryDelay		= max( Gnutella2.RequeryDelay, 60*60u );
 	Downloads.ConnectThrottle	= max( Downloads.ConnectThrottle, Connection.ConnectThrottle + 50 );
-	Downloads.MaxFiles			= min( Downloads.MaxFiles, 100 );
+	Downloads.MaxFiles			= min( Downloads.MaxFiles, 1024 );
 
 	// Set client links
-	Gnutella1.NumHubs			= min( Gnutella1.NumHubs, 2 );
-	Gnutella2.NumHubs			= min( Gnutella2.NumHubs, 3 );
+	Gnutella1.NumHubs			= min( Gnutella1.NumHubs, 32 );
+	Gnutella2.NumHubs			= min( Gnutella2.NumHubs, 16 );
 	Gnutella2.NumLeafs			= min( Gnutella2.NumLeafs, 1024 );
 
 	// Make sure download/incomplete folders aren't the same
@@ -587,7 +590,7 @@ void CSettings::Load()
 	}
 
 	//Temporary- until G1 ultrapeer has been updated
-	Gnutella1.ClientMode		= MODE_LEAF;
+	//Gnutella1.ClientMode		= MODE_LEAF;
 
 	// UPnP is not supported in servers and Win9x
 	if ( theApp.m_bServer || theApp.m_dwWindowsVersion < 5 && !theApp.m_bWinME )
@@ -695,7 +698,7 @@ void CSettings::SmartUpgrade()
 		Connection.TimeoutTraffic		= 140000;
 		
 		Gnutella2.NumHubs				= 2;
-		Gnutella2.NumLeafs				= 300;
+		Gnutella2.NumLeafs				= 30;
 		Gnutella2.NumPeers				= 6;
 	}
 	
@@ -1130,6 +1133,24 @@ QWORD CSettings::ParseVolume(LPCTSTR psz, BOOL bSpeedInBits)
 	else
 	{
 		return (QWORD)val;
+	}
+}
+
+CString CSettings::ExactVolume(QWORD nVolume, BOOL bForceEnabled){
+
+	if ( bForceEnabled || Settings.General.ShowFilesizeInByte ){
+		CString strVolume;
+		int insertPos;
+
+		strVolume.Format( _T("%I64i"), nVolume);
+		insertPos = strVolume.GetLength();
+		for (;insertPos > 3;){
+			insertPos -= 3;
+			strVolume.Insert(insertPos,',');
+		}
+		return strVolume;
+	}else{
+		return SmartVolume(nVolume, FALSE);
 	}
 }
 

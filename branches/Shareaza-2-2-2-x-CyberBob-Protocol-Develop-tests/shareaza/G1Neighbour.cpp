@@ -374,10 +374,10 @@ BOOL CG1Neighbour::SendPing(DWORD dwNow, const Hashes::Guid& oGUID)
 
 	// Send the remote computer a new Gnutella ping packet
 	CG1Packet* pPacket = CG1Packet::New( G1_PACKET_PING, 
-		( bool( oGUID ) || bNeedPeers ) ? 0 : 1, oGUID );
+		( bool( oGUID ) || bNeedPeers ) ? 0 : Settings.Gnutella1.DefaultTTL, oGUID );
 
 	// Send "Supports Cached Pongs" extension along with a packet, to receive G1 hosts for cache
-	if ( Settings.Gnutella1.EnableGGEP && bNeedPeers )
+	if ( Settings.Gnutella1.EnableGGEP /* && bNeedPeers */ )
 	{
 		CGGEPBlock pBlock;
 		CGGEPItem* pItem = pBlock.Add( L"SCP" );
@@ -419,7 +419,7 @@ BOOL CG1Neighbour::OnPing(CG1Packet* pPacket)
 	}
 
 	// A ping packet is just a header, and shouldn't have length, if it does, and settings say to worry about stuff like this
-	if ( pPacket->m_nLength != 0 && Settings.Gnutella1.StrictPackets )
+	if ( pPacket->m_nLength != 0 && Settings.Gnutella1.StrictPackets && !Settings.Gnutella1.EnableGGEP && !m_bGGEP )
 	{
 		// Record the error, drop the packet, but stay connected
 		theApp.Message( MSG_ERROR, IDS_PROTOCOL_SIZE_PING, (LPCTSTR)m_sAddress );
@@ -504,6 +504,11 @@ BOOL CG1Neighbour::OnPing(CG1Packet* pPacket)
 		WriteRandomCache( pGGEP.Add( L"DIPP" ) );
 	}
 
+	// TEST: send out Pong with GGEP "GUE" to test if raza start recieving GUESS packets
+	pGGEP.Add( L"GUE" );
+	CGGEPItem * pVC = pGGEP.Add( L"VC");
+	pVC->WriteUTF8( L"RAZAA" );
+
 	// Save information from this ping packet in the CG1Neighbour object
 	m_tLastInPing   = dwNow;                // Record that we last got a ping packet from this remote computer right now
 	m_nLastPingHops = pPacket->m_nHops + 1; // Save the hop count from the packet, making it one more (do)
@@ -537,8 +542,7 @@ BOOL CG1Neighbour::OnPing(CG1Packet* pPacket)
 			pPong->WriteLongLE( nMyFiles );
 			pPong->WriteLongLE( (DWORD)nMyVolume );
 
-			if ( bSCP || bDNA ) pGGEP.Write( pPong ); // write GGEP stuff
-
+			if ( !pGGEP.IsEmpty() ) pGGEP.Write( pPong ); // write GGEP stuff
 			// Send the pong packet to the remote computer we are currently looping on
 			Send( pPong );
 			Statistics.Current.Gnutella1.PongsSent++;
@@ -571,7 +575,7 @@ BOOL CG1Neighbour::OnPing(CG1Packet* pPacket)
 		pPong->WriteLongLE( nMyFiles );
 		pPong->WriteLongLE( (DWORD)nMyVolume );
 
-		if ( bSCP || bDNA ) pGGEP.Write( pPong ); // write GGEP stuff
+		if ( !pGGEP.IsEmpty() ) pGGEP.Write( pPong ); // write GGEP stuff
 
 		// Send the pong packet to the remote computer we are currently looping on
 		Send( pPong );
@@ -683,7 +687,7 @@ BOOL CG1Neighbour::OnPong(CG1Packet* pPacket)
 {
 	Statistics.Current.Gnutella1.PongsReceived++;
 	// If the pong is too short, or the pong is too long and settings say we should watch that
-	if ( pPacket->m_nLength < 14 || ( pPacket->m_nLength > 14 && Settings.Gnutella1.StrictPackets ) )
+	if ( pPacket->m_nLength < 14 || ( pPacket->m_nLength > 14 && Settings.Gnutella1.StrictPackets && !Settings.Gnutella1.EnableGGEP && !m_bGGEP ) )
 	{
 		// Pong packets should be 14 bytes long, drop this strangely sized one
 		theApp.Message( MSG_ERROR, IDS_PROTOCOL_SIZE_PONG, (LPCTSTR)m_sAddress );
@@ -708,7 +712,7 @@ BOOL CG1Neighbour::OnPong(CG1Packet* pPacket)
 	}
 
 	// If the pong is bigger than 14 bytes, and the remote compuer told us in the handshake it supports GGEP blocks
-	if ( pPacket->m_nLength > 14 && m_bGGEP )
+	if ( pPacket->m_nLength > 14 && m_bGGEP && Settings.Gnutella1.EnableGGEP )
 	{
 		CGGEPBlock pGGEP;
 		// There is a GGEP block here, and checking and adjusting the TTL and hops counts worked
@@ -828,14 +832,17 @@ BOOL CG1Neighbour::OnPong(CG1Packet* pPacket)
 // Called by CNeighboursWithG1::OnG1Pong (do)
 // Takes a pointer to a CPongItem object (do)
 // If the pong is needed, sends it to the remote computer (do)
-void CG1Neighbour::OnNewPong(CPongItem* pPong)
-{
+void CG1Neighbour::OnNewPong(CPongItem* pPong )	//	cause crash if cache pPong is pointing has been purged before
+{												//	this function finish.
+	Hashes::Guid tempGUID;		// Create GUID storage for temporary use
+	tempGUID = m_pLastPingID;	// Copy GUID of Object (this) to prevent loss of the ID before the Process finish
+
 	// If we need a pong with the number of hops that this one has (do)
 	if ( m_nPongNeeded[ pPong->m_nHops ] > 0 )
 	{
 		// Have the CPongItem object make a packet, and send it to the remote computer
-		Send( pPong->ToPacket( m_nLastPingHops, m_pLastPingID ) );
-		Statistics.Current.Gnutella1.PongsSent++;
+//		Send( pPong->ToPacket( m_nLastPingHops, tempGUID ) );
+//		Statistics.Current.Gnutella1.PongsSent++;
 
 		// Record one less pong with that many hops is needed (do)
 		m_nPongNeeded[ pPong->m_nHops ]--;
@@ -902,7 +909,7 @@ BOOL CG1Neighbour::OnVendor(CG1Packet* pPacket)
 	}
 
 	// Read the vendor, function, and version numbers from the packet payload
-	DWORD nVendor  = pPacket->ReadLongLE();  // 4 bytes, vendor code in ASCII characters, like "RAZA" (do)
+	DWORD nVendor  = pPacket->ReadLongBE();  // 4 bytes, vendor code in ASCII characters, like "RAZA" (do)
 	WORD nFunction = pPacket->ReadShortLE(); // 2 bytes, function (do)
 	WORD nVersion  = pPacket->ReadShortLE(); // 2 bytes, version (do)
 
@@ -922,16 +929,16 @@ BOOL CG1Neighbour::OnVendor(CG1Packet* pPacket)
 			pReply->WriteLongLE( 0 );
 			pReply->WriteShortLE( 0xFFFE );
 			pReply->WriteShortLE( 1 );
-			pReply->WriteLongLE( 'AZAR' );
-			pReply->WriteLongLE( 'RAEB' );
+			pReply->WriteLongBE( 'RAZA' );
+			pReply->WriteLongBE( 'BEAR' );
 			Send( pReply ); // Send the reply packet to the remote computer
 
 		} // Vendor is the ASCII text "RAZA" for Shareaza
-		else if ( nVendor == 'AZAR' ) // It's backwards because of network byte order
+		else if ( nVendor == 'RAZA' ) // It's backwards because of network byte order
 		{
 			// Function code query for "RAZA" (do)
 			CG1Packet* pReply = CG1Packet::New( pPacket->m_nType, 1, pPacket->m_oGUID ); // Create a reply packet
-			pReply->WriteLongLE( 'AZAR' );
+			pReply->WriteLongBE( 'RAZA' );
 			pReply->WriteShortLE( 0xFFFE );
 			pReply->WriteShortLE( 1 );
 			pReply->WriteShortLE( 0x0001 );
@@ -943,11 +950,11 @@ BOOL CG1Neighbour::OnVendor(CG1Packet* pPacket)
 			Send( pReply ); // Send the reply packet to the remote computer
 
 		} // Vendor is the ASCII text "BEAR" for BearShare
-		else if ( nVendor == 'RAEB' ) // It's backwards because of network byte order
+		else if ( nVendor == 'BEAR' ) // It's backwards because of network byte order
 		{
 			// Function code query for "BEAR"
 			CG1Packet* pReply = CG1Packet::New( pPacket->m_nType, 1, pPacket->m_oGUID ); // Create a reply packet
-			pReply->WriteLongLE( 'RAEB' );
+			pReply->WriteLongBE( 'BEAR' );
 			pReply->WriteShortLE( 0xFFFE );
 			pReply->WriteShortLE( 1 );
 			pReply->WriteShortLE( 0x0004 );
@@ -960,7 +967,7 @@ BOOL CG1Neighbour::OnVendor(CG1Packet* pPacket)
 		}
 
 	} // The vendor is "RAZA" Shareaza, and the function isn't 0xFFFF
-	else if ( nVendor == 'AZAR' )
+	else if ( nVendor == 'RAZA' )
 	{
 		// Switch on what the function is
 		switch ( nFunction )
@@ -974,7 +981,7 @@ BOOL CG1Neighbour::OnVendor(CG1Packet* pPacket)
 			{
 				// Send a response packet (do)
 				CG1Packet* pReply = CG1Packet::New( pPacket->m_nType, 1, pPacket->m_oGUID );
-				pReply->WriteLongLE( 'AZAR' );
+				pReply->WriteLongBE( 'RAZA' );
 				pReply->WriteShortLE( 0x0002 );
 				pReply->WriteShortLE( 1 );
 				pReply->WriteShortLE( theApp.m_nVersion[0] );
@@ -1016,7 +1023,7 @@ BOOL CG1Neighbour::OnVendor(CG1Packet* pPacket)
 		}
 
 	} // The vendor is "BEAR" for BearShare
-	else if ( nVendor == 'RAEB' )
+	else if ( nVendor == 'BEAR' )
 	{
 		// Sort by the function number to see what the vendor specific packet from BearShare wants
 		switch ( nFunction )
@@ -1060,7 +1067,7 @@ BOOL CG1Neighbour::OnVendor(CG1Packet* pPacket)
 			{
 				// Send a response packet (do)
 				CG1Packet* pReply = CG1Packet::New( pPacket->m_nType, 1, pPacket->m_oGUID );
-				pReply->WriteLongLE( 'RAEB' );
+				pReply->WriteLongBE( 'BEAR' );
 				pReply->WriteShortLE( 0x000C );
 				pReply->WriteShortLE( 1 );
 				pReply->WriteShortLE( SearchManager.OnQueryStatusRequest( pPacket->m_oGUID ) );
@@ -1074,6 +1081,18 @@ BOOL CG1Neighbour::OnVendor(CG1Packet* pPacket)
 
 			break;
 		}
+	}
+	else if ( nVendor == 'LIME' )
+	{
+		//TODO
+	}
+	else if ( nVendor == 'GTKG' )
+	{
+		//TODO
+	}
+	else if ( nVendor == 'GNUC' )
+	{
+		//TODO
 	}
 
 	// Always return true to stay connected to the remote computer
@@ -1109,7 +1128,7 @@ void CG1Neighbour::SendClusterAdvisor()
 			{
 				// Make a new vendor specific packet
 				pPacket = CG1Packet::New( G1_PACKET_VENDOR, 1 );
-				pPacket->WriteLongLE( 'AZAR' );  // The vendor code is "RAZA" because we are running Shareaza
+				pPacket->WriteLongBE( 'RAZA' );  // The vendor code is "RAZA" because we are running Shareaza
 				pPacket->WriteShortLE( 0x0003 ); // 3 is the code for a cluster advisor packet
 				pPacket->WriteShortLE( 1 );      // Version number is 1
 				pPacket->WriteShortLE( 0 );      // (do)

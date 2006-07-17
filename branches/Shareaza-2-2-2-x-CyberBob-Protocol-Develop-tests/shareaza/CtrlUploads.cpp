@@ -119,7 +119,7 @@ int CUploadsCtrl::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	
 	InsertColumn( UPLOAD_COLUMN_TITLE, _T("Uploaded File"), LVCFMT_LEFT, 210 );
 	InsertColumn( UPLOAD_COLUMN_USER, _T("Remote User"), LVCFMT_LEFT, 100 );
-	InsertColumn( UPLOAD_COLUMN_SIZE, _T("Size"), LVCFMT_CENTER, 80 );
+	InsertColumn( UPLOAD_COLUMN_SIZE, _T("Size"), LVCFMT_RIGHT, 80 );
 	InsertColumn( UPLOAD_COLUMN_PROGRESS, _T("Progress"), LVCFMT_CENTER, 130 );
 	InsertColumn( UPLOAD_COLUMN_SPEED, _T("Speed"), LVCFMT_CENTER, 80 );
 	InsertColumn( UPLOAD_COLUMN_CLIENT, _T("Client"), LVCFMT_CENTER, 100 );

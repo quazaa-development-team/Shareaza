@@ -36,7 +36,7 @@ class CRouteCache;
 class CQueryKeys;
 class CQuerySearch;
 class CQueryHit;
-
+class CDownloadSource;
 
 class CNetwork
 {
@@ -62,6 +62,9 @@ public:
 protected:
 	HANDLE			m_hThread;
 	DWORD			m_nSequence;
+	DWORD			m_tLastFirewallTest;
+	CList<sockaddr_in> m_FWTestQueue;
+
 	struct ResolveStruct
 	{
 		CString* m_sAddress;
@@ -86,6 +89,7 @@ public:
 	DWORD		GetStableTime() const;
 	BOOL		IsConnectedTo(IN_ADDR* pAddress);
 	BOOL		ReadyToTransfer(DWORD tNow) const;		// Are we ready to start downloading?
+	BOOL		IsFirewalled();
 public:
 	BOOL		Connect(BOOL bAutoConnect = FALSE);
 	void		Disconnect();
@@ -97,17 +101,20 @@ public:
 	WORD		RandomPort() const;
 	void		CreateID(Hashes::Guid& oID);
 	BOOL		IsFirewalledAddress(LPVOID pAddress, BOOL bIncludeSelf = FALSE);
+	void		TestRemoteFirewall(DWORD nAddress, WORD nPort);
 public:
 	BOOL		GetNodeRoute(const Hashes::Guid& oGUID, CNeighbour** ppNeighbour, SOCKADDR_IN* pEndpoint);
 	BOOL		RoutePacket(CG2Packet* pPacket);
 	BOOL		SendPush(const Hashes::Guid& oGUID, DWORD nIndex = 0);
+	BOOL		SendPush( CDownloadSource * pSource );
 	BOOL		RouteHits(CQueryHit* pHits, CPacket* pPacket);
 	void		OnWinsock(WPARAM wParam, LPARAM lParam);
-	void		OnQuerySearch(CQuerySearch* pSearch);
+	void		OnQuerySearch(CQuerySearch* pSearch, BOOL bOUT = FALSE );
 	void		OnQueryHits(CQueryHit* pHits);
 protected:
 	static UINT	ThreadStart(LPVOID pParam);
 	void		OnRun();
+	BOOL		CanTestFirewall();
 
 	friend class CHandshakes;
 	friend class CNeighbours;

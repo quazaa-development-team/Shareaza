@@ -93,6 +93,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.General.DiskSpaceStop, 1, 0, 1000 , _T(" M") );
 	AddSetting( &Settings.General.HashIntegrity, 1, 0, 1 );
 	AddSetting( &Settings.General.MinTransfersRest, 1, 1, 100, _T(" ms") );
+	AddSetting( &Settings.General.ShowFilesizeInByte, 1, 0, 1 );
 
 	AddSetting( &Settings.Community.ChatFilterED2K, 1, 0, 1 );
 	
@@ -212,6 +213,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Discovery.FailureLimit, 1, 1, 512 );
 	AddSetting( &Settings.Discovery.UpdatePeriod, 60, 1, 60 * 24, _T(" m") );
 	AddSetting( &Settings.Discovery.DefaultUpdate, 60, 1, 60 * 24, _T(" m") );
+	AddSetting( &Settings.Discovery.DisableService, 1, 0, 1 );
 	AddSetting( &Settings.Discovery.BootstrapCount, 1, 0, 20 );
 	AddSetting( &Settings.Discovery.CacheCount, 1, 1, 256 );
 	
@@ -242,6 +244,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Downloads.RequestURLENC, 1, 0, 1 );
 	AddSetting( &Settings.Downloads.SaveInterval, 1000, 1, 120, _T(" s") );
 	AddSetting( &Settings.Downloads.FlushSD, 1, 0, 1 );
+	AddSetting( &Settings.Downloads.SavePushSource, 1, 0, 1 );
 	AddSetting( &Settings.Downloads.ShowPercent, 1, 0, 1 );
 	AddSetting( &Settings.Downloads.AutoClear, 1, 0, 1 );
 	AddSetting( &Settings.Downloads.ClearDelay, 1000, 1, 1800, _T(" s") );

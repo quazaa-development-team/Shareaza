@@ -126,6 +126,9 @@ int CHostCacheWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndList.InsertColumn( 5, _T("Description"), LVCFMT_LEFT, 130, 4 );
 	m_wndList.InsertColumn( 6, _T("CurUsers"), LVCFMT_CENTER, 60, 5 );
 	m_wndList.InsertColumn( 7, _T("MaxUsers"), LVCFMT_CENTER, 60, 6 );
+//	m_wndList.InsertColumn( 8, _T("Key"), LVCFMT_RIGHT, 60, 7 );
+//	m_wndList.InsertColumn( 9, _T("Query"), LVCFMT_RIGHT, 60, 8 );
+//	m_wndList.InsertColumn( 10, _T("Ack"), LVCFMT_RIGHT, 60, 9 );
 
 	m_wndList.SetFont( &theApp.m_gdiFont );
 
@@ -191,18 +194,13 @@ void CHostCacheWnd::Update(BOOL bForce)
 		pItem->Set( 0, CString( inet_ntoa( pHost->m_pAddress ) ) );
 		pItem->Format( 1, _T("%hu"), pHost->m_nPort );
 		
-#ifdef _DEBUG
-		pItem->Format( 2, _T("K:%u A:%u Q:%u"),
-			pHost->m_nKeyValue, pHost->m_tAck, pHost->m_tQuery );
-#else
 		if ( pHost->m_pVendor )
 			pItem->Set( 2, pHost->m_pVendor->m_sName );
 		else if ( pHost->m_nProtocol == PROTOCOL_G2 )
 			pItem->Set( 2, _T("(Gnutella2)") );
 		else if ( pHost->m_nProtocol == PROTOCOL_ED2K )
 			pItem->Set( 2, _T("(eDonkey Server)") );
-#endif
-		
+
 		CTime pTime( (time_t)pHost->m_tSeen );
 		pItem->Set( 3, pTime.Format( _T("%Y-%m-%d %H:%M:%S") ) );
 		
@@ -211,6 +209,11 @@ void CHostCacheWnd::Update(BOOL bForce)
 		
 		if ( pHost->m_nUserCount ) pItem->Format( 6, _T("%u"), pHost->m_nUserCount );
 		if ( pHost->m_nUserLimit ) pItem->Format( 7, _T("%u"), pHost->m_nUserLimit );
+
+//		if ( pHost->m_nKeyValue ) pItem->Format( 8, _T("%u"), pHost->m_nKeyValue);
+//		if ( pHost->m_tQuery ) pItem->Format( 9, _T("%u"), pHost->m_tQuery );
+//		if ( pHost->m_tAck ) pItem->Format( 10, _T("%u"), pHost->m_tAck);
+
 	}
 	
 	if ( !m_bAllowUpdates && !bForce ) return;

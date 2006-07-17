@@ -43,7 +43,7 @@
 #include "WndBrowseHost.h"
 #include "DlgDownload.h"
 #include "DlgDownloadReviews.h"
-#include "DlgDownloadEdit.h"
+#include "DlgDownloadEditSheet.h"
 #include "DlgSettingsManager.h"
 #include "DlgDeleteFile.h"
 #include "DlgFilePropertiesSheet.h"
@@ -529,7 +529,7 @@ void CDownloadsWnd::Prepare()
 				m_bSelStartedAndNotMoving = TRUE;
 			if ( bFirstShare )
 			{
-				m_bSelShareState = pDownload->IsShared();
+				m_bSelShareState = pDownload->IsShared( TRUE );
 				bFirstShare = FALSE;
 			}
 			else if ( m_bSelShareState != pDownload->IsShared() )
@@ -609,7 +609,7 @@ void CDownloadsWnd::OnDownloadsPause()
 		
 		if ( pDownload->m_bSelected )
 		{
-			if ( ! pDownload->IsPaused() && ! pDownload->IsMoving() ) pDownload->Pause();
+			if ( ! pDownload->IsPaused() && ! pDownload->IsMoving() ) pDownload->Pause( TRUE );
 		}
 	}
 	
@@ -1126,12 +1126,12 @@ void CDownloadsWnd::OnDownloadsCopy()
 void CDownloadsWnd::OnUpdateDownloadsShare(CCmdUI* pCmdUI) 
 {
 #ifndef _DEBUG
-	if ( Settings.eDonkey.EnableToday )
-	{
-		pCmdUI->Enable( FALSE );
-		pCmdUI->SetCheck( TRUE );
-		return;
-	}
+//	if ( Settings.eDonkey.EnableToday )
+//	{
+//		pCmdUI->Enable( FALSE );
+//		pCmdUI->SetCheck( TRUE );
+//		return;
+//	}
 #endif
 	
 	Prepare();
@@ -1149,7 +1149,7 @@ void CDownloadsWnd::OnDownloadsShare()
 		
 		if ( pDownload->m_bSelected )
 		{
-			pDownload->Share( ! pDownload->IsShared() );
+			pDownload->Share( ! pDownload->IsShared( TRUE ) );
 		}
 	}
 	
@@ -1240,7 +1240,7 @@ void CDownloadsWnd::OnDownloadsEdit()
 		
 		if ( pDownload->m_bSelected && ! pDownload->IsMoving() )
 		{
-			CDownloadEditDlg dlg( pDownload );
+			CDownloadEditSheet dlg( pDownload );
 			pLock.Unlock();
 			dlg.DoModal();
 			break;
@@ -1332,6 +1332,7 @@ void CDownloadsWnd::OnTransfersDisconnect()
 			
 			if ( pSource->m_bSelected && pSource->m_pTransfer != NULL )
 			{
+				pSource->m_bReConnect = FALSE;
 				pSource->m_pTransfer->Close( TS_TRUE );
 			}
 			

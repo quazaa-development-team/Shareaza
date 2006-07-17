@@ -137,11 +137,11 @@ HBITMAP	CreateMirroredBitmap(HBITMAP hbmOrig);
 
 typedef enum
 {
-	sNone,
-	sRegular,
-	sKanji,
-	sHiragana,
-	sKatakana
+	sNone = 0,
+	sRegular = 1,
+	sKanji = 2,
+	sHiragana = 4,
+	sKatakana = 8
 } ScriptType;
 
 inline bool IsCharacter(TCHAR nChar)
@@ -280,5 +280,5 @@ inline bool IsWord(LPCTSTR pszString, size_t nStart, size_t nLength)
 // 2 Character BT peer-id code
 // SZ = Raza, AZ = Azerus, etc
 #define BT_ID1				'S'
-#define BT_ID2				'~'
+#define BT_ID2				'Z'
 

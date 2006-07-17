@@ -214,7 +214,7 @@ int CNeighboursWithRouting::RouteQuery(CQuerySearch* pSearch, CPacket* pPacket, 
 	if ( bHubLoop )
 	{
 		// (do)
-		if ( pSearch->m_bUDP == FALSE && Datagrams.IsStable() )
+		if ( pSearch->m_bUDP == FALSE && Datagrams.IsStable() && !Network.IsFirewalled()  )
 		{
 			pG2 = pG2->Clone();
 			if ( pG2Q2 != pPacket ) pG2Q2->Release();

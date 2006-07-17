@@ -68,6 +68,10 @@ public:
 		dlPathNull, dlPathComplete, dlPathIncomplete
 	};
 
+protected:
+	BOOL			m_bGlobalSearchLock;
+	DWORD			m_tLastGlobalSearch;
+
 // Operations
 public:
 	CDownload*	Add();
@@ -92,9 +96,13 @@ public:
 	BOOL		Reorder(CDownload* pDownload, CDownload* pBefore);
 	BOOL		Swap(CDownload* p1, CDownload* p2);
 	CDownload*	FindByURN(LPCTSTR pszURN, BOOL bSharedOnly = FALSE) const;
+	CDownload*	FindByHash(const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, const Hashes::Ed2kHash& oED2K,
+							const Hashes::Md5Hash& oMD5, const Hashes::BtHash& oBTH, BOOL bSharedOnly) const;
+	CDownload*	FindByBitprint(const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, BOOL bSharedOnly = FALSE) const;
     CDownload*	FindBySHA1(const Hashes::Sha1Hash& oSHA1, BOOL bSharedOnly = FALSE) const;
     CDownload*	FindByTiger(const Hashes::TigerHash& oTiger, BOOL bSharedOnly = FALSE) const;
-    CDownload*	FindByED2K(const Hashes::Ed2kHash& oED2K, BOOL bSharedOnly = FALSE) const;
+	CDownload*	FindByED2K(const Hashes::Ed2kHash& oED2K, BOOL bSharedOnly = FALSE) const;
+	CDownload*	FindByMD5(const Hashes::Md5Hash& oMD5, BOOL bSharedOnly = FALSE) const;
     CDownload*	FindByBTH(const Hashes::BtHash& oBTH, BOOL bSharedOnly = FALSE) const;
 	CDownload*	FindBySID(DWORD nSerID) const;
 	DWORD		GetFreeSID();
@@ -104,7 +112,7 @@ public:
 	void		Load();
 	void		Save(BOOL bForce = TRUE);
 	void		OnRun();
-	BOOL		OnPush(const Hashes::Guid& oGUID, CConnection* pConnection);
+	BOOL		OnPush(const Hashes::Guid& oGUID, CConnection* pConnection, DWORD nFileIndex = 0);
 	BOOL		OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept = NULL);
 	void		OnQueryHits(CQueryHit* pHits);
 	void		OnVerify(LPCTSTR pszPath, BOOL bVerified);

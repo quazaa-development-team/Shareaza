@@ -39,6 +39,7 @@ public:
 	int			m_nCookie;
 public:
 	CString		m_sDisplayName;				// The name of the file (Displayed in windows, etc). May have 'unsafe' characters
+	CString		m_sSearchKeyword;			// Search keyword to override G1 keyword search.
 	CString		m_sSafeName;				// The name, with invalid characters removed. (A meaningful local disk name)
 	CString		m_sDiskName;				// The name and path of the incomplete file on disk (the .partial). 
 											// The .sd will be the same as above with ".sd" on the end
@@ -59,7 +60,7 @@ public:
 protected:
 	virtual BOOL	IsCompleted() const = 0;
 	virtual BOOL	IsMoving() const = 0;
-	virtual BOOL	IsPaused() const = 0;
+	virtual BOOL	IsPaused( BOOL bRealState = FALSE ) const = 0;
 	virtual BOOL	IsTrying() const = 0;
 	void			GenerateDiskName();
 	virtual void	Serialize(CArchive& ar, int nVersion);

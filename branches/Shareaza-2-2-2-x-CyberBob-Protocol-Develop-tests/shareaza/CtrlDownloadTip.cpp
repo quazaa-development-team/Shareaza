@@ -160,6 +160,11 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownload* pDownload)
 		AddSize( pDC, m_sTiger );
 		m_sz.cy += TIP_TEXTHEIGHT;
 	}
+	if ( m_sMD5.GetLength() )
+	{
+		AddSize( pDC, m_sMD5 );
+		m_sz.cy += TIP_TEXTHEIGHT;
+	}
 
 	m_sz.cy += TIP_RULE;
 	AddSize( pDC, m_sSize, 80 );
@@ -252,6 +257,11 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownload* pDownload)
 	if ( !m_sED2K.IsEmpty() )
 	{
 		DrawText( pDC, &pt, m_sED2K );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+	if ( !m_sMD5.IsEmpty() )
+	{
+		DrawText( pDC, &pt, m_sMD5 );
 		pt.y += TIP_TEXTHEIGHT;
 	}
 	if ( !m_sBTH.IsEmpty() )
@@ -503,6 +513,7 @@ void CDownloadTipCtrl::PrepareFileInfo(CDownload* pDownload)
 	m_sSHA1.Empty();
 	m_sTiger.Empty();
 	m_sED2K.Empty();
+	m_sMD5.Empty();
 	m_sBTH.Empty();
 	m_sURL.Empty();
 	
@@ -514,7 +525,7 @@ void CDownloadTipCtrl::PrepareFileInfo(CDownload* pDownload)
 		LoadString( strUntrusted, IDS_TIP_UNTRUSTED );
 
 		m_sSHA1 = pDownload->m_oSHA1.toShortUrn();
-		if ( m_sSHA1.GetLength() && Settings.General.Debug )
+		if ( m_sSHA1.GetLength() )
 		{
 			if ( ! pDownload->m_oSHA1.isTrusted() )
 			{
@@ -523,7 +534,7 @@ void CDownloadTipCtrl::PrepareFileInfo(CDownload* pDownload)
 		}
 
 		m_sTiger = pDownload->m_oTiger.toShortUrn();
-		if ( m_sTiger.GetLength() && Settings.General.Debug )
+		if ( m_sTiger.GetLength() )
 		{
 			if ( ! pDownload->m_pTigerBlock )
 			{
@@ -543,7 +554,7 @@ void CDownloadTipCtrl::PrepareFileInfo(CDownload* pDownload)
 		}
 
 		m_sED2K = pDownload->m_oED2K.toShortUrn();
-		if ( m_sED2K.GetLength() && Settings.General.Debug )
+		if ( m_sED2K.GetLength() )
 		{
 			if ( ! pDownload->m_pHashsetBlock )
 			{
@@ -562,8 +573,28 @@ void CDownloadTipCtrl::PrepareFileInfo(CDownload* pDownload)
 			}
 		}
 
+		m_sMD5 = pDownload->m_oMD5.toShortUrn();
+		if ( m_sMD5.GetLength() )
+		{
+			if ( ! pDownload->m_pHashsetBlock )
+			{
+				if ( pDownload->m_oMD5.isTrusted() )
+				{
+					m_sMD5 += _T(" (") + strNoHashset + _T(")");
+				}
+				else
+				{
+					m_sMD5 += _T(" (") + strNoHashset + _T(", ") + strUntrusted + _T(")");
+				}
+			}
+			else if ( ! pDownload->m_oMD5.isTrusted() )
+			{
+				m_sMD5 += _T(" (") + strUntrusted + _T(")");
+			}
+		}
+
 		m_sBTH = pDownload->m_oBTH.toShortUrn();
-		if ( m_sBTH.GetLength() && Settings.General.Debug )
+		if ( m_sBTH.GetLength() )
 		{
 			if ( ! pDownload->m_pTorrentBlock )
 			{

@@ -29,14 +29,22 @@
 #pragma once
 
 #include "FileFragments.hpp"
+#include "Network.h"
+#include "Download.h"
+#include "Downloads.h"
 
 class CDownload;
+class CDownloads;
 class CDownloadTransfer;
 class CQueryHit;
 class CEDClient;
 
 class CDownloadSource
 {
+// typedef
+public:
+	typedef std::list<SOCKADDR_IN> HubList;
+	typedef std::list<SOCKADDR_IN>::iterator HubIndex;
 // Construction
 public:
 	CDownloadSource(CDownload* pDownload);
@@ -70,6 +78,7 @@ public:
 	BOOL				m_bSHA1;
 	BOOL				m_bTiger;
 	BOOL				m_bED2K;
+	BOOL				m_bMD5;
 public:
 	CString				m_sServer;
 	CString				m_sNick;
@@ -88,15 +97,18 @@ public:
 	int					m_nRedirectionCount;
 	Fragments::List		m_oAvailable;
 	Fragments::List		m_oPastFragments;
+	BOOL				m_bReConnect;			// Reconnect Flag for HTTP close connection
+	HubList				m_pPushProxyList;		// Local PUSH Proxy List Storage for RouteCache backup (G1)
+	HubList				m_pHubList;				// Local PUSH HubList Storage for RouteCache backup (G2)
+	int					m_nPushAttempted;		// number of times PushRequest has been t
 
 // Operations
 public:
 	BOOL		ResolveURL();
 	void		Serialize(CArchive& ar, int nVersion);
 public:
-	inline BOOL	CanInitiate(BOOL bNetwork, BOOL bEstablished) const;
 	void		Remove(BOOL bCloseTransfer, BOOL bBan);
-	void		OnFailure(BOOL bNondestructive);
+	void		OnFailure(BOOL bNondestructive, DWORD nRetryAfter = 0);
 	void		OnResume();
 	void		OnResumeClosed();
 public:
@@ -105,7 +117,8 @@ public:
 	void		SetGnutella(int nGnutella);
     BOOL		CheckHash(const Hashes::Sha1Hash& oSHA1);
     BOOL		CheckHash(const Hashes::TigerHash& oTiger);
-    BOOL		CheckHash(const Hashes::Ed2kHash& oED2K);
+	BOOL		CheckHash(const Hashes::Ed2kHash& oED2K);
+	BOOL		CheckHash(const Hashes::Md5Hash& oMD5);
 public:
 	BOOL		PushRequest();
 	BOOL		CheckPush(const Hashes::Guid& oClientID);
@@ -143,6 +156,71 @@ public:
 
 		return TRUE;
 	}
+
+	inline BOOL	CanInitiate(BOOL bNetwork, BOOL bEstablished) const
+	{
+		if ( Settings.Connection.RequireForTransfers )
+		{
+			switch ( m_nProtocol )
+			{
+			case PROTOCOL_G1:
+				if ( ! Settings.Gnutella1.EnableToday ) return FALSE;
+				break;
+			case PROTOCOL_G2:
+				if ( ! Settings.Gnutella2.EnableToday ) return FALSE;
+				break;
+			case PROTOCOL_ED2K:
+				if ( ! Settings.eDonkey.EnableToday ) return FALSE;
+				if ( ! bNetwork ) return FALSE;
+				break;
+			case PROTOCOL_HTTP:
+				if ( m_nGnutella == 2 )
+				{
+					if ( ! Settings.Gnutella2.EnableToday ) return FALSE;
+				}
+				else if ( m_nGnutella == 1 )
+				{
+					if ( ! Settings.Gnutella1.EnableToday ) return FALSE;
+				}
+				else
+				{
+					if ( ! Settings.Gnutella1.EnableToday &&
+						! Settings.Gnutella2.EnableToday ) return FALSE;
+				}
+				break;
+			case PROTOCOL_FTP:
+				if ( ! bNetwork ) return FALSE;
+				break;
+			case PROTOCOL_BT:
+				if ( ! bNetwork ) return FALSE;
+				break;
+			default:
+				theApp.Message( MSG_ERROR, _T("Source with invalid protocol found") );
+				return FALSE;
+			}
+		}
+
+		// Since this Function gets called from Connected Transaction too, need to use Flag bEstablished to determine if the
+		// it is connected or not. if connected, not removing source here so no points to look up the source.
+		// note: have included !Settings.Downloads.NeverDrop in condition but not sure if it is needed, since the state
+		//       Bad Source is not unknown why the source has been marked as bad, but if it has been added because the source
+		//       gave the wrong file(bad chunk, or bad combination of hashes), then it should be dropped in order to reduce damage
+		//       to network. so this should be discussed and the Close() function need more different state such as NoReply(source
+		//       is out of service), BadChunk(gave broken chunk), WrongFileSize|WrongHashes(basically anything indicating it is wrong
+		//       file), Busy(just busy does not mean it should be removed), NoInterested(This should not remove the source either), 
+		//       for indicating reason for marking as bad source.
+		if ( !bEstablished && !Settings.Downloads.NeverDrop && m_pDownload->LookupFailedSource( m_sURL ) != NULL )
+		{
+			m_pDownload->RemoveSource( (CDownloadSource*)this, TRUE );
+			return FALSE;
+		}
+
+		if ( ( Settings.Connection.IgnoreOwnIP ) && ( m_pAddress.S_un.S_addr == Network.m_pHost.sin_addr.S_un.S_addr ) ) 
+			return FALSE;
+
+		return bEstablished || Downloads.AllowMoreTransfers( (IN_ADDR*)&m_pAddress );
+	}
+
 
 };
 

@@ -35,17 +35,18 @@ public:
 
 // Attributes
 public:
-	DWORD			m_nRunCookie;
+	DWORD					m_nRunCookie;
 public:
 	CList< CString >		m_pSourcesSent;
-	CArray< CString >	m_pHeaderName;
-	CArray< CString >	m_pHeaderValue;
+	CArray< CString >		m_pHeaderName;
+	CArray< CString >		m_pHeaderValue;
 
 // Operations
 public:
 	virtual BOOL	ConnectTo(IN_ADDR* pAddress, WORD nPort);
 	virtual void	AttachTo(CConnection* pConnection);
 	virtual void	Close();
+	virtual BOOL	StrToSockaddr( LPCTSTR pszHost, SOCKADDR_IN & pHost );
 protected:
 	void			ClearHeaders();
 	virtual BOOL	OnHeaderLine(CString& strHeader, CString& strValue);

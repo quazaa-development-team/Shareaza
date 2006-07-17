@@ -2936,52 +2936,73 @@ BEGIN
                     11
 END
 
-IDD_DOWNLOAD_EDIT DIALOGEX 0, 0, 274, 294
-STYLE DS_SETFONT | DS_MODALFRAME | DS_3DLOOK | WS_POPUP | WS_CAPTION | 
-    WS_SYSMENU
-CAPTION "Edit Download"
-FONT 8, "Tahoma", 0, 0, 0x1
+IDD_DOWNLOADEDITPAGE_GENERAL DIALOGEX 0, 0, 273, 191
+STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Property Page"
+FONT 8, "Tahoma", 400, 0, 0x0
 BEGIN
+    LTEXT           "",IDC_STATIC,53,45,90,8
+    GROUPBOX        "Filename and Si&ze:",IDC_STATIC,8,49,258,50,WS_GROUP
+    LTEXT           "Filename:",IDC_STATIC,16,63,59,10
+    EDITTEXT        IDC_NAME,75,61,186,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_DISKNAME,76,147,184,12,ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "Filesize (Byte):",IDC_STATIC,15,80,156,11
+    EDITTEXT        IDC_FILESIZE,171,79,89,12,ES_RIGHT | ES_AUTOHSCROLL
+    PUSHBUTTON      "Apply",IDC_DOWNLOADEDITPAGE_GENERAL_APPLY,207,166,59,12
     LTEXT           "WARNING: This dialog provides advanced download editing features for power users which if used incorrectly can and probably will cause corruption.",
-                    IDC_STATIC,6,6,258,18
-    GROUPBOX        "Filename and Si&ze:",IDC_STATIC,6,28,258,50,WS_GROUP
-    LTEXT           "Filename:",IDC_STATIC,14,42,50,10
-    EDITTEXT        IDC_NAME,69,40,186,12,ES_AUTOHSCROLL
-    EDITTEXT        IDC_DISKNAME,14,58,110,12,ES_AUTOHSCROLL | ES_READONLY
-    RTEXT           "Filesize (Byte):",IDC_STATIC,128,59,60,11
-    EDITTEXT        IDC_FILESIZE,191,58,64,12,ES_RIGHT | ES_AUTOHSCROLL
-    GROUPBOX        "&URNs:",IDC_STATIC,6,80,258,74,WS_GROUP
-    LTEXT           "Trusted",IDC_STATIC,236,87,26,11
-    LTEXT           "SHA1:",IDC_STATIC,14,96,36,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_URN_SHA1,56,96,180,12,ES_AUTOHSCROLL
-    CONTROL         "",IDC_TRUST_SHA1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    245,98,16,8
-    LTEXT           "Tiger-Root:",IDC_STATIC,14,114,36,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_URN_TIGER,56,114,180,12,ES_AUTOHSCROLL
-    CONTROL         "",IDC_TRUST_TIGER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    245,116,16,8
-    LTEXT           "ED2K:",IDC_STATIC,14,132,36,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_URN_ED2K,56,132,180,12,ES_AUTOHSCROLL
-    CONTROL         "",IDC_TRUST_ED2K,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    245,135,16,8
-    GROUPBOX        "&Actions:",IDC_STATIC,6,156,258,61,WS_GROUP
+                    IDC_STATIC,8,11,258,32
+    LTEXT           "DiskName:",IDC_STATIC,14,149,59,9
+    EDITTEXT        IDC_SEARCHKEYWORD,76,120,184,12,ES_AUTOHSCROLL
+    LTEXT           "SearchKeyword:",IDC_STATIC,14,122,59,9
+END
+
+IDD_DOWNLOADEDITPAGE_HASHES DIALOGEX 0, 0, 273, 191
+STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Property Page"
+FONT 8, "Tahoma", 400, 0, 0x0
+BEGIN
+    GROUPBOX        "&URNs:",IDC_STATIC,8,49,258,106,WS_GROUP
+    LTEXT           "Trusted Flags:",IDC_STATIC,14,123,62,11
+    LTEXT           "SHA1:",IDC_STATIC,14,65,36,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_URN_SHA1,56,65,201,12,ES_AUTOHSCROLL
+    CONTROL         "SHA1",IDC_TRUST_SHA1,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,81,124,41,8
+    LTEXT           "Tiger-Root:",IDC_STATIC,14,83,36,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_URN_TIGER,56,83,201,12,ES_AUTOHSCROLL
+    CONTROL         "Tiger-Root",IDC_TRUST_TIGER,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,134,124,48,8
+    LTEXT           "ED2K:",IDC_STATIC,14,101,36,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_URN_ED2K,56,101,201,12,ES_AUTOHSCROLL
+    CONTROL         "ED2K",IDC_TRUST_ED2K,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,192,124,54,8
+    LTEXT           "WARNING: This dialog provides advanced download editing features for power users which if used incorrectly can and probably will cause corruption.",
+                    IDC_STATIC,8,11,258,33
+    PUSHBUTTON      "Apply",IDC_DOWNLOADEDITPAGE_HASHES_APPLY,207,166,59,12
+END
+
+IDD_DOWNLOADEDITPAGE_ACTIONS DIALOGEX 0, 0, 273, 191
+STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Property Page"
+FONT 8, "Tahoma", 400, 0, 0x0
+BEGIN
+    GROUPBOX        "&Actions:",IDC_STATIC,8,49,258,78,WS_GROUP
     LTEXT           "Forget current verification status and reverify",
-                    IDC_FORGET_VERIFY,14,167,236,8
+                    IDC_FORGET_VERIFY,14,75,236,8
     LTEXT           "Assume file is 100% complete and reverify",
-                    IDC_COMPLETE_AND_VERIFY,14,179,236,8
-    LTEXT           "Forget all known sources",IDC_FORGET_SOURCES,14,191,236,
+                    IDC_COMPLETE_AND_VERIFY,14,87,236,8
+    LTEXT           "Forget all known sources",IDC_FORGET_SOURCES,14,99,236,
                     8
     LTEXT           "Merge with local file and verify",IDC_MERGE_AND_VERIFY,
-                    14,203,236,8
-    GROUPBOX        "Data &Eraser:",IDC_STATIC,6,221,258,38,WS_GROUP
-    LTEXT           "Byte range:",IDC_STATIC,14,236,48,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_ERASE_FROM,59,236,65,12,ES_AUTOHSCROLL
-    CTEXT           "to",IDC_STATIC,128,236,12,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_ERASE_TO,141,236,65,12,ES_AUTOHSCROLL
-    PUSHBUTTON      "Erase",IDC_ERASE,214,235,40,15
-    PUSHBUTTON      "&Torrent Info...",IDC_TORRENT_INFO,6,266,60,14
-    DEFPUSHBUTTON   "OK",IDOK,160,266,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,214,266,50,14
+                    14,111,236,8
+    GROUPBOX        "Data &Eraser:",IDC_STATIC,8,130,258,38,WS_GROUP
+    LTEXT           "Byte range:",IDC_STATIC,14,145,46,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_ERASE_FROM,59,145,65,12,ES_AUTOHSCROLL
+    CTEXT           "to",IDC_STATIC,128,145,12,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_ERASE_TO,141,145,65,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "Erase",IDC_ERASE,214,144,40,15
+    LTEXT           "WARNING: This dialog provides advanced download editing features for power users which if used incorrectly can and probably will cause corruption.",
+                    IDC_STATIC,8,11,258,32
+    LTEXT           "Purge Hashset",IDC_PURGE_HASHSET,14,63,236,8
 END
 
 IDD_SETTINGS_REMOTE DIALOGEX 0, 0, 282, 220
@@ -3842,12 +3863,28 @@ BEGIN
         BOTTOMMARGIN, 122
     END
 
-    IDD_DOWNLOAD_EDIT, DIALOG
+    IDD_DOWNLOADEDITPAGE_GENERAL, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 267
+        RIGHTMARGIN, 266
         TOPMARGIN, 7
-        BOTTOMMARGIN, 280
+        BOTTOMMARGIN, 184
+    END
+
+    IDD_DOWNLOADEDITPAGE_HASHES, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 266
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 184
+    END
+
+    IDD_DOWNLOADEDITPAGE_ACTIONS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 266
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 184
     END
 
     IDD_SETTINGS_REMOTE, DIALOG
@@ -5956,6 +5993,11 @@ BEGIN
     ID_WINDOW_CASCADE       "Expand all open windows to fill the screen."
     ID_WINDOW_TILE_HORZ     "Arrange open windows as horizontal, non-overlapping tiles."
     ID_WINDOW_TILE_VERT     "Arrange open windows as vertical, non-overlapping tiles."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_DOWNLOAD_EDIT       "Advanced Edit"
 END
 
 #endif    // English (Australia) resources

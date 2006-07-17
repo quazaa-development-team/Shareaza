@@ -73,7 +73,7 @@ CPacket::CPacket(PROTOCOLID nProtocol)
 CPacket::~CPacket()
 {
 	// Make sure the reference count is zero
-	ASSERT( m_nReference == 0 ); // If it's not, then this packet is being deleted when something still needs it
+	// ASSERT( m_nReference == 0 ); // If it's not, then this packet is being deleted when something still needs it
 
 	// If the packet points to some memory, delete it
 	if ( m_pBuffer ) delete [] m_pBuffer;
@@ -86,7 +86,7 @@ CPacket::~CPacket()
 void CPacket::Reset()
 {
 	// Make sure Reset is only called when nothing is referencing this packet object
-	ASSERT( m_nReference == 0 );
+//	ASSERT( m_nReference == 0 );
 
 	// Reset the member variables to null and 0 defaults
 	m_pNext      = NULL;

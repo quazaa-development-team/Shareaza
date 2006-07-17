@@ -58,6 +58,7 @@ CDownload::CDownload()
 	m_nSaveCookie	= 0;
 	m_nGroupCookie	= 0;
 	
+	m_bTempPaused	= FALSE;
 	m_bPaused		= FALSE;
 	m_bBoosted		= FALSE;
 	m_bShared		= Settings.Uploads.SharePartials;
@@ -90,15 +91,23 @@ CDownload::~CDownload()
 //////////////////////////////////////////////////////////////////////
 // CDownload control : pause
 
-void CDownload::Pause()
+void CDownload::Pause( BOOL bRealPause )
 {
 	if ( m_bComplete || m_bPaused ) return;
-	
-	theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_PAUSED, (LPCTSTR)GetDisplayName() );
-	
-	StopTrying();
 
-	m_bPaused = TRUE;
+	theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_PAUSED, (LPCTSTR)GetDisplayName() );
+	if ( !bRealPause ) 
+	{
+		StopTrying();
+		m_bTempPaused = TRUE;
+		return;
+	}
+	else
+	{
+		StopTrying();
+		m_bTempPaused = TRUE;
+		m_bPaused = TRUE;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -107,7 +116,7 @@ void CDownload::Pause()
 void CDownload::Resume()
 {
 	if ( m_bComplete ) return;
-	if ( ! m_bPaused ) 
+	if ( ! m_bTempPaused ) 
 	{
 		if ( ( m_tBegan == 0 ) && ( GetSourceCount() < Settings.Downloads.MinSources ) ) FindMoreSources();
 		SetStartTimer();
@@ -125,6 +134,7 @@ void CDownload::Resume()
 	}
 	
 	m_bPaused				= FALSE;
+	m_bTempPaused			= FALSE;
 	m_bDiskFull				= FALSE;
 	m_tReceived				= GetTickCount();
 	m_bTorrentTrackerError	= FALSE;
@@ -259,9 +269,9 @@ BOOL CDownload::IsStarted() const
 	return ( GetVolumeComplete() > 0 );
 }
 
-BOOL CDownload::IsPaused() const
+BOOL CDownload::IsPaused( BOOL bRealState ) const
 {
-	return m_bPaused;
+	return ( bRealState ? m_bPaused : m_bTempPaused );
 }
 
 BOOL CDownload::IsDownloading() const
@@ -289,9 +299,16 @@ BOOL CDownload::IsTrying() const
 	return ( m_tBegan != 0 );
 }
 
-BOOL CDownload::IsShared() const
+BOOL CDownload::IsShared(BOOL bSavedState) const
 {
-	return m_bShared || m_oBTH || Settings.eDonkey.EnableToday;
+	if (bSavedState) 
+	{
+		return m_bShared;
+	}
+	else
+	{
+		return m_bShared || m_oBTH || ((!IsPaused()) && Settings.eDonkey.EnableToday);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -302,9 +319,9 @@ void CDownload::OnRun()
 	DWORD tNow = GetTickCount();
 	BOOL bDownloading = FALSE;
 
-	if ( ! m_bPaused )
+	if ( ! m_bTempPaused )
 	{
-		if ( m_bDiskFull  ) Pause();
+		if ( m_bDiskFull  ) Pause( False );
 		else if ( IsTrying() || IsSeeding() )
 		{	//This download is trying to download
 
@@ -592,7 +609,17 @@ BOOL CDownload::Save(BOOL bFlush)
 	
 	if ( m_bComplete ) return TRUE;
 	
-	GenerateDiskName();
+	// GenerateDiskName();   <- this is the Stupid one which is very very dangerous to cause Loss of Download by Over writing
+							// existing SD file by different file.
+							// Example of Situation cause trouble.
+							// having same file, assume file A, and B
+							// A have SHA1 hash of the file got though G1 search result.
+							// B have ED2K hash of the file Got through ED2K search result.
+							//
+							// once B get SHA1 hash from G2 network, it just over write SD file for File A, so the Downloaded Chunk
+							// Info gets messed up, plus leave SD file named same as File B, so it just leave the file which cause
+							// File error all the time, when Shareaza gets exit before the download complete(Complete download might
+							// have missing Chunk anyway... so the downloaded file will be broken most of times.)
 	::DeleteFile( m_sDiskName + _T(".sd.sav") );
 	
 	if ( ! pFile.Open( m_sDiskName + _T(".sd.sav"),
@@ -672,12 +699,46 @@ void CDownload::Serialize(CArchive& ar, int nVersion)
 	{
 		ar >> m_bExpanded;
 		ar >> m_bPaused;
+		m_bTempPaused = m_bPaused;
 		ar >> m_bBoosted;
 		if ( nVersion >= 14 ) ar >> m_bShared;
 		if ( nVersion >= 26 ) ar >> m_nSerID;
 		
 		DownloadGroups.Link( this );
 	}
+
+	if ( ar.IsStoring() )
+	{
+		if ( !m_sSearchKeyword.IsEmpty() )
+			ar << m_sSearchKeyword;
+	}
+	else
+	{
+		if ( ! ar.IsBufferEmpty() )
+		{
+			ar >> m_sSearchKeyword;
+		}
+	}
+/*	//SD Extended Block based on G2Packet Format, not finished.
+	CG2Packet * pG2SDPacket;
+	if ( ar.IsStoring() )
+	{
+		pG2SDPacket = CG2Packet::New( "G2SDL",TRUE );
+		if ( !m_sSearchKeyword.IsEmpty() )
+		ar << m_sSearchKeyword;
+
+		//add other extension here
+
+		//Save the data here
+		CBuffer * pBuffer;
+		pG2SDPacket->ToBuffer(pBuffer);
+		ar.Write(pBuffer->m_pBuffer, pBuffer->m_nLength);
+	}
+	else
+	{
+		
+	}
+*/
 }
 
 void CDownload::SerializeOld(CArchive& ar, int nVersion)

@@ -191,14 +191,23 @@ BOOL CDownloadWithSources::AddSourceHit(CQueryHit* pHit, BOOL bForce)
 			if ( m_oSHA1 != pHit->m_oSHA1 ) return FALSE;
 			bHash = TRUE;
 		}
-        else if ( m_oTiger && pHit->m_oTiger )
+		// should check Tiger as well as others,
+		// this is because there is some stupid hash combination
+		// (even for Shareaza 2.2.0.0 installer file) are exist.
+		// I.E. Same SHA1 but different Tiger.
+		if ( m_oTiger && pHit->m_oTiger )
 		{
 			if ( m_oTiger != pHit->m_oTiger ) return FALSE;
 			bHash = TRUE;
 		}
-        if ( m_oED2K && pHit->m_oED2K )
+		if ( m_oED2K && pHit->m_oED2K )
 		{
 			if ( m_oED2K != pHit->m_oED2K ) return FALSE;
+			bHash = TRUE;
+		}
+		if ( m_oMD5 && pHit->m_oMD5 )
+		{
+			if ( m_oMD5 != pHit->m_oMD5 ) return FALSE;
 			bHash = TRUE;
 		}
 		if ( m_oBTH && pHit->m_oBTH )
@@ -227,9 +236,13 @@ BOOL CDownloadWithSources::AddSourceHit(CQueryHit* pHit, BOOL bForce)
 	{
 		m_oTiger = pHit->m_oTiger;
 	}
-    if ( !m_oED2K && pHit->m_oED2K )
+	if ( !m_oED2K && pHit->m_oED2K )
 	{
 		m_oED2K = pHit->m_oED2K;
+	}
+	if ( !m_oMD5 && pHit->m_oMD5 )
+	{
+		m_oMD5 = pHit->m_oMD5;
 	}
 	
 	if ( m_nSize == SIZE_UNKNOWN && pHit->m_bSize )
@@ -240,7 +253,7 @@ BOOL CDownloadWithSources::AddSourceHit(CQueryHit* pHit, BOOL bForce)
 	{
 		return FALSE;
 	}
-
+	
 	if ( m_sDisplayName.IsEmpty() && pHit->m_sName.GetLength() )
 	{
 		m_sDisplayName = pHit->m_sName;
@@ -507,6 +520,11 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 			delete pSource;
 			return FALSE;
 		}
+		if ( pSource->m_bPushOnly )
+		{
+			delete pSource;
+			return FALSE;
+		}
 	}
 	
 	bool bG2Exists = false;
@@ -523,7 +541,10 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 			if ( pExisting->Equals( pSource ) ) // IPs and ports are equal
 			{	
 				if ( !bExistingIsRaza )
-					bExistingIsRaza = ( _tcsncmp( pExisting->m_sServer, _T("Shareaza"), 8 ) == 0 );
+					bExistingIsRaza = ( _tcsncmp( pExisting->m_sServer, _T("Shareaza"), 8 ) == 0 || 
+										_tcsncmp( pExisting->m_sServer, _T("SBeta"), 5 ) == 0 ||
+										_tcsncmp( pExisting->m_sServer, _T("RAZA"), 4 ) == 0 ||
+										_tcsncmp( pExisting->m_sServer, _T("RAZB"), 4 ) == 0 );
 
 				if ( !bG2Exists )
 					bG2Exists = ( pExisting->m_nProtocol == PROTOCOL_HTTP );
@@ -533,7 +554,12 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 					pCopy = bG2Exists ? NULL : pExisting;
 				
 				if ( pExisting->m_nProtocol == pSource->m_nProtocol )
+				{
+					pExisting->m_pHubList = pSource->m_pHubList;
+					pExisting->m_pPushProxyList = pSource->m_pPushProxyList;
+					pExisting->m_oGUID = pSource->m_oGUID;
 					bDeleteSource = true;
+				}
 
 				if ( pExisting->m_pTransfer != NULL ) // We already downloading
 				{
@@ -657,7 +683,7 @@ CString CDownloadWithSources::GetSourceURLs(CList< CString >* pState, int nMaxim
 	{
 		if ( pSource != pExcept && pSource->m_bPushOnly == FALSE &&
 			 pSource->m_nFailures == 0 && pSource->m_bReadContent &&
-			 ( pSource->m_bSHA1 || pSource->m_bED2K ) &&
+			 ( pSource->m_bSHA1 || pSource->m_bED2K || nProtocol == PROTOCOL_HTTP ) &&
 			 ( pState == NULL || pState->Find( pSource->m_sURL ) == NULL ) )
 		{
 			if ( pState != NULL ) pState->AddTail( pSource->m_sURL );
@@ -1051,13 +1077,32 @@ void CDownloadWithSources::Serialize(CArchive& ar, int nVersion)
 	
 	if ( ar.IsStoring() )
 	{
-		ar.WriteCount( GetSourceCount() );
-		
-		for ( CDownloadSource* pSource = GetFirstSource() ; pSource ; pSource = pSource->m_pNext )
+		// custom option
+		// normally saving PUSH source is just a waste, because they are always different.
+		// i.e. if your and sources  G1 neighbour or sources G2 Hubs are different it does not work.
+		// plus somehow, if you have the source in the list and you find the same source by search, somehow it does not update
+		// routecache and you can not start download (not even send PUSH request packet)
+		// since that it is not really useful to save PUSH sources.
+		if ( Settings.Downloads.SavePushSource )
 		{
-			pSource->Serialize( ar, nVersion );
-		}
+			ar.WriteCount( GetSourceCount() );
 		
+			for ( CDownloadSource* pSource = GetFirstSource() ; pSource ; pSource = pSource->m_pNext )
+			{
+				pSource->Serialize( ar, nVersion );
+			}
+		}
+		else
+		{
+			ar.WriteCount( GetSourceCount( TRUE ) );
+		
+			for ( CDownloadSource* pSource = GetFirstSource() ; pSource ; pSource = pSource->m_pNext )
+			{
+				if ( !pSource->m_bPushOnly )
+					pSource->Serialize( ar, nVersion );
+			}
+		}
+
 		ar.WriteCount( m_pXML != NULL ? 1 : 0 );
 		if ( m_pXML ) m_pXML->Serialize( ar );
 	}

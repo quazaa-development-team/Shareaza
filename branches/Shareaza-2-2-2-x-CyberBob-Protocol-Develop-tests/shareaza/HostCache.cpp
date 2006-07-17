@@ -1,9 +1,9 @@
 //
 // HostCache.cpp
 //
-//	Date:			"$Date: 2006/04/04 23:36:57 $"
-//	Revision:		"$Revision: 1.19 $"
-//  Last change by:	"$Author: rolandas $"
+//	Date:			"$Date: 2005/11/17 21:34:55 $"
+//	Revision:		"$Revision: 1.18 $"
+//  Last change by:	"$Author: thetruecamper $"
 //
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
@@ -977,7 +977,7 @@ CNeighbour* CHostCacheHost::ConnectTo(BOOL bAutomatic)
 
 //////////////////////////////////////////////////////////////////////
 // CHostCacheHost packet conversion
-/*
+
 CG1Packet* CHostCacheHost::ToG1Ping(int nTTL, const Hashes::Guid& oGUID)
 {
 	CG1Packet* pPong = CG1Packet::New( G1_PACKET_PONG, nTTL, oGUID );
@@ -989,7 +989,6 @@ CG1Packet* CHostCacheHost::ToG1Ping(int nTTL, const Hashes::Guid& oGUID)
 	
 	return pPong;
 }
-*/
 
 //////////////////////////////////////////////////////////////////////
 // CHostCacheHost string

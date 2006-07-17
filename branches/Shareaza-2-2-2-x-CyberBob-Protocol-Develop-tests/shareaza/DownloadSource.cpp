@@ -37,7 +37,6 @@
 
 #include "Neighbours.h"
 #include "QueryHit.h"
-#include "Network.h"
 #include "VendorCache.h"
 #include "EDClients.h"
 #include "EDClient.h"
@@ -59,6 +58,9 @@ CDownloadSource::CDownloadSource(CDownload* pDownload)
 : m_oAvailable( pDownload->m_nSize ), m_oPastFragments( pDownload->m_nSize )
 {
 	Construct( pDownload );
+	m_bCloseConn	= FALSE;
+	m_bReConnect	= FALSE;			// No Initial Reconnect setting
+	m_nPushAttempted	= 0;
 }
 
 void CDownloadSource::Construct(CDownload* pDownload)
@@ -97,6 +99,9 @@ void CDownloadSource::Construct(CDownload* pDownload)
 	SYSTEMTIME pTime;
 	GetSystemTime( &pTime );
 	SystemTimeToFileTime( &pTime, &m_tLastSeen );
+
+	m_bReConnect		= FALSE;			// No Initial Reconnect setting
+	m_nPushAttempted	= 0;
 }
 
 CDownloadSource::~CDownloadSource()
@@ -125,6 +130,9 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, CQueryHit* pHit)
 	m_bSHA1		= bool( pHit->m_oSHA1 );
 	m_bTiger	= bool( pHit->m_oTiger );
 	m_bED2K		= bool( pHit->m_oED2K );
+	m_bMD5		= bool( pHit->m_oMD5 );
+	m_pHubList	= pHit->m_pHubList;
+	m_pPushProxyList	= pHit->m_pPushProxyList;
 	
 	if ( pHit->m_nProtocol == PROTOCOL_G1 || pHit->m_nProtocol == PROTOCOL_G2 )
 	{
@@ -141,6 +149,9 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, CQueryHit* pHit)
 	}
 	
 	ResolveURL();
+	m_bCloseConn	= FALSE;
+	m_bReConnect	= FALSE;			// No Initial Reconnect setting
+	m_nPushAttempted	= 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -171,6 +182,10 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, DWORD nClientID, WORD nCl
 	m_sServer	= _T("eDonkey2000");
 	
 	ResolveURL();
+
+	m_bCloseConn	= FALSE;
+	m_bReConnect	= FALSE;			// No Initial Reconnect setting
+	m_nPushAttempted	= 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -199,6 +214,10 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, const Hashes::BtGuid& oGU
 	m_sServer	= _T("BitTorrent");
 	
 	ResolveURL();
+
+	m_bCloseConn	= FALSE;
+	m_bReConnect	= FALSE;			// No Initial Reconnect setting
+	m_nPushAttempted	= 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -225,6 +244,10 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, LPCTSTR pszURL, BOOL /*bS
 	}
 
 	m_nRedirectionCount = nRedirectionCount;
+
+	m_bCloseConn	= FALSE;
+	m_bReConnect	= FALSE;			// No Initial Reconnect setting
+	m_nPushAttempted	= 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -420,7 +443,7 @@ void CDownloadSource::Remove(BOOL bCloseTransfer, BOOL bBan)
 //////////////////////////////////////////////////////////////////////
 // CDownloadSource failure handler
 
-void CDownloadSource::OnFailure(BOOL bNondestructive)
+void CDownloadSource::OnFailure(BOOL bNondestructive, DWORD nRetryAfter)
 {
 	if ( m_pTransfer != NULL )
 	{
@@ -430,37 +453,52 @@ void CDownloadSource::OnFailure(BOOL bNondestructive)
 	}
 	
 	DWORD nDelay = Settings.Downloads.RetryDelay * ( 1u << m_nFailures );
-	
-	if ( m_nFailures < 20 )
+
+	if ( nRetryAfter != 0 )
 	{
-		if ( nDelay > 3600000 ) nDelay = 3600000;
+		nDelay = nRetryAfter * 1000;
 	}
 	else
 	{
-		if ( nDelay > 86400000 ) nDelay = 86400000;
+		if ( TRUE || m_nFailures < 20 )
+		{
+			if ( nDelay > 3600000 ) nDelay = 3600000;
+		}
+		else  // I think it is nasty to set 1 Day delay
+		{
+			if ( nDelay > 86400000 ) nDelay = 86400000; 
+		}
 	}
 	
 	nDelay += GetTickCount();
 	
-	int nMaxFailures = ( m_bReadContent ? 40 : 3 );
-	if ( nMaxFailures < 20 && m_pDownload->GetSourceCount() > 20 ) nMaxFailures = 0;
-	
-	m_pDownload->SetModified();
-	
-	if ( bNondestructive || ( ++m_nFailures < nMaxFailures ) )
+	if ( bNondestructive && m_bCloseConn && m_bReConnect )
 	{
-		m_tAttempt = max( m_tAttempt, nDelay );
+		m_tAttempt = nDelay;
+		m_pDownload->SetModified();
 	}
 	else
 	{
-		if ( Settings.Downloads.NeverDrop )
+		int nMaxFailures = ( m_bReadContent ? 40 : 3 );
+		if ( nMaxFailures < 20 && m_pDownload->GetSourceCount() > 20 ) nMaxFailures = 0;
+
+		m_pDownload->SetModified();
+
+		if ( bNondestructive || ( ++m_nFailures < nMaxFailures ) )
 		{
-			m_tAttempt = nDelay;
+			m_tAttempt = max( m_tAttempt, nDelay );
 		}
 		else
 		{
-			// Add to the bad sources list (X-NAlt)
-			m_pDownload->RemoveSource( this, TRUE );
+			if ( Settings.Downloads.NeverDrop )
+			{
+				m_tAttempt = nDelay;
+			}
+			else
+			{
+				// Add to the bad sources list (X-NAlt)
+				m_pDownload->RemoveSource( this, TRUE );
+			}
 		}
 	}
 }
@@ -556,20 +594,39 @@ BOOL CDownloadSource::CheckHash(const Hashes::TigerHash& oTiger)
 
 BOOL CDownloadSource::CheckHash(const Hashes::Ed2kHash& oED2K)
 {
-    if ( m_pDownload->m_oED2K && ! m_bHashAuth )
+	if ( m_pDownload->m_oED2K && ! m_bHashAuth )
 	{
 		if ( validAndUnequal( m_pDownload->m_oED2K, oED2K ) ) return FALSE;
 	}
 	else
 	{
 		if ( m_pDownload->m_pTorrent.IsAvailable() ) return TRUE;
-		
+
 		m_pDownload->m_oED2K = oED2K;
 	}
-	
+
 	m_bED2K = TRUE;
 	m_pDownload->SetModified();
-	
+
+	return TRUE;
+}
+
+BOOL CDownloadSource::CheckHash(const Hashes::Md5Hash& oMD5)
+{
+	if ( m_pDownload->m_oMD5 && ! m_bHashAuth )
+	{
+		if ( validAndUnequal( m_pDownload->m_oMD5, oMD5 ) ) return FALSE;
+	}
+	else
+	{
+		if ( m_pDownload->m_pTorrent.IsAvailable() ) return TRUE;
+
+		m_pDownload->m_oMD5 = oMD5;
+	}
+
+	m_bED2K = TRUE;
+	m_pDownload->SetModified();
+
 	return TRUE;
 }
 
@@ -593,6 +650,7 @@ BOOL CDownloadSource::PushRequest()
 		if ( pClient != NULL && pClient->m_bConnected )
 		{
 			pClient->SeekNewDownload();
+			m_nPushAttempted++;
 			return TRUE;
 		}
 		
@@ -600,6 +658,7 @@ BOOL CDownloadSource::PushRequest()
 		{
 			theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_PUSH_SENT, (LPCTSTR)m_pDownload->m_sDisplayName );
 			m_tAttempt = GetTickCount() + Settings.Downloads.PushTimeout;
+			m_nPushAttempted++;
 			return TRUE;
 		}
 	}
@@ -607,12 +666,23 @@ BOOL CDownloadSource::PushRequest()
 	{
 		if ( ! m_oGUID ) return FALSE;
 		
+		BOOL bPushSucceed = FALSE;
+		if ( !m_pHubList.empty() || !m_pPushProxyList.empty() )
+		{
+			bPushSucceed = Network.SendPush( this );
+			if (bPushSucceed) m_nPushAttempted++;
+		}
+
 		if ( Network.SendPush( m_oGUID, m_nIndex ) )
 		{
 			theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_PUSH_SENT, (LPCTSTR)m_pDownload->m_sDisplayName );
 			m_tAttempt = GetTickCount() + Settings.Downloads.PushTimeout;
-			return TRUE;
+			bPushSucceed = TRUE;
+			m_nPushAttempted = 0; // Reset the Attempt count if the GUID is still in CRouteCache
 		}
+
+		if ( bPushSucceed ) m_tAttempt = GetTickCount() + Settings.Downloads.PushTimeout;
+		return bPushSucceed;
 	}
 	
 	return FALSE;

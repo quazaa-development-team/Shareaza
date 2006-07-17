@@ -84,7 +84,7 @@ CDownloadTransfer::~CDownloadTransfer()
 // TS_UNKNOWN - keeps the source and will be dropped after several retries, will be
 //            - added to m_pFailedSources when removed
 
-void CDownloadTransfer::Close(TRISTATE bKeepSource)
+void CDownloadTransfer::Close(TRISTATE bKeepSource, DWORD nRetryAfter)
 {
 	SetState( dtsNull );
 
@@ -95,13 +95,13 @@ void CDownloadTransfer::Close(TRISTATE bKeepSource)
 		switch ( bKeepSource )
 		{
 		case TS_TRUE:
-			if ( m_pSource->m_bCloseConn && m_pSource->m_nGnutella )
+			if ( m_pSource->m_bReConnect && m_pSource->m_nGnutella )
 			{
 				m_pSource->OnResumeClosed();
 			}
 			else
 			{
-				m_pSource->OnFailure( TRUE );
+				m_pSource->OnFailure( TRUE, nRetryAfter );
 			}
 			break;
 		case TS_UNKNOWN:

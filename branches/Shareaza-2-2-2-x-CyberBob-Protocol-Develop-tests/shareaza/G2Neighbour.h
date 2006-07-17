@@ -44,6 +44,20 @@ public:
 	BOOL				m_bCachedKeys;
 	CRouteCache*		m_pGUIDCache;
 	CHubHorizonGroup*	m_pHubGroup;
+	LONG				m_nPingsSent;
+	DWORD				m_tRTT;
+	BOOL				m_bBusy;
+	DWORD				m_tLastPongIn;
+	BOOL				m_bHubAble; //add G2/1.1
+	BOOL				m_bFirewall; //add G2/1.1
+	BOOL				m_bRouter; //add G2/1.1
+	DWORD				m_nCPU; //add G2/1.1
+	DWORD				m_nMEM; //add G2/1.1
+	DWORD				m_nBandwidthIn; //add G2/1.1
+	DWORD				m_nBandwidthOut; //add G2/1.1
+	DWORD				m_nUptime; //add G2/1.1
+	float				m_nLatitude; //add G2/1.1
+	float				m_nLongitude; //add G2/1.1
 protected:
 	LONG				m_tAdjust;
 	DWORD				m_tLastPingIn;
@@ -51,6 +65,7 @@ protected:
 	DWORD				m_tWaitLNI;
 	DWORD				m_tLastKHL;
 	DWORD				m_tLastHAW;
+	DWORD				m_tBusyTime;
 protected:
 	CList< CG2Packet* >	m_pOutbound;
 
@@ -58,6 +73,8 @@ protected:
 	int					m_nQueryLimiter;				// Counter for query limiting
 	DWORD				m_tQueryTimer;					// Timer for query limiting
 	BOOL				m_bBlacklisted;					// Has this client been over-querying.
+	BOOL				m_bSFLCheckFW;					// Supported Feature List contained FireWallCheck (TFW).
+	BOOL				m_bFWCheckSent;					// FireWall check (TFW) has been sent.
 
 // Operations
 public:
@@ -72,6 +89,7 @@ protected:
 	BOOL	ProcessPackets();
 	BOOL	OnPacket(CG2Packet* pPacket);
 	BOOL	OnPing(CG2Packet* pPacket);
+	BOOL	OnPong(CG2Packet* pPacket);
 	void	SendLNI();
 	BOOL	OnLNI(CG2Packet* pPacket);
 	void	SendKHL();
@@ -85,6 +103,10 @@ protected:
 	BOOL	OnPush(CG2Packet* pPacket);
 	BOOL	OnProfileChallenge(CG2Packet* pPacket);
 	BOOL	OnProfileDelivery(CG2Packet* pPacket);
+	BOOL	OnModeChangeReq(CG2Packet* pPacket); //add
+	BOOL	OnModeChangeAck(CG2Packet* pPacket); //add
+	BOOL	OnPrivateMessage(CG2Packet* pPacket); //add
+	BOOL	OnClose(CG2Packet* pPacket); //add
 
 };
 

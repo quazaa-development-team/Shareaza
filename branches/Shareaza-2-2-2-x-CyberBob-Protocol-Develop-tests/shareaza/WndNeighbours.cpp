@@ -233,6 +233,9 @@ void CNeighboursWnd::Update()
 				
 				switch ( pNeighbour->m_nNodeType )
 				{
+				case ntUnknown:
+					str = _T("Unknown");
+					break;
 				case ntNode:
 					LoadString ( str,IDS_NEIGHBOUR_G1PEER );
 					break;
@@ -241,6 +244,9 @@ void CNeighboursWnd::Update()
 					break;
 				case ntLeaf:
 					LoadString ( str,IDS_NEIGHBOUR_G1LEAF );
+					break;
+				case ntSpecial:
+					str = _T("Special");
 					break;
 				}
 				
@@ -253,6 +259,9 @@ void CNeighboursWnd::Update()
 				
 				switch ( pNeighbour->m_nNodeType )
 				{
+				case ntUnknown:
+					str = _T("Unknown");
+					break;
 				case ntNode:
 					LoadString ( str,IDS_NEIGHBOUR_G2PEER );
 					break;
@@ -261,6 +270,9 @@ void CNeighboursWnd::Update()
 					break;
 				case ntLeaf:
 					LoadString ( str,IDS_NEIGHBOUR_G2LEAF );
+					break;
+				case ntSpecial:
+					str = _T("Special");
 					break;
 				}
 				pItem->Set( 8, str );

@@ -59,10 +59,12 @@ typedef enum NeighbourStateEnum
 typedef enum NeighbourNodeEnum
 {
 	// The remote computer can be a leaf, or an ultrapeer or hub, and so can we
-	ntNode, // We are both Gnutella ultrapeers or Gnutella2 hubs
-	ntHub,  // We are a leaf, and this connection is to a Gnutella ultrapeer or Gnutella2 hub above us
-	ntLeaf  // We are a Gnutella ultrapeer or Gnutella2 hub, and this connection is to a leaf below us
-
+	ntUnknown = 0,		// We are both unknown node if G1Ultrapeers/G2hubs or Leaves
+	ntNode = 1,			// We are both Gnutella ultrapeers or Gnutella2 hubs
+	ntHub = 2,			// We are a leaf, and this connection is to a Gnutella ultrapeer or Gnutella2 hub above us
+	ntLeaf = 3,			// We are a Gnutella ultrapeer or Gnutella2 hub, and this connection is to a leaf below us
+	ntSpecial = 4		// Todo, future reserve for speciall connection such as FileTransfer/Query mix transaction 
+						// over Gnutella1/2 network type connection to reduce waste on Idle HTTP Transfer connection ( CyberBob )
 } NrsNode;
 
 // Make the m_nPongNeeded buffer an array of 32 bytes

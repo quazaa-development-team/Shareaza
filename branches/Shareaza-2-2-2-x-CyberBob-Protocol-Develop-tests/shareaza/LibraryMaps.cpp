@@ -57,10 +57,12 @@ CLibraryMaps::CLibraryMaps()
 	m_pSHA1Map		= new CLibraryFile*[HASH_SIZE];
 	m_pTigerMap		= new CLibraryFile*[HASH_SIZE];
 	m_pED2KMap		= new CLibraryFile*[HASH_SIZE];
+	m_pMD5Map		= new CLibraryFile*[HASH_SIZE];
 	
 	ZeroMemory( m_pSHA1Map, HASH_SIZE * sizeof( CLibraryFile* ) );
 	ZeroMemory( m_pTigerMap, HASH_SIZE * sizeof( CLibraryFile* ) );
 	ZeroMemory( m_pED2KMap, HASH_SIZE * sizeof( CLibraryFile* ) );
+	ZeroMemory( m_pMD5Map, HASH_SIZE * sizeof( CLibraryFile* ) );
 	
 	m_nNextIndex	= 4;
 	m_nFiles		= 0;
@@ -72,6 +74,7 @@ CLibraryMaps::~CLibraryMaps()
 	delete [] m_pED2KMap;
 	delete [] m_pTigerMap;
 	delete [] m_pSHA1Map;
+	delete [] m_pMD5Map;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -158,7 +161,13 @@ CLibraryFile* CLibraryMaps::LookupFileByURN(LPCTSTR pszURN, BOOL bSharedOnly, BO
     Hashes::TigerHash oTiger;
     Hashes::Sha1Hash oSHA1;
     Hashes::Ed2kHash oED2K;
+	Hashes::Md5Hash oMD5;
 	
+	if ( oSHA1.fromUrn( pszURN ) && oTiger.fromUrn( pszURN ) )
+	{
+		if ( ( pFile = LookupFileByBitprint( oSHA1, oTiger, bSharedOnly ) ) != NULL ) return pFile;
+	}
+
 	if ( oSHA1.fromUrn( pszURN ) )
 	{
 		if ( ( pFile = LookupFileBySHA1( oSHA1, bSharedOnly ) ) != NULL ) return pFile;
@@ -173,12 +182,39 @@ CLibraryFile* CLibraryMaps::LookupFileByURN(LPCTSTR pszURN, BOOL bSharedOnly, BO
 	{
 		if ( ( pFile = LookupFileByED2K( oED2K, bSharedOnly ) ) != NULL ) return pFile;
 	}
+
+	if ( oMD5.fromUrn( pszURN ) )
+	{
+		if ( ( pFile = LookupFileByMD5( oMD5, bSharedOnly ) ) != NULL ) return pFile;
+	}
 	
 	return NULL;
 }
 
 //////////////////////////////////////////////////////////////////////
 // CLibraryMaps lookup file by individual hash types
+
+CLibraryFile* CLibraryMaps::LookupFileByBitprint(const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, BOOL bSharedOnly, BOOL bAvailableOnly)
+{
+	if ( !oTiger || !oSHA1 ) return NULL;
+
+	CQuickLock oLock( Library.m_pSection );
+
+	CLibraryFile* pFile = m_pTigerMap[ oTiger[ 0 ] & HASH_MASK ];
+
+	for ( ; pFile ; pFile = pFile->m_pNextTiger )
+	{
+		if ( validAndEqual( oSHA1, pFile->m_oSHA1 ) && validAndEqual( oTiger, pFile->m_oTiger ) )
+		{
+			if ( ( ! bSharedOnly || pFile->IsShared() ) && ( ! bAvailableOnly || pFile->IsAvailable() ) )
+			{
+				return pFile;
+			}
+		}
+	}
+
+	return NULL;
+}
 
 CLibraryFile* CLibraryMaps::LookupFileBySHA1(const Hashes::Sha1Hash& oSHA1, BOOL bSharedOnly, BOOL bAvailableOnly)
 {
@@ -198,7 +234,11 @@ CLibraryFile* CLibraryMaps::LookupFileBySHA1(const Hashes::Sha1Hash& oSHA1, BOOL
 			}
 			else
 			{
-				return NULL;
+				// This can cause some problem if there are some Duplicate files in library
+				// in any reason, and if one of them has been set to not-share.
+				// because if the first one this code find is set to not-share,
+				// even if you have same exactly same file set to share, this code will not return true result.
+				// return NULL;
 			}
 		}
 	}
@@ -224,7 +264,8 @@ CLibraryFile* CLibraryMaps::LookupFileByTiger(const Hashes::TigerHash& oTiger, B
 			}
 			else
 			{
-				return NULL;
+				// same reason as above
+				// return NULL;
 			}
 		}
 	}
@@ -234,12 +275,12 @@ CLibraryFile* CLibraryMaps::LookupFileByTiger(const Hashes::TigerHash& oTiger, B
 
 CLibraryFile* CLibraryMaps::LookupFileByED2K(const Hashes::Ed2kHash& oED2K, BOOL bSharedOnly, BOOL bAvailableOnly)
 {
-    if ( !oED2K ) return NULL;
+	if ( !oED2K ) return NULL;
 
 	CQuickLock oLock( Library.m_pSection );
-	
+
 	CLibraryFile* pFile = m_pED2KMap[ oED2K[ 0 ] & HASH_MASK ];
-	
+
 	for ( ; pFile ; pFile = pFile->m_pNextED2K )
 	{
 		if ( validAndEqual( oED2K, pFile->m_oED2K ) )
@@ -248,13 +289,39 @@ CLibraryFile* CLibraryMaps::LookupFileByED2K(const Hashes::Ed2kHash& oED2K, BOOL
 			{
 				return pFile;
 			}
-			else
 			{
-				return NULL;
+				// same reason as above
+				// return NULL;
 			}
 		}
 	}
-	
+
+	return NULL;
+}
+
+CLibraryFile* CLibraryMaps::LookupFileByMD5(const Hashes::Md5Hash& oMD5, BOOL bSharedOnly, BOOL bAvailableOnly)
+{
+	if ( !oMD5 ) return NULL;
+
+	CQuickLock oLock( Library.m_pSection );
+
+	CLibraryFile* pFile = m_pMD5Map[ oMD5[ 0 ] & HASH_MASK ];
+
+	for ( ; pFile ; pFile = pFile->m_pNextED2K )
+	{
+		if ( validAndEqual( oMD5, pFile->m_oMD5 ) )
+		{
+			if ( ( ! bSharedOnly || pFile->IsShared() ) && ( ! bAvailableOnly || pFile->IsAvailable() ) )
+			{
+				return pFile;
+			}
+			{
+				// same reason as above
+				// return NULL;
+			}
+		}
+	}
+
 	return NULL;
 }
 
@@ -272,6 +339,7 @@ void CLibraryMaps::Clear()
 	ZeroMemory( m_pSHA1Map, HASH_SIZE * sizeof *m_pSHA1Map );
 	ZeroMemory( m_pTigerMap, HASH_SIZE * sizeof *m_pTigerMap );
 	ZeroMemory( m_pED2KMap, HASH_SIZE * sizeof *m_pED2KMap );
+	ZeroMemory( m_pMD5Map, HASH_SIZE * sizeof *m_pMD5Map );
 	
 	m_nFiles  = 0;
 	m_nVolume = 0;
@@ -352,6 +420,13 @@ void CLibraryMaps::OnFileAdd(CLibraryFile* pFile)
 	{
 		CLibraryFile** pHash = &m_pED2KMap[ pFile->m_oED2K[ 0 ] & HASH_MASK ];
 		pFile->m_pNextED2K = *pHash;
+		*pHash = pFile;
+	}
+
+	if ( pFile->m_oMD5 )
+	{
+		CLibraryFile** pHash = &m_pMD5Map[ pFile->m_oMD5[ 0 ] & HASH_MASK ];
+		pFile->m_pNextMD5 = *pHash;
 		*pHash = pFile;
 	}
 }
@@ -441,6 +516,23 @@ void CLibraryMaps::OnFileRemove(CLibraryFile* pFile)
 		
 		pFile->m_pNextED2K = NULL;
 	}
+
+	if ( pFile->m_oMD5 )
+	{
+		CLibraryFile** pPrev = &m_pMD5Map[ pFile->m_oMD5[ 0 ] & HASH_MASK ];
+
+		for ( CLibraryFile* pOther = *pPrev ; pOther ; pOther = pOther->m_pNextMD5 )
+		{
+			if ( pOther == pFile )
+			{
+				*pPrev = pOther->m_pNextMD5;
+				break;
+			}
+			pPrev = &pOther->m_pNextMD5;
+		}
+
+		pFile->m_pNextMD5 = NULL;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -476,18 +568,27 @@ void CLibraryMaps::CullDeletedFiles(CLibraryFile* pMatch)
 		}
 	}
 	
+	if ( pMatch->m_oMD5 )
+	{
+		if ( ( pFile = LookupFileByMD5( pMatch->m_oMD5 ) ) != NULL )
+		{
+			if ( ! pFile->IsAvailable() ) pFile->Delete();
+		}
+	}
+
 }
 
 //////////////////////////////////////////////////////////////////////
 // CLibraryMaps search
 
-CList< CLibraryFile* >* CLibraryMaps::Search(CQuerySearch* pSearch, int /*nMaximum*/, BOOL bLocal)
+CList< CLibraryFile* >* CLibraryMaps::Search(CQuerySearch* pSearch, int nMaximum, BOOL bLocal)
 {
 	CList< CLibraryFile* >* pHits = NULL;
-	
+	int nHit = 0;
+
 	if ( pSearch == NULL )
 	{
-		for ( POSITION pos = GetFileIterator() ; pos ; )
+		for ( POSITION pos = GetFileIterator() ; pos && ( nMaximum == 0 || nHit <= nMaximum ) ; nHit++ )
 		{
 			CLibraryFile* pFile = GetNextFile( pos );
 			
@@ -501,52 +602,26 @@ CList< CLibraryFile* >* CLibraryMaps::Search(CQuerySearch* pSearch, int /*nMaxim
 			}
 		}
 	}
-	else if ( pSearch->m_oSHA1 )
+	else if ( pSearch->m_oSHA1 || pSearch->m_oTiger || pSearch->m_oED2K || pSearch->m_oMD5 )
 	{
-		if ( CLibraryFile* pFile = LookupFileBySHA1( pSearch->m_oSHA1 ) )
-		{
-			if ( bLocal || pFile->IsShared() )
-			{
-				pHits = new CList< CLibraryFile* >;
-				pHits->AddTail( pFile );
-				
-				if ( ! bLocal )
-				{
-					pFile->m_nHitsToday++;
-					pFile->m_nHitsTotal++;
-				}
-			}
-		}
-	}
-	else if ( pSearch->m_oTiger )
-	{
-		if ( CLibraryFile* pFile = LookupFileByTiger( pSearch->m_oTiger ) )
-		{
-			if ( bLocal || pFile->IsShared() )
-			{
-				pHits = new CList< CLibraryFile* >;
-				pHits->AddTail( pFile );
-				
-				if ( ! bLocal )
-				{
-					pFile->m_nHitsToday++;
-					pFile->m_nHitsTotal++;
-				}
-			}
-		}
-	}
-	else if ( pSearch->m_oED2K )
-	{
-		for ( POSITION pos = GetFileIterator() ; pos ; )
+		for ( POSITION pos = GetFileIterator() ; pos && ( 	nMaximum == 0 || nHit <= nMaximum ) ; nHit++ )
 		{
 			CLibraryFile* pFile = GetNextFile( pos );
 			
-			if ( validAndEqual( pFile->m_oED2K, pSearch->m_oED2K ) )
+			if (!validAndUnequal( pFile->m_oSHA1, pSearch->m_oSHA1 ) && 
+				!validAndUnequal( pFile->m_oTiger, pSearch->m_oTiger ) && 
+				!validAndUnequal( pFile->m_oED2K, pSearch->m_oED2K ) && 
+				!validAndUnequal( pFile->m_oMD5, pSearch->m_oMD5 ) )
 			{
-				if ( bLocal || ( pFile->IsShared() && pFile->m_oSHA1 ) )
+				if ( bLocal || pFile->IsShared() && pFile->m_oSHA1 )
 				{
 					if ( ! pHits ) pHits = new CList< CLibraryFile* >( 64 );
 					pHits->AddTail( pFile );
+					if ( ! bLocal && (pSearch->m_oSHA1 || pSearch->m_oTiger) )
+					{
+						pFile->m_nHitsToday++;
+						pFile->m_nHitsTotal++;
+					}
 				}
 			}
 		}

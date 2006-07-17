@@ -72,7 +72,7 @@ public:
 	void			SizeListAndBar(CWnd* pList, CWnd* pBar);
 public:
 	virtual void	OnSkinChange();
-	virtual void	OnQuerySearch(CQuerySearch* pSearch);
+	virtual void	OnQuerySearch(CQuerySearch* pSearch, BOOL bOUT );
 	virtual BOOL	OnQueryHits(CQueryHit* pHits);
 	virtual BOOL	OnPush(const Hashes::Guid& pClientID, CConnection* pConnection);
 	virtual HRESULT	GetGenericView(IGenericView** ppView);

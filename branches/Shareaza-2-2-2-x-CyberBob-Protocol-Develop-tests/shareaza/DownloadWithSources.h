@@ -106,8 +106,10 @@ protected:
 	BOOL		    AddSourceInternal(CDownloadSource* pSource);
 private:
 	void		    RemoveSource(CDownloadSource* pSource, BOOL bBan);
+protected:
 	void		    SortSource(CDownloadSource* pSource, BOOL bTop);
 	void		    SortSource(CDownloadSource* pSource);
+private:
 	int			    GetSourceColour();
 
 public:

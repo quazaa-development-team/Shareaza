@@ -58,6 +58,7 @@ protected:
 protected:
 	BOOL		m_bTigerTree;
 	BOOL		m_bMetadata;
+	BOOL		m_bHttp11;
 	CString		m_sLocations;
 	CString		m_sRanges;
 

@@ -159,6 +159,23 @@ void CDownloadGroups::CreateDefault()
 	pGroup = Add( _T("BitTorrent") );
 	pGroup->AddFilter( _T("torrent") );
 	pGroup->SetSchema( CSchema::uriROM );
+
+	pGroup = Add( _T("CD/DVD Images") );
+	pGroup->AddFilter( _T(".cue") );
+	pGroup->AddFilter( _T(".bin") );
+	pGroup->AddFilter( _T(".nrg") );
+	pGroup->AddFilter( _T(".ccd") );
+	pGroup->AddFilter( _T(".sub") );
+	pGroup->AddFilter( _T(".mds") );
+	pGroup->AddFilter( _T(".mdf") );
+	pGroup->AddFilter( _T(".iso") );
+	pGroup->AddFilter( _T(".dvd") );
+	pGroup->AddFilter( _T(".cds") );
+	pGroup->AddFilter( _T(".bwt") );
+	pGroup->AddFilter( _T(".cdi") );
+	pGroup->AddFilter( _T(".pdi") );
+	pGroup->AddFilter( _T(".b5t") );
+	pGroup->SetSchema( CSchema::uriROM );
 }
 
 //////////////////////////////////////////////////////////////////////

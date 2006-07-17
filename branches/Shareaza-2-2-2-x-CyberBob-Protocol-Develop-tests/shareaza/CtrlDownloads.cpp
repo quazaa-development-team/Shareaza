@@ -134,12 +134,12 @@ int CDownloadsCtrl::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndTip.Create( this, &Settings.Interface.TipDownloads );
 	
 	InsertColumn( DOWNLOAD_COLUMN_TITLE, _T("Downloaded File"), LVCFMT_LEFT, 210 );
-	InsertColumn( DOWNLOAD_COLUMN_SIZE, _T("Size"), LVCFMT_CENTER, 80 );
+	InsertColumn( DOWNLOAD_COLUMN_SIZE, _T("Size"), LVCFMT_RIGHT, 80 );
 	InsertColumn( DOWNLOAD_COLUMN_PROGRESS, _T("Progress"), LVCFMT_CENTER, 130 );
 	InsertColumn( DOWNLOAD_COLUMN_SPEED, _T("Speed"), LVCFMT_CENTER, 80 );
 	InsertColumn( DOWNLOAD_COLUMN_STATUS, _T("Status"), LVCFMT_CENTER, 80 );
 	InsertColumn( DOWNLOAD_COLUMN_CLIENT, _T("Client"), LVCFMT_CENTER, 80 );
-	InsertColumn( DOWNLOAD_COLUMN_DOWNLOADED, _T("Downloaded"), LVCFMT_CENTER, 0 );
+	InsertColumn( DOWNLOAD_COLUMN_DOWNLOADED, _T("Downloaded"), LVCFMT_RIGHT, 0 );
 	InsertColumn( DOWNLOAD_COLUMN_PERCENTAGE, _T("Complete"), LVCFMT_CENTER, 60 );
 	
 	LoadColumnState();
@@ -989,7 +989,7 @@ void CDownloadsCtrl::PaintDownload(CDC& dc, const CRect& rcRow, CDownload* pDown
 			
 		case DOWNLOAD_COLUMN_SIZE:
 			if ( pDownload->m_nSize < SIZE_UNKNOWN )
-				strText = Settings.SmartVolume( pDownload->m_nSize, FALSE );
+				strText = Settings.ExactVolume( pDownload->m_nSize );
 			else
 				LoadString( strText, IDS_STATUS_UNKNOWN );
 			break;
@@ -1045,7 +1045,7 @@ void CDownloadsCtrl::PaintDownload(CDC& dc, const CRect& rcRow, CDownload* pDown
 				LoadString( strText, IDS_STATUS_NOSOURCES );
 			break;
 		case DOWNLOAD_COLUMN_DOWNLOADED:
-			strText = Settings.SmartVolume( pDownload->GetVolumeComplete(), FALSE );
+			strText = Settings.ExactVolume( pDownload->GetVolumeComplete());
 			break;
 		case DOWNLOAD_COLUMN_PERCENTAGE:
 			if ( ( pDownload->m_nSize < SIZE_UNKNOWN ) && ( pDownload->m_nSize > 0 ) )
@@ -1184,7 +1184,7 @@ void CDownloadsCtrl::PaintSource(CDC& dc, const CRect& rcRow, CDownload* pDownlo
 			
 		case DOWNLOAD_COLUMN_SIZE:
 			if ( pSource->m_pTransfer != NULL )
-				strText = Settings.SmartVolume( pSource->m_pTransfer->m_nDownloaded, FALSE );
+				strText = Settings.ExactVolume( pSource->m_pTransfer->m_nDownloaded);
 			break;
 			
 		case DOWNLOAD_COLUMN_PROGRESS:
@@ -1225,7 +1225,7 @@ void CDownloadsCtrl::PaintSource(CDC& dc, const CRect& rcRow, CDownload* pDownlo
 			break;
 		case DOWNLOAD_COLUMN_DOWNLOADED:
 			if ( pSource->m_pTransfer != NULL )
-				strText = Settings.SmartVolume( pSource->m_pTransfer->m_nDownloaded, FALSE );
+				strText = Settings.ExactVolume( pSource->m_pTransfer->m_nDownloaded);
 			break;
 		case DOWNLOAD_COLUMN_PERCENTAGE:
 			if ( ( pDownload->m_nSize < SIZE_UNKNOWN ) && ( pDownload->m_nSize > 0 ) && ( pSource->m_pTransfer ) )

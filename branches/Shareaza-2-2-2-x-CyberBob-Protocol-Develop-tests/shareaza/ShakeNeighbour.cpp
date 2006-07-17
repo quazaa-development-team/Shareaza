@@ -59,7 +59,7 @@ CShakeNeighbour::CShakeNeighbour() : CNeighbour( PROTOCOL_NULL ) // Call the CNe
 
 	//ToDo: Check this - G1 setting?
 	// Set m_bCanDeflate to true if the checkboxes in Shareaza Settings allow us to send and receive compressed data
-	m_bCanDeflate = Neighbours.IsG2Leaf() ? ( Settings.Gnutella.DeflateHub2Hub || Settings.Gnutella.DeflateLeaf2Hub ) : ( Settings.Gnutella.DeflateHub2Hub || Settings.Gnutella.DeflateHub2Hub );
+	m_bCanDeflate = Neighbours.IsG2Leaf() ? ( Settings.Gnutella.DeflateHub2Hub || Settings.Gnutella.DeflateLeaf2Hub ) : ( Settings.Gnutella.DeflateHub2Hub || Settings.Gnutella.DeflateHub2Leaf );
 
 	// Start out ultrapeer settings as unknown
 	m_bUltraPeerSet    = TS_UNKNOWN; // The remote computer hasn't told us if it's ultra or not yet
@@ -80,8 +80,11 @@ CShakeNeighbour::~CShakeNeighbour()
 // Takes an IP address and port number to connect to, the automatic setting (do), and true if (do)
 // Connects the socket in this object to the remote computer
 // Returns false if the connection could not be made
-BOOL CShakeNeighbour::ConnectTo(IN_ADDR* pAddress, WORD nPort, BOOL bAutomatic, BOOL bNoUltraPeer)
+BOOL CShakeNeighbour::ConnectTo(IN_ADDR* pAddress, WORD nPort, BOOL bAutomatic, BOOL bNoUltraPeer, BOOL bFirewallTest )
 {
+
+	m_bFirewallTest = bFirewallTest;
+
 	// Connect the socket in this object to the given ip address and port number
 	if ( CConnection::ConnectTo( pAddress, nPort ) )
 	{
@@ -93,6 +96,7 @@ BOOL CShakeNeighbour::ConnectTo(IN_ADDR* pAddress, WORD nPort, BOOL bAutomatic, 
 
 		// Report that we are attempting this connection
 		theApp.Message( MSG_DEFAULT, IDS_CONNECTION_ATTEMPTING, (LPCTSTR)m_sAddress, htons( m_pHost.sin_port ) );
+		if (!bFirewallTest) theApp.Message( MSG_DEFAULT, IDS_CONNECTION_ATTEMPTING, (LPCTSTR)m_sAddress, htons( m_pHost.sin_port ) );
 
 	} // ConnectTo reported that the socket could not be made
 	else
@@ -172,17 +176,26 @@ BOOL CShakeNeighbour::OnConnected()
 	// This call does nothing (do)
 	CConnection::OnConnected();
 
-	// Report that this connection was made
-	theApp.Message( MSG_DEFAULT, IDS_CONNECTION_CONNECTED, (LPCTSTR)m_sAddress );
+	if ( m_bFirewallTest )	// If we're testing remote firewall [Brov]
+	{
+		m_pOutput->Print( "CONNECT BACK\r\n\r\n" ); 
+		DelayClose( 0 ); // Wait for data to be sent and then close connection
+		theApp.Message( MSG_SYSTEM, _T("TCP Firewall test passed for %s."), (LPCTSTR)m_sAddress );
+	}
+	else
+	{
+		// Report that this connection was made
+		theApp.Message( MSG_DEFAULT, IDS_CONNECTION_CONNECTED, (LPCTSTR)m_sAddress );
 
-	// We initiated the connection to this computer, send it our first block of handshake headers
-	m_pOutput->Print( "GNUTELLA CONNECT/0.6\r\n" ); // Ask to connect
-	SendPublicHeaders();                            // User agent, ip addresses, Gnutella2 and deflate, advanced Gnutella features
-	SendHostHeaders();                              // Try ultrapeers
-	m_pOutput->Print( "\r\n" );                     // A blank line ends this first block of headers
+		// We initiated the connection to this computer, send it our first block of handshake headers
+		m_pOutput->Print( "GNUTELLA CONNECT/0.6\r\n" ); // Ask to connect
+		SendPublicHeaders();                            // User agent, ip addresses, Gnutella2 and deflate, advanced Gnutella features
+		SendHostHeaders();                              // Try ultrapeers
+		m_pOutput->Print( "\r\n" );                     // A blank line ends this first block of headers
 
-	// We've finished sending a group of headers, and await the response
-	m_nState = nrsHandshake1;
+		// We've finished sending a group of headers, and await the response
+		m_nState = nrsHandshake1;
+	}
 
 	// Send the output buffer to the remote computer
 	OnWrite();
@@ -261,7 +274,13 @@ BOOL CShakeNeighbour::OnRun()
 		{
 			// Tell discovery services that we're giving up on this one, and close the connection
 			DiscoveryServices.OnGnutellaFailed( &m_pHost.sin_addr );
-			Close( IDS_CONNECTION_TIMEOUT_CONNECT );
+			if (!m_bFirewallTest)
+				Close( IDS_CONNECTION_TIMEOUT_CONNECT );
+			else
+			{
+				theApp.Message (MSG_DEBUG, _T("TCP Firewall test failed for %s."), (LPCTSTR)m_sAddress);
+				Close(0);
+			}
 			return FALSE;
 		}
 
@@ -676,7 +695,7 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			m_nState = nrsRejected;
 			// Ban them and ignore anything else in the headers
 			theApp.Message( MSG_ERROR, _T("Banning hostile client %s"), (LPCTSTR)m_sUserAgent );
-			Security.Ban( &m_pHost.sin_addr, banSession, FALSE );
+			Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
 			m_bBadClient = TRUE;
 			return TRUE;
 		}
@@ -825,8 +844,9 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			CString strHost = strValue.Left( nPos );// Copy the text up to the comma into strHost
 			strValue = strValue.Mid( nPos + 1 );    // Clip that text and the comma off the start of strValue
 
-			// Add the host to the Gnutella2 host cache, sending the text "RAZA" along if the remote computer is Shareaza
-			if ( HostCache.Gnutella2.Add( strHost, 0, m_bShareaza ? SHAREAZA_VENDOR_T : NULL ) ) nCount++; // Count it
+			// since there is no clever way to detect the given what Hosts' vender codes are, just add then as NULL
+			// in order to prevent HostCache/KHL pollution done by mis-assumptions.
+			if ( HostCache.Gnutella2.Add( strHost, 0, NULL ) ) nCount++; // Count it
 		}
 		// Tell discovery services the remote computer's IP address, and how many hosts it just told us about
 		DiscoveryServices.OnGnutellaAdded( &m_pHost.sin_addr, nCount );
@@ -853,8 +873,9 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			// The remote computer accepts Gnutella2 packets, is sending them, or is Shareaza
 			if ( m_bG2Accept || m_bG2Send || m_bShareaza )
 			{
-				// Add the host to the Gnutella2 host cache, sending the text "RAZA" along if the remote computer is Shareaza
-				if ( HostCache.Gnutella2.Add( strHost, 0, m_bShareaza ? SHAREAZA_VENDOR_T : NULL ) ) nCount++; // Count it
+				// since there is no clever way to detect the given what Hosts' vender codes are, just add then as NULL
+				// in order to prevent HostCache/KHL pollution done by mis-assumptions.
+				if ( HostCache.Gnutella2.Add( strHost, 0, NULL ) ) nCount++; // Count it
 
 			} 
 			else	// This is a Gnutella connection, not Gnutella2
@@ -1427,6 +1448,8 @@ void CShakeNeighbour::OnHandshakeComplete()
 
 	// This connection is to a leaf below us
 	case ntLeaf:
+	case ntUnknown:
+	case ntSpecial:
 
 		// Point the limits at the settings for connections to leaves below us
 		m_mInput.pLimit  = &Settings.Bandwidth.LeafIn;

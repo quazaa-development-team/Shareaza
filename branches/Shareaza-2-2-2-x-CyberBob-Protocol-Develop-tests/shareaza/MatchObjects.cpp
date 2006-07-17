@@ -42,6 +42,7 @@
 #include "TigerTree.h"
 #include "SHA.h"
 #include "ED2K.h"
+#include "MD5.h"
 
 #include "CtrlMatch.h"
 #include "LiveList.h"
@@ -117,6 +118,7 @@ CMatchList::CMatchList()
 	m_pMapSHA1	= new CMatchFile*[ MAP_SIZE ];
 	m_pMapTiger	= new CMatchFile*[ MAP_SIZE ];
 	m_pMapED2K	= new CMatchFile*[ MAP_SIZE ];
+	m_pMapMD5	= new CMatchFile*[ MAP_SIZE ];
 	m_pszFilter	= NULL;
 	m_pColumns	= NULL;
 	m_nColumns	= 0;
@@ -127,6 +129,7 @@ CMatchList::CMatchList()
 	ZeroMemory( m_pMapSHA1, MAP_SIZE * sizeof *m_pMapSHA1 );
 	ZeroMemory( m_pMapTiger, MAP_SIZE * sizeof *m_pMapTiger );
 	ZeroMemory( m_pMapED2K, MAP_SIZE * sizeof *m_pMapED2K );
+	ZeroMemory( m_pMapMD5, MAP_SIZE * sizeof *m_pMapMD5 );
 	
 	SetSortColumn( MATCH_COL_COUNT, TRUE );
 }
@@ -142,6 +145,7 @@ CMatchList::~CMatchList()
 	delete [] m_pMapED2K;
 	delete [] m_pMapTiger;
 	delete [] m_pMapSHA1;
+	delete [] m_pMapMD5;
 	delete [] m_pSizeMap;
 	
 	if ( m_pFiles ) delete [] m_pFiles;
@@ -172,14 +176,15 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 		
 		if ( pFilter != NULL )
 		{
-			if ( BOOL bName = _tcsistr( pFilter->m_sKeywords, pHit->m_sName ) == 0 )
+			if ( BOOL bName = _tcsistr( pFilter->m_sSearch, pHit->m_sName ) == 0 )
 				pHit->m_bExactMatch = TRUE;
 
 			pHit->m_bMatched = pFilter->Match(
 				pHit->m_sName, pHit->m_nSize, pHit->m_sSchemaURI, pHit->m_pXML,
 				pHit->m_oSHA1,
 				pHit->m_oTiger,
-				pHit->m_oED2K );
+				pHit->m_oED2K,
+				pHit->m_oMD5 );
 			
 			if ( bRequire && ! pHit->m_bMatched )
 			{
@@ -223,9 +228,13 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 		{
 			pFile = FindFileAndAddHit( pHit, findType::fED2K, &Stats );
 		}
+		if ( pFile == NULL && pHit->m_oMD5 )
+		{
+			pFile = FindFileAndAddHit( pHit, findType::fMD5, &Stats );
+		}
 		
 		if ( pFile == NULL
-            && ( ( !pHit->m_oSHA1 && !pHit->m_oTiger && ! pHit->m_oED2K )
+            && ( ( !pHit->m_oSHA1 && !pHit->m_oTiger && ! pHit->m_oED2K && ! pHit->m_oMD5 )
                 || !Settings.General.HashIntegrity ) )
 		{
 			pFile = FindFileAndAddHit( pHit, findType::fSize, &Stats );
@@ -328,6 +337,12 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 			pFile->m_pNextED2K = *pMap;
 			*pMap = pFile;
 		}
+		if ( ! Stats.bHadMD5 && pFile->m_oMD5 )
+		{
+			pMap = m_pMapMD5 + pFile->m_oMD5[ 0 ];
+			pFile->m_pNextMD5 = *pMap;
+			*pMap = pFile;
+		}
 		
 		Stats.nHadCount = pFile->GetItemCount();
 		
@@ -365,6 +380,7 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 	bool bSHA1	= nFindFlag == findType::fSHA1 && pHit->m_oSHA1;
 	bool bTiger	= nFindFlag == findType::fTiger && pHit->m_oTiger;
 	bool bED2K	= nFindFlag == findType::fED2K && pHit->m_oED2K;
+	bool bMD5	= nFindFlag == findType::fMD5 && pHit->m_oMD5;
 	bool bSize	= nFindFlag == findType::fSize;
 
 	if ( bSHA1 )
@@ -373,6 +389,8 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 		pMap = m_pMapTiger + pHit->m_oTiger[ 0 ];
 	else if ( bED2K )
 		pMap = m_pMapED2K + ( pHit->m_oED2K[ 0 ] );
+	else if ( bMD5 )
+		pMap = m_pMapMD5 + ( pHit->m_oMD5[ 0 ] );
 	else if ( bSize )
 		pMap = m_pSizeMap + (DWORD)( pHit->m_nSize & 0xFF );
 	else
@@ -391,6 +409,8 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 			bValid = validAndEqual( pSeek->m_oTiger, pHit->m_oTiger );
 		else if ( bED2K )
 			bValid = validAndEqual( pSeek->m_oED2K, pHit->m_oED2K );
+		else if ( bMD5 )
+			bValid = validAndEqual( pSeek->m_oMD5, pHit->m_oMD5 );
 		else if ( bSize )
 			bValid = pSeek->m_nSize == pHit->m_nSize;
 
@@ -405,6 +425,7 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 				Stats->bHadSHA1		= bool( pSeek->m_oSHA1 );
 				Stats->bHadTiger	= bool( pSeek->m_oTiger );
 				Stats->bHadED2K		= bool( pSeek->m_oED2K );
+				Stats->bHadMD5		= bool( pSeek->m_oMD5 );
 
 				// ToDo: Fixme. 
 				// pSeek->Add( pHit ) returns pHit->m_pNext with a bad memory address sometimes.
@@ -420,6 +441,7 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 				Stats->bHad[0] = bool( pSeek->m_oSHA1 );
 				Stats->bHad[1] = bool( pSeek->m_oTiger );
 				Stats->bHad[2] = bool( pSeek->m_oED2K );
+				Stats->bHad[3] = bool( pSeek->m_oMD5 );
 
 				if ( pSeek->Add( pHit, TRUE ) )
 				{
@@ -427,13 +449,14 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 					Stats->bHadSHA1	 |= Stats->bHad[0];
 					Stats->bHadTiger |= Stats->bHad[1];
 					Stats->bHadED2K	 |= Stats->bHad[2];
+					Stats->bHadMD5	 |= Stats->bHad[3];
 					break;
 				}
 			}
 		}
 
 		if ( bSize && !pFile ) 
-			Stats->bHadSHA1 = Stats->bHadTiger = Stats->bHadED2K = FALSE;
+			Stats->bHadSHA1 = Stats->bHadTiger = Stats->bHadED2K = Stats->bHadMD5 = FALSE;
 
 		if ( bSHA1 )
 			pSeek = pSeek->m_pNextSHA1;
@@ -441,6 +464,8 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 			pSeek = pSeek->m_pNextTiger;
 		else if ( bED2K )
 			pSeek = pSeek->m_pNextED2K;
+		else if ( bMD5 )
+			pSeek = pSeek->m_pNextMD5;
 		else if ( bSize )
 			pSeek = pSeek->m_pNextSize;
 	}
@@ -520,6 +545,7 @@ void CMatchList::Clear()
 	ZeroMemory( m_pMapSHA1, MAP_SIZE * sizeof *m_pMapSHA1 );
 	ZeroMemory( m_pMapTiger, MAP_SIZE * sizeof *m_pMapTiger );
 	ZeroMemory( m_pMapED2K, MAP_SIZE * sizeof *m_pMapED2K );
+	ZeroMemory( m_pMapMD5, MAP_SIZE * sizeof *m_pMapMD5 );
 
 	UpdateRange();
 }
@@ -1117,13 +1143,14 @@ CMatchFile::CMatchFile(CMatchList* pList, CQueryHit* pHit)
 	m_pNextSHA1		= NULL;
 	m_pNextTiger	= NULL;
 	m_pNextED2K		= NULL;
+	m_pNextMD5		= NULL;
 	
 //	m_bSHA1		= FALSE;
 //	m_bTiger	= FALSE;
 //	m_bED2K		= FALSE;
 	// TODO: Change to SIZE_UNKNOWN without the size
 	m_nSize		= ( pHit && pHit->m_bSize ) ? pHit->m_nSize : 0;
-	m_sSize		= Settings.SmartVolume( m_nSize, FALSE );
+	m_sSize		= Settings.ExactVolume( m_nSize );
 	
 	m_bBusy			= TS_UNKNOWN;
 	m_bPush			= TS_UNKNOWN;
@@ -1270,10 +1297,22 @@ BOOL CMatchFile::Add(CQueryHit* pHit, BOOL bForce)
 			bLocked = TRUE;
 		}
 	}
-	
+
+	if ( ! m_oMD5 && pHit->m_oMD5 )
+	{
+		m_oMD5 = pHit->m_oMD5;
+
+		if ( ! m_bExisting && ( bLocked || pLock1.Lock( 100 ) ) )
+		{
+			if ( CLibraryFile* pExisting = LibraryMaps.LookupFileByMD5( m_oMD5 ) )
+				m_bExisting = pExisting->IsAvailable() ? 1 : 2;
+			bLocked = TRUE;
+		}
+	}
+
 	if ( bLocked ) pLock1.Unlock();
 	
-	if ( ! m_bDownload && ! m_bExisting && ( m_oSHA1 || m_oTiger || m_oED2K ) )
+	if ( ! m_bDownload && ! m_bExisting && ( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 ) )
 	{
 		CSingleLock pLock2( &Transfers.m_pSection );
 		
@@ -1288,6 +1327,10 @@ BOOL CMatchFile::Add(CQueryHit* pHit, BOOL bForce)
 				m_bDownload = TRUE;
 			}
 			else if ( m_oED2K && Downloads.FindByED2K( m_oED2K ) != NULL )
+			{
+				m_bDownload = TRUE;
+			}
+			else if ( m_oMD5 && Downloads.FindByMD5( m_oMD5 ) != NULL )
 			{
 				m_bDownload = TRUE;
 			}
@@ -1703,6 +1746,10 @@ CString CMatchFile::GetURN() const
 	else if ( m_oED2K )
 	{
 		strURN = m_oED2K.toUrn();
+	}
+	else if ( m_oMD5 )
+	{
+		strURN = m_oMD5.toUrn();
 	}
 	
 	return strURN;

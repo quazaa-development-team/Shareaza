@@ -134,7 +134,7 @@ public:
 public:
 	void		Update(WORD nPort, DWORD tSeen = 0, LPCTSTR pszVendor = NULL);
 	CNeighbour*	ConnectTo(BOOL bAutomatic = FALSE);
-//	CG1Packet*	ToG1Ping(int nTTL, const Hashes::Guid& oGUID);
+	CG1Packet*	ToG1Ping(int nTTL, const Hashes::Guid& oGUID);
 	CString		ToString() const;
 	BOOL		CanConnect(DWORD tNow = 0) const;	// Can we connect to this host now?
 	BOOL		CanQuote(DWORD tNow = 0) const;		// Is this a recently seen host?

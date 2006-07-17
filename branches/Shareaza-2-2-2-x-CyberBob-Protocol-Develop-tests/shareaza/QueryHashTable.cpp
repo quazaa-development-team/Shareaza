@@ -1011,11 +1011,21 @@ BOOL CQueryHashTable::Check(const CQuerySearch* pSearch) const
 		{
             if ( CheckString( pSearch->m_oED2K.toUrn() ) ) return TRUE;
 		}
-		
+
 		if ( pSearch->m_oBTH )
 		{
 			if ( CheckString( pSearch->m_oBTH.toUrn() ) ) return TRUE;
 		}
+
+		if ( pSearch->m_oTiger )
+		{
+			if ( CheckString( pSearch->m_oTiger.toUrn() ) ) return TRUE;
+		}
+// MD5 search has not been done yet
+//		if ( pSearch->m_oMD5 )
+//		{
+//			if ( CheckString( pSearch->m_oMD5.toUrn() ) ) return TRUE;
+//		}
 
 		return FALSE;
 	}

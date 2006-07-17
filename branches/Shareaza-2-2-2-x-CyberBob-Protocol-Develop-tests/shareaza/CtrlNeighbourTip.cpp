@@ -219,6 +219,9 @@ void CNeighbourTipCtrl::OnPaint(CDC* pDC)
 		case PROTOCOL_G1:
 			switch ( pNeighbour->m_nNodeType )
 			{
+			case ntUnknown:
+				str = _T("Unknown Connection");
+				break;
 			case ntNode:
 				LoadString( str, IDS_NEIGHBOUR_G1PP );
 				break;
@@ -228,11 +231,17 @@ void CNeighbourTipCtrl::OnPaint(CDC* pDC)
 			case ntLeaf:
 				LoadString( str, IDS_NEIGHBOUR_G1UL );
 				break;
+			case ntSpecial:
+				str = _T("Special Connection");
+				break;
 			}
 			break;
 		case PROTOCOL_G2:
 			switch ( pNeighbour->m_nNodeType )
 			{
+			case ntUnknown:
+				str = _T("Unknown Connection");
+				break;
 			case ntNode:
 				LoadString( str, IDS_NEIGHBOUR_G2HH );
 				break;
@@ -241,6 +250,9 @@ void CNeighbourTipCtrl::OnPaint(CDC* pDC)
 				break;
 			case ntLeaf:
 				LoadString( str, IDS_NEIGHBOUR_G2HL );
+				break;
+			case ntSpecial:
+				str = _T("Special Connection");
 				break;
 			}
 			break;

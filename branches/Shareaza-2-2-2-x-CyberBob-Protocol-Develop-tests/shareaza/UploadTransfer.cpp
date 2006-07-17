@@ -355,7 +355,8 @@ void CUploadTransfer::ClearHashes()
 {
     m_oSHA1.clear();
     m_oTiger.clear();
-    m_oED2K.clear();
+	m_oED2K.clear();
+	m_oMD5.clear();
 }
 
 BOOL CUploadTransfer::HashesFromURN(LPCTSTR pszURN)
@@ -363,6 +364,7 @@ BOOL CUploadTransfer::HashesFromURN(LPCTSTR pszURN)
 	if ( !m_oSHA1 ) m_oSHA1.fromUrn( pszURN );
 	if ( !m_oTiger ) m_oTiger.fromUrn( pszURN );
 	if ( !m_oED2K ) m_oED2K.fromUrn( pszURN );
+	if ( !m_oMD5 ) m_oMD5.fromUrn( pszURN );
 	return TRUE;
 }
 
@@ -395,6 +397,7 @@ BOOL CUploadTransfer::RequestComplete(CLibraryFile* pFile)
 	if ( validAndUnequal( m_oSHA1, pFile->m_oSHA1 ) ) return FALSE;
 	if ( validAndUnequal( m_oTiger, pFile->m_oTiger ) ) return FALSE;
 	if ( validAndUnequal( m_oED2K, pFile->m_oED2K ) ) return FALSE;
+	if ( validAndUnequal( m_oMD5, pFile->m_oMD5 ) ) return FALSE;
 	
 	m_sFileName	= pFile->m_sName;
 	m_sFilePath	= pFile->GetPath();
@@ -406,6 +409,7 @@ BOOL CUploadTransfer::RequestComplete(CLibraryFile* pFile)
 	m_oSHA1 = pFile->m_oSHA1;
 	m_oTiger = pFile->m_oTiger;
 	m_oED2K = pFile->m_oED2K;
+	m_oMD5 = pFile->m_oMD5;
 	
 	return TRUE;
 }
@@ -417,6 +421,7 @@ BOOL CUploadTransfer::RequestPartial(CDownload* pFile)
 	if ( validAndUnequal( m_oSHA1, pFile->m_oSHA1 ) ) return FALSE;
 	if ( validAndUnequal( m_oTiger, pFile->m_oTiger ) ) return FALSE;
 	if ( validAndUnequal( m_oED2K, pFile->m_oED2K ) ) return FALSE;
+	if ( validAndUnequal( m_oMD5, pFile->m_oMD5 ) ) return FALSE;
 	
 	m_sFileName	= pFile->m_sDisplayName;
 	m_sFilePath	= pFile->m_sDiskName;
@@ -450,6 +455,15 @@ BOOL CUploadTransfer::RequestPartial(CDownload* pFile)
 	else
 	{
 		m_oED2K = pFile->m_oED2K;
+	}
+
+	if ( m_oMD5 && ! pFile->m_oMD5 )
+	{
+		pFile->m_oMD5 = m_oMD5;
+	}
+	else
+	{
+		m_oMD5 = pFile->m_oMD5;
 	}
 
 	return TRUE;

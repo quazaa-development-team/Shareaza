@@ -29,6 +29,8 @@
 #include "Transfers.h"
 #include "Downloads.h"
 #include "Download.h"
+// added for QHT GUID storing
+#include "GProfile.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -158,12 +160,22 @@ void CQueryHashMaster::Build()
 			{
 				AddString( pDownload->m_oSHA1.toUrn() );
 			}
-			
+
+			if ( pDownload->m_oTiger )
+			{
+				AddString( pDownload->m_oTiger.toUrn() );
+			}
+
 			if ( pDownload->m_oED2K )
 			{
-                AddString( pDownload->m_oED2K.toUrn() );
+				AddString( pDownload->m_oED2K.toUrn() );
 			}
-			
+
+			if ( pDownload->m_oMD5 )
+			{
+				AddString( pDownload->m_oMD5.toUrn() );
+			}
+
 			if ( pDownload->m_oBTH )
 			{
 				AddString( _T("BTIH") );
@@ -173,6 +185,18 @@ void CQueryHashMaster::Build()
 
 		Transfers.m_pSection.Unlock();
 	}
+
+	// 
+	// store Profile GUID in QHT for GUID search
+	//
+	// warning: this feature is not used yet. this is new stuff.
+	//
+//	wchar_t szGUID[39];
+//	Hashes::Guid tmp( MyProfile.oGUID );
+//	szGUID[ StringFromGUID2( *(GUID*)&tmp[ 0 ], szGUID, 39 ) - 2 ] = 0;
+//	CString sGUID = (CString)&szGUID[1];
+
+//	AddString( "urn:guid:" + sGUID );
 
 	m_bValid	= TRUE;
 	m_bLive		= TRUE;

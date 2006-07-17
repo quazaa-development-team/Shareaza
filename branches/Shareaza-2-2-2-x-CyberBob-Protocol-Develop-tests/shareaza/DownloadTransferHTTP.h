@@ -62,12 +62,16 @@ protected:
 	DWORD			m_nRetryDelay;
 	BOOL			m_bRedirect;
 	CString			m_sRedirectionURL;
+	BOOL			m_bTigerForced;
+	BOOL			m_bTigerFailed;
+	BOOL			m_bHeadRequest;
+	DWORD			m_nRetryAfter;
 
 // Operations
 public:
 	virtual BOOL	Initiate();
 	BOOL			AcceptPush(CConnection* pConnection);
-	virtual void	Close(TRISTATE bKeepSource);
+	virtual void	Close( TRISTATE bKeepSource, DWORD nRetryAfter = 0 );
 	virtual void	Boost();
 	virtual DWORD	GetAverageSpeed();
 	virtual BOOL	SubtractRequested(Fragments::List& ppFragments);

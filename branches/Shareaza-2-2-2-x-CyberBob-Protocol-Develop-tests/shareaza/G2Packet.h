@@ -151,6 +151,8 @@ inline void CG2Packet::CG2PacketPool::FreePoolImpl(CPacket* pPacket)
 #define G2_PACKET_PONG				"PO"
 #define G2_PACKET_LNI				"LNI"
 #define G2_PACKET_KHL				"KHL"
+#define G2_PACKET_KHL_REQ			"KHLR"
+#define G2_PACKET_KHL_ANS			"KHLA"
 #define G2_PACKET_HAW				"HAW"
 #define G2_PACKET_QHT				"QHT"
 #define G2_PACKET_QUERY_KEY_REQ		"QKR"
@@ -172,6 +174,10 @@ inline void CG2Packet::CG2PacketPool::FreePoolImpl(CPacket* pPacket)
 #define G2_PACKET_DISCOVERY_ANS		"DISCA"
 #define G2_PACKET_DISCOVERY_HUB		"DISCH"
 #define G2_PACKET_DISCOVERY_LOG		"DISCL"
+#define G2_PACKET_MODE_CHANGE_REQ	"MCR" //add
+#define G2_PACKET_MODE_CHANGE_ACK	"MCA" //add
+#define G2_PACKET_PRIVATE_MESSAGE	"PM" //add
+#define G2_PACKET_CLOSE				"CLOSE" //add
 
 //
 // G2 SS
