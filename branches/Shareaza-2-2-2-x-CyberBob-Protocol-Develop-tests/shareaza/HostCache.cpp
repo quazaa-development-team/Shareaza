@@ -32,6 +32,7 @@
 #include "Security.h"
 #include "VendorCache.h"
 #include "G1Packet.h"
+#include "GGEP.h"
 #include "EDPacket.h"
 #include "Buffer.h"
 
@@ -980,14 +981,20 @@ CNeighbour* CHostCacheHost::ConnectTo(BOOL bAutomatic)
 
 CG1Packet* CHostCacheHost::ToG1Ping(int nTTL, const Hashes::Guid& oGUID)
 {
-	CG1Packet* pPong = CG1Packet::New( G1_PACKET_PONG, nTTL, oGUID );
+	bool bNeedHubs = Neighbours.NeedMoreHubs( PROTOCOL_G1 ) == TRUE;
+	bool bNeedLeafs = Neighbours.NeedMoreLeafs( PROTOCOL_G1 ) == TRUE;
+	bool bNeedPeers = bNeedHubs || bNeedLeafs;
+
+	CG1Packet* pPing = CG1Packet::New( G1_PACKET_PING, nTTL, oGUID );
+
+	CGGEPBlock pBlock;
+	CGGEPItem* pItem = pBlock.Add( L"SCP" );
+	pItem->WriteByte( ! bNeedHubs );
+	pItem = pBlock.Add( L"DNA" );
+	pItem->WriteByte( ! bNeedHubs );
+	pBlock.Write( pPing );
 	
-	pPong->WriteShortLE( m_nPort );
-	pPong->WriteLongLE( *(DWORD*)&m_pAddress );
-	pPong->WriteLongLE( 0 );
-	pPong->WriteLongLE( 0 );
-	
-	return pPong;
+	return pPing;
 }
 
 //////////////////////////////////////////////////////////////////////
