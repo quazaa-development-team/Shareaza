@@ -2307,7 +2307,79 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 // KHLR - KHL(Known Hub List) request, go over UDP packet more like UDPHC for G1.
 BOOL CDatagrams::OnKHLR(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
-	//TODO
+	CG2Packet* pKHLA = CG2Packet::New( G2_PACKET_KHL_ANS, TRUE );
+
+	//	DWORD nBase = pPacket->m_nPosition;
+
+	for ( POSITION pos = Neighbours.GetIterator() ; pos ; )
+	{
+		CG2Neighbour* pNeighbour = (CG2Neighbour*)Neighbours.GetNext( pos );
+
+		if (pNeighbour->m_nProtocol == PROTOCOL_G2 &&
+			pNeighbour->m_nState == nrsConnected &&
+			pNeighbour->m_nNodeType != ntLeaf &&
+			pNeighbour->m_pHost.sin_addr.S_un.S_addr != Network.m_pHost.sin_addr.S_un.S_addr )
+		{
+			if ( pNeighbour->m_pVendor && pNeighbour->m_pVendor->m_sCode.GetLength() == 4 )
+			{
+				pKHLA->WritePacket( "NH", 14 + 6, TRUE );					// 4
+				pKHLA->WritePacket( "HS", 2 );							// 4
+				pKHLA->WriteShortBE( (WORD)pNeighbour->m_nLeafCount );	// 2
+				pKHLA->WritePacket( "V", 4 );								// 3
+				pKHLA->WriteString( pNeighbour->m_pVendor->m_sCode );		// 5
+			}
+			else
+			{
+				pKHLA->WritePacket( "NH", 7 + 6, TRUE );					// 4
+				pKHLA->WritePacket( "HS", 2 );							// 4
+				pKHLA->WriteShortBE( (WORD)pNeighbour->m_nLeafCount );	// 2
+				pKHLA->WriteByte( 0 );									// 1
+			}
+
+			pKHLA->WriteLongLE( pNeighbour->m_pHost.sin_addr.S_un.S_addr );	// 4
+			pKHLA->WriteShortBE( htons( pNeighbour->m_pHost.sin_port ) );		// 2
+		}
+	}
+
+	int nCount = Settings.Gnutella2.KHLHubCount;
+	DWORD tNow = static_cast< DWORD >( time( NULL ) );
+
+	pKHLA->WritePacket( "TS", 4 );
+	pKHLA->WriteLongBE( static_cast< DWORD >( time( NULL ) ) );
+
+	for ( CHostCacheHost* pCachedHost = HostCache.Gnutella2.GetNewest() ; pCachedHost && nCount > 0 ;
+			pCachedHost = pCachedHost->m_pPrevTime )
+	{
+		if (	pCachedHost->CanQuote( tNow ) &&
+			Neighbours.Get( &pCachedHost->m_pAddress ) == NULL &&
+			pCachedHost->m_pAddress.S_un.S_addr != Network.m_pHost.sin_addr.S_un.S_addr )
+		{
+			int nLength = 10;
+
+			if ( pCachedHost->m_pVendor && pCachedHost->m_pVendor->m_sCode.GetLength() == 4 )
+				nLength += 7;
+			if ( nLength > 10 )
+				nLength ++;
+
+			pKHLA->WritePacket( "CH", nLength, nLength > 10 );
+
+			if ( pCachedHost->m_pVendor && pCachedHost->m_pVendor->m_sCode.GetLength() == 4 )
+			{
+				pKHLA->WritePacket( "V", 4 );								// 3
+				pKHLA->WriteString( pCachedHost->m_pVendor->m_sCode, FALSE );	// 4
+			}
+
+			if ( nLength > 10 ) pPacket->WriteByte( 0 );					// 1
+
+			pKHLA->WriteLongLE( pCachedHost->m_pAddress.S_un.S_addr );			// 4
+			pKHLA->WriteShortBE( pCachedHost->m_nPort );						// 2
+			pKHLA->WriteLongBE( pCachedHost->m_tSeen );							// 4
+
+			nCount--;
+		}
+	}
+
+	Send( pHost, pKHLA );
 
 	return TRUE;
 }
