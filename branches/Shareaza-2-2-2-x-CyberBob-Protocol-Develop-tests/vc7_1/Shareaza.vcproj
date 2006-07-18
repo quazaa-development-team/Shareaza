@@ -361,6 +361,9 @@
 				RelativePath="..\shareaza\HostCache.cpp">
 			</File>
 			<File
+				RelativePath="..\shareaza\HTTPClient.cpp">
+			</File>
+			<File
 				RelativePath="..\shareaza\HttpRequest.cpp">
 			</File>
 			<File
@@ -1157,7 +1160,10 @@
 					RelativePath="..\shareaza\DlgDownload.cpp">
 				</File>
 				<File
-					RelativePath="..\shareaza\DlgDownloadEdit.cpp">
+					RelativePath="..\shareaza\DlgDownloadEditPage.cpp">
+				</File>
+				<File
+					RelativePath="..\shareaza\DlgDownloadEditSheet.cpp">
 				</File>
 				<File
 					RelativePath="..\shareaza\DlgDownloadGroup.cpp">
@@ -1475,10 +1481,53 @@
 				<File
 					RelativePath="..\shareaza\TigerTree.cpp">
 				</File>
+				<Filter
+					Name="Policies"
+					Filter="">
+					<File
+						RelativePath="..\shareaza\Hashes\HashDescriptors.cpp">
+						<FileConfiguration
+							Name="Debug|Win32">
+							<Tool
+								Name="VCCLCompilerTool"
+								UsePrecompiledHeader="0"/>
+						</FileConfiguration>
+						<FileConfiguration
+							Name="Release|Win32">
+							<Tool
+								Name="VCCLCompilerTool"
+								UsePrecompiledHeader="0"/>
+						</FileConfiguration>
+					</File>
+					<File
+						RelativePath="..\shareaza\Hashes\HashStringConversion.cpp">
+						<FileConfiguration
+							Name="Debug|Win32">
+							<Tool
+								Name="VCCLCompilerTool"
+								UsePrecompiledHeader="0"/>
+						</FileConfiguration>
+						<FileConfiguration
+							Name="Release|Win32">
+							<Tool
+								Name="VCCLCompilerTool"
+								UsePrecompiledHeader="0"/>
+						</FileConfiguration>
+					</File>
+				</Filter>
 			</Filter>
 			<Filter
 				Name="Pages"
 				Filter="">
+				<File
+					RelativePath="..\shareaza\PageDownloadEditActions.cpp">
+				</File>
+				<File
+					RelativePath="..\shareaza\PageDownloadEditGeneral.cpp">
+				</File>
+				<File
+					RelativePath="..\shareaza\PageDownloadEditHashes.cpp">
+				</File>
 				<File
 					RelativePath="..\shareaza\PageFileComments.cpp">
 				</File>
@@ -1807,6 +1856,9 @@
 			</File>
 			<File
 				RelativePath="..\shareaza\HostCache.h">
+			</File>
+			<File
+				RelativePath="..\shareaza\HTTPClient.h">
 			</File>
 			<File
 				RelativePath="..\shareaza\HttpRequest.h">
@@ -2427,7 +2479,10 @@
 					RelativePath="..\shareaza\DlgDownload.h">
 				</File>
 				<File
-					RelativePath="..\shareaza\DlgDownloadEdit.h">
+					RelativePath="..\shareaza\DlgDownloadEditPage.h">
+				</File>
+				<File
+					RelativePath="..\shareaza\DlgDownloadEditSheet.h">
 				</File>
 				<File
 					RelativePath="..\shareaza\DlgDownloadGroup.h">
@@ -2606,37 +2661,7 @@
 						RelativePath="..\shareaza\Hashes\Hash.hpp">
 					</File>
 					<File
-						RelativePath="..\shareaza\Hashes\HashDescriptors.cpp">
-						<FileConfiguration
-							Name="Debug|Win32">
-							<Tool
-								Name="VCCLCompilerTool"
-								UsePrecompiledHeader="0"/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|Win32">
-							<Tool
-								Name="VCCLCompilerTool"
-								UsePrecompiledHeader="0"/>
-						</FileConfiguration>
-					</File>
-					<File
 						RelativePath="..\shareaza\Hashes\HashDescriptors.hpp">
-					</File>
-					<File
-						RelativePath="..\shareaza\Hashes\HashStringConversion.cpp">
-						<FileConfiguration
-							Name="Debug|Win32">
-							<Tool
-								Name="VCCLCompilerTool"
-								UsePrecompiledHeader="0"/>
-						</FileConfiguration>
-						<FileConfiguration
-							Name="Release|Win32">
-							<Tool
-								Name="VCCLCompilerTool"
-								UsePrecompiledHeader="0"/>
-						</FileConfiguration>
 					</File>
 					<File
 						RelativePath="..\shareaza\Hashes\HashStringConversion.hpp">
@@ -2652,6 +2677,15 @@
 			<Filter
 				Name="Pages"
 				Filter="">
+				<File
+					RelativePath="..\shareaza\PageDownloadEditActions.h">
+				</File>
+				<File
+					RelativePath="..\shareaza\PageDownloadEditGeneral.h">
+				</File>
+				<File
+					RelativePath="..\shareaza\PageDownloadEditHashes.h">
+				</File>
 				<File
 					RelativePath="..\shareaza\PageFileComments.h">
 				</File>
@@ -3128,6 +3162,22 @@
 			Name="Generated Files"
 			Filter="">
 			<File
+				RelativePath=".\debug\shareaza\Shareaza_i.c">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+						DisableSpecificWarnings="4255;4668;4820"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="TRUE">
+					<Tool
+						Name="VCCLCompilerTool"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\release\shareaza\Shareaza_i.c">
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -3143,22 +3193,6 @@
 						UsePrecompiledHeader="0"
 						ObjectFile="$(IntDir)/$(InputName)1.obj"
 						DisableSpecificWarnings="4255;4668;4820"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\debug\shareaza\Shareaza_i.c">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-						DisableSpecificWarnings="4255;4668;4820"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"/>
 				</FileConfiguration>
 			</File>
 		</Filter>
