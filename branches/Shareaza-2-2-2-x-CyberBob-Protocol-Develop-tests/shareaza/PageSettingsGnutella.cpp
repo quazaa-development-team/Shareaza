@@ -123,7 +123,7 @@ BOOL CGnutellaSettingsPage::OnInitDialog()
 	
 	m_wndG2Peers.SetRange( 0, 64 );
 	m_wndG2Leafs.SetRange( 0, 1024 );
-	m_wndG2Hubs.SetRange( 0, 3 );
+	m_wndG2Hubs.SetRange( 0, 2 );
 	
 	m_wndG1ClientMode.SetItemData( 0, MODE_AUTO );
 	m_wndG1ClientMode.SetItemData( 1, MODE_LEAF );
@@ -251,7 +251,7 @@ void CGnutellaSettingsPage::OnOK()
 	m_nG1Hubs	= min( m_nG1Hubs, 5 );
 	m_nG1Leafs	= min( m_nG1Leafs, 1024 );
 	m_nG1Peers	= min( m_nG1Peers, 64 );
-	m_nG2Hubs	= min( m_nG2Hubs, 3 );
+	m_nG2Hubs	= min( m_nG2Hubs, 2 );
 	m_nG2Leafs	= min( m_nG2Leafs, 1024 );
 	m_nG2Peers	= min( m_nG2Peers, 64 );
 	

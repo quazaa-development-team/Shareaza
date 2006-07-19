@@ -1139,8 +1139,8 @@ void CNeighboursWithConnect::Maintain()
 	} 
 	else if ( m_bG2Leaf )
 	{	// We're a leaf on the Gnutella2 network
-		// Set the limit for Gnutella2 hub connections as whichever is smaller, the number from settings, or 3
-		nLimit[ PROTOCOL_G2 ][ ntHub ] = min( Settings.Gnutella2.NumHubs, 3 ); // NumHubs is 2 by default
+		// Set the limit for Gnutella2 hub connections as whichever is smaller, the number from settings, or 2
+		nLimit[ PROTOCOL_G2 ][ ntHub ] = min( Settings.Gnutella2.NumHubs, 2 ); // NumHubs is 2 by default
 
 	} 
 	else

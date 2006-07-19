@@ -265,7 +265,7 @@ void CSettings::Setup()
 	Add( _T("Gnutella2.HubVerified"), &Gnutella2.HubVerified, FALSE );
 	Add( _T("Gnutella2.EnableAlways"), &Gnutella2.EnableAlways, TRUE );
 	Add( _T("Gnutella2.NumHubs"), &Gnutella2.NumHubs, 2 );
-	Add( _T("Gnutella2.NumLeafs"), &Gnutella2.NumLeafs, 50 );
+	Add( _T("Gnutella2.NumLeafs"), &Gnutella2.NumLeafs, 300 );
 	Add( _T("Gnutella2.NumPeers"), &Gnutella2.NumPeers, 6 );
 	Add( _T("Gnutella2.PingRelayLimit"), &Gnutella2.PingRelayLimit, 10);
 	Add( _T("Gnutella2.UdpMTU"), &Gnutella2.UdpMTU, 500 );
@@ -308,7 +308,7 @@ void CSettings::Setup()
 	Add( _T("eDonkey.MetAutoQuery"), &eDonkey.MetAutoQuery, FALSE );
 	Add( _T("eDonkey.LearnNewServers"), &eDonkey.LearnNewServers, TRUE );
 	Add( _T("eDonkey.LearnNewServersClient"), &eDonkey.LearnNewServersClient, FALSE );
-	Add( _T("eDonkey.ServerListURL"), &eDonkey.ServerListURL, _T("http://ocbmaurice.dyndns.org/pl/slist.pl/server.met?download/server-good.met") );
+	Add( _T("eDonkey.ServerListURL"), &eDonkey.ServerListURL, _T("http://ocbmaurice.no-ip.org/slist/ghaheruvne/server.met") );
 	Add( _T("eDonkey.RequestPipe"), &eDonkey.RequestPipe, 3 );
 	Add( _T("eDonkey.RequestSize"), &eDonkey.RequestSize, 180*1024/2 );
 	Add( _T("eDonkey.FrameSize"), &eDonkey.FrameSize, 10240 );
@@ -573,11 +573,11 @@ void CSettings::Load()
 	Gnutella1.RequeryDelay		= max( Gnutella1.RequeryDelay, 45*60u );
 	Gnutella2.RequeryDelay		= max( Gnutella2.RequeryDelay, 60*60u );
 	Downloads.ConnectThrottle	= max( Downloads.ConnectThrottle, Connection.ConnectThrottle + 50 );
-	Downloads.MaxFiles			= min( Downloads.MaxFiles, 1024 );
+	Downloads.MaxFiles			= min( Downloads.MaxFiles, 100 );
 
 	// Set client links
-	Gnutella1.NumHubs			= min( Gnutella1.NumHubs, 32 );
-	Gnutella2.NumHubs			= min( Gnutella2.NumHubs, 16 );
+	Gnutella1.NumHubs			= min( Gnutella1.NumHubs, 5 );
+	Gnutella2.NumHubs			= min( Gnutella2.NumHubs, 2 );
 	Gnutella2.NumLeafs			= min( Gnutella2.NumLeafs, 1024 );
 
 	// Make sure download/incomplete folders aren't the same
@@ -698,7 +698,7 @@ void CSettings::SmartUpgrade()
 		Connection.TimeoutTraffic		= 140000;
 		
 		Gnutella2.NumHubs				= 2;
-		Gnutella2.NumLeafs				= 30;
+		Gnutella2.NumLeafs				= 300;
 		Gnutella2.NumPeers				= 6;
 	}
 	
