@@ -387,6 +387,23 @@ BOOL CDownloadTransferHTTP::SendRequest()
 		{
 			strLine += "\r\n";
 			m_pOutput->Print( strLine );
+
+			if ( m_nRequests == 0 )
+			{
+				// copy Profile's GUID
+				Hashes::Guid oID( MyProfile.oGUID );
+				// Compose the X-GUID string, which is like "MyGUID: /" with two newlines at the end (do)
+				CString strGUID;
+				// MFC's CString::Format is like sprintf, "%.2X" formats a byte into 2 hexidecimal characters like "ff"
+				strGUID.Format(	_T("X-MyGUID: %.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X/\r\n"),
+					int( oID[0] ),  int( oID[1] ),  int( oID[2] ),  int( oID[3] ),		// Our GUID
+					int( oID[4] ),  int( oID[5] ),  int( oID[6] ),  int( oID[7] ),
+					int( oID[8] ),  int( oID[9] ),  int( oID[10] ), int( oID[11] ),
+					int( oID[12] ), int( oID[13] ), int( oID[14] ), int( oID[15] ) );
+
+				// Print the string into the output buffer, and write the output buffer to the remote computer
+				m_pOutput->Print( strGUID );
+			}
 		}
 	}
 
@@ -1132,7 +1149,7 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 				pHubs.push_back(pHub);
 			}
 		}
-		if ( nCount != 0 ) m_pSource->m_pHubList = pHubs;
+		if ( nCount > 0 ) m_pSource->m_pHubList = pHubs;
 	}
 	else if ( strHeader.CompareNoCase( _T("X-Push-Proxy") ) == 0 )
 	{	// The remote computer is giving us a list of G1 PushProxy the remote node is connected to
@@ -1140,15 +1157,12 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		CDownloadSource::HubList pProxies;
 		CString sProxylist(strValue);
 
-		theApp.Message( MSG_SYSTEM, _T("Got PushProxy list: %s"), sProxylist );
-
 		for ( sProxylist += ',' ; ; ) 
 		{
 			int nPos = sProxylist.Find( ',' );		// Set nPos to the distance in characters from the start to the comma
 			if ( nPos < 0 ) break;					// If no comma was found, leave the loop
 			CString sProxy = sProxylist.Left( nPos );// Copy the text up to the comma into strHost
 			sProxylist = sProxylist.Mid( nPos + 1 );    // Clip that text and the comma off the start of strValue
-			theApp.Message( MSG_SYSTEM, _T("Got PushProxy: %s"), sProxy );
 
 			// since there is no clever way to detect the given what Hosts' vender codes are, just add then as NULL
 			// in order to prevent HostCache/KHL pollution done by mis-assumptions.
@@ -1160,7 +1174,6 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 				CString strPort;
 				strAddr = CString( inet_ntoa( pProxy.sin_addr ) );
 				strPort.Format( _T("%hu") ,ntohs( pProxy.sin_port ) );
-				theApp.Message( MSG_SYSTEM, _T("Got PushProxy: %s:%s"), strAddr, strPort );
 				nCount++;
 				pProxies.push_back(pProxy);
 			}

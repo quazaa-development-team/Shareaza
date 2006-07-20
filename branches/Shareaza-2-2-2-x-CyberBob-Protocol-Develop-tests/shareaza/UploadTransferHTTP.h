@@ -34,7 +34,11 @@ class CED2K;
 
 
 class CUploadTransferHTTP : public CUploadTransfer
-{
+{// typedef
+public:
+	typedef std::list<SOCKADDR_IN> HubList;
+	typedef std::list<SOCKADDR_IN>::iterator HubIndex;
+
 // Construction
 public:
 	CUploadTransferHTTP();
@@ -61,6 +65,8 @@ protected:
 	BOOL		m_bHttp11;
 	CString		m_sLocations;
 	CString		m_sRanges;
+	Hashes::Guid m_oGUID;
+	HubList		m_pHubList;
 
 // Operations
 public:

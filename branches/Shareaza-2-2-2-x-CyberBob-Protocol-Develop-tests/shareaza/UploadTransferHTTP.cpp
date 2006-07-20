@@ -313,12 +313,23 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 	{
 		m_nGnutella |= 1;
 	}
+	else if ( strHeader.CompareNoCase( _T("X-MyGUID") ) == 0 )
+	{	
+		for ( int nByte = 0 ; nByte < 16 ; nByte++ )
+		{
+			int nValue;
+			_stscanf( strValue.Mid( 10 + nByte * 2, 2 ), _T("%X"), &nValue );
+			m_oGUID[ nByte ] = (BYTE)nValue;
+		}
+		m_oGUID.validate();
+	}
 	else if ( strHeader.CompareNoCase( _T("X-Hubs") ) == 0 )
 	{	
-		// The remote computer is giving us a list G2 hubs the remote node is connected to
+		// The remote computer is giving us a list of G2 hubs the remote node is connected to
 		// Not really Useful here because there is no way to find/store both Hub address and
 		// GUID to PUSH connect to remote node at this time... but might be useful in future.
 		int nCount = 0;
+		HubList pHubs;
 		CString sHublist(strValue);
 		for ( sHublist += ',' ; ; ) 
 		{
@@ -327,8 +338,14 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 			CString sHub = sHublist.Left( nPos );	// Copy the text up to the comma into strHost
 			sHublist = sHublist.Mid( nPos + 1 );    // Clip that text and the comma off the start of strValue
 
-			nCount++;
+			SOCKADDR_IN pHub;
+			if ( StrToSockaddr( sHub, pHub ) )
+			{
+				nCount++;
+				pHubs.push_back(pHub);
+			}
 		}
+		if ( nCount > 0 ) m_pHubList = pHubs;
 	}
 
 	return CUploadTransfer::OnHeaderLine( strHeader, strValue );
