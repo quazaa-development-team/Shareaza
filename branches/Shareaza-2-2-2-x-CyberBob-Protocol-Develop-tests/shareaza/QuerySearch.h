@@ -139,7 +139,6 @@ private:
 public:
 	static BOOL	WordMatch(LPCTSTR pszString, LPCTSTR pszFind, bool* bReject=NULL);
 	static BOOL	NumberMatch(const CString& strValue, const CString& strRange);
-	static SplitPosNeg( LPCTSTR pszString, WordTable * oWords = NULL , WordTable * oNegWords = NULL );
 };
 
 #endif // !defined(AFX_QUERYSEARCH_H__2141B926_3F6B_4A5D_9FBD_C67FD0A5C46C__INCLUDED_)

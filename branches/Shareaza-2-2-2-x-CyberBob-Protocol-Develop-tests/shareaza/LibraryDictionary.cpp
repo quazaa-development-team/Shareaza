@@ -161,9 +161,9 @@ int CLibraryDictionary::ProcessPhrase(CLibraryFile* pFile, const CString& strPhr
 		if ( !bCharacter || boundary[ 0 ] != boundary[ 1 ] && nPos )
 		{
 			// Join two phrases if the previous was a sigle characters word.
-			// idea of joining single charactors breaks GDF compatibility completely,
-			// but because official Shareaza 2.2 and above are not really following GDF about
-			// word length limit for ASIAN chars, merging is nessasory to be done.
+			// idea of joining single characters breaks GDF compatibility completely,
+			// but because Shareaza 2.2 and above are not really following GDF about
+			// word length limit for ASIAN chars, merging is necessary to be done.
 
 			// nNextWord == nPrevWord when previous word was regular
 			if ( nPos > nNextWord && nNextWord > nPrevWord )
@@ -184,12 +184,6 @@ int CLibraryDictionary::ProcessPhrase(CLibraryFile* pFile, const CString& strPhr
 			if ( nNextWord > nPrevWord )
 				nPrevWord = nNextWord;
 			nNextWord = nPos + nDistance;
-			
-			// seems like these lines cause the keywords to be merged up so commenting out
-			//if ( boundary[ 0 ] < sKanji && boundary[ 1 ] < sKanji || !bCharacter ||
-			//	 boundary[ 0 ] < sKanji && boundary[ 1 ] > sRegular ||
-			//	 boundary[ 0 ] > sRegular && boundary[ 1 ] < sKanji )
-			//	nPrevWord = nNextWord;
 		}
 	}
 	
@@ -217,7 +211,7 @@ int CLibraryDictionary::MakeKeywords(CLibraryFile* pFile, const CString& strWord
 		
 		if ( IsHiragana( *pszKeyword ) )
 		{
-			// Continuous Hiragana string can be structed with a few prefix or postfix or both
+			// Continuous Hiragana string can be structured with a few prefix or postfix or both
 			// Assume Prefix/Postfix length is MAX 2 chars
 			// Note, according to GDF, minimum char length for Hiragana is 2 char
 			if ( nLength >= 3 )
@@ -280,7 +274,7 @@ int CLibraryDictionary::MakeKeywords(CLibraryFile* pFile, const CString& strWord
 			// Assume MAX number of Words contained in one continuous Katakana string as Two words
 			// Note, according to GDF, minimum char length for Katakana is 2 char
 			// moreover, it is not known how long the prefix/postfix
-			// not even the length of chars on one word.
+			// not even the length of chars in one word.
 			if ( nLength >= 3 )
 			{
 				for (int nLen = 2; nLen < nLength ; nLen++)
@@ -304,7 +298,7 @@ int CLibraryDictionary::MakeKeywords(CLibraryFile* pFile, const CString& strWord
 		// including prefix/postfix
 		// Note, according to GDF, minimum char length for Kanji is 1 char
 		// moreover, it is not known how long the prefix/postfix
-		// not even the length of chars on one word.
+		// not even the length of chars in one word.
 		if ( IsKanji( *pszKeyword ) )
 		{
 			if ( nLength >= 2 )

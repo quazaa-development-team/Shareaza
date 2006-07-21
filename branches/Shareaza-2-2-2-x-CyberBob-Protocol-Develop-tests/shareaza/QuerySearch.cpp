@@ -195,7 +195,7 @@ CG1Packet* CQuerySearch::ToG1Packet()
 	
 	pPacket->WriteString( strExtra );
 
-	if ( m_oSHA1 || m_oTiger || m_oED2K )
+	if ( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 || m_oBTH )
 	{
 		CGGEPBlock pBlock;
 		CGGEPItem* pItem;
@@ -661,9 +661,6 @@ BOOL CQuerySearch::ReadG1Packet(CPacket* pPacket)
 	m_sKeywords = m_sSearch;
 	ToLower( m_sKeywords );
 	MakeKeywords( m_sKeywords, false );
-//  Slide should be removed, since it was just waste of time to do it,
-//  Plus it was only for getting arround the Problem some one made on 2.2.0.0 and 2.2.0.0
-//	SlideKeywords( m_sKeywords );
 
 	if ( pPacket->GetRemaining() >= 1 )
 	{
@@ -868,9 +865,6 @@ BOOL CQuerySearch::ReadG2Packet(CG2Packet* pPacket, SOCKADDR_IN* pEndpoint)
 			m_sKeywords = m_sSearch;
 			ToLower( m_sKeywords );
 			MakeKeywords( m_sKeywords, false );
-			//  Slide should be removed, since it was just waste of time to do it,
-			//  Plus it was only for getting arround the Problem some one made on 2.2.0.0 and 2.2.0.0
-			//	SlideKeywords( m_sKeywords );
 		}
 		else if ( strcmp( szType, "MD" ) == 0 )
 		{
@@ -975,11 +969,11 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 			{
 				// do nothing
 			} //after the char inspection
-			else if ( 0x00 <= szChar && 0x7f >= szChar) // check if the char is 1 byte length in UTF8 (non-char will not leech here)
+			else if ( 0x00 <= szChar && 0x7f >= szChar) // check if the char is 1 byte length in UTF8 (non-char will not reach here)
 			{
 				nValidCharacters++;
 			}
-			else if ( 0x80 <= szChar && 0x7ff >= szChar)  // check if the char is 2 byte length in UTF8 (non-char will not leech here)
+			else if ( 0x80 <= szChar && 0x7ff >= szChar)  // check if the char is 2 byte length in UTF8 (non-char will not reach here)
 			{
 				nValidCharacters += 2;
 			}
@@ -987,7 +981,7 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 			{
 				nValidCharacters += 2;
 			}
-			else if ( 0x800 <= szChar && 0xffff >= szChar)  // check if the char is 3 byte length in UTF8 (non-char will not leech here)
+			else if ( 0x800 <= szChar && 0xffff >= szChar)  // check if the char is 3 byte length in UTF8 (non-char will not reach here)
 			{
 				nValidCharacters += 3;
 			}
@@ -1007,7 +1001,7 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 	
 	}
 
-	nValidWords += nCommonWords / 2;
+	nValidWords += nCommonWords / 3; // make it accept query, if there are more than 3 different common words.
 
 	return BOOL(nValidWords);
 }
@@ -1052,22 +1046,22 @@ BOOL CQuerySearch::Match(LPCTSTR pszFilename, QWORD nSize, LPCTSTR pszSchemaURI,
 				// Otherwise, only return WordMatch when negative terms are used
 				// to filter out filenames from the search window
 				BOOL bNegative = FALSE;
-				if ( m_sSearch.GetLength() > 1 )
+				if ( m_sKeywords.GetLength() > 1 )
 				{
 					int nMinusPos = -1;
 					while ( !bNegative )
 					{
-						nMinusPos = m_sSearch.Find( '-', nMinusPos + 1 );
+						nMinusPos = m_sKeywords.Find( '-', nMinusPos + 1 );
 						if ( nMinusPos != -1 )
 						{
-							bNegative = ( IsCharacter( m_sSearch.GetAt( nMinusPos + 1 ) ) != 0 );
+							bNegative = ( IsCharacter( m_sKeywords.GetAt( nMinusPos + 1 ) ) != 0 );
 							if ( nMinusPos > 0 )
-								bNegative &= ( IsCharacter( m_sSearch.GetAt( nMinusPos - 1 ) ) == 0 );
+								bNegative &= ( IsCharacter( m_sKeywords.GetAt( nMinusPos - 1 ) ) == 0 );
 						}
 						else break;
 					}
 				}
-				return bNegative ? WordMatch( pszFilename, m_sSearch ) : TRUE;
+				return bNegative ? WordMatch( pszFilename, m_sKeywords ) : TRUE;
 			}
 			else if ( bReject )
 				return FALSE;
@@ -1131,7 +1125,7 @@ BOOL CQuerySearch::MatchMetadataShallow(LPCTSTR pszSchemaURI, CXMLElement* pXML,
 			if ( pMember->m_bSearched )
 			{
 				CString strTarget = pMember->GetValueFrom( pXML, _T(""), FALSE );
-				if ( WordMatch( strTarget, m_sSearch, bReject ) ) 
+				if ( WordMatch( strTarget, m_sKeywords, bReject ) ) 
 					return TRUE;
 				else if ( bReject && *bReject )
 					return FALSE;
@@ -1146,7 +1140,7 @@ BOOL CQuerySearch::MatchMetadataShallow(LPCTSTR pszSchemaURI, CXMLElement* pXML,
 
 			CString strTarget = pAttribute->GetValue();
 
-			if ( WordMatch( strTarget, m_sSearch, bReject ) ) 
+			if ( WordMatch( strTarget, m_sKeywords, bReject ) ) 
 				return TRUE;
 			else if ( bReject && *bReject )
 				return FALSE;
@@ -1337,19 +1331,9 @@ void CQuerySearch::BuildWordList(bool bExpression, bool /* bLocal */ )
 		}
 	}
 
-	if ( bHash )
+	if ( !bHash )
 	{
-		//AddStringToWordList( m_sSearch );
-	}
-	else
-	{
-		// in order to make the "-" sign handling perfect, it is better to do it before keywording.
-//		WordTable oWords, NegWords;
-//		SpritPosNeg( m_sKeywords, &oWords, &NegWords );
 		MakeKeywords( m_sKeywords, bExpression );
-	// Slide should be removed now.
-//		if ( bLocal ) 
-//			SlideKeywords( m_sKeywords );
 		AddStringToWordList( m_sKeywords );
 	}
 
@@ -1412,6 +1396,7 @@ void CQuerySearch::MakeKeywords(CString& strPhrase, bool bExpression)
 	ScriptType boundary[ 2 ] = { sNone, sNone };
     int nPos = 0;
 	int nPrevWord = 0;
+	BOOL bNegative = FALSE;
 
 	for ( ; *pszPtr ; nPos++, pszPtr++ )
 	{
@@ -1436,8 +1421,11 @@ void CQuerySearch::MakeKeywords(CString& strPhrase, bool bExpression)
 
 		bool bCharacter = ( boundary[ 1 ] & sRegular )||
 			bExpression && ( *pszPtr == '-' || *pszPtr == '"' );
-		int nDistance = !bCharacter ? 1 : 0;
+		if ( *pszPtr == '-' ) bNegative = TRUE;
+		else if ( *pszPtr == ' ' ) bNegative = FALSE;
 
+		int nDistance = !bCharacter ? 1 : 0;
+		
 		if ( !bCharacter || boundary[ 0 ] != boundary[ 1 ]  && nPos  )
 		{
 			if ( nPos > nPrevWord )
@@ -1448,13 +1436,14 @@ void CQuerySearch::MakeKeywords(CString& strPhrase, bool bExpression)
 					!_istdigit( TCHAR( str.Right( nPos < 3 ? 1 : 3 ).GetAt( 0 ) ) ) )
 				{
 					// Join two phrases if the previous was a sigle characters word.
-					// idea of joining single charactors breaks GDF compatibility completely,
-					// but because official Shareaza 2.2 and above are not really following GDF about
-					// word length limit for ASIAN chars, merging is nessasory to be done.
+					// idea of joining single characters breaks GDF compatibility completely,
+					// but because Shareaza 2.2 and above are not really following GDF about
+					// word length limit for ASIAN chars, merging is necessary to be done.
 				}
-				else if ( str.Right( 1 ) != ' ' )
+				else if ( str.Right( 1 ) != ' ' && bCharacter )
 				{
-					if ( str.Right( 1 ) != '-' || str.Right( 1 ) != '"' || *pszPtr == '"' )
+					if ( ( str.Right( 1 ) != '-' || str.Right( 1 ) != '"' || *pszPtr == '"' ) && 
+						( !bNegative || !( boundary[ 0 ] & ( sHiragana | sKatakana | sKanji ) ) ) )
 						str.Append( L" " );
 				}
 				ASSERT( strPhrase.GetLength() > nPos - 1 );
@@ -1474,7 +1463,8 @@ void CQuerySearch::MakeKeywords(CString& strPhrase, bool bExpression)
 				else
 				{
 					str += strPhrase.Mid( nPrevWord, nPos - nPrevWord );
-					str.Append( L" " );
+					if ( ( boundary[ 0 ] & ( sHiragana | sKatakana | sKanji ) && !bNegative ) || !bExpression )
+						str.Append( L" " );
 				}
 			}
 			nPrevWord = nPos + nDistance;
@@ -1487,13 +1477,13 @@ void CQuerySearch::MakeKeywords(CString& strPhrase, bool bExpression)
 		 boundary[ 1 ] )
 	{
 		// Join two phrases if the previous was a sigle characters word.
-		// idea of joining single charactors breaks GDF compatibility completely,
-		// but because official Shareaza 2.2 and above are not really following GDF about
-		// word length limit for ASIAN chars, merging is nessasory to be done.
+		// idea of joining single characters breaks GDF compatibility completely,
+		// but because Shareaza 2.2 and above are not really following GDF about
+		// word length limit for ASIAN chars, merging is necessary to be done.
 	}
-	else if ( str.Right( 1 ) != ' ' )
+	else if ( str.Right( 1 ) != ' ' && boundary[ 1 ] )
 	{
-		if ( str.Right( 1 ) != '-' || str.Right( 1 ) != '"' )
+		if ( ( str.Right( 1 ) != '-' || str.Right( 1 ) != '"' ) && !bNegative )
 			str.Append( L" " );
 	}
 	str += strPhrase.Mid( nPrevWord, nPos - nPrevWord );
@@ -1534,65 +1524,6 @@ void CQuerySearch::SlideKeywords(CString& strPhrase)
 	}
 	delete [] pszToken;
 	strPhrase = strTemp.TrimRight( L" " );
-}
-
-// Function to split Positive word and negative word for query
-BOOL CQuerySearch::SplitPosNeg( LPCTSTR pszString, WordTable * oWords, WordTable * oNegWords )
-{
-	// To do: need to implement function to split words at boundaly of space (thinking of Quotes too)
-	//        then detect if the word is for Positive or negative, and store them to appropriate containers.
-
-
-	if ( ! *pszString ) return FALSE; // no string to process
-	if ( oWords == NULL && oNegWords == NULL ) return FALSE; // no containers
-
-	LPCTSTR pszWord	= pszString; // pointer to candidate string
-	LPCTSTR pszPtr	= pszString; // pointer to current position
-	BOOL bQuote		= FALSE; // inside Quote
-	BOOL bNegate	= FALSE; // inside Negative string
-	BOOL bSpace		= TRUE;  // candidate is space
-
-	for ( ; *pszPtr ; pszPtr++ ) // loop for string analyze
-	{
-		if ( IsCharacter( *pszPtr ) ) // is candidate Character?
-		{
-			bSpace = FALSE; // yes it is Character
-		}
-		else	// no it is not character so do check if the analyzed string was PosWord or NegWord
-		{
-			if ( oWords != NULL &&! bNegate && pszWord < pszPtr && IsWord( pszWord, 0, pszPtr - pszWord ) )
-			{
-				oWords->insert( std::make_pair( pszWord, pszPtr - pszWord ) );
-			}
-
-			pszWord = pszPtr + 1;
-
-			if ( *pszPtr == '\"' )
-			{
-				bQuote = ! bQuote;
-				bSpace = TRUE;
-			}
-			else if ( *pszPtr == '-' && pszPtr[1] != ' ' && bSpace && ! bQuote )
-			{
-				bNegate = TRUE;
-				bSpace = FALSE;
-			}
-			else
-			{
-				bSpace = ( *pszPtr == ' ' );
-			}
-
-			if ( bNegate && ! bQuote && *pszPtr != '-' ) bNegate = FALSE;
-		}
-	}
-
-	if ( oWords != NULL && ! bNegate && pszWord < pszPtr && IsWord( pszWord, 0, pszPtr - pszWord ) )
-	{
-		oWords->insert( std::make_pair( pszWord, pszPtr - pszWord ) );
-	}
-
-
-	return TRUE;
 }
 
 void CQuerySearch::AddStringToWordList(LPCTSTR pszString)

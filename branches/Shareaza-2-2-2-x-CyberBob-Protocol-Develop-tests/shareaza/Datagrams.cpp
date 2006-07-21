@@ -1225,6 +1225,9 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	CString sVendorCode, sName, sVersion;
 	SOCKADDR_IN	MyAddr;
 
+	MyAddr.sin_addr.S_un.S_addr = 0;
+	MyAddr.sin_port = 0;
+
 	while ( pPacket->ReadPacket( szType, nLength, &bCompound ) )
 	{
 		DWORD nOffset = pPacket->m_nPosition + nLength;

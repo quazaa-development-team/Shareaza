@@ -362,6 +362,7 @@ BOOL CG1Neighbour::SendPing(DWORD dwNow, const Hashes::Guid& oGUID)
 	bool bNeedHubs = Neighbours.NeedMoreHubs( PROTOCOL_G1 ) == TRUE;
 	bool bNeedLeafs = Neighbours.NeedMoreLeafs( PROTOCOL_G1 ) == TRUE;
 	bool bNeedPeers = bNeedHubs || bNeedLeafs;
+	bool bNeedFreeLeafSlot = Neighbours.IsG1Ultrapeer();
 
 	// If the caller didn't give us the time, get it now
 	if ( ! dwNow ) dwNow = GetTickCount();
@@ -381,9 +382,15 @@ BOOL CG1Neighbour::SendPing(DWORD dwNow, const Hashes::Guid& oGUID)
 	{
 		CGGEPBlock pBlock;
 		CGGEPItem* pItem = pBlock.Add( L"SCP" );
-		pItem->WriteByte( ! bNeedHubs );
+		if ( bNeedFreeLeafSlot ) 
+			pItem->WriteByte( 1 );
+		else
+			pItem->WriteByte( 0 );
 		pItem = pBlock.Add( L"DNA" );
-		pItem->WriteByte( ! bNeedHubs );
+		if ( bNeedFreeLeafSlot ) 
+			pItem->WriteByte( 1 );
+		else
+			pItem->WriteByte( 0 );
 		pBlock.Write( pPacket );
 	}
 	

@@ -981,17 +981,23 @@ CNeighbour* CHostCacheHost::ConnectTo(BOOL bAutomatic)
 
 CG1Packet* CHostCacheHost::ToG1Ping(int nTTL, const Hashes::Guid& oGUID)
 {
-	bool bNeedHubs = Neighbours.NeedMoreHubs( PROTOCOL_G1 ) == TRUE;
-	bool bNeedLeafs = Neighbours.NeedMoreLeafs( PROTOCOL_G1 ) == TRUE;
-	bool bNeedPeers = bNeedHubs || bNeedLeafs;
+	bool bNeedFreeLeafSlot = Neighbours.IsG1Ultrapeer();
 
 	CG1Packet* pPing = CG1Packet::New( G1_PACKET_PING, nTTL, oGUID );
 
 	CGGEPBlock pBlock;
 	CGGEPItem* pItem = pBlock.Add( L"SCP" );
-	pItem->WriteByte( ! bNeedHubs );
+	if ( bNeedFreeLeafSlot ) 
+		pItem->WriteByte( 1 );
+	else
+		pItem->WriteByte( 0 );
+
 	pItem = pBlock.Add( L"DNA" );
-	pItem->WriteByte( ! bNeedHubs );
+	if ( bNeedFreeLeafSlot ) 
+		pItem->WriteByte( 1 );
+	else
+		pItem->WriteByte( 0 );
+
 	pBlock.Write( pPing );
 	
 	return pPing;

@@ -43,6 +43,7 @@
 #include "SHA.h"
 #include "MD4.h"
 #include "TigerTree.h"
+#include "QueryHashMaster.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -99,6 +100,28 @@ int CDownloadWithSources::GetSourceCount(BOOL bNoPush, BOOL bSane) const
 	return nCount;
 }
 
+int CDownloadWithSources::GetG2SourceCount(BOOL bNoPush) const
+{
+	DWORD tNow = GetTickCount();
+	int nCount = 0;
+
+	for ( CDownloadSource* pSource = m_pSourceFirst ; pSource ; pSource = pSource->m_pNext )
+	{
+		if ( ( pSource->m_nProtocol == PROTOCOL_G2 ) &&									// Only counting G2 sources
+			( pSource->m_tAttempt < tNow || pSource->m_tAttempt - tNow <= 900000 ) &&	// Don't count dead sources
+			( ! pSource->m_bPushOnly || ! bNoPush ) )									// Push sources might not be counted
+		{
+			nCount++;
+		}
+	}
+
+	/*
+	CString strT;
+	strT.Format(_T("BT sources: %i"), nCount);
+	theApp.Message( MSG_DEBUG, strT );
+	*/
+	return nCount;
+}
 
 int CDownloadWithSources::GetBTSourceCount(BOOL bNoPush) const
 {
@@ -183,6 +206,7 @@ void CDownloadWithSources::ClearSources()
 BOOL CDownloadWithSources::AddSourceHit(CQueryHit* pHit, BOOL bForce)
 {
 	BOOL bHash = FALSE;
+	BOOL bUpdated = FALSE;
 	
 	if ( ! bForce )
 	{
@@ -231,18 +255,27 @@ BOOL CDownloadWithSources::AddSourceHit(CQueryHit* pHit, BOOL bForce)
 	if ( !m_oSHA1 && pHit->m_oSHA1 )
 	{
 		m_oSHA1 = pHit->m_oSHA1;
+		bUpdated = TRUE;
 	}
     if ( !m_oTiger && pHit->m_oTiger )
 	{
 		m_oTiger = pHit->m_oTiger;
+		bUpdated = TRUE;
 	}
 	if ( !m_oED2K && pHit->m_oED2K )
 	{
 		m_oED2K = pHit->m_oED2K;
+		bUpdated = TRUE;
+	}
+	if ( !m_oBTH && pHit->m_oBTH )
+	{
+		m_oBTH = pHit->m_oBTH;
+		bUpdated = TRUE;
 	}
 	if ( !m_oMD5 && pHit->m_oMD5 )
 	{
 		m_oMD5 = pHit->m_oMD5;
+		bUpdated = TRUE;
 	}
 	
 	if ( m_nSize == SIZE_UNKNOWN && pHit->m_bSize )
@@ -284,9 +317,17 @@ BOOL CDownloadWithSources::AddSourceHit(CQueryHit* pHit, BOOL bForce)
 	*/
 
 	// No URL, stop now with success
-	if ( pHit->m_sURL.IsEmpty() ) return TRUE;
-	
-	return AddSourceInternal( new CDownloadSource( (CDownload*)this, pHit ) );
+	if ( ! pHit->m_sURL.IsEmpty() )
+	{	
+		if ( ! AddSourceInternal( new CDownloadSource( (CDownload*)this, pHit ) ) )
+		{
+			return FALSE;
+		}
+	}
+
+	if ( bUpdated )	QueryHashMaster.Invalidate();
+
+	return TRUE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -615,6 +656,18 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 			strURL.Format( _T("http://%s:%i/uri-res/N2R?%s"),
 				(LPCTSTR)CString( inet_ntoa( pCopy->m_pAddress ) ),
 				pCopy->m_nPort, (LPCTSTR)m_oED2K.toUrn() );
+		}
+		else if ( m_oBTH )
+		{
+			strURL.Format( _T("http://%s:%i/uri-res/N2R?%s"),
+				(LPCTSTR)CString( inet_ntoa( pCopy->m_pAddress ) ),
+				pCopy->m_nPort, (LPCTSTR)m_oBTH.toUrn() );
+		}
+		else if ( m_oMD5 )
+		{
+			strURL.Format( _T("http://%s:%i/uri-res/N2R?%s"),
+				(LPCTSTR)CString( inet_ntoa( pCopy->m_pAddress ) ),
+				pCopy->m_nPort, (LPCTSTR)m_oMD5.toUrn() );
 		}
 
 		if ( strURL.GetLength() )

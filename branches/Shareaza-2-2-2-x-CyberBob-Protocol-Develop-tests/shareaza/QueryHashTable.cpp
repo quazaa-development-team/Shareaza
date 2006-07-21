@@ -1000,7 +1000,7 @@ BOOL CQueryHashTable::Check(const CQuerySearch* pSearch) const
 {
 	if ( ! m_bLive || m_pHash == NULL ) return TRUE;
 	
-	if ( pSearch->m_oSHA1 || pSearch->m_oED2K || pSearch->m_oBTH )
+	if ( pSearch->m_oSHA1 || pSearch->m_oED2K || pSearch->m_oBTH || pSearch->m_oTiger || pSearch->m_oMD5 )
 	{
 		if ( pSearch->m_oSHA1 )
 		{
@@ -1021,11 +1021,11 @@ BOOL CQueryHashTable::Check(const CQuerySearch* pSearch) const
 		{
 			if ( CheckString( pSearch->m_oTiger.toUrn() ) ) return TRUE;
 		}
-// MD5 search has not been done yet
-//		if ( pSearch->m_oMD5 )
-//		{
-//			if ( CheckString( pSearch->m_oMD5.toUrn() ) ) return TRUE;
-//		}
+
+		if ( pSearch->m_oMD5 )
+		{
+			if ( CheckString( pSearch->m_oMD5.toUrn() ) ) return TRUE;
+		}
 
 		return FALSE;
 	}
