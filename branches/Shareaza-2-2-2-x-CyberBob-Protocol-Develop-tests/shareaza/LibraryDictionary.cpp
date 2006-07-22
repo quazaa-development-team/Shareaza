@@ -490,8 +490,13 @@ void CLibraryDictionary::Clear()
 	
 	if ( m_pTable != NULL )
 	{
-		m_pTable->Clear();
-		m_bTable = TRUE;
+		// Dynamic QHT Size Change
+		if ( m_pTable->m_nBits != Settings.Library.QueryRouteSize ) m_pTable->Create();
+		else
+		{
+			m_pTable->Clear();
+			m_bTable = TRUE;
+		}
 	}
 }
 

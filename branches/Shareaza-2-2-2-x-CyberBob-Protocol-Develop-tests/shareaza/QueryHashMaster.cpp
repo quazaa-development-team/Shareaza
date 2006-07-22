@@ -21,6 +21,7 @@
 
 #include "StdAfx.h"
 #include "Shareaza.h"
+#include "Settings.h"
 #include "QueryHashMaster.h"
 #include "QueryHashGroup.h"
 #include "Neighbour.h"
@@ -132,6 +133,13 @@ void CQueryHashMaster::Build()
 	else
 	{
 		if ( tNow - m_nCookie < 20000 ) return;
+	}
+
+
+	// Dynamic QHT Size Change
+	if ( m_nBits != Settings.Library.QueryRouteSize )
+	{
+		Create();
 	}
 
 	{
