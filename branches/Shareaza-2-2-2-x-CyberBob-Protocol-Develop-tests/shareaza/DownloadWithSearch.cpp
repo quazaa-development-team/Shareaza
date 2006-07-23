@@ -89,8 +89,6 @@ BOOL CDownloadWithSearch::FindMoreSources()
 
 void CDownloadWithSearch::RunSearch(DWORD tNow)
 {
-
-	//-------------- Original Code Start
 	if ( ! CanSearch() )
 	{
 		StopSearch();
@@ -117,65 +115,6 @@ void CDownloadWithSearch::RunSearch(DWORD tNow)
 			StopSearch();
 		}
 	}
-	//-------------- Original Code end
-
-
-
-	//-------------- Custom Code start
-/*	if ( m_nSize == 0 && ! CanSearch() )
-	{
-		if ( tNow > m_tSearchTime && tNow - m_tSearchTime < Settings.Downloads.SearchPeriod )
-		{
-			StartManualSearch();
-		}
-		else if ( tNow > m_tSearchCheck && tNow - m_tSearchCheck >= 1000 )
-		{
-			BOOL bFewSources = GetSourceCount( FALSE, TRUE ) < Settings.Downloads.MinSources;
-			BOOL bDataStarve = ( tNow > m_tReceived ? tNow - m_tReceived : 0 ) > Settings.Downloads.StarveTimeout * 1000;
-
-			m_tSearchCheck = tNow;
-
-			if ( IsPaused() == FALSE && ( bFewSources || bDataStarve ) )
-			{
-				StartAutomaticSearch();
-			}
-			else
-			{
-				StopSearch();
-			}
-		}
-	}
-	else
-	{
-		if ( ! CanSearch() )
-		{
-			StopSearch();
-			return;
-		}
-
-		if ( tNow > m_tSearchTime && tNow - m_tSearchTime < Settings.Downloads.SearchPeriod )
-		{
-			StartManualSearch();
-		}
-		else if ( tNow > m_tSearchCheck && tNow - m_tSearchCheck >= 1000 )
-		{
-			BOOL bFewSources = GetSourceCount( FALSE, TRUE ) < Settings.Downloads.MinSources;
-			BOOL bDataStarve = ( tNow > m_tReceived ? tNow - m_tReceived : 0 ) > Settings.Downloads.StarveTimeout * 1000;
-
-			m_tSearchCheck = tNow;
-
-			if ( IsPaused() == FALSE && ( bFewSources || bDataStarve ) )
-			{
-				StartAutomaticSearch();
-			}
-			else
-			{
-				StopSearch();
-			}
-		}
-	} */
-	//-------------- Custom Code end
-
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -230,7 +169,7 @@ void CDownloadWithSearch::PrepareSearch()
 		// Need to Clear Keyword first in case the keyword built in Previous Search session.
 		// unless it has been cleared, and change in file name or Keyword for the file never change
 		// if previous CManagedSearch object is left in m_pSearch.
-		pSearch->m_sKeywords = "";
+		pSearch->m_sKeywords.Empty();
 
 		// check if it has Keyword Overriding set for search
 		// this is quite important for G1(LimeWire) search, because G1 don't use URNs for search.
