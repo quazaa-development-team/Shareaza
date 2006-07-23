@@ -37,7 +37,7 @@ public:
 
 // Attributes
 public:
-	CMutex				m_pMutex;
+	HANDLE				m_pMutex;
 	CMutex				m_pSection;
 	WORD				m_nVersion[4];
 	CString				m_sVersion;
@@ -137,11 +137,11 @@ HBITMAP	CreateMirroredBitmap(HBITMAP hbmOrig);
 
 typedef enum
 {
-	sNone,
-	sRegular,
-	sKanji,
-	sHiragana,
-	sKatakana
+	sNone = 0,
+	sRegular = 1,
+	sKanji = 2,
+	sHiragana = 4,
+	sKatakana = 8
 } ScriptType;
 
 inline bool IsCharacter(TCHAR nChar)

@@ -132,8 +132,8 @@ IDI_IRCHEADER32         ICON                    "Res\\ChatHeader32.ico"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,2,2,20
- PRODUCTVERSION 2,2,2,20
+ FILEVERSION 2,2,2,23
+ PRODUCTVERSION 2,2,2,23
  FILEFLAGSMASK 0x1fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -151,12 +151,12 @@ BEGIN
             VALUE "Comments", "Shareaza Ultimate File Sharing"
             VALUE "CompanyName", "Shareaza Development Team"
             VALUE "FileDescription", "Shareaza Ultimate File Sharing"
-            VALUE "FileVersion", "2, 2, 2, 20"
+            VALUE "FileVersion", "2, 2, 2, 23"
             VALUE "InternalName", "Shareaza"
             VALUE "LegalCopyright", "Copyright © Shareaza Development Team, 2002-2005."
             VALUE "OriginalFilename", "Shareaza.exe"
             VALUE "ProductName", "Shareaza"
-            VALUE "ProductVersion", "2, 2, 2, 20"
+            VALUE "ProductVersion", "2, 2, 2, 23"
         END
     END
     BLOCK "VarFileInfo"
@@ -194,7 +194,7 @@ BEGIN
     POPUP "&View"
     BEGIN
         MENUITEM "S&ystem\tF11",                ID_VIEW_SYSTEM
-        MENUITEM "N&eighbours\tF2",             ID_VIEW_NEIGHBOURS
+        MENUITEM "N&eighbours\tCtrl+F11",       ID_VIEW_NEIGHBOURS
         MENUITEM "&Downloads\tF3",              ID_VIEW_DOWNLOADS
         MENUITEM "&Uploads\tF4",                ID_VIEW_UPLOADS
         MENUITEM "&Library\tF5",                ID_VIEW_LIBRARY
@@ -4026,8 +4026,9 @@ BEGIN
     VK_F10,         ID_VIEW_TRAFFIC,        VIRTKEY, NOINVERT
     VK_F11,         ID_VIEW_SYSTEM,         VIRTKEY, NOINVERT
     VK_F12,         ID_NETWORK_SEARCH,      VIRTKEY, NOINVERT
-    VK_F2,          ID_VIEW_NEIGHBOURS,     VIRTKEY, NOINVERT
+    VK_F2,          ID_LIBRARY_RENAME,      VIRTKEY, NOINVERT
     VK_F2,          ID_VIEW_SEARCH_MONITOR, VIRTKEY, CONTROL, NOINVERT
+    VK_F11,         ID_VIEW_NEIGHBOURS,     VIRTKEY, CONTROL, NOINVERT
     VK_F3,          ID_VIEW_DOWNLOADS,      VIRTKEY, NOINVERT
     VK_F3,          ID_VIEW_RESULTS_MONITOR, VIRTKEY, CONTROL, NOINVERT
     VK_F4,          ID_VIEW_UPLOADS,        VIRTKEY, NOINVERT
@@ -4842,7 +4843,6 @@ BEGIN
     IDS_HANDSHAKE_FAIL      "Handshake with %s failed due to invalid data on the wire."
     IDS_HANDSHAKE_BOOTSTRAP "Closing surplus connection from %s with host hint (%s port %i)."
     IDS_HANDSHAKE_REJECTED  "Connection to %s rejected (%s)."
-    IDS_HANDSHAKE_RETRY     "Gnutella 0.6 handshake with %s failed, retrying with 0.4."
     IDS_HANDSHAKE_SURPLUS   "Closing surplus connection from %s."
     IDS_HANDSHAKE_IAMLEAF   "Refusing connection from %s because this is a shielded leaf node."
     IDS_HANDSHAKE_CANTBEPEER 
@@ -5251,7 +5251,7 @@ BEGIN
     IDS_DISCOVERY_FAILED    "Discovery service ""%s"" failed, fail count %i."
     IDS_DISCOVERY_FAIL_REMOVE 
                             "Discovery service ""%s"" has failed %i times, removing."
-    IDS_DISCOVERY_DEFAULTS  "http://gwc.fspn.cryptnet.net/gcache.cgi\nhttp://g2cache.theg2.net/gwcache/lynnx.asp\nhttp://www.gwc2.ip3.com/cgi-bin/gwc2/gcache.cgi\nhttp://gwebcache.jonatkins.com/cgi-bin/gwebcache.cgi\nhttp://gwebcache2.jonatkins.com/cgi-bin/gwebcache.cgi\nhttp://www.gwc2.ip3.com/cgi-bin/gwc2/gcache.cgi\nhttp://homepage.ntlworld.com/marriott96/server.met\nhttp://bazooka1.servehttp.com/g2/bazooka.php\nhttp://g2.instantnetworks.net/g2/bazooka.php\nhttp://bazooka.stealthspy.net/g2/bazooka.php"
+    IDS_DISCOVERY_DEFAULTS  "http://g2cache.theg2.net/gwcache/lynnx.asp\nhttp://loot.alumnigroup.org/\nhttp://www.de-site.de/ed2k/koeln.met\nhttp://www.rob-knight.com/skullscache/\nhttp://portalemedia.shinranet.com/modules/AllMyGuests/gcache.php"
     IDS_DISCOVERY_UPDATING  "Sending GWebCache update to service ""%s""..."
     IDS_DISCOVERY_SUBMIT    "Submitting GWebCache ""%s"" to a random GWebCache..."
 END

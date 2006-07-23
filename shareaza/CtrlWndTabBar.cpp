@@ -168,16 +168,14 @@ void CWndTabBar::OnSkinChange()
 		CMenu* pOldMenu = m_mnuChild.GetSubMenu( pChild->m_bPanelMode ? 1 : 0 );
 		CMenu* pNewMenu = Skin.GetMenu( pChild->m_bPanelMode ? L"Simple" : L"Child", true );
 
-		CString strText;
-		TCHAR szBuffer[128] = {};
-
 		for ( UINT i = 0 ; i < pOldMenu->GetMenuItemCount() ; i++ )
 		{
+			TCHAR szBuffer[128] = {};
 			MENUITEMINFO mii = {};
 			mii.cbSize = sizeof(mii);
 			mii.fMask = MIIM_DATA|MIIM_ID|MIIM_FTYPE|MIIM_STRING;
 			mii.dwTypeData = szBuffer;
-			mii.cch	= 128;
+			mii.cch	= sizeof(szBuffer) / sizeof(TCHAR);
 
 			if ( GetMenuItemInfo( pOldMenu->GetSafeHmenu(), i, MF_BYPOSITION, &mii ) )
 			{
@@ -187,15 +185,15 @@ void CWndTabBar::OnSkinChange()
 					mii.wID = pNewMenu->GetMenuItemID( i );
 
 					// Replace item text with the translation
-					pNewMenu->GetMenuString( i, strText, MF_BYPOSITION );
-					CoolMenu.ReplaceMenuText( pOldMenu, i, &mii, strText );
+					pNewMenu->GetMenuString( i, szBuffer, sizeof(szBuffer), MF_BYPOSITION );
+					CoolMenu.ReplaceMenuText( pOldMenu, i, &mii, (LPCTSTR)szBuffer );
 
 					// Ensure type and data integrity
 					mii.fType |= MF_OWNERDRAW;
 					mii.dwItemData = ( (DWORD_PTR)pOldMenu->GetSafeHmenu() << 16 ) | ( mii.wID & 0xFFFF );
 
 					// Set new data
-					mii.cch	= 128;
+					mii.cch	= sizeof(szBuffer) / sizeof(TCHAR);
 					SetMenuItemInfo( pOldMenu->GetSafeHmenu(), i, MF_BYPOSITION, &mii );
 				}
 			}
