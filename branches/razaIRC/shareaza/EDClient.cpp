@@ -1052,9 +1052,9 @@ void CEDClient::DeriveSoftwareVersion()
 				( ( m_nSoftwareVersion >>  7 ) & 0x07 ) + 'a' );
 			break;
 		case 3:
-			m_sUserAgent.Format( _T("aMule %i.%i%c"), 
+			m_sUserAgent.Format( _T("aMule %i.%i.%i"), 
 				( ( m_nSoftwareVersion >> 17 ) & 0x7F ), ( ( m_nSoftwareVersion >> 10 ) & 0x7F ), 
-				( ( m_nSoftwareVersion >>  7 ) & 0x07 ) + 'a' );
+				( ( m_nSoftwareVersion >>  7 ) & 0x07 ) );
 			break;
 		case 4:
 			if ( m_bEmAICH || m_bEmSecureID )
@@ -1608,7 +1608,12 @@ CString CEDClient::GetSourceURL()
 
 void CEDClient::WritePartStatus(CEDPacket* pPacket, CDownload* pDownload)
 {
+	bool bNullBlock = ( pDownload->m_nSize % ED2K_PART_SIZE == 0 && pDownload->m_nSize );
 	QWORD nParts = ( pDownload->m_nSize + ED2K_PART_SIZE - 1 ) / ED2K_PART_SIZE;
+
+	if ( bNullBlock )
+		nParts++;
+
 	pPacket->WriteShortLE( (WORD)nParts );
 	
 	if ( pDownload->m_pHashsetBlock != NULL && pDownload->m_nHashsetBlock == nParts )
