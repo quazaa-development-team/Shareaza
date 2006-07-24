@@ -132,8 +132,8 @@ IDI_IRCHEADER32         ICON                    "Res\\ChatHeader32.ico"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,2,2,23
- PRODUCTVERSION 2,2,2,23
+ FILEVERSION 2,2,2,24
+ PRODUCTVERSION 2,2,2,24
  FILEFLAGSMASK 0x1fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -151,12 +151,12 @@ BEGIN
             VALUE "Comments", "Shareaza Ultimate File Sharing"
             VALUE "CompanyName", "Shareaza Development Team"
             VALUE "FileDescription", "Shareaza Ultimate File Sharing"
-            VALUE "FileVersion", "2, 2, 2, 23"
+            VALUE "FileVersion", "2, 2, 2, 24"
             VALUE "InternalName", "Shareaza"
             VALUE "LegalCopyright", "Copyright © Shareaza Development Team, 2002-2005."
             VALUE "OriginalFilename", "Shareaza.exe"
             VALUE "ProductName", "Shareaza"
-            VALUE "ProductVersion", "2, 2, 2, 23"
+            VALUE "ProductVersion", "2, 2, 2, 24"
         END
     END
     BLOCK "VarFileInfo"
@@ -6004,10 +6004,8 @@ BEGIN
                             "Show the rich collection view\nCollection View"
     ID_LIBRARY_FOLDER_DOWNLOAD 
                             "Download all files in the selected collection."
-    ID_LIBRARY_FOLDER_EXPORT_COLLECTION 
-                            "Export the selected album folder as a collection file..."
     ID_LIBRARY_EXPORT_COLLECTION 
-                            "Export the selected album folder to a collection file..."
+                            "Export the selected album folder to collection files..."
     ID_LIBRARY_SEED_TORRENT "Seed the selected Torrent on BitTorrent."
     ID_LIBRARY_REBUILD_ANSI "Rebuild metadata using other language."
     ID_DOWNLOADS_EDIT       "Show the advanced edit download interface..."
