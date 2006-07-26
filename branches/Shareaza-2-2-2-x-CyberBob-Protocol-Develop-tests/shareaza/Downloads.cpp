@@ -71,11 +71,8 @@ CDownloads::CDownloads()
 	m_tBandwidthAtMaxED2K	= 0;
 
 	m_nLimitNew				= Settings.Bandwidth.Downloads;
-
-	m_bGlobalSearchLock		= FALSE;
-	m_tLastGlobalSearch		= 0;
 }
- 
+
 CDownloads::~CDownloads()
 {
 }

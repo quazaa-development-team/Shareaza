@@ -68,10 +68,6 @@ public:
 		dlPathNull, dlPathComplete, dlPathIncomplete
 	};
 
-protected:
-	BOOL			m_bGlobalSearchLock;
-	DWORD			m_tLastGlobalSearch;
-
 // Operations
 public:
 	CDownload*	Add();

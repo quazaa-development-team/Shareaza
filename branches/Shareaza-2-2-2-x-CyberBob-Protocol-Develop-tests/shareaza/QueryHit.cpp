@@ -936,8 +936,8 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 		if ( pszSep ) pszData = pszSep + 1;
 		else break;
 	}
-	if ( !m_oSHA1 && !m_oTiger && !m_oED2K )
-		AfxThrowUserException();
+
+	if ( !m_oSHA1 && !m_oTiger && !m_oED2K && !m_oBTH && !m_oMD5 ) AfxThrowUserException();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1136,7 +1136,7 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength)
 		pPacket->m_nPosition = nSkip;
 	}
 	
-	if ( !m_oSHA1 && !m_oTiger && !m_oED2K && !m_oBTH ) AfxThrowUserException();
+	if ( !m_oSHA1 && !m_oTiger && !m_oED2K && !m_oBTH && !m_oMD5 ) AfxThrowUserException();
 }
 
 //////////////////////////////////////////////////////////////////////

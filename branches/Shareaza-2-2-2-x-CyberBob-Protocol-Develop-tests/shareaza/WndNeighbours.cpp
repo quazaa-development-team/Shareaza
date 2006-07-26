@@ -420,7 +420,7 @@ void CNeighboursWnd::OnNeighboursDisconnect()
 			HostCache.OnFailure( &pNeighbour->m_pHost.sin_addr,
 				htons( pNeighbour->m_pHost.sin_port ) );
 			
-			pNeighbour->Close();
+			pNeighbour->Close(IDS_CONNECTION_CLOSED);
 		}
 	}
 }
