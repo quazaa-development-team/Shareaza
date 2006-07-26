@@ -113,6 +113,44 @@ CG2Neighbour::~CG2Neighbour()
 	}
 }
 
+void CG2Neighbour::Close(UINT nError)  // Send the buffer then close the socket, record the error given
+{
+	if ( nError == IDS_CONNECTION_CLOSED )
+	{
+		CG2Packet * pClosePacket = CG2Packet::New( G2_PACKET_CLOSE, FALSE );
+		pClosePacket->WriteString( "Manually Closing Connection",TRUE );
+		Send( pClosePacket );
+	}
+	else if ( nError == IDS_CONNECTION_PEERPRUNE )
+	{
+		CG2Packet * pClosePacket = CG2Packet::New( G2_PACKET_CLOSE, FALSE );
+		pClosePacket->WriteString( "Leaf-to-Leaf connection is not in Gnutella2 specification",TRUE );
+		Send( pClosePacket );
+	}
+
+	CNeighbour::Close(nError);
+}
+
+void CG2Neighbour::DelayClose(UINT nError)  // Send the buffer then close the socket, record the error given
+{
+
+	if ( nError == IDS_CONNECTION_CLOSED )
+	{
+		CG2Packet * pClosePacket = CG2Packet::New( G2_PACKET_CLOSE, FALSE );
+		pClosePacket->WriteString( "Manually Closing Connection",TRUE );
+		Send( pClosePacket );
+	}
+	else if ( nError == IDS_CONNECTION_PEERPRUNE )
+	{
+		CG2Packet * pClosePacket = CG2Packet::New( G2_PACKET_CLOSE, FALSE );
+		pClosePacket->WriteString( "Leaf-to-Leaf connection is not in Gnutella2 specification",TRUE );
+		Send( pClosePacket );
+	}
+
+	CNeighbour::DelayClose(nError);
+}
+
+
 //////////////////////////////////////////////////////////////////////
 // CG2Neighbour read and write events
 

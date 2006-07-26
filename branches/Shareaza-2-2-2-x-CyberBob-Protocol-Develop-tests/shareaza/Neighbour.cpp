@@ -216,8 +216,14 @@ void CNeighbour::Close(UINT nError)
 // Takes the reason we're closing the connection, or 0 by default
 void CNeighbour::DelayClose(UINT nError)
 {
+	// Make sure that the socket stored in this CNeighbour object is valid
+	ASSERT( m_hSocket != INVALID_SOCKET );
+
+	// If nError is the default closed or a result of peer pruning, we're closing the connection voluntarily
+	BOOL bVoluntary = ( nError == IDS_CONNECTION_CLOSED || nError == IDS_CONNECTION_PEERPRUNE );
+
 	// If this method got passed a close reason error, report it
-	if ( nError ) theApp.Message( MSG_ERROR, nError, (LPCTSTR)m_sAddress );
+	if ( nError ) theApp.Message( bVoluntary ? MSG_DEFAULT : MSG_ERROR, nError, (LPCTSTR)m_sAddress );
 
 	// Change this object's state to closing
 	m_nState = nrsClosing;

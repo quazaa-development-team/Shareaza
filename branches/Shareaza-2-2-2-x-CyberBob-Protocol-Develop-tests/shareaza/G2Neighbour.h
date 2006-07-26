@@ -80,6 +80,8 @@ protected:
 public:
 	virtual BOOL	Send(CPacket* pPacket, BOOL bRelease = TRUE, BOOL bBuffered = FALSE);
 	virtual BOOL	SendQuery(CQuerySearch* pSearch, CPacket* pPacket, BOOL bLocal);
+	virtual void	Close(UINT nError = IDS_CONNECTION_CLOSED);
+	virtual void	DelayClose(UINT nError = 0); // Send the buffer then close the socket, record the error given
 protected:
 	virtual BOOL	OnRead();
 	virtual BOOL	OnWrite();
