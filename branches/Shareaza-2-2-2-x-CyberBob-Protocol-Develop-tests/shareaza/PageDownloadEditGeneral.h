@@ -31,13 +31,12 @@ public:
 	virtual ~CDownloadEditGeneralPage(void);
 
 	DECLARE_DYNCREATE(CDownloadEditGeneralPage)
-	enum{ IDD = IDD_DOWNLOADEDITPAGE_GENERAL };
 
 // Attributes
 public:
+	enum{ IDD = IDD_DOWNLOADEDITPAGE_GENERAL };
 	CString m_sName;
 	CString m_sDiskName;
-	CString m_sFileSize;
 	CString m_sSearchKeyword;
 
 // Operations

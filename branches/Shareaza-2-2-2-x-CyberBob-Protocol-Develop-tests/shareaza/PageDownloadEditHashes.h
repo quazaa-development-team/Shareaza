@@ -34,12 +34,15 @@ public:
 // Attributes
 public:
 	enum{ IDD = IDD_DOWNLOADEDITPAGE_HASHES };
+	CString m_sFileSize;
 	CString m_sSHA1;
 	CString m_sTiger;
 	CString m_sED2K;
+	CString m_sMD5;
 	BOOL m_bSHA1Trusted;
 	BOOL m_bTigerTrusted;
 	BOOL m_bED2KTrusted;
+	BOOL m_bMD5Trusted;
 
 // Operations
 public:

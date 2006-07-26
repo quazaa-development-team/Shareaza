@@ -639,7 +639,7 @@
 #define IDC_URN_SHA1                    1362
 #define IDC_URN_TIGER                   1363
 #define IDC_URN_ED2K                    1364
-#define IDC_TORRENT_INFO                1365
+#define IDC_URN_MD5                     1365
 #define IDC_FORGET_VERIFY               1367
 #define IDC_FORGET_SOURCES              1368
 #define IDC_COMPLETE_AND_VERIFY         1369
@@ -688,6 +688,7 @@
 #define IDC_FILESIZE                    1421
 #define IDC_TRUST_TIGER                 1422
 #define IDC_TRUST_ED2K                  1423
+#define IDC_TRUST_MD5                   1424
 #define IDC_TORRENT_TRACKERMODE         1425
 #define IDC_ASSOCIATIONS                1426
 #define IDC_ENABLE_UPNP                 1428
@@ -1684,7 +1685,6 @@
 #define ID_DOWNLOADS_RATE               33105
 #define ID_LIBRARY_VIEW_COLLECTION      33106
 #define ID_LIBRARY_FOLDER_DOWNLOAD      33107
-#define ID_LIBRARY_FOLDER_EXPORT_COLLECTION 33108
 #define ID_LIBRARY_EXPORT_COLLECTION    33109
 #define ID_LIBRARY_SEED_TORRENT         33110
 #define ID_LIBRARY_REBUILD_ANSI         33111

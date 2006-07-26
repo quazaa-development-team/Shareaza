@@ -60,7 +60,6 @@ void CDownloadEditGeneralPage::DoDataExchange(CDataExchange* pDX)
 {
 	DDX_Text(pDX, IDC_NAME, m_sName);
 	DDX_Text(pDX, IDC_DISKNAME, m_sDiskName);
-	DDX_Text(pDX, IDC_FILESIZE, m_sFileSize);
 	DDX_Text(pDX, IDC_SEARCHKEYWORD, m_sSearchKeyword);
 }
 
@@ -70,8 +69,6 @@ BOOL CDownloadEditGeneralPage::OnInitDialog()
 
 	m_sName = m_pDownload->m_sDisplayName;
 	m_sDiskName = m_pDownload->m_sDiskName;
-	if ( m_pDownload->m_nSize != SIZE_UNKNOWN )
-		m_sFileSize.Format( _T("%I64i"), m_pDownload->m_nSize );
 	m_sSearchKeyword = m_pDownload->m_sSearchKeyword;
 
 	UpdateData( FALSE );
@@ -97,6 +94,7 @@ BOOL CDownloadEditGeneralPage::Commit()
 		if ( ! Downloads.Check( m_pDownload ) || m_pDownload->IsMoving() ) return FALSE;
 
 		m_pDownload->Rename( m_sName );
+		m_pDownload->SetModified();
 	}
 
 	if ( m_pDownload->m_sSearchKeyword != m_sSearchKeyword )
@@ -113,17 +111,6 @@ BOOL CDownloadEditGeneralPage::Commit()
 		m_pDownload->SetModified();
 	}
 
-	QWORD nNewSize = 0;
-    if ( _stscanf( m_sFileSize, _T("%I64i"), &nNewSize ) == 1 && nNewSize != m_pDownload->m_nSize )
-	{
-		pLock.Unlock();
-		LoadString( strMessage, IDS_DOWNLOAD_EDIT_CHANGE_SIZE );
-		if ( AfxMessageBox( strMessage, MB_ICONQUESTION|MB_YESNO ) != IDYES ) return FALSE;
-		pLock.Lock();
-		if ( ! Downloads.Check( m_pDownload ) || m_pDownload->IsMoving() ) return FALSE;
-		m_pDownload->m_nSize = nNewSize;
-		m_pDownload->SetModified();
-	}
 	return TRUE;
 }
 

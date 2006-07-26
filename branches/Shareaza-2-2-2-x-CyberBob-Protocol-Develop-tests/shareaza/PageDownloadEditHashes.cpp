@@ -62,12 +62,15 @@ CDownloadEditHashesPage::~CDownloadEditHashesPage()
 
 void CDownloadEditHashesPage::DoDataExchange(CDataExchange* pDX)
 {
+	DDX_Text(pDX, IDC_FILESIZE, m_sFileSize);
 	DDX_Text(pDX, IDC_URN_SHA1, m_sSHA1);
 	DDX_Text(pDX, IDC_URN_TIGER, m_sTiger);
 	DDX_Text(pDX, IDC_URN_ED2K, m_sED2K);
+	DDX_Text(pDX, IDC_URN_MD5, m_sMD5);
 	DDX_Check(pDX, IDC_TRUST_SHA1, m_bSHA1Trusted);
 	DDX_Check(pDX, IDC_TRUST_TIGER, m_bTigerTrusted);
 	DDX_Check(pDX, IDC_TRUST_ED2K, m_bED2KTrusted);
+	DDX_Check(pDX, IDC_TRUST_MD5, m_bMD5Trusted);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -76,16 +79,21 @@ BOOL CDownloadEditHashesPage::OnInitDialog()
 {
 	CDownloadEditPage::OnInitDialog();
 
+	if ( m_pDownload->m_nSize != SIZE_UNKNOWN )
+		m_sFileSize.Format( _T("%I64i"), m_pDownload->m_nSize );
 	if ( m_pDownload->m_oSHA1 )
 		m_sSHA1 = m_pDownload->m_oSHA1.toString();
 	if ( m_pDownload->m_oTiger )
 		m_sTiger = m_pDownload->m_oTiger.toString();
 	if ( m_pDownload->m_oED2K )
-        m_sED2K = m_pDownload->m_oED2K.toString();
+		m_sED2K = m_pDownload->m_oED2K.toString();
+	if ( m_pDownload->m_oMD5 )
+		m_sMD5 = m_pDownload->m_oMD5.toString();
 
 	m_bSHA1Trusted	=	m_pDownload->m_oSHA1.isTrusted();
 	m_bTigerTrusted	=	m_pDownload->m_oTiger.isTrusted();
 	m_bED2KTrusted	=	m_pDownload->m_oED2K.isTrusted();
+	m_bMD5Trusted	=	m_pDownload->m_oMD5.isTrusted();
 	
 	UpdateData( FALSE );
 
@@ -113,8 +121,10 @@ BOOL CDownloadEditHashesPage::Commit()
     oSHA1.fromString( m_sSHA1 );
     Hashes::TigerHash oTiger;
     oTiger.fromString( m_sTiger );
-    Hashes::Ed2kHash oED2K;
-    oED2K.fromString( m_sED2K );
+	Hashes::Ed2kHash oED2K;
+	oED2K.fromString( m_sED2K );
+	Hashes::Md5Hash oMD5;
+	oMD5.fromString( m_sMD5 );
 	
 	if ( m_sSHA1.GetLength() > 0 && !oSHA1 )
 	{
@@ -134,10 +144,32 @@ BOOL CDownloadEditHashesPage::Commit()
 		AfxMessageBox( strMessage, MB_ICONEXCLAMATION );
 		return FALSE;
 	}
+	else if ( m_sMD5.GetLength() > 0 && !oMD5 )
+	{
+		LoadString( strMessage, IDS_DOWNLOAD_EDIT_BAD_ED2K );
+		AfxMessageBox( strMessage, MB_ICONEXCLAMATION );
+		return FALSE;
+	}
 
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
     if ( ! Downloads.Check( m_pDownload ) || m_pDownload->IsMoving() ) return FALSE;
 
+
+	QWORD nNewSize = 0;
+	if ( _stscanf( m_sFileSize, _T("%I64i"), &nNewSize ) == 1 && nNewSize != m_pDownload->m_nSize )
+	{
+		pLock.Unlock();
+		LoadString( strMessage, IDS_DOWNLOAD_EDIT_CHANGE_SIZE );
+		if ( AfxMessageBox( strMessage, MB_ICONQUESTION|MB_YESNO ) != IDYES ) return FALSE;
+		pLock.Lock();
+		if ( ! Downloads.Check( m_pDownload ) || m_pDownload->IsMoving() ) return FALSE;
+		m_pDownload->m_nSize = nNewSize;
+
+		m_pDownload->CloseTransfers();
+		m_pDownload->ClearSources();
+		m_pDownload->ClearVerification();
+		m_pDownload->SetModified();
+	}
 
 	if ( m_pDownload->m_oSHA1.isValid() != oSHA1.isValid()
 		|| validAndUnequal( m_pDownload->m_oSHA1, oSHA1 ) )
@@ -152,7 +184,9 @@ BOOL CDownloadEditHashesPage::Commit()
 		if ( oSHA1 ) m_pDownload->m_oSHA1.signalTrusted();
 		
 		m_pDownload->CloseTransfers();
+		m_pDownload->ClearSources();
 		m_pDownload->ClearVerification();
+		m_pDownload->SetModified();
 	}
 	
 	if ( m_pDownload->m_oTiger.isValid() != oTiger.isValid()
@@ -168,7 +202,9 @@ BOOL CDownloadEditHashesPage::Commit()
 		if ( oTiger ) m_pDownload->m_oTiger.signalTrusted();
 		
 		m_pDownload->CloseTransfers();
+		m_pDownload->ClearSources();
 		m_pDownload->ClearVerification();
+		m_pDownload->SetModified();
 	}
 	
 	if ( m_pDownload->m_oED2K.isValid() != oED2K.isValid()
@@ -179,12 +215,34 @@ BOOL CDownloadEditHashesPage::Commit()
 		if ( AfxMessageBox( strMessage, MB_ICONQUESTION|MB_YESNO ) != IDYES ) return FALSE;
 		pLock.Lock();
 		if ( ! Downloads.Check( m_pDownload ) || m_pDownload->IsMoving() ) return FALSE;
-		
+
 		m_pDownload->m_oED2K = oED2K;
 		if ( oED2K ) m_pDownload->m_oED2K.signalTrusted();
-		
+
 		m_pDownload->CloseTransfers();
+		m_pDownload->ClearSources();
 		m_pDownload->ClearVerification();
+		m_pDownload->SetModified();
+	}
+
+	if ( m_pDownload->m_oMD5.isValid() != oMD5.isValid()
+		|| validAndUnequal( m_pDownload->m_oMD5, oMD5 ) )
+	{
+		pLock.Unlock();
+		//LoadString( strMessage, IDS_DOWNLOAD_EDIT_CHANGE_ED2K );
+		strMessage = "If you change MD5 hash, you might make your download undownloadable";
+		strMessage += "Are you Sure you wanna change MD5 hash?";
+		if ( AfxMessageBox( strMessage, MB_ICONQUESTION|MB_YESNO ) != IDYES ) return FALSE;
+		pLock.Lock();
+		if ( ! Downloads.Check( m_pDownload ) || m_pDownload->IsMoving() ) return FALSE;
+
+		m_pDownload->m_oMD5 = oMD5;
+		if ( oMD5 ) m_pDownload->m_oMD5.signalTrusted();
+
+		m_pDownload->CloseTransfers();
+		m_pDownload->ClearSources();
+		m_pDownload->ClearVerification();
+		m_pDownload->SetModified();
 	}
 
 	if ( m_bSHA1Trusted ) 
@@ -201,6 +259,11 @@ BOOL CDownloadEditHashesPage::Commit()
 		m_pDownload->m_oED2K.signalTrusted();
 	else
 		m_pDownload->m_oED2K.signalUntrusted();
+
+	if ( m_bMD5Trusted )
+		m_pDownload->m_oMD5.signalTrusted();
+	else
+		m_pDownload->m_oMD5.signalUntrusted();
 
 	return TRUE;
 }

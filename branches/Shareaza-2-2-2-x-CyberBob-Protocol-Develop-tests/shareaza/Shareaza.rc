@@ -127,8 +127,8 @@ IDI_COLORS              ICON                    "res\\colors.ico"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,2,2,23
- PRODUCTVERSION 2,2,2,23
+ FILEVERSION 2,2,2,24
+ PRODUCTVERSION 2,2,2,24
  FILEFLAGSMASK 0x1fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -146,12 +146,12 @@ BEGIN
             VALUE "Comments", "Shareaza Ultimate File Sharing"
             VALUE "CompanyName", "Shareaza Development Team"
             VALUE "FileDescription", "Shareaza Ultimate File Sharing"
-            VALUE "FileVersion", "2, 2, 2, 23"
+            VALUE "FileVersion", "2, 2, 2, 24"
             VALUE "InternalName", "Shareaza"
             VALUE "LegalCopyright", "Copyright © Shareaza Development Team, 2002-2005."
             VALUE "OriginalFilename", "Shareaza.exe"
             VALUE "ProductName", "Shareaza"
-            VALUE "ProductVersion", "2, 2, 2, 23"
+            VALUE "ProductVersion", "2, 2, 2, 24"
         END
     END
     BLOCK "VarFileInfo"
@@ -2941,19 +2941,16 @@ STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Property Page"
 FONT 8, "Tahoma", 400, 0, 0x0
 BEGIN
-    LTEXT           "",IDC_STATIC,53,45,90,8
-    GROUPBOX        "Filename and Si&ze:",IDC_STATIC,8,49,258,50,WS_GROUP
-    LTEXT           "Filename:",IDC_STATIC,16,63,59,10
-    EDITTEXT        IDC_NAME,75,61,186,12,ES_AUTOHSCROLL
-    EDITTEXT        IDC_DISKNAME,76,147,184,12,ES_AUTOHSCROLL | ES_READONLY
-    LTEXT           "Filesize (Byte):",IDC_STATIC,15,80,156,11
-    EDITTEXT        IDC_FILESIZE,171,79,89,12,ES_RIGHT | ES_AUTOHSCROLL
-    PUSHBUTTON      "Apply",IDC_DOWNLOADEDITPAGE_GENERAL_APPLY,207,166,59,12
     LTEXT           "WARNING: This dialog provides advanced download editing features for power users which if used incorrectly can and probably will cause corruption.",
                     IDC_STATIC,8,11,258,32
-    LTEXT           "DiskName:",IDC_STATIC,14,149,59,9
-    EDITTEXT        IDC_SEARCHKEYWORD,76,120,184,12,ES_AUTOHSCROLL
-    LTEXT           "SearchKeyword:",IDC_STATIC,14,122,59,9
+    GROUPBOX        "Filename and Keywords:",IDC_STATIC,8,49,258,67,WS_GROUP
+    LTEXT           "Filename:",IDC_STATIC,16,63,59,10
+    EDITTEXT        IDC_NAME,74,61,185,12,ES_AUTOHSCROLL
+    LTEXT           "DiskName:",IDC_STATIC,12,98,59,9
+    EDITTEXT        IDC_DISKNAME,74,96,185,12,ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "SearchKeywords:",IDC_STATIC,14,81,59,9
+    EDITTEXT        IDC_SEARCHKEYWORD,74,79,185,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "Apply",IDC_DOWNLOADEDITPAGE_GENERAL_APPLY,207,166,59,12
 END
 
 IDD_DOWNLOADEDITPAGE_HASHES DIALOGEX 0, 0, 273, 191
@@ -2961,22 +2958,28 @@ STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Property Page"
 FONT 8, "Tahoma", 400, 0, 0x0
 BEGIN
-    GROUPBOX        "&URNs:",IDC_STATIC,8,49,258,106,WS_GROUP
-    LTEXT           "Trusted Flags:",IDC_STATIC,14,123,62,11
-    LTEXT           "SHA1:",IDC_STATIC,14,65,36,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_URN_SHA1,56,65,201,12,ES_AUTOHSCROLL
-    CONTROL         "SHA1",IDC_TRUST_SHA1,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,81,124,41,8
-    LTEXT           "Tiger-Root:",IDC_STATIC,14,83,36,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_URN_TIGER,56,83,201,12,ES_AUTOHSCROLL
-    CONTROL         "Tiger-Root",IDC_TRUST_TIGER,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,134,124,48,8
-    LTEXT           "ED2K:",IDC_STATIC,14,101,36,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_URN_ED2K,56,101,201,12,ES_AUTOHSCROLL
-    CONTROL         "ED2K",IDC_TRUST_ED2K,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,192,124,54,8
     LTEXT           "WARNING: This dialog provides advanced download editing features for power users which if used incorrectly can and probably will cause corruption.",
                     IDC_STATIC,8,11,258,33
+    GROUPBOX        "&URNs:",IDC_STATIC,7,48,259,114,WS_GROUP
+    LTEXT           "Filesize (Byte):",IDC_STATIC,15,59,110,11
+    EDITTEXT        IDC_FILESIZE,153,58,104,12,ES_RIGHT | ES_AUTOHSCROLL
+    LTEXT           "SHA1:",IDC_STATIC,14,76,36,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_URN_SHA1,56,76,201,12,ES_AUTOHSCROLL
+    LTEXT           "Tiger-Root:",IDC_STATIC,14,93,36,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_URN_TIGER,56,93,201,12,ES_AUTOHSCROLL
+    LTEXT           "ED2K:",IDC_STATIC,14,110,36,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_URN_ED2K,56,110,201,12,ES_AUTOHSCROLL
+    LTEXT           "MD5:",IDC_STATIC,14,128,36,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_URN_MD5,56,128,201,12,ES_AUTOHSCROLL
+    LTEXT           "Trusted Flags:",IDC_STATIC,14,146,62,11
+    CONTROL         "SHA1",IDC_TRUST_SHA1,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,64,147,33,8
+    CONTROL         "Tiger-Root",IDC_TRUST_TIGER,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,99,147,48,8
+    CONTROL         "ED2K",IDC_TRUST_ED2K,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,150,147,34,8
+    CONTROL         "MD5",IDC_TRUST_MD5,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,184,147,34,8
     PUSHBUTTON      "Apply",IDC_DOWNLOADEDITPAGE_HASHES_APPLY,207,166,59,12
 END
 
@@ -2985,7 +2988,10 @@ STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Property Page"
 FONT 8, "Tahoma", 400, 0, 0x0
 BEGIN
+    LTEXT           "WARNING: This dialog provides advanced download editing features for power users which if used incorrectly can and probably will cause corruption.",
+                    IDC_STATIC,8,11,258,32
     GROUPBOX        "&Actions:",IDC_STATIC,8,49,258,78,WS_GROUP
+    LTEXT           "Purge Hashset",IDC_PURGE_HASHSET,14,63,236,8
     LTEXT           "Forget current verification status and reverify",
                     IDC_FORGET_VERIFY,14,75,236,8
     LTEXT           "Assume file is 100% complete and reverify",
@@ -3000,9 +3006,6 @@ BEGIN
     CTEXT           "to",IDC_STATIC,128,145,12,12,SS_CENTERIMAGE
     EDITTEXT        IDC_ERASE_TO,141,145,65,12,ES_AUTOHSCROLL
     PUSHBUTTON      "Erase",IDC_ERASE,214,144,40,15
-    LTEXT           "WARNING: This dialog provides advanced download editing features for power users which if used incorrectly can and probably will cause corruption.",
-                    IDC_STATIC,8,11,258,32
-    LTEXT           "Purge Hashset",IDC_PURGE_HASHSET,14,63,236,8
 END
 
 IDD_SETTINGS_REMOTE DIALOGEX 0, 0, 282, 220
@@ -5961,10 +5964,8 @@ BEGIN
                             "Show the rich collection view\nCollection View"
     ID_LIBRARY_FOLDER_DOWNLOAD 
                             "Download all files in the selected collection."
-    ID_LIBRARY_FOLDER_EXPORT_COLLECTION 
-                            "Export the selected album folder as a collection file..."
     ID_LIBRARY_EXPORT_COLLECTION 
-                            "Export the selected album folder to a collection file..."
+                            "Export the selected album folder to collection files..."
     ID_LIBRARY_SEED_TORRENT "Seed the selected Torrent on BitTorrent."
     ID_LIBRARY_REBUILD_ANSI "Rebuild metadata using other language."
     ID_DOWNLOADS_EDIT       "Show the advanced edit download interface..."
