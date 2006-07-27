@@ -963,23 +963,7 @@ BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 		{
 			CHAR szVendor[5] = { 0, 0, 0, 0, 0 };
 			pPacket->Read( szVendor, 4 );
-			CVendor * pVendor;
-
-			pVendor = VendorCache.Lookup( szVendor );
-
-			if ( m_pVendor == NULL )
-			{
-				m_pVendor = pVendor;
-			}
-			else
-			{
-				m_pVendor->m_bAuto = pVendor->m_bAuto;
-				m_pVendor->m_bChatFlag = pVendor->m_bChatFlag;
-				m_pVendor->m_bHTMLBrowse = pVendor->m_bHTMLBrowse;
-				m_pVendor->m_sCode = pVendor->m_sCode;
-				m_pVendor->m_sLink = pVendor->m_sLink;
-				m_pVendor->m_sName = pVendor->m_sName;
-			}
+			m_pVendor = VendorCache.Lookup( szVendor );
 		}
 		else if ( strcmp( szType, "LS" ) == 0 && nLength >= 8 )
 		{
