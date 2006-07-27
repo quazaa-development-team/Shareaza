@@ -100,26 +100,25 @@ int CDownloadWithSources::GetSourceCount(BOOL bNoPush, BOOL bSane) const
 	return nCount;
 }
 
-int CDownloadWithSources::GetG2SourceCount(BOOL bNoPush) const
+int CDownloadWithSources::GetG2SourceCount(BOOL bNoPush, BOOL bSane) const
 {
 	DWORD tNow = GetTickCount();
 	int nCount = 0;
 
 	for ( CDownloadSource* pSource = m_pSourceFirst ; pSource ; pSource = pSource->m_pNext )
 	{
-		if ( ( pSource->m_nProtocol == PROTOCOL_G2 ) &&									// Only counting G2 sources
-			( pSource->m_tAttempt < tNow || pSource->m_tAttempt - tNow <= 900000 ) &&	// Don't count dead sources
-			( ! pSource->m_bPushOnly || ! bNoPush ) )									// Push sources might not be counted
+		if ( ( pSource->m_nProtocol == PROTOCOL_G2 ) &&		// Only counting G2 sources
+			( ! pSource->m_bPushOnly || ! bNoPush ) )		// Push sources might not be counted
 		{
-			nCount++;
+			if ( ! bSane ||
+				pSource->m_tAttempt < tNow ||
+				pSource->m_tAttempt - tNow <= 900000 )
+			{
+				nCount++;
+			}
 		}
 	}
 
-	/*
-	CString strT;
-	strT.Format(_T("BT sources: %i"), nCount);
-	theApp.Message( MSG_DEBUG, strT );
-	*/
 	return nCount;
 }
 
@@ -596,8 +595,16 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 				
 				if ( pExisting->m_nProtocol == pSource->m_nProtocol )
 				{
-					pExisting->m_pHubList = pSource->m_pHubList;
-					pExisting->m_pPushProxyList = pSource->m_pPushProxyList;
+					if ( !pSource->m_pHubList.empty() )
+					{
+						pExisting->m_pHubList = pSource->m_pHubList;
+						pExisting->m_nPushAttempted = 0;
+					}
+					if ( !pSource->m_pPushProxyList.empty() )
+					{
+						pExisting->m_pPushProxyList = pSource->m_pPushProxyList;
+						pExisting->m_nPushAttempted = 0;
+					}
 					pExisting->m_oGUID = pSource->m_oGUID;
 					bDeleteSource = true;
 				}
