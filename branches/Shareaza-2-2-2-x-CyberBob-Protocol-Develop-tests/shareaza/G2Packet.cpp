@@ -511,9 +511,9 @@ void CG2Packet::Debug(LPCTSTR pszReason) const
 {
 #ifdef _DEBUG
 
-	CString strOutput;
-	strOutput.Format( L"[G2]: '%s' %s %s", pszReason, GetType(), (LPCTSTR)ToASCII() );
-	CPacket::Debug( strOutput );
+	// CString strOutput;
+	// strOutput.Format( L"[G2]: '%s' %s %s", pszReason, GetType(), (LPCTSTR)ToASCII() );
+	// CPacket::Debug( strOutput );
 #else
 	pszReason;
 #endif

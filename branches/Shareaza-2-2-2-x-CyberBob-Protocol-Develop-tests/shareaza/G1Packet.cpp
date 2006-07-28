@@ -244,9 +244,9 @@ void CG1Packet::Debug(LPCTSTR pszReason) const
 #ifdef _DEBUG
 
 	// Local objects
-	CString strOutput; // We'll compose text that describes what happened here
-	strOutput.Format( L"[G1]: '%s' %s [%i/%i] %s", pszReason, GetType(), m_nTTL, m_nHops, (LPCTSTR)ToASCII() );
-	CPacket::Debug( strOutput );
+	// CString strOutput; // We'll compose text that describes what happened here
+	// strOutput.Format( L"[G1]: '%s' %s [%i/%i] %s", pszReason, GetType(), m_nTTL, m_nHops, (LPCTSTR)ToASCII() );
+	// CPacket::Debug( strOutput );
 #else
 	pszReason;
 // Go back to including all the lines in the program

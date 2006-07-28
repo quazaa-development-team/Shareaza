@@ -635,6 +635,7 @@ BOOL CDatagrams::OnDatagram(SOCKADDR_IN* pHost, BYTE* pBuffer, DWORD nLength)
 		pG1Packet->SmartDump( NULL, &pHost->sin_addr, FALSE );
 		if ( OnPacket( pHost, pG1Packet ) )
 		{
+			pG1Packet->Release();
 			return TRUE;
 		}
 		else
