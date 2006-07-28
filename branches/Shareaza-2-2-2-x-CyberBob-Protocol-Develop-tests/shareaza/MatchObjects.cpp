@@ -218,26 +218,26 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 
 		if ( pHit->m_oSHA1 )
 		{
-			pFile = FindFileAndAddHit( pHit, findType::fSHA1, &Stats );
+			pFile = FindFileAndAddHit( pHit, fSHA1, &Stats );
 		}
-		if ( pFile == NULL && pHit->m_oTiger )
+		else if ( pFile == NULL && pHit->m_oTiger )
 		{
-			pFile = FindFileAndAddHit( pHit, findType::fTiger, &Stats );
+			pFile = FindFileAndAddHit( pHit, fTiger, &Stats );
 		}
-		if ( pFile == NULL && pHit->m_oED2K )
+		else if ( pFile == NULL && pHit->m_oED2K )
 		{
-			pFile = FindFileAndAddHit( pHit, findType::fED2K, &Stats );
+			pFile = FindFileAndAddHit( pHit, fED2K, &Stats );
 		}
-		if ( pFile == NULL && pHit->m_oMD5 )
+		else if ( pFile == NULL && pHit->m_oMD5 )
 		{
-			pFile = FindFileAndAddHit( pHit, findType::fMD5, &Stats );
+			pFile = FindFileAndAddHit( pHit, fMD5, &Stats );
 		}
 		
 		if ( pFile == NULL
             && ( ( !pHit->m_oSHA1 && !pHit->m_oTiger && ! pHit->m_oED2K && ! pHit->m_oMD5 )
                 || !Settings.General.HashIntegrity ) )
 		{
-			pFile = FindFileAndAddHit( pHit, findType::fSize, &Stats );
+			pFile = FindFileAndAddHit( pHit, fSize, &Stats );
 		}
 		
 		if ( pFile != NULL ) // New hit for the existing file
@@ -325,19 +325,19 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 			pFile->m_pNextSHA1 = *pMap;
 			*pMap = pFile;
 		}
-		if ( ! Stats.bHadTiger && pFile->m_oTiger )
+		else if ( ! Stats.bHadTiger && pFile->m_oTiger )
 		{
 			pMap = m_pMapTiger + pFile->m_oTiger[ 0 ];
 			pFile->m_pNextTiger = *pMap;
 			*pMap = pFile;
 		}
-		if ( ! Stats.bHadED2K && pFile->m_oED2K )
+		else if ( ! Stats.bHadED2K && pFile->m_oED2K )
 		{
 			pMap = m_pMapED2K + pFile->m_oED2K[ 0 ];
 			pFile->m_pNextED2K = *pMap;
 			*pMap = pFile;
 		}
-		if ( ! Stats.bHadMD5 && pFile->m_oMD5 )
+		else if ( ! Stats.bHadMD5 && pFile->m_oMD5 )
 		{
 			pMap = m_pMapMD5 + pFile->m_oMD5[ 0 ];
 			pFile->m_pNextMD5 = *pMap;
@@ -377,11 +377,11 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 	CMatchFile **pMap, *pSeek;
 	CMatchFile* pFile = NULL;
 
-	bool bSHA1	= nFindFlag == findType::fSHA1 && pHit->m_oSHA1;
-	bool bTiger	= nFindFlag == findType::fTiger && pHit->m_oTiger;
-	bool bED2K	= nFindFlag == findType::fED2K && pHit->m_oED2K;
-	bool bMD5	= nFindFlag == findType::fMD5 && pHit->m_oMD5;
-	bool bSize	= nFindFlag == findType::fSize;
+	bool bSHA1	= nFindFlag == fSHA1 && pHit->m_oSHA1;
+	bool bTiger	= nFindFlag == fTiger && pHit->m_oTiger;
+	bool bED2K	= nFindFlag == fED2K && pHit->m_oED2K;
+	bool bMD5	= nFindFlag == fMD5 && pHit->m_oMD5;
+	bool bSize	= nFindFlag == fSize;
 
 	if ( bSHA1 )
 		pMap = m_pMapSHA1 + pHit->m_oSHA1[ 0 ];
@@ -399,11 +399,12 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 		return NULL;
 	}
 
-	bool bValid = false;
 
 	for ( pSeek = *pMap ; pSeek ; )
 	{
-		if ( bSHA1 )
+	// Does not look like it is checking All avilable hash
+	// bool bValid = false;
+	/*	if ( bSHA1 )
 			bValid = validAndEqual( pSeek->m_oSHA1, pHit->m_oSHA1 );
 		else if ( bTiger )
 			bValid = validAndEqual( pSeek->m_oTiger, pHit->m_oTiger );
@@ -413,8 +414,20 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 			bValid = validAndEqual( pSeek->m_oMD5, pHit->m_oMD5 );
 		else if ( bSize )
 			bValid = pSeek->m_nSize == pHit->m_nSize;
+	*/
 
-		if ( bValid )
+		// this should be the one for it.
+		bool bSHA1Valid = ( pSeek->m_oSHA1 && pHit->m_oSHA1 );
+		bool bTigerValid = ( pSeek->m_oTiger && pHit->m_oTiger );
+		bool bED2KValid = ( pSeek->m_oED2K && pHit->m_oED2K );
+		bool bMD5Valid = ( pSeek->m_oMD5 && pHit->m_oMD5 );
+		bool bSizeValid = ( pSeek->m_nSize != SIZE_UNKNOWN && pHit->m_nSize != SIZE_UNKNOWN &&
+							pSeek->m_nSize != 0 && pHit->m_nSize != 0 );
+		if ( ( ( bSHA1Valid && validAndEqual( pSeek->m_oSHA1, pHit->m_oSHA1 ) ) ||
+			( bTigerValid && validAndEqual( pSeek->m_oTiger, pHit->m_oTiger ) ) ||
+			( bED2KValid && validAndEqual( pSeek->m_oED2K, pHit->m_oED2K ) ) ||
+			( bMD5Valid && validAndEqual( pSeek->m_oMD5, pHit->m_oMD5 ) ) ) &&
+			( bSizeValid && pSeek->m_nSize == pHit->m_nSize ) )
 		{
 
 			Stats->nHadCount	= pSeek->GetItemCount();
