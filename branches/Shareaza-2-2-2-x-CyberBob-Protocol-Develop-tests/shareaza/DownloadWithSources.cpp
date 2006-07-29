@@ -535,7 +535,7 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 	if ( ! pSource->m_bPushOnly )
 	{
 		//Reject invalid IPs (Sometimes ed2k sends invalid 0.x.x.x sources)
-		if ( pSource->m_pAddress.S_un.S_un_b.s_b1 == 0 )
+		if ( pSource->m_pAddress.S_un.S_un_b.s_b1 == 0 || pSource->m_nPort == 0 )
 		{
 			delete pSource;
 			return FALSE;
@@ -555,12 +555,18 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 	else if ( pSource->m_nProtocol == PROTOCOL_ED2K )
 	{
 		//Reject invalid server IPs (Sometimes ed2k sends invalid 0.x.x.x sources)
+
+		// CyberBob note: not sure if this is good idea or not, because there is some possibility that the client 
+		//                without server connection exist.  e.g. Kad node, Shareaza with server disconnected, etc...
 		if ( pSource->m_pServerAddress.S_un.S_un_b.s_b1 == 0 )
 		{
-			delete pSource;
-			return FALSE;
+			// commented out for Test reason (CyberBob)
+			//delete pSource;
+			//return FALSE;
 		}
-		if ( pSource->m_bPushOnly )
+		// CyberBob note: this is because Shareaza somehow can not connect to FW node with PUSH but this is actually better be in
+		//				  settings to control action.
+		if ( pSource->m_bPushOnly && Settings.Downloads.IgnoreED2KPushSource )
 		{
 			delete pSource;
 			return FALSE;

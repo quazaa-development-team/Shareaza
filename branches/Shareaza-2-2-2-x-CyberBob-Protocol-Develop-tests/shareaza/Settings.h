@@ -442,6 +442,7 @@ public:
 		BOOL		SortSources;				// Automatically sort sources (Status, protocol, queue)
 		int			SourcesWanted;				// Number of sources Shareaza 'wants'. (Will not request more than this number of sources from ed2k/BT)
 		int			MaxReviews;					// Maximum number of reviews to store per download
+		BOOL		IgnoreED2KPushSource;
 	} Downloads;
 	
 	struct sUploads
