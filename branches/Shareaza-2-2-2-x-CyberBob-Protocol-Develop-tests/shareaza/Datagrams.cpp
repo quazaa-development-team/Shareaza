@@ -252,11 +252,12 @@ BOOL CDatagrams::Send(SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease, LPVOI
 		pPacket->SmartDump( NULL, &pHost->sin_addr, TRUE );
 		if ( bRelease ) pPacket->Release();
 
-		if ( ntohs( pHost->sin_port ) != 4669 )	// Hack
-		{
+		// Do not really get what kind of Hack it is.
+		// if ( ntohs( pHost->sin_port ) != 4669 )	// Hack
+		//{
 			sendto( m_hSocket, (LPSTR)pBuffer.m_pBuffer, pBuffer.m_nLength, 0,
 				(SOCKADDR*)pHost, sizeof(SOCKADDR_IN) );
-		}
+		//}
 
 		return TRUE;
 	}
@@ -1209,7 +1210,84 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 
 BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 {
-	//TODO
+	Statistics.Current.Gnutella1.PongsReceived++;
+	// If the pong is too short, or the pong is too long and settings say we should watch that
+	if ( pPacket->m_nLength < 14 || ( pPacket->m_nLength > 14 && Settings.Gnutella1.StrictPackets && !Settings.Gnutella1.EnableGGEP ) )
+	{
+		// Pong packets should be 14 bytes long, drop this strangely sized one
+		theApp.Message( MSG_ERROR, IDS_PROTOCOL_SIZE_PONG, (LPCTSTR)inet_ntoa( pHost->sin_addr ) );
+		Statistics.Current.Gnutella1.Dropped++;
+		return TRUE; // Don't disconnect from the remote computer, though
+	}
+
+	// Read information from the pong packet
+	WORD nPort     = pPacket->ReadShortLE(); // 2 bytes, port number (do) of us? the remote computer? the computer that sent the packet?
+	DWORD nAddress = pPacket->ReadLongLE();  // 4 bytes, IP address
+	DWORD nFiles   = pPacket->ReadLongLE();  // 4 bytes, the number of files the source computer is sharing
+	DWORD nVolume  = pPacket->ReadLongLE();  // 4 bytes, the total size of all those files
+
+	// If that IP address is in our list of computers to not talk to
+	if ( Security.IsDenied( (IN_ADDR*)&nAddress ) )
+	{
+		// Record the packet as dropped, do nothing else, and leave now
+		Statistics.Current.Gnutella1.Dropped++;
+		return TRUE;
+	}
+
+	// If the pong is bigger than 14 bytes, and the remote compuer told us in the handshake it supports GGEP blocks
+	if ( pPacket->m_nLength > 14 && Settings.Gnutella1.EnableGGEP )
+	{
+		CGGEPBlock pGGEP;
+		// There is a GGEP block here, and checking and adjusting the TTL and hops counts worked
+		if ( pGGEP.ReadFromPacket( pPacket ) )
+		{
+			CGGEPItem* pIPPs = pGGEP.Find( L"IPP", 6 );
+			// GDNA has a bug in their code; they send DIP but receive DIPP
+			CGGEPItem* pGDNAs = pGGEP.Find( L"DIPP", 6 );
+			if ( !pGDNAs ) pGDNAs = pGGEP.Find( L"DIP", 6 );
+
+			// We got a response to SCP extension, add hosts to cache if IPP extension exists
+			while ( pIPPs || pGDNAs )
+			{
+				CGGEPItem* pItem = pIPPs ? pIPPs : pGDNAs;
+				CString str = pGDNAs ? L"GDNA" : L"G1";
+				// The first four bytes represent the IP address and the last two represent the port
+				// The length of the number of bytes of IPP must be divisible by 6
+				if ( ( pItem->m_nLength - pItem->m_nPosition ) % 6 == 0 )
+				{
+					while ( pItem->m_nPosition != pItem->m_nLength )
+					{
+						DWORD nAddress = 0;
+						WORD nPort = 0;
+						pItem->Read( (void*)&nAddress, 4 );
+						pItem->Read( (void*)&nPort, 2 );
+						if ( ! Network.IsFirewalledAddress( (IN_ADDR*)&nAddress, TRUE ) && 
+							! Network.IsReserved( (IN_ADDR*)&nAddress ) && nPort != 0 )
+						{
+							theApp.Message( MSG_DEBUG, _T("Got %s host through pong (%s:%i)"), 
+								(LPCTSTR)str, (LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nAddress ) ), nPort ); 
+							HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, nPort, 0, pGDNAs ? (LPCTSTR)str : NULL );
+							// Add to separate cache to have a quick access only to GDNAs
+							if ( pGDNAs )
+								HostCache.G1DNA.Add( (IN_ADDR*)&nAddress, nPort, 0, (LPCTSTR)str );
+						}
+					}
+				}
+				if ( pIPPs )
+					pIPPs = NULL;
+				else if ( pGDNAs )
+					pGDNAs = NULL;
+			}
+		}
+		else
+		{
+			// It's not, drop the packet, but stay connected
+			theApp.Message( MSG_ERROR, IDS_PROTOCOL_GGEP_REQUIRED, (LPCTSTR)inet_ntoa( pHost->sin_addr ) );
+			Statistics.Current.Gnutella1.Dropped++;
+			return TRUE;
+		}
+	}
+
 	return TRUE;
 }
 
