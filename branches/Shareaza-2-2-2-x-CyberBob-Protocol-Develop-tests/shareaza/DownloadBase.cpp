@@ -86,7 +86,14 @@ void CDownloadBase::GenerateDiskName()
 	m_sSafeName = CDownloadTask::SafeFilename( m_sDisplayName.Right( 64 ) );
 
 	// Start disk file name with hash
-	if ( m_oSHA1 ) 
+	if ( m_oSHA1 && m_oTiger ) 
+	{
+		m_sDiskName += _T("bitprint_");
+		m_sDiskName += m_oSHA1.toString();
+		m_sDiskName += _T(".");
+		m_sDiskName += m_oTiger.toString();
+	}
+	else if ( m_oSHA1 ) 
 	{
 		m_sDiskName += _T("sha1_");
 		m_sDiskName += m_oSHA1.toString();
