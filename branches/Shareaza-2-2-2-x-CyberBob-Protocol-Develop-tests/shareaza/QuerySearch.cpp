@@ -1431,7 +1431,7 @@ void CQuerySearch::MakeKeywords(CString& strPhrase, bool bExpression)
 		{
 			if ( nPos > nPrevWord )
 			{
-				ASSERT( !str.IsEmpty() );
+				ASSERT( str.GetLength() );
 				TCHAR sz = TCHAR( str.Right( 2 ).GetAt( 0 ) );
 				if ( boundary[ 0 ] && _tcschr( L" -\"", sz ) != NULL &&
 					!_istdigit( TCHAR( str.Right( nPos < 3 ? 1 : 3 ).GetAt( 0 ) ) ) )
@@ -1448,7 +1448,7 @@ void CQuerySearch::MakeKeywords(CString& strPhrase, bool bExpression)
 						str.Append( L" " );
 				}
 				ASSERT( strPhrase.GetLength() > nPos - 1 );
-				if ( _tcschr( L"-", strPhrase.GetAt( nPos - 1 ) ) != NULL )
+				if ( _tcschr( L"-", strPhrase.GetAt( nPos - 1 ) ) != NULL && nPos > 1 )
 				{
 					ASSERT( strPhrase.GetLength() > nPos - 2 );
 					if ( *pszPtr != ' ' && strPhrase.GetAt( nPos - 2 ) != ' ' )
@@ -1464,7 +1464,8 @@ void CQuerySearch::MakeKeywords(CString& strPhrase, bool bExpression)
 				else
 				{
 					str += strPhrase.Mid( nPrevWord, nPos - nPrevWord );
-					if ( ( boundary[ 0 ] & ( sHiragana | sKatakana | sKanji ) && !bNegative ) || !bExpression )
+					if ( boundary[ 1 ] == sNone && !bCharacter || *pszPtr == ' ' || !bExpression ||
+						 ( boundary[ 0 ] & ( sHiragana | sKatakana | sKanji ) && !bNegative ) )
 						str.Append( L" " );
 				}
 			}
