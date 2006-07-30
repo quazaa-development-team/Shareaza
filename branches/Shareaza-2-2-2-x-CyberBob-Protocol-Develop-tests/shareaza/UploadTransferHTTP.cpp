@@ -323,7 +323,7 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		}
 		m_oGUID.validate();
 	}
-	else if ( strHeader.CompareNoCase( _T("X-Hubs") ) == 0 )
+	else if ( strHeader.CompareNoCase( _T("X-G2NH") ) == 0 )
 	{	
 		// The remote computer is giving us a list of G2 hubs the remote node is connected to
 		// Not really Useful here because there is no way to find/store both Hub address and
@@ -984,7 +984,7 @@ void CUploadTransferHTTP::SendDefaultHeaders()
 		CNeighbour * NHubs;
 		CString strPort;
 		int nHubCount = 0;
-		strLine = "X-Hubs: ";
+		strLine = "X-G2NH: ";
 
 		CSingleLock pNetLock( &Network.m_pSection );
 		if ( pNetLock.Lock( 50 ) )

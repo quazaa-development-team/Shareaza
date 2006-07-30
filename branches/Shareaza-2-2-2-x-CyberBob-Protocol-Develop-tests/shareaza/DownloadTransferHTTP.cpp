@@ -364,7 +364,7 @@ BOOL CDownloadTransferHTTP::SendRequest()
 		CNeighbour * NHubs;
 		CString strPort;
 		int nHubCount = 0;
-		strLine = "X-Hubs: ";
+		strLine = "X-G2NH: ";
 
 		CSingleLock pNetLock( &Network.m_pSection );
 		if ( pNetLock.Lock( 50 ) )
@@ -1127,7 +1127,7 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 	{
 		m_pSource->SetGnutella( 1 );
 	}
-	else if ( strHeader.CompareNoCase( _T("X-Hubs") ) == 0 )
+	else if ( strHeader.CompareNoCase( _T("X-G2NH") ) == 0 )
 	{	// The remote computer is giving us a list of G2 hubs the remote node is connected to
 		int nCount = 0;
 		CDownloadSource::HubList pHubs;
