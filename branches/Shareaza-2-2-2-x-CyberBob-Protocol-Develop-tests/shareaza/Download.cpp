@@ -609,7 +609,8 @@ BOOL CDownload::Save(BOOL bFlush)
 	
 	if ( m_bComplete ) return TRUE;
 	
-	// GenerateDiskName();   <- this is the Stupid one which is very very dangerous to cause Loss of Download by Over writing
+	if ( m_sDiskName.GetLength() == 0 )  // <- Condition added (CyberBob); this is needed to solve the problem below...
+	GenerateDiskName();		//<- this is very very dangerous to cause Loss of Download by Over writing
 							// existing SD file by different file.
 							// Example of Situation cause trouble.
 							// having same file, assume file A, and B
@@ -620,6 +621,7 @@ BOOL CDownload::Save(BOOL bFlush)
 							// Info gets messed up, plus leave SD file named same as File B, so it just leave the file which cause
 							// File error all the time, when Shareaza gets exit before the download complete(Complete download might
 							// have missing Chunk anyway... so the downloaded file will be broken most of times.)
+							// To solve this problem, need some FileExistance check is required.
 	::DeleteFile( m_sDiskName + _T(".sd.sav") );
 	
 	if ( ! pFile.Open( m_sDiskName + _T(".sd.sav"),
