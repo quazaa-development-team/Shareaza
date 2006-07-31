@@ -648,7 +648,7 @@
 #define IDC_ERASE                       1372
 #define IDC_MERGE_AND_VERIFY            1373
 #define IDC_THROTTLE_MODE               1374
-#define IDC_PURGE_HASHSET               1374
+#define IDC_PURGE_HASHSET               1375
 #define IDC_REMOTE_ENABLE               1377
 #define IDC_REMOTE_USERNAME             1378
 #define IDC_REMOTE_PASSWORD             1379
