@@ -176,7 +176,7 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 		
 		if ( pFilter != NULL )
 		{
-			if ( BOOL bName = _tcsistr( pFilter->m_sKeywords, pHit->m_sName ) == 0 )
+			if ( BOOL bName = _tcsistr( pFilter->m_sSearch, pHit->m_sName ) != 0 )
 				pHit->m_bExactMatch = TRUE;
 
 			pHit->m_bMatched = pFilter->Match(
@@ -193,7 +193,7 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 				continue;
 			}
 			
-			if ( Settings.Search.SchemaTypes && pFilter->m_pSchema && ! pHit->m_bBogus )
+			if ( Settings.Search.SchemaTypes && pFilter->m_pSchema && ! pHit->m_bMatched )
 			{
 				if ( pFilter->m_pSchema->CheckURI( pHit->m_sSchemaURI ) )
 				{

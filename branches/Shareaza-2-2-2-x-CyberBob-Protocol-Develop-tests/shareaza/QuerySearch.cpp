@@ -1012,30 +1012,66 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 
 BOOL CQuerySearch::Match(LPCTSTR pszFilename, QWORD nSize, LPCTSTR pszSchemaURI, CXMLElement* pXML, const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, const Hashes::Ed2kHash& oED2K, const Hashes::Md5Hash& oMD5)
 {
+
+	BOOL bHashCheck = FALSE;
+
 	if ( nSize < m_nMinSize || nSize > m_nMaxSize ) return FALSE;
-	
-	if ( m_oSHA1 )
+
+	if ( m_oSHA1 && oSHA1 )
 	{
-		return validAndEqual( m_oSHA1, oSHA1 );
+		if ( m_oSHA1 != oSHA1 )
+		{
+			return FALSE;
+		}
+		else
+		{
+			bHashCheck = TRUE;
+		}
 	}
-	else if ( m_oTiger )
+
+	if ( m_oTiger && oTiger )
 	{
-		return validAndEqual( oTiger, m_oTiger );
+		if ( m_oTiger != oTiger )
+		{
+			return FALSE;
+		}
+		else
+		{
+			bHashCheck = TRUE;
+		}
 	}
-	else if ( m_oED2K )
+
+	if ( m_oED2K && oED2K )
 	{
-		return validAndEqual( oED2K, m_oED2K );
+		if ( m_oED2K != oED2K )
+		{
+			return FALSE;
+		}
+		else
+		{
+			bHashCheck = TRUE;
+		}
 	}
-	else if ( m_oMD5 )
+
+	if ( m_oMD5 && oMD5 )
 	{
-		return validAndEqual( oMD5, m_oMD5 );
+		if ( m_oMD5 != oMD5 )
+		{
+			return FALSE;
+		}
+		else
+		{
+			bHashCheck = TRUE;
+		}
 	}
-	
+
+	if ( bHashCheck == TRUE ) return TRUE;
+
 	if ( pszSchemaURI && *pszSchemaURI && pXML )
 	{
 		TRISTATE bResult = MatchMetadata( pszSchemaURI, pXML );
 		if ( bResult != TS_UNKNOWN ) return ( bResult == TS_TRUE );
-		if ( m_sKeywords.GetLength() > 0 )
+		if ( m_sSearch.GetLength() > 0 )
 		{
 			bool bReject = false;
 			if ( MatchMetadataShallow( pszSchemaURI, pXML, &bReject ) )
@@ -1047,29 +1083,29 @@ BOOL CQuerySearch::Match(LPCTSTR pszFilename, QWORD nSize, LPCTSTR pszSchemaURI,
 				// Otherwise, only return WordMatch when negative terms are used
 				// to filter out filenames from the search window
 				BOOL bNegative = FALSE;
-				if ( m_sKeywords.GetLength() > 1 )
+				if ( m_sSearch.GetLength() > 1 )
 				{
 					int nMinusPos = -1;
 					while ( !bNegative )
 					{
-						nMinusPos = m_sKeywords.Find( '-', nMinusPos + 1 );
+						nMinusPos = m_sSearch.Find( '-', nMinusPos + 1 );
 						if ( nMinusPos != -1 )
 						{
-							bNegative = ( IsCharacter( m_sKeywords.GetAt( nMinusPos + 1 ) ) != 0 );
+							bNegative = ( IsCharacter( m_sSearch.GetAt( nMinusPos + 1 ) ) != 0 );
 							if ( nMinusPos > 0 )
-								bNegative &= ( IsCharacter( m_sKeywords.GetAt( nMinusPos - 1 ) ) == 0 );
+								bNegative &= ( IsCharacter( m_sSearch.GetAt( nMinusPos - 1 ) ) == 0 );
 						}
 						else break;
 					}
 				}
-				return bNegative ? WordMatch( pszFilename, m_sKeywords ) : TRUE;
+				return bNegative ? WordMatch( pszFilename, m_sSearch ) : TRUE;
 			}
 			else if ( bReject )
 				return FALSE;
 		}
 	}
 	// If it's a search for similar files, the text doesn't have to match
-	return m_oSimilarED2K || m_sKeywords.GetLength() && WordMatch( pszFilename, m_sKeywords );
+	return m_oSimilarED2K || m_sSearch.GetLength() && WordMatch( pszFilename, m_sSearch );
 }
 
 TRISTATE CQuerySearch::MatchMetadata(LPCTSTR pszSchemaURI, CXMLElement* pXML)
@@ -1126,7 +1162,7 @@ BOOL CQuerySearch::MatchMetadataShallow(LPCTSTR pszSchemaURI, CXMLElement* pXML,
 			if ( pMember->m_bSearched )
 			{
 				CString strTarget = pMember->GetValueFrom( pXML, _T(""), FALSE );
-				if ( WordMatch( strTarget, m_sKeywords, bReject ) ) 
+				if ( WordMatch( strTarget, m_sSearch, bReject ) ) 
 					return TRUE;
 				else if ( bReject && *bReject )
 					return FALSE;
@@ -1141,7 +1177,7 @@ BOOL CQuerySearch::MatchMetadataShallow(LPCTSTR pszSchemaURI, CXMLElement* pXML,
 
 			CString strTarget = pAttribute->GetValue();
 
-			if ( WordMatch( strTarget, m_sKeywords, bReject ) ) 
+			if ( WordMatch( strTarget, m_sSearch, bReject ) ) 
 				return TRUE;
 			else if ( bReject && *bReject )
 				return FALSE;
