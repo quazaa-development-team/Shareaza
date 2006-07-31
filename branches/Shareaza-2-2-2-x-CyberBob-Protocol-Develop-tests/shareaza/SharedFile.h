@@ -94,6 +94,7 @@ public:
 // Operations
 public:
 	CString			GetPath() const;
+	CString			GetFolderName() const;
 	CString			GetSearchName() const;
 	BOOL			IsShared() const;
 	inline BOOL		IsGhost() const { return m_pFolder == NULL; }

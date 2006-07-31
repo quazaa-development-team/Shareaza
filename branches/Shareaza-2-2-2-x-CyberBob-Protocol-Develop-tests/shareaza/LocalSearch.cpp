@@ -319,7 +319,7 @@ BOOL CLocalSearch::AddHitG1(CLibraryFile* pFile, int nIndex)
 BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int /*nIndex*/)
 {
 	CG2Packet* pPacket = (CG2Packet*)m_pPacket;
-	CString strMetadata, strComment;
+	CString strMetadata, strComment, strFolderName;
 	BOOL bCollection = FALSE;
 	BOOL bPreview = FALSE;
 	DWORD nGroup = 0;
@@ -347,6 +347,13 @@ BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int /*nIndex*/)
 	if ( pFile->m_oMD5 )
 	{
 		nGroup += 5 + 4 + Hashes::Md5Hash::byteCount;
+	}
+
+	strFolderName = pFile->GetFolderName();
+
+	if (strFolderName.GetLength() > 0)
+	{
+		nGroup += 4 + pPacket->GetStringLen( strFolderName );
 	}
 
 	if ( m_pSearch == NULL || m_pSearch->m_bWantDN )
@@ -449,63 +456,69 @@ BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int /*nIndex*/)
 
 	pPacket->WritePacket( "H", nGroup, TRUE );
 	
-	if ( pFile->m_oTiger && pFile->m_oSHA1 )
+	if ( pFile->m_oTiger && pFile->m_oSHA1 ) //Send Bitprint hash
 	{
 		pPacket->WritePacket( "URN", 3 + Hashes::Sha1Hash::byteCount + Hashes::TigerHash::byteCount );
 		pPacket->WriteString( "bp" );
 		pPacket->Write( pFile->m_oSHA1 );
 		pPacket->Write( pFile->m_oTiger );
 	}
-	else if ( pFile->m_oTiger )
+	else if ( pFile->m_oTiger ) // send Tiger hash
 	{
 		pPacket->WritePacket( "URN", 4 + Hashes::TigerHash::byteCount );
 		pPacket->WriteString( "ttr" );
 		pPacket->Write( pFile->m_oTiger );
 	}
-	else if ( pFile->m_oSHA1 )
+	else if ( pFile->m_oSHA1 ) // Send SHA1 hash
 	{
 		pPacket->WritePacket( "URN", 5 + Hashes::Sha1Hash::byteCount );
 		pPacket->WriteString( "sha1" );
 		pPacket->Write( pFile->m_oSHA1 );
 	}
 	
-	if ( pFile->m_oED2K )
+	if ( pFile->m_oED2K ) // Send ED2K hash
 	{
 		pPacket->WritePacket( "URN", 5 + Hashes::Ed2kHash::byteCount );
 		pPacket->WriteString( "ed2k" );
 		pPacket->Write( pFile->m_oED2K );
 	}
 
-	if ( pFile->m_oMD5 )
+	if ( pFile->m_oMD5 ) // Send MD5 hash
 	{
 		pPacket->WritePacket( "URN", 4 + Hashes::Md5Hash::byteCount );
 		pPacket->WriteString( "md5" );
 		pPacket->Write( pFile->m_oMD5 );
 	}
 
-	if ( m_pSearch == NULL || m_pSearch->m_bWantDN )
+	if (strFolderName.GetLength() > 0 ) // Send Folder name in Hit packet
 	{
-		if ( pFile->GetSize() <= 0xFFFFFFFF )
+		pPacket->WritePacket( "FN", pPacket->GetStringLen( strFolderName ) );
+		pPacket->WriteString( strFolderName, FALSE );
+	}
+
+	if ( m_pSearch == NULL || m_pSearch->m_bWantDN ) // want File name or File Size
+	{
+		if ( pFile->GetSize() <= 0xFFFFFFFF ) // Filesize is less than 4GB so it will be stored in first 4Byte of DN
 		{
-			pPacket->WritePacket( "DN", pPacket->GetStringLen( pFile->m_sName ) + 4 );
-			pPacket->WriteLongBE( (DWORD)pFile->GetSize() );
-			pPacket->WriteString( pFile->m_sName, FALSE );
+			pPacket->WritePacket( "DN", pPacket->GetStringLen( pFile->m_sName ) + 4 ); // size of packet is 4byte plus String length
+			pPacket->WriteLongBE( (DWORD)pFile->GetSize() ); // Put file size in 4byte length (less than 4GB)
+			pPacket->WriteString( pFile->m_sName, FALSE ); // put File name on remaining field
 		}
-		else
+		else // File size is bigger than 4GB so File size has to be in SZ with 8Byte length
 		{
-			pPacket->WritePacket( "SZ", 8 );
-			pPacket->WriteInt64( pFile->GetSize() );
-			pPacket->WritePacket( "DN", pPacket->GetStringLen( pFile->m_sName ) );
-			pPacket->WriteString( pFile->m_sName, FALSE );
+			pPacket->WritePacket( "SZ", 8 );  // Size of packet is 8Byte for 64Bit file size field
+			pPacket->WriteInt64( pFile->GetSize() ); // put filesize in 64bit(8byte) QWORD
+			pPacket->WritePacket( "DN", pPacket->GetStringLen( pFile->m_sName ) ); // packet length of DN is length of filename
+			pPacket->WriteString( pFile->m_sName, FALSE ); // put file name in the field
 		}
 
-		if ( bCollection ) pPacket->WritePacket( "COLLECT", 0 );
+		if ( bCollection ) pPacket->WritePacket( "COLLECT", 0 ); // if it is Collection then put blank packet "COLLECT"
 	}
 
 	{
-		CSingleLock pQueueLock( &UploadQueues.m_pSection, TRUE );
+		CSingleLock pQueueLock( &UploadQueues.m_pSection, TRUE ); // lock up Upload Queue to prevent crash on queue check
 
-		CUploadQueue* pQueue = UploadQueues.SelectQueue( PROTOCOL_HTTP, pFile );
+		CUploadQueue* pQueue = UploadQueues.SelectQueue( PROTOCOL_HTTP, pFile ); // get Queue which the file can be uploaded
 		pPacket->WritePacket( "G", 1 );
 		pPacket->WriteByte( BYTE( pQueue ? pQueue->m_nIndex + 1 : 0 ) );
 	}

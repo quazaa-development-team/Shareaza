@@ -132,6 +132,40 @@ CString CLibraryFile::GetPath() const
 		return CString();
 }
 
+CString CLibraryFile::GetFolderName() const
+{
+	int nBase = 0;
+	CString str = "";
+
+	if ( m_pFolder != NULL && m_pFolder->m_pParent != NULL )
+	{
+		for ( CLibraryFolder* pFolder = m_pFolder ; ; pFolder = pFolder->m_pParent )
+		{
+			if ( pFolder->m_pParent == NULL )
+			{
+				nBase = pFolder->m_sPath.GetLength();
+				break;
+			}
+		}
+	}
+	else
+	{
+		return str;
+	}
+
+	if ( nBase <= 0 )
+	{
+		str = m_sName;
+	}
+	else
+	{
+		ASSERT( m_pFolder->m_sPath.GetLength() > nBase );
+		str = m_pFolder->m_sPath.Mid( nBase + 1 );
+	}
+
+	return str;
+}
+
 CString CLibraryFile::GetSearchName() const
 {
 	int nBase = 0;
