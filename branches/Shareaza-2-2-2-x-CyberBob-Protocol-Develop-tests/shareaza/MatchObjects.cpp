@@ -193,15 +193,19 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 				continue;
 			}
 			
-			if ( Settings.Search.SchemaTypes && pFilter->m_pSchema && ! pHit->m_bMatched )
+			if ( Settings.Search.SchemaTypes && pFilter->m_pSchema && pHit->m_bMatched )
 			{
-				if ( pFilter->m_pSchema->CheckURI( pHit->m_sSchemaURI ) )
+				if ( pFilter->m_pSchema->FilterType( pHit->m_sName, TRUE ) )
+				{
+					pHit->m_bMatched = TRUE;
+				}
+				else if ( pFilter->m_pSchema->CheckURI( pHit->m_sSchemaURI ) )
 				{
 					pHit->m_bMatched = TRUE;
 				}
 				else
 				{
-					pHit->m_bMatched = pFilter->m_pSchema->FilterType( pHit->m_sName, TRUE );
+					pHit->m_bMatched = FALSE;
 				}
 			}
 		}
