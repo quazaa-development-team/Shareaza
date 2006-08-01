@@ -403,14 +403,14 @@ void CDownloadEditDlg::OnOK()
 BOOL CDownloadEditDlg::Commit()
 {
 	CString strMessage;
+	Hashes::Sha1Hash oSHA1;
+	Hashes::TigerHash oTiger;
+	Hashes::Ed2kHash oED2K;
 
 	UpdateData();
 	
-    Hashes::Sha1Hash oSHA1;
     oSHA1.fromString( m_sSHA1 );
-    Hashes::TigerHash oTiger;
     oTiger.fromString( m_sTiger );
-    Hashes::Ed2kHash oED2K;
     oED2K.fromString( m_sED2K );
 	
 	if ( m_sSHA1.GetLength() > 0 && !oSHA1 )
@@ -433,6 +433,14 @@ BOOL CDownloadEditDlg::Commit()
 	}
 
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
+
+	bool bNeedUpdate = false;
+	bool bCriticalChange = false;
+
+	bNeedUpdate	= m_pDownload->m_oSHA1.isTrusted() ^ ( m_bSHA1Trusted == TRUE );
+	bNeedUpdate	|= m_pDownload->m_oTiger.isTrusted() ^ ( m_bTigerTrusted == TRUE );
+	bNeedUpdate	|= m_pDownload->m_oED2K.isTrusted() ^ ( m_bED2KTrusted == TRUE );
+
     if ( ! Downloads.Check( m_pDownload ) || m_pDownload->IsMoving() ) return FALSE;
 
 	if ( m_pDownload->m_sDisplayName != m_sName )
@@ -444,6 +452,7 @@ BOOL CDownloadEditDlg::Commit()
 		if ( ! Downloads.Check( m_pDownload ) || m_pDownload->IsMoving() ) return FALSE;
 
 		m_pDownload->Rename( m_sName );
+		bNeedUpdate = true;
 	}
 
 	QWORD nNewSize = 0;
@@ -455,6 +464,10 @@ BOOL CDownloadEditDlg::Commit()
 		pLock.Lock();
 		if ( ! Downloads.Check( m_pDownload ) || m_pDownload->IsMoving() ) return FALSE;
 		m_pDownload->m_nSize = nNewSize;
+
+		m_pDownload->CloseTransfers();
+		m_pDownload->ClearVerification();
+		bCriticalChange = true;
 	}
 	
 	if ( m_pDownload->m_oSHA1.isValid() != oSHA1.isValid()
@@ -471,6 +484,7 @@ BOOL CDownloadEditDlg::Commit()
 		
 		m_pDownload->CloseTransfers();
 		m_pDownload->ClearVerification();
+		bCriticalChange = true;
 	}
 	
 	if ( m_pDownload->m_oTiger.isValid() != oTiger.isValid()
@@ -487,6 +501,7 @@ BOOL CDownloadEditDlg::Commit()
 		
 		m_pDownload->CloseTransfers();
 		m_pDownload->ClearVerification();
+		bCriticalChange = true;
 	}
 	
 	if ( m_pDownload->m_oED2K.isValid() != oED2K.isValid()
@@ -503,9 +518,10 @@ BOOL CDownloadEditDlg::Commit()
 		
 		m_pDownload->CloseTransfers();
 		m_pDownload->ClearVerification();
+		bCriticalChange = true;
 	}
 
-	if ( m_bSHA1Trusted ) 
+	if ( m_bSHA1Trusted )
 		m_pDownload->m_oSHA1.signalTrusted();
 	else
 		m_pDownload->m_oSHA1.signalUntrusted();
@@ -519,6 +535,20 @@ BOOL CDownloadEditDlg::Commit()
 		m_pDownload->m_oED2K.signalTrusted();
 	else
 		m_pDownload->m_oED2K.signalUntrusted();
+
+	if ( bCriticalChange )
+	{
+		m_pDownload->CloseTransfers();
+		m_pDownload->ClearSources();
+		m_pDownload->ClearFailedSources();
+		m_pDownload->ClearVerification();
+		bNeedUpdate = true;
+	}
+
+	if ( bNeedUpdate )
+	{
+		m_pDownload->SetModified();
+	}
 
 	return TRUE;
 }
