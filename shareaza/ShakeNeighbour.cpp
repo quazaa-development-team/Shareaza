@@ -178,7 +178,13 @@ BOOL CShakeNeighbour::OnConnected()
 	// We initiated the connection to this computer, send it our first block of handshake headers
 	m_pOutput->Print( "GNUTELLA CONNECT/0.6\r\n" ); // Ask to connect
 	SendPublicHeaders();                            // User agent, ip addresses, Gnutella2 and deflate, advanced Gnutella features
-	SendHostHeaders();                              // Try ultrapeers
+														// features
+	// POSSIBLE PLUTION ALART:
+	// This SendHostHeaders() should not be here. because remote node is not known either G1 or G2.
+	// calling this function here cause send Cached G1 address to remote, but since RAZA tell the remote that it is G2 capable
+	// if the remote is RAZA, it will store GNUTELLA1 nodes into GNUTELLA2 cache.
+	// SendHostHeaders();                              // Try ultrapeers
+
 	m_pOutput->Print( "\r\n" );                     // A blank line ends this first block of headers
 
 	// We've finished sending a group of headers, and await the response
@@ -227,9 +233,6 @@ BOOL CShakeNeighbour::OnRead()
 
 	// If the remote computer has sent the first line of its initial group of headers, keep reading them
 	if ( m_nState == nrsHandshake2 && ! ReadHeaders() ) return FALSE;
-
-	// If we've finished sending a group of headers, read the remote computer's response
-	if ( m_nState == nrsHandshake1 && ! ReadResponse() ) return FALSE;
 
 	// If the remote computer has sent the first line of its final group of headers, keep reading them
 	if ( m_nState == nrsHandshake3 && ! ReadHeaders() ) return FALSE;
@@ -392,24 +395,25 @@ void CShakeNeighbour::SendPublicHeaders()
 	}
 
 	// If we initiated the connection to the remote computer and it is not an ultrapeer
-	//if ( m_bInitiated && m_bUltraPeerSet == TS_FALSE )
-	//{
+	if ( m_bInitiated && m_bUltraPeerSet == TS_FALSE )
+	{
 		// Really, we don't know if it's an ultrapeer or not yet
 		m_bUltraPeerSet = TS_UNKNOWN;
 
-	//} // The remote computer called us, or we called them and it's an ultrapeer or hasn't said yet
-	//else
+	} // The remote computer called us, or we called them and it's an ultrapeer or hasn't said yet
+	else
 	{
 		if ( m_nProtocol == PROTOCOL_G1 )
 		{
 			// Find out if we are an ultrapeer or at least eligible to become one soon
-			if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() )
+			if ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER || Neighbours.IsG1Ultrapeer() || 
+				Neighbours.IsG1UltrapeerCapable() )
 			{
 				// Tell the remote computer that we are an ultrapeer
 				m_pOutput->Print( "X-Ultrapeer: True\r\n" );
 
 			} // We are not an ultrapeer nor are we elegible, and the settings say so too
-			else if ( Settings.Gnutella1.ClientMode != MODE_ULTRAPEER )
+			else
 			{
 				// Tell the remote computer that we are not an ultrapeer, we are just a Gnutella leaf node
 				m_pOutput->Print( "X-Ultrapeer: False\r\n" );
@@ -418,13 +422,13 @@ void CShakeNeighbour::SendPublicHeaders()
 		else // This protocol ID this method got passed is unknown or for something other than Gnutella
 		{
 			// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
-			if ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() )
+			if ( Settings.Gnutella2.ClientMode == MODE_HUB || Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() )
 			{
 				// Tell the remote computer that we are a hub
 				m_pOutput->Print( "X-Ultrapeer: True\r\n" );
 
 			} // We are not a hub nor are we eligible, and the settings say so too
-			else if ( Settings.Gnutella2.ClientMode != MODE_HUB )
+			else
 			{
 				// Tell the remote computer that we are a leaf
 				m_pOutput->Print( "X-Ultrapeer: False\r\n" );

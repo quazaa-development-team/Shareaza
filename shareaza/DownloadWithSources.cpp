@@ -193,7 +193,11 @@ BOOL CDownloadWithSources::AddSourceHit(CQueryHit* pHit, BOOL bForce)
 			if ( m_oSHA1 != pHit->m_oSHA1 ) return FALSE;
 			bHash = TRUE;
 		}
-        else if ( m_oTiger && pHit->m_oTiger )
+		// We should check Tiger as well as others. This is because
+		// there exist some hash combinations, even for Shareaza 2.2.0.0 
+		// installer file, i.e. with the same SHA1 but different Tiger (CyberBob).
+
+		if ( m_oTiger && pHit->m_oTiger )
 		{
 			if ( m_oTiger != pHit->m_oTiger ) return FALSE;
 			bHash = TRUE;
@@ -500,7 +504,7 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 	if ( ! pSource->m_bPushOnly )
 	{
 		//Reject invalid IPs (Sometimes ed2k sends invalid 0.x.x.x sources)
-		if ( pSource->m_pAddress.S_un.S_un_b.s_b1 == 0 )
+		if ( pSource->m_pAddress.S_un.S_un_b.s_b1 == 0 || pSource->m_nPort == 0 )
 		{
 			delete pSource;
 			return FALSE;
@@ -901,6 +905,21 @@ void CDownloadWithSources::ExpireFailedSources()
 				m_pFailedSources.RemoveAt( posThis );
 			}
 			else break; // We appended to tail, so we do not need to move further
+		}
+	}
+}
+
+void CDownloadWithSources::ClearFailedSources()
+{
+	CSingleLock pLock( &m_pSection, TRUE );
+	for ( POSITION pos = m_pFailedSources.GetHeadPosition() ; pos ; )
+	{
+		POSITION posThis = pos;
+		CFailedSource* pBadSource = m_pFailedSources.GetNext( pos );
+		if ( m_pFailedSources.GetAt( posThis ) == pBadSource )
+		{
+			delete pBadSource;
+			m_pFailedSources.RemoveAt( posThis );
 		}
 	}
 }

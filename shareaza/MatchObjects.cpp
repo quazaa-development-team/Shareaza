@@ -196,7 +196,10 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 				}
 				else
 				{
-					pHit->m_bMatched = pFilter->m_pSchema->FilterType( pHit->m_sName, TRUE );
+					// ToDo: Change to pHit->m_bMatched when we will be able to get folder name
+					// from hits. Raza sends hits if folder name matches the search keywords too.
+					// For now, just move such files to bogus.
+					pHit->m_bBogus = pFilter->m_pSchema->FilterType( pHit->m_sName, TRUE );
 				}
 			}
 		}
@@ -213,22 +216,22 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 
 		if ( pHit->m_oSHA1 )
 		{
-			pFile = FindFileAndAddHit( pHit, findType::fSHA1, &Stats );
+			pFile = FindFileAndAddHit( pHit, fSHA1, &Stats );
 		}
 		if ( pFile == NULL && pHit->m_oTiger )
 		{
-			pFile = FindFileAndAddHit( pHit, findType::fTiger, &Stats );
+			pFile = FindFileAndAddHit( pHit, fTiger, &Stats );
 		}
 		if ( pFile == NULL && pHit->m_oED2K )
 		{
-			pFile = FindFileAndAddHit( pHit, findType::fED2K, &Stats );
+			pFile = FindFileAndAddHit( pHit, fED2K, &Stats );
 		}
 		
 		if ( pFile == NULL
             && ( ( !pHit->m_oSHA1 && !pHit->m_oTiger && ! pHit->m_oED2K )
                 || !Settings.General.HashIntegrity ) )
 		{
-			pFile = FindFileAndAddHit( pHit, findType::fSize, &Stats );
+			pFile = FindFileAndAddHit( pHit, fSize, &Stats );
 		}
 		
 		if ( pFile != NULL ) // New hit for the existing file
@@ -362,10 +365,10 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 	CMatchFile **pMap, *pSeek;
 	CMatchFile* pFile = NULL;
 
-	bool bSHA1	= nFindFlag == findType::fSHA1 && pHit->m_oSHA1;
-	bool bTiger	= nFindFlag == findType::fTiger && pHit->m_oTiger;
-	bool bED2K	= nFindFlag == findType::fED2K && pHit->m_oED2K;
-	bool bSize	= nFindFlag == findType::fSize;
+	bool bSHA1	= nFindFlag == fSHA1 && pHit->m_oSHA1;
+	bool bTiger	= nFindFlag == fTiger && pHit->m_oTiger;
+	bool bED2K	= nFindFlag == fED2K && pHit->m_oED2K;
+	bool bSize	= nFindFlag == fSize;
 
 	if ( bSHA1 )
 		pMap = m_pMapSHA1 + pHit->m_oSHA1[ 0 ];
