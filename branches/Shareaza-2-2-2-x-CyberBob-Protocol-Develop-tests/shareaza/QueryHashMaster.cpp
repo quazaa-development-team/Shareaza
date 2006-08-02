@@ -171,7 +171,7 @@ void CQueryHashMaster::Build()
 
 			if ( pDownload->m_oTiger )
 			{
-				AddString( pDownload->m_oTiger.toUrn() );
+				AddExactString( pDownload->m_oTiger.toUrn() );
 			}
 
 			if ( pDownload->m_oED2K )
@@ -181,7 +181,7 @@ void CQueryHashMaster::Build()
 
 			if ( pDownload->m_oMD5 )
 			{
-				AddString( pDownload->m_oMD5.toUrn() );
+				AddExactString( pDownload->m_oMD5.toUrn() );
 			}
 
 			if ( pDownload->m_oBTH )
