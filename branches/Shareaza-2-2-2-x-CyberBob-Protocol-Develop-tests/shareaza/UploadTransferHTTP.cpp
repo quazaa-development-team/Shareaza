@@ -979,7 +979,7 @@ void CUploadTransferHTTP::SendDefaultHeaders()
 			(LPCTSTR)CString( inet_ntoa( m_pHost.sin_addr ) ) );
 		m_pOutput->Print( strLine );
 	}
-	else
+	else if ( Network.m_bEnabled && m_bInitiated && Settings.Gnutella2.EnableToday )
 	{
 		CNeighbour * NHubs;
 		CString strPort;

@@ -359,7 +359,7 @@ BOOL CDownloadTransferHTTP::SendRequest()
 		m_pOutput->Print( strLine );
 	}
 
-	if ( m_bInitiated && Network.IsConnected() && ( Neighbours.IsG2Hub() || Neighbours.IsG2Leaf() ) )
+	if ( Network.m_bEnabled && m_bInitiated && Settings.Gnutella2.EnableToday )
 	{
 		CNeighbour * NHubs;
 		CString strPort;
