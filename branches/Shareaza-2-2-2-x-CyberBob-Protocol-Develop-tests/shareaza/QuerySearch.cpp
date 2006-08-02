@@ -974,7 +974,11 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 
 		BuildWordList( bExpression );
 		if ( m_oWords.empty() )
+		{
+			m_oURNs.clear();
+			m_oKeywordHashList.clear();
 			return FALSE;
+		}
 	}
 
 	if ( !m_oKeywordHashList.empty() )
@@ -1044,8 +1048,11 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 
 		nValidWords += nCommonWords / 3; // make it accept query, if there are more than 3 different common words.
 
-		return BOOL(nValidWords);
+		if ( BOOL(nValidWords) ) return TRUE;
 	}
+
+	m_oURNs.clear();
+	m_oKeywordHashList.clear();
 
 	return FALSE;
 }

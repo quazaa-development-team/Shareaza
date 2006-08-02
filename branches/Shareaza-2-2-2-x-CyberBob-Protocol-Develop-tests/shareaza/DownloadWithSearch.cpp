@@ -181,7 +181,10 @@ void CDownloadWithSearch::PrepareSearch()
 		{
 			pSearch->m_sSearch = m_sDisplayName;		
 		}
+		pSearch->m_oKeywordHashList.clear();
+		pSearch->m_oURNs.clear();
 		pSearch->BuildWordList( false );
+		pSearch->CheckValid( false );
 	}
 
 	if ( m_oSHA1 )

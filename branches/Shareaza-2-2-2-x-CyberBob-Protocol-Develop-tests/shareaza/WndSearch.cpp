@@ -700,6 +700,9 @@ void CSearchWnd::ExecuteSearch()
 	if ( pManaged )
 	{
 		pManaged->m_pSearch->m_sKeywords.Empty();
+		pManaged->m_pSearch->m_oURNs.clear();
+		pManaged->m_pSearch->m_oKeywordHashList.clear();
+		pManaged->m_pSearch->BuildWordList();
 
 		if ( pManaged->m_pSearch->CheckValid() )
 		{
