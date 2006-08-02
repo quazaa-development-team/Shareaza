@@ -846,11 +846,11 @@ BOOL CG2Neighbour::OnPong( CG2Packet* pPacket )
 		theApp.Message( MSG_DEBUG, _T("Received PONG from %s. RTT: %d."), m_sAddress, m_tRTT );
 	}
 	if ( sVendorCode.GetLength() >= 1 )
-		theApp.Message( MSG_SYSTEM, _T("Received PONG contained VenderCode: %s"), sVendorCode);
+		theApp.Message( MSG_SYSTEM, _T("Received PONG contained VenderCode: %s"), (LPCTSTR)sVendorCode);
 	if ( sName.GetLength() >= 1 )
-		theApp.Message( MSG_SYSTEM, _T("Received PONG contained AgentName: %s"), sName);
+		theApp.Message( MSG_SYSTEM, _T("Received PONG contained AgentName: %s"), (LPCTSTR)sName);
 	if ( sVersion.GetLength() >= 1 )
-		theApp.Message( MSG_SYSTEM, _T("Received PONG contained AgentVersion: %s"), sVersion);
+		theApp.Message( MSG_SYSTEM, _T("Received PONG contained AgentVersion: %s"), (LPCTSTR)sVersion);
 
 	return TRUE;
 }
