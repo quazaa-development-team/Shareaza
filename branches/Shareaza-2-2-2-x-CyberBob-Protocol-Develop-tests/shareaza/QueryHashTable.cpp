@@ -993,6 +993,18 @@ BOOL CQueryHashTable::CheckString(const CString& strString) const
 	return ! ( *pHash & nMask );
 }
 
+BOOL CQueryHashTable::CheckHash(const DWORD nHash) const
+{
+	if ( ! m_bLive || m_pHash == NULL ) return TRUE;
+
+	DWORD lHash	= nHash >> (32 - m_nBits);
+	BYTE* pHash	= m_pHash + ( lHash >> 3 );
+	BYTE nMask	= BYTE( 1 << ( lHash & 7 ) );
+
+	return ! ( *pHash & nMask );
+}
+
+
 //////////////////////////////////////////////////////////////////////
 // CQueryHashTable check query object
 
@@ -1000,46 +1012,28 @@ BOOL CQueryHashTable::Check(const CQuerySearch* pSearch) const
 {
 	if ( ! m_bLive || m_pHash == NULL ) return TRUE;
 	
-	if ( pSearch->m_oSHA1 || pSearch->m_oED2K || pSearch->m_oBTH || pSearch->m_oTiger || pSearch->m_oMD5 )
+	if ( !pSearch->m_oURNs.empty() )
 	{
-		if ( pSearch->m_oSHA1 )
+		std::list<DWORD>::const_iterator indexUrnList = pSearch->urnBegin();
+		CString strUrnList ="";
+		for ( ; indexUrnList != pSearch->urnEnd() ; indexUrnList++ )
 		{
-			if ( CheckString( pSearch->m_oSHA1.toUrn() ) ) return TRUE;
+			if ( CheckHash(*indexUrnList) ) return TRUE;
 		}
-		
-		if ( pSearch->m_oED2K )
-		{
-            if ( CheckString( pSearch->m_oED2K.toUrn() ) ) return TRUE;
-		}
-
-		if ( pSearch->m_oBTH )
-		{
-			if ( CheckString( pSearch->m_oBTH.toUrn() ) ) return TRUE;
-		}
-
-		if ( pSearch->m_oTiger )
-		{
-			if ( CheckString( pSearch->m_oTiger.toUrn() ) ) return TRUE;
-		}
-
-		if ( pSearch->m_oMD5 )
-		{
-			if ( CheckString( pSearch->m_oMD5.toUrn() ) ) return TRUE;
-		}
-
 		return FALSE;
 	}
 
 	DWORD nWordHits		= 0;
 
-	for ( CQuerySearch::const_iterator pWord = pSearch->begin(); pWord != pSearch->end(); ++pWord )
+	if ( !pSearch->m_oKeywordHashList.empty() )
 	{
-		if ( pWord->first[ 0 ] == '-' ) continue;
+		std::list<DWORD>::const_iterator indexKeyword = pSearch->keywordBegin();
+		CString strKeywordList ="";
+		for ( ; indexKeyword != pSearch->keywordEnd() ; indexKeyword++ )
+		{
+			if ( CheckHash(*indexKeyword) ) nWordHits++;
+		}
 
-		DWORD nHash	= HashWord( pWord->first, 0, pWord->second, m_nBits );
-		BYTE* pHash	= m_pHash + ( nHash >> 3 );
-		BYTE nMask	= BYTE( 1 << ( nHash & 7 ) );
-		if ( ! ( *pHash & nMask ) ) nWordHits++;
 	}
 
 	return ( pSearch->tableSize() >= 3 )

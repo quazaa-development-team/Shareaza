@@ -78,6 +78,11 @@ public:
 	std::list<SOCKADDR_IN> m_pHubList;
 	typedef std::list<SOCKADDR_IN>::iterator HubIndex;
 
+	// Hashed URNs
+	std::list<DWORD> m_oURNs;
+	// list of hashed keywords to BOOST QUery Routing.
+	std::list<DWORD> m_oKeywordHashList;
+
 private:
 	typedef std::pair< LPCTSTR, size_t > WordEntry;
 	struct CompareWordEntries
@@ -139,6 +144,12 @@ private:
 public:
 	static BOOL	WordMatch(LPCTSTR pszString, LPCTSTR pszFind, bool* bReject=NULL);
 	static BOOL	NumberMatch(const CString& strValue, const CString& strRange);
+
+	typedef std::list<DWORD>::const_iterator const_hash_iterator;
+	const_hash_iterator urnBegin() const { return m_oURNs.begin(); }
+	const_hash_iterator urnEnd()   const { return m_oURNs.end(); }
+	const_hash_iterator keywordBegin() const { return m_oKeywordHashList.begin(); }
+	const_hash_iterator keywordEnd()   const { return m_oKeywordHashList.end(); }
 };
 
 #endif // !defined(AFX_QUERYSEARCH_H__2141B926_3F6B_4A5D_9FBD_C67FD0A5C46C__INCLUDED_)

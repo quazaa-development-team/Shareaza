@@ -936,8 +936,38 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 	if ( m_oWords.empty() )
 	{
 		// Searches by hash are okay
-		if ( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 || m_oBTH )
+		if ( m_oURNs.empty() && (m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 || m_oBTH) )
 		{
+			if ( m_oSHA1 )
+			{
+				CString strurn = m_oSHA1.toUrn();
+				m_oURNs.push_back( CQueryHashTable::HashWord( strurn, 0, strurn.GetLength(), 32 ) );
+			}
+
+			if ( m_oTiger )
+			{
+				CString strurn = m_oTiger.toUrn();
+				m_oURNs.push_back( CQueryHashTable::HashWord( strurn, 0, strurn.GetLength(), 32 ) );
+			}
+
+			if ( m_oED2K )
+			{
+				CString strurn = m_oED2K.toUrn();
+				m_oURNs.push_back( CQueryHashTable::HashWord( strurn, 0, strurn.GetLength(), 32 ) );
+			}
+
+			if ( m_oMD5 )
+			{
+				CString strurn = m_oMD5.toUrn();
+				m_oURNs.push_back( CQueryHashTable::HashWord( strurn, 0, strurn.GetLength(), 32 ) );
+			}
+
+			if ( m_oBTH )
+			{
+				CString strurn = m_oBTH.toUrn();
+				m_oURNs.push_back( CQueryHashTable::HashWord( strurn, 0, strurn.GetLength(), 32 ) );
+			}
+			
 			BuildWordList( false );
 			return TRUE;
 		}
@@ -947,64 +977,77 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 			return FALSE;
 	}
 
-	// Check we aren't just searching for broad terms - set counters, etc
-	for ( const_iterator pWord = begin(); pWord != end(); pWord++ )
+	if ( !m_oKeywordHashList.empty() )
 	{
-		nValidCharacters = 0;
-		static const LPCTSTR common[] =
+		return TRUE;
+	}
+	else
+	{
+		// Check we aren't just searching for broad terms - set counters, etc
+		for ( const_iterator pWord = begin(); pWord != end(); pWord++ )
 		{
-			L"mp3", L"ogg",
-			L"jpg", L"gif", L"png", L"bmp",
-			L"mpg", L"avi", L"mkv", L"wmv", L"mov", L"ogm",
-			L"exe", L"zip", L"rar", L"iso", L"bin", L"cue",
-			L"dvd", L"mpeg", L"divx", L"xvid",
-			L"xxx", L"sex", L"fuck",
-			L"torrent"
-		};
-		static const size_t commonWords = sizeof common / sizeof common[ 0 ];
+			nValidCharacters = 0;
+			static const LPCTSTR common[] =
+			{
+				L"mp3", L"ogg",
+					L"jpg", L"gif", L"png", L"bmp",
+					L"mpg", L"avi", L"mkv", L"wmv", L"mov", L"ogm",
+					L"exe", L"zip", L"rar", L"iso", L"bin", L"cue",
+					L"dvd", L"mpeg", L"divx", L"xvid",
+					L"xxx", L"sex", L"fuck",
+					L"torrent"
+			};
+			static const size_t commonWords = sizeof common / sizeof common[ 0 ];
 
-		for ( unsigned int index=0; index < (pWord->second) ; index++)
-		{
-			TCHAR szChar = pWord->first[ index ];
-			if ( !IsCharacter(szChar) ) // check if the char is valid
+			for ( unsigned int index=0; index < (pWord->second) ; index++)
 			{
-				// do nothing
-			} //after the char inspection
-			else if ( 0x00 <= szChar && 0x7f >= szChar) // check if the char is 1 byte length in UTF8 (non-char will not reach here)
-			{
-				nValidCharacters++;
+				TCHAR szChar = pWord->first[ index ];
+				if ( !IsCharacter(szChar) ) // check if the char is valid
+				{
+					// do nothing
+				} //after the char inspection
+				else if ( 0x00 <= szChar && 0x7f >= szChar) // check if the char is 1 byte length in UTF8 (non-char will not reach here)
+				{
+					nValidCharacters++;
+				}
+				else if ( 0x80 <= szChar && 0x7ff >= szChar)  // check if the char is 2 byte length in UTF8 (non-char will not reach here)
+				{
+					nValidCharacters += 2;
+				}
+				else if ( 0x3041 <= szChar && 0x30fe >= szChar )
+				{
+					nValidCharacters += 2;
+				}
+				else if ( 0x800 <= szChar && 0xffff >= szChar)  // check if the char is 3 byte length in UTF8 (non-char will not reach here)
+				{
+					nValidCharacters += 3;
+				}
+
 			}
-			else if ( 0x80 <= szChar && 0x7ff >= szChar)  // check if the char is 2 byte length in UTF8 (non-char will not reach here)
+
+			if ( std::find_if( common, common + commonWords, FindStr( *pWord ) ) != common + commonWords )
 			{
-				nValidCharacters += 2;
+				// Common term. Don't count it.
+				if (nValidCharacters >= 3) nCommonWords++;
+				DWORD nHash = CQueryHashTable::HashWord( pWord->first, 0, pWord->second, 32 );
+				m_oKeywordHashList.push_back( nHash );
 			}
-			else if ( 0x3041 <= szChar && 0x30fe >= szChar )
+			else
 			{
-				nValidCharacters += 2;
-			}
-			else if ( 0x800 <= szChar && 0xffff >= szChar)  // check if the char is 3 byte length in UTF8 (non-char will not reach here)
-			{
-				nValidCharacters += 3;
+				// Valid search term.
+				if (nValidCharacters >= 3) nValidWords++;
+				DWORD nHash = CQueryHashTable::HashWord( pWord->first, 0, pWord->second, 32 );
+				m_oKeywordHashList.push_back( nHash );
 			}
 
 		}
 
-		if ( std::find_if( common, common + commonWords, FindStr( *pWord ) ) != common + commonWords )
-		{
-			// Common term. Don't count it.
-			if (nValidCharacters >= 3) nCommonWords++;
-		}
-		else
-		{
-			// Valid search term.
-			if (nValidCharacters >= 3) nValidWords++;
-		}
-	
+		nValidWords += nCommonWords / 3; // make it accept query, if there are more than 3 different common words.
+
+		return BOOL(nValidWords);
 	}
 
-	nValidWords += nCommonWords / 3; // make it accept query, if there are more than 3 different common words.
-
-	return BOOL(nValidWords);
+	return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////
