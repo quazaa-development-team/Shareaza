@@ -1261,8 +1261,8 @@ void CG2Neighbour::SendHAW()
 	pPacket->WriteByte( 0 );
 	// This GUID will gets added to RouteCache of Receivers so this should not be any Random GUID as it is
 	// thus it is better to use Profile's GUID instead of Randomly generated GUID in CreateID() function.
-	// Otherwize will cause Mess of RouteCache.
-	// Note: because it is notsame as Main RouteCache used on Normal Packet Handling, it is not sever problem right now.
+	// otherwise will cause Mess of RouteCache.
+	// Note: because it is not same as Main RouteCache used on Normal Packet Handling, it is not big problem right now.
 	//		However this can cause problem if in future this GUID gets used for getting GUID for normal routing too...
 	//		P.S. I do not know what other G2 Nodes(GnucDNA) use this GUID as main RouteCache or separate cache, so better
 	//			check up with them.
@@ -1320,12 +1320,12 @@ BOOL CG2Neighbour::OnHAW(CG2Packet* pPacket)
 
 	if ( nTTL > 0 && nHops < 255 )
 	{
-		m_pGUIDCache->Add( oGUID, this );	// adding GUID to RouteCache of this Neighbouring connection
+		m_pGUIDCache->Add( oGUID, this );	// adding GUID to RouteCache of this Neighboring connection
 											// thus the GUID should not be the one created randomly
 											// Currently all the existing Hubs( up to Shareaza 2.2.2.20 )
 											// Are sending HAW with randomly created GUIDs, which can cause big mess
 											// in RouteCache.
-		// Note: because it is notsame as Main RouteCache used on Normal Packet Handling, it is not sever problem right now.
+		// Note: because it is not same as Main RouteCache used on Normal Packet Handling, it is not big problem right now.
 		//		However this can cause problem if in future this GUID gets used for getting GUID for normal routing too...
 		//		P.S. I do not know what other G2 Nodes(GnucDNA) use this GUID as main RouteCache or separate cache, so better
 		//			check up with them.
