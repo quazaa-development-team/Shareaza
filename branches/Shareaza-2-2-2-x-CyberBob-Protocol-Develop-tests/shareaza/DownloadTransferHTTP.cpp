@@ -1130,7 +1130,7 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 	else if ( strHeader.CompareNoCase( _T("X-G2NH") ) == 0 )
 	{	// The remote computer is giving us a list of G2 hubs the remote node is connected to
 		int nCount = 0;
-		CDownloadSource::HubList pHubs;
+		CDownloadSource::HubList oHubList;
 		CString sHublist(strValue);
 		for ( sHublist += ',' ; ; ) 
 		{
@@ -1146,10 +1146,10 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 			if ( StrToSockaddr( sHub, pHub ) )
 			{
 				nCount++;
-				pHubs.push_back(pHub);
+				oHubList.push_back(pHub);
 			}
 		}
-		if ( nCount > 0 ) m_pSource->m_pHubList = pHubs;
+		if ( nCount > 0 ) m_pSource->m_oHubList = oHubList;
 	}
 	else if ( strHeader.CompareNoCase( _T("X-Push-Proxy") ) == 0 )
 	{	// The remote computer is giving us a list of G1 PushProxy the remote node is connected to
@@ -1178,7 +1178,7 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 				pProxies.push_back(pProxy);
 			}
 		}
-		if ( nCount > 0 ) m_pSource->m_pPushProxyList = pProxies;
+		if ( nCount > 0 ) m_pSource->m_oPushProxyList = pProxies;
 	}
 	else if ( strHeader.CompareNoCase( _T("Retry-After") ) == 0 )
 	{

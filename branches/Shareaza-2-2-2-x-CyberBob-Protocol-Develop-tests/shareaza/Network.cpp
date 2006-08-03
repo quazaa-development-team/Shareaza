@@ -788,9 +788,9 @@ BOOL CNetwork::SendPush( CDownloadSource * pSource )
 	BOOL bSent = FALSE;
 	if ( ! IsListening() ) return FALSE;
 	
-	if ( !pSource->m_pPushProxyList.empty() )
+	if ( !pSource->m_oPushProxyList.empty() )
 	{
-		for ( CDownloadSource::HubIndex POS = pSource->m_pPushProxyList.begin();POS != pSource->m_pPushProxyList.end();POS++)
+		for ( CDownloadSource::HubIndex POS = pSource->m_oPushProxyList.begin();POS != pSource->m_oPushProxyList.end();POS++)
 		{
 			CPacket* pPacket = CG1Packet::New( G1_PACKET_PUSH,
 				Settings.Gnutella1.MaximumTTL - 1 );
@@ -804,9 +804,9 @@ BOOL CNetwork::SendPush( CDownloadSource * pSource )
 		}
 		bSent = TRUE;
 	}
-	else if ( !pSource->m_pHubList.empty() )
+	else if ( !pSource->m_oHubList.empty() )
 	{
-		for ( CDownloadSource::HubIndex POS = pSource->m_pHubList.begin();POS != pSource->m_pHubList.end();POS++)
+		for ( CDownloadSource::HubIndex POS = pSource->m_oHubList.begin();POS != pSource->m_oHubList.end();POS++)
 		{
 			CG2Packet* pPacket = CG2Packet::New( G2_PACKET_PUSH, TRUE );
 

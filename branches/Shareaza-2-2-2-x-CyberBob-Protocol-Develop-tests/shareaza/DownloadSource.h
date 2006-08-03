@@ -98,8 +98,8 @@ public:
 	Fragments::List		m_oAvailable;
 	Fragments::List		m_oPastFragments;
 	BOOL				m_bReConnect;			// Reconnect Flag for HTTP close connection
-	HubList				m_pPushProxyList;		// Local PUSH Proxy List Storage for RouteCache backup (G1)
-	HubList				m_pHubList;				// Local PUSH HubList Storage for RouteCache backup (G2)
+	HubList				m_oPushProxyList;		// Local PUSH Proxy List Storage for RouteCache backup (G1)
+	HubList				m_oHubList;				// Local PUSH HubList Storage for RouteCache backup (G2)
 	int					m_nPushAttempted;		// number of times PushRequest has been t
 
 // Operations

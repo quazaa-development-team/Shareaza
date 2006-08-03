@@ -75,7 +75,7 @@ public:
 	BOOL			m_bFirewall;
 	
 	// For Helping search by firewalled node
-	std::list<SOCKADDR_IN> m_pHubList;
+	std::list<SOCKADDR_IN> m_oHubList;
 	typedef std::list<SOCKADDR_IN>::iterator HubIndex;
 
 	// Hashed URNs

@@ -131,8 +131,8 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, CQueryHit* pHit)
 	m_bTiger	= bool( pHit->m_oTiger );
 	m_bED2K		= bool( pHit->m_oED2K );
 	m_bMD5		= bool( pHit->m_oMD5 );
-	m_pHubList	= pHit->m_pHubList;
-	m_pPushProxyList	= pHit->m_pPushProxyList;
+	m_oHubList	= pHit->m_oHubList;
+	m_oPushProxyList	= pHit->m_oPushProxyList;
 	
 	if ( pHit->m_nProtocol == PROTOCOL_G1 || pHit->m_nProtocol == PROTOCOL_G2 )
 	{
@@ -667,7 +667,7 @@ BOOL CDownloadSource::PushRequest()
 		if ( ! m_oGUID ) return FALSE;
 		
 		BOOL bPushSucceed = FALSE;
-		if ( !m_pHubList.empty() || !m_pPushProxyList.empty() )
+		if ( !m_oHubList.empty() || !m_oPushProxyList.empty() )
 		{
 			bPushSucceed = Network.SendPush( this );
 			if (bPushSucceed) m_nPushAttempted++;

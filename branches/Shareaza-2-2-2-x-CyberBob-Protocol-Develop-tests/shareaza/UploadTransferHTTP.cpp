@@ -329,7 +329,7 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		// Not really Useful here because there is no way to find/store both Hub address and
 		// GUID to PUSH connect to remote node at this time... but might be useful in future.
 		int nCount = 0;
-		HubList pHubs;
+		HubList oHubList;
 		CString sHublist(strValue);
 		for ( sHublist += ',' ; ; ) 
 		{
@@ -342,10 +342,10 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 			if ( StrToSockaddr( sHub, pHub ) )
 			{
 				nCount++;
-				pHubs.push_back(pHub);
+				oHubList.push_back(pHub);
 			}
 		}
-		if ( nCount > 0 ) m_pHubList = pHubs;
+		if ( nCount > 0 ) m_oHubList = oHubList;
 	}
 
 	return CUploadTransfer::OnHeaderLine( strHeader, strValue );

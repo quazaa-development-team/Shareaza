@@ -204,11 +204,11 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 		
 		if ( pPacket->GetRemaining() < 16 + nXMLSize ) nXMLSize = 0;
 
-		std::list<SOCKADDR_IN> pPushProxyList;
+		std::list<SOCKADDR_IN> oPushProxyList;
 		if ( ( nFlags[0] & G1_QHD_GGEP ) && ( nFlags[1] & G1_QHD_GGEP ) &&
 			 Settings.Gnutella1.EnableGGEP )
 		{
-			ReadGGEP( pPacket, &bBrowseHost, &bChat, &pPushProxyList);
+			ReadGGEP( pPacket, &bBrowseHost, &bChat, &oPushProxyList);
 		}
 		
 		if ( nXMLSize > 0 )
@@ -234,7 +234,7 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 		
 		for ( pLastHit = pFirstHit ; pLastHit ; pLastHit = pLastHit->m_pNext, nIndex++ )
 		{
-			pLastHit->ParseAttributes( oClientID, pVendor, nFlags, bChat, bBrowseHost, pPushProxyList );
+			pLastHit->ParseAttributes( oClientID, pVendor, nFlags, bChat, bBrowseHost, oPushProxyList );
 			pLastHit->Resolve();
 			if ( pXML ) pLastHit->ParseXML( pXML, nIndex );
 		}
@@ -285,7 +285,7 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 	CString		strNick;
 	DWORD		nGroupState[8][4] = {};
 
-	std::list<SOCKADDR_IN> pHubList; // List of Hubs the Hit Sender is connected to.
+	std::list<SOCKADDR_IN> oHubList; // List of Hubs the Hit Sender is connected to.
 
 	try
 	{
@@ -368,7 +368,7 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 				nPrevHubAddress = pHub.sin_addr.S_un.S_addr;
 				nPrevHubPort = pHub.sin_port;
 
-				pHubList.push_back(pHub);
+				oHubList.push_back(pHub);
 
 			}
 			else if ( strcmp( szType, "GU" ) == 0 && nLength == 16 )
@@ -473,7 +473,7 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 		if ( ! oClientID ) AfxThrowUserException();
 		if ( pPacket->GetRemaining() < 17 ) AfxThrowUserException();
 		
-		for ( HubIndex index = pHubList.begin();index != pHubList.end();index++)
+		for ( HubIndex index = oHubList.begin();index != oHubList.end();index++)
 		{
 
 			oIncrID[15]++;
@@ -510,7 +510,7 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 			pLastHit->m_bBrowseHost	= bBrowseHost;
 			pLastHit->m_sNick		= strNick;
 			pLastHit->m_bPreview	&= pLastHit->m_bPush == TS_FALSE;
-			pLastHit->m_pHubList	= pHubList;
+			pLastHit->m_oHubList	= oHubList;
 			
 			if ( pLastHit->m_nUpSlots > 0 )
 			{
@@ -758,7 +758,7 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize)
 // CQueryHit GGEP reader
 
 BOOL CQueryHit::ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat,
-						 std::list<SOCKADDR_IN> * pPushProxyList )
+						 std::list<SOCKADDR_IN> * oPushProxyList )
 {
 	CGGEPBlock pGGEP;
 	
@@ -767,7 +767,7 @@ BOOL CQueryHit::ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat,
 	if ( pGGEP.Find( _T("BH") ) ) *pbBrowseHost = TRUE;
 	if ( pGGEP.Find( _T("CHAT") ) ) *pbChat = TRUE;
 
-	if ( pPushProxyList != NULL )
+	if ( oPushProxyList != NULL )
 	{
 		if ( CGGEPItem* pItem = pGGEP.Find( _T("PUSH"), 6 ) )
 		{
@@ -779,7 +779,7 @@ BOOL CQueryHit::ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat,
 				pItem->Read(&pPushProxy.sin_addr, 4);
 				pItem->Read(&Port,2);
 				pPushProxy.sin_port = htons ( Port );
-				pPushProxyList->push_back(pPushProxy);
+				oPushProxyList->push_back(pPushProxy);
 			}
 		}
 	}
@@ -944,13 +944,13 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 // CQueryHit G1 attributes suffix
 
 void CQueryHit::ParseAttributes(const Hashes::Guid& oClientID, CVendor* pVendor, BYTE* nFlags, BOOL bChat, BOOL bBrowseHost
-								,std::list<SOCKADDR_IN> & pPushProxyList)
+								,std::list<SOCKADDR_IN> & oPushProxyList)
 {
 	m_oClientID		= oClientID;
 	m_pVendor		= pVendor;
 	m_bChat			= bChat;
 	m_bBrowseHost	= bBrowseHost;
-	if ( !pPushProxyList.empty() ) m_pPushProxyList = pPushProxyList;
+	if ( !oPushProxyList.empty() ) m_oPushProxyList = oPushProxyList;
 
 	if ( nFlags[1] & G1_QHD_PUSH )
 		m_bPush		= ( nFlags[0] & G1_QHD_PUSH ) ? TS_TRUE : TS_FALSE;

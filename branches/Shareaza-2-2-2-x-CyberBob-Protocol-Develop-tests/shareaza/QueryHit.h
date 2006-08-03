@@ -95,8 +95,8 @@ public:
 protected:
 	BOOL			m_bResolveURL;
 public:
-	std::list<SOCKADDR_IN> m_pHubList;
-	std::list<SOCKADDR_IN> m_pPushProxyList;
+	std::list<SOCKADDR_IN> m_oHubList;
+	std::list<SOCKADDR_IN> m_oPushProxyList;
 	typedef std::list<SOCKADDR_IN>::iterator HubIndex;
 
 // Static Decode Operations
@@ -107,7 +107,7 @@ public:
 protected:
 	static BOOL			CheckBogus(CQueryHit* pFirstHit);
 	static CXMLElement*	ReadXML(CG1Packet* pPacket, int nSize);
-	static BOOL			ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat, std::list<SOCKADDR_IN> * pPushProxyList );
+	static BOOL			ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat, std::list<SOCKADDR_IN> * oPushProxyList );
 
 // Operations
 public:
@@ -118,7 +118,7 @@ public:
 protected:
 	void		ReadG1Packet(CG1Packet* pPacket);
 	void		ParseAttributes(const Hashes::Guid& pClientID, CVendor* pVendor, BYTE* nFlags, 
-				BOOL bChat, BOOL bBrowseHost, std::list<SOCKADDR_IN> & pPushProxyList );
+				BOOL bChat, BOOL bBrowseHost, std::list<SOCKADDR_IN> & oPushProxyList );
 	void		ReadG2Packet(CG2Packet* pPacket, DWORD nLength);
 	BOOL		ReadEDPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_nServerFlags = 0);
 	void		ReadEDAddress(CEDPacket* pPacket, SOCKADDR_IN* pServer);

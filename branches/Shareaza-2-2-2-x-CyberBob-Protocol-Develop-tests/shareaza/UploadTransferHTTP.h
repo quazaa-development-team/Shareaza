@@ -66,7 +66,7 @@ protected:
 	CString		m_sLocations;
 	CString		m_sRanges;
 	Hashes::Guid m_oGUID;
-	HubList		m_pHubList;
+	HubList		m_oHubList;
 
 // Operations
 public:

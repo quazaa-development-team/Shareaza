@@ -286,9 +286,9 @@ CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 		if ( nKey ) pPacket->WriteLongBE( nKey );
 	}
 
-	if ( !m_pHubList.empty() )
+	if ( !m_oHubList.empty() )
 	{
-		for ( HubIndex index = m_pHubList.begin();index != m_pHubList.end();index++)
+		for ( HubIndex index = m_oHubList.begin();index != m_oHubList.end();index++)
 		{
 			pPacket->WritePacket( "NH", 6 );
 			pPacket->WriteLongLE( index->sin_addr.S_un.S_addr );
@@ -809,7 +809,7 @@ BOOL CQuerySearch::ReadG2Packet(CG2Packet* pPacket, SOCKADDR_IN* pEndpoint)
 
 			pHub.sin_addr.S_un.S_addr	= pPacket->ReadLongLE();
 			pHub.sin_port				= htons( pPacket->ReadShortBE() );
-			m_pHubList.push_back(pHub);
+			m_oHubList.push_back(pHub);
 		}
 		else if ( strcmp( szType, "I" ) == 0 )
 		{

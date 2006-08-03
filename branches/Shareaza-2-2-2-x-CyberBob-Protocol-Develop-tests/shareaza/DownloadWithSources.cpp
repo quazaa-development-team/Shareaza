@@ -601,14 +601,14 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 				
 				if ( pExisting->m_nProtocol == pSource->m_nProtocol )
 				{
-					if ( !pSource->m_pHubList.empty() )
+					if ( !pSource->m_oHubList.empty() )
 					{
-						pExisting->m_pHubList = pSource->m_pHubList;
+						pExisting->m_oHubList = pSource->m_oHubList;
 						pExisting->m_nPushAttempted = 0;
 					}
-					if ( !pSource->m_pPushProxyList.empty() )
+					if ( !pSource->m_oPushProxyList.empty() )
 					{
-						pExisting->m_pPushProxyList = pSource->m_pPushProxyList;
+						pExisting->m_oPushProxyList = pSource->m_oPushProxyList;
 						pExisting->m_nPushAttempted = 0;
 					}
 					pExisting->m_oGUID = pSource->m_oGUID;
