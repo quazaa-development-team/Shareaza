@@ -942,7 +942,6 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 	{
 		// (do)
 		if ( m_bUltraPeerSet == TS_FALSE                                 // The remote computer told us it's a leaf
-			&& m_nNodeType == ntNode                                     // And this is a connection to a hub like us
 			&& ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() ) ) // And we're either a hub or capable of becoming one
 		{
 			// Report this case
