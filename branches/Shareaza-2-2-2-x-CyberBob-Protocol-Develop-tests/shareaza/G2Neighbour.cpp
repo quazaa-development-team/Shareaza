@@ -230,7 +230,7 @@ BOOL CG2Neighbour::OnRun()
 		}
 
 		Send( pPing );
-		Datagrams.Send( &m_pHost, CG2Packet::New( G2_PACKET_PING ) );
+		Datagrams.Send( &m_pHost, CG2Packet::New( G2_PACKET_PING ), TRUE, NULL, FALSE );
 		m_tLastPingOut = tNow;
 
 		m_nPingsSent++;
@@ -365,7 +365,7 @@ void CG2Neighbour::SendStartups()
 	if ( m_bShareaza )
 		m_nPingsSent++;
 
-	Datagrams.Send( &m_pHost, CG2Packet::New( G2_PACKET_PING ) );
+	Datagrams.Send( &m_pHost, CG2Packet::New( G2_PACKET_PING ), TRUE, NULL, FALSE );
 
 	Send( CG2Packet::New( G2_PACKET_PROFILE_CHALLENGE ), TRUE, TRUE );
 }
@@ -702,7 +702,7 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 		}
 
 		Statistics.Current.Gnutella2.PingsReceived++;
-		Datagrams.Send( (IN_ADDR*)&nAddress, nPort, pPong );
+		Datagrams.Send( (IN_ADDR*)&nAddress, nPort, pPong, TRUE, NULL, FALSE );
 		Statistics.Current.Gnutella2.PongsSent++;
 		if ( bTestFirewall ) Network.TestRemoteFirewall ( nAddress, nPort );
 	}

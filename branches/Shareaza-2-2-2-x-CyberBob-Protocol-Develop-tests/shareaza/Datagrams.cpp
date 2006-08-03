@@ -1203,7 +1203,7 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		pPong->WritePacket( pSFL );
 		pSFL->Release();
 	}
-	Send( pHost, pPong );
+	Send( pHost, pPong, TRUE, NULL, FALSE );
 
 	return TRUE;
 }

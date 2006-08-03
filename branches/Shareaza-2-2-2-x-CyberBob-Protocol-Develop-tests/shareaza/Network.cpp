@@ -772,7 +772,7 @@ BOOL CNetwork::SendPush(const Hashes::Guid& oGUID, DWORD nIndex)
 			}
 			else
 			{
-				Datagrams.Send( &pEndpoint, pPacket );
+				Datagrams.Send( &pEndpoint, pPacket, TRUE, NULL, FALSE  );
 			}
 		}
 		
@@ -816,7 +816,7 @@ BOOL CNetwork::SendPush( CDownloadSource * pSource )
 			pPacket->WriteByte( 0 );
 			pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
 			pPacket->WriteShortBE( htons( m_pHost.sin_port ) );
-			Datagrams.Send( &(*POS), pPacket );
+			Datagrams.Send( &(*POS), pPacket, TRUE, NULL, FALSE  );
 		}
 		bSent = TRUE;
 	}
