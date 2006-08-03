@@ -812,6 +812,11 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 		// We don't want to accept Hubs or UltraPeers from clients that have bugs that pollute 
 		// the host cache, so stop here.
 	}
+	else if ( !m_bInitiated && m_nState == nrsHandshake1 )
+	{
+		// if we accept connection from remote and is header for first request, any of "X-Try" headers should not be
+		// processed, because no guarantee the given list of nodes are not old.
+	}
 	else if ( strHeader.CompareNoCase( _T("X-Try-DNA-Hubs") ) == 0 )
 	{	// The remote computer is giving us a list GnucDNA G2 hubs
 		int nCount = 0;
