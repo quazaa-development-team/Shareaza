@@ -159,10 +159,10 @@ void CDownload::Resume()
 
 void CDownload::Remove(BOOL bDelete)
 {
-	CloseTorrentUploads();
+	CloseTorrent();
 	CloseTransfers();
 	CloseFile();
-	
+
 	if ( m_pTask != NULL )
 	{
 		m_pTask->Abort();
@@ -236,7 +236,10 @@ void CDownload::StopTrying()
 	m_tBegan = 0;
 	m_bDownloading	= FALSE;
 
+	// if m_bTorrentRequested = TRUE, raza sends Stop
+	// CloseTorrent() additionally closes uploads
 	if ( m_oBTH ) CloseTorrent();
+
 	CloseTransfers();
 	CloseFile();
 	StopSearch();
@@ -477,6 +480,7 @@ void CDownload::OnTaskComplete(CDownloadTask* pTask)
 void CDownload::OnMoved(CDownloadTask* pTask)
 {
 	CString strDiskFileName = m_sDiskName;
+	// File is moved
 	ASSERT( m_pFile == NULL );
 	
 	if ( pTask->m_bSuccess )
@@ -501,20 +505,35 @@ void CDownload::OnMoved(CDownloadTask* pTask)
 		}
 	}
 	
-	StopTrying();
-	m_bComplete		= TRUE;
-	m_tCompleted	= GetTickCount();
-	
-	// Delete the SD file
-	::DeleteFile( strDiskFileName + _T(".sd") );
-	
+	// We just completed torrent
 	if ( m_nTorrentBlock > 0 && m_nTorrentSuccess >= m_nTorrentBlock )
 	{
 		CBTTrackerRequest::SendCompleted( this );
 		m_bSeeding = TRUE;
+		m_tBegan = 0;
+		m_bDownloading	= FALSE;
 		m_bTorrentStarted = TRUE;
+		m_bTorrentRequested = TRUE;
+		CloseTransfers();
+		StopSearch();
 	}
+	else if ( m_oBTH ) // Something wrong (?), since we moved the torrent
+	{
+		// Explicitly set the flag to send stop
+		m_bTorrentRequested = TRUE;
+		StopTrying();
+	}
+	else
+		StopTrying();
+
+	// Download finalized, tracker notified, set flags that we completed
+	m_bComplete		= TRUE;
+	m_tCompleted	= GetTickCount();
 	
+
+	// Delete the SD file
+	::DeleteFile( strDiskFileName + _T(".sd") );
+
 	LibraryBuilder.RequestPriority( m_sDiskName );
 	
     if ( m_oSHA1 || m_oED2K )
