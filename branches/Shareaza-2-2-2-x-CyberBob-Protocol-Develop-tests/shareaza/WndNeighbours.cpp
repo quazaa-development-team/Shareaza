@@ -233,7 +233,7 @@ void CNeighboursWnd::Update()
 				
 				switch ( pNeighbour->m_nNodeType )
 				{
-				case ntUnknown:
+				case ntNull:
 					str = _T("Unknown");
 					break;
 				case ntNode:
@@ -259,7 +259,7 @@ void CNeighboursWnd::Update()
 				
 				switch ( pNeighbour->m_nNodeType )
 				{
-				case ntUnknown:
+				case ntNull:
 					str = _T("Unknown");
 					break;
 				case ntNode:

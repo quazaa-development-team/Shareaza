@@ -59,7 +59,7 @@ typedef enum NeighbourStateEnum
 typedef enum NeighbourNodeEnum
 {
 	// The remote computer can be a leaf, or an ultrapeer or hub, and so can we
-	ntUnknown = 0,		// We are both unknown node if G1Ultrapeers/G2hubs or Leaves
+	ntNull = 0,			// connection is unknown type.
 	ntNode = 1,			// We are both Gnutella ultrapeers or Gnutella2 hubs
 	ntHub = 2,			// We are a leaf, and this connection is to a Gnutella ultrapeer or Gnutella2 hub above us
 	ntLeaf = 3,			// We are a Gnutella ultrapeer or Gnutella2 hub, and this connection is to a leaf below us

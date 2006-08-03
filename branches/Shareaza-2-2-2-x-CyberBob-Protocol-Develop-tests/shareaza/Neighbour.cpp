@@ -72,7 +72,7 @@ CNeighbour::CNeighbour(PROTOCOLID nProtocol)
 	// Set handshake values to defaults
 	m_bAutomatic    = FALSE;  // Automatic setting used to maintain the connection
 	m_bShareaza     = FALSE;  // Expect the remote computer to not be running Shareaza
-	m_nNodeType     = ntUnknown; // Start out assuming that we and the remote computer are both hubs
+	m_nNodeType     = ntNull; // Start out assuming that we and the remote computer are both hubs
 	m_bQueryRouting = FALSE;  // Don't start query routing or pong caching yet
 	m_bPongCaching  = FALSE;
 	m_bVendorMsg    = FALSE;  // The remote computer hasn't told us it supports the vendor-specific messages yet

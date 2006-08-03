@@ -1318,7 +1318,7 @@ void CRemote::PageNetworkNetwork(int nID, BOOL* pbConnect, LPCTSTR pszName)
 			
 			switch ( pNeighbour->m_nNodeType )
 			{
-			case ntUnknown:
+			case ntNull:
 				str = _T("Unknown");
 				break;
 			case ntNode:
@@ -1344,7 +1344,7 @@ void CRemote::PageNetworkNetwork(int nID, BOOL* pbConnect, LPCTSTR pszName)
 			
 			switch ( pNeighbour->m_nNodeType )
 			{
-			case ntUnknown:
+			case ntNull:
 				str = _T("Unknown");
 				break;
 			case ntNode:

@@ -219,7 +219,7 @@ void CNeighbourTipCtrl::OnPaint(CDC* pDC)
 		case PROTOCOL_G1:
 			switch ( pNeighbour->m_nNodeType )
 			{
-			case ntUnknown:
+			case ntNull:
 				str = _T("Unknown Connection");
 				break;
 			case ntNode:
@@ -239,7 +239,7 @@ void CNeighbourTipCtrl::OnPaint(CDC* pDC)
 		case PROTOCOL_G2:
 			switch ( pNeighbour->m_nNodeType )
 			{
-			case ntUnknown:
+			case ntNull:
 				str = _T("Unknown Connection");
 				break;
 			case ntNode:

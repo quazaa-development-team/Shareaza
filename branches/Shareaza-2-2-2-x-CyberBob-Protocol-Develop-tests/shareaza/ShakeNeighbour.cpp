@@ -1035,6 +1035,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 				DelayClose( IDS_HANDSHAKE_NEEDAPEER ); // Send the buffer then close the socket
 				return FALSE; // Return false all the way back to CHandshakes::RunHandshakes, which will delete this object
 			}
+			m_nNodeType = ntNull;
 		}
 
 		// If the connection doesn't fall into any of those error cases, accept it with a batch of reply headers
@@ -1076,7 +1077,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 			else if ( m_bUltraPeerSet == TS_UNKNOWN )
 			{
 				// Record that remote Node type is Unknown
-				m_nNodeType = ntUnknown;
+				m_nNodeType = ntNull;
 			}
 
 		} // The remote computer is an ultrapeer, and we are not running in hub mode
@@ -1463,7 +1464,7 @@ void CShakeNeighbour::OnHandshakeComplete()
 
 	// Point the bandwidth meter limits at the numbers from Shareaza Settings
 	switch ( m_nNodeType ) {
-	case ntUnknown:
+	case ntNull:
 	case ntSpecial:
 	case ntHub:
 
