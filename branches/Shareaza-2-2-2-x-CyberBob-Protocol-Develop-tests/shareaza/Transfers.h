@@ -32,6 +32,11 @@ extern CTransfers Transfers;
 
 class CTransfers
 {
+// typedef
+public:
+	typedef std::list<CTransfer*>::iterator TransferItem;
+	typedef std::list<CTransfer*>::const_iterator const_TransferItem;
+
 // Construction
 public:
 	CTransfers();
@@ -56,11 +61,10 @@ private:
 	DWORD			m_nBuffer;
 	BYTE*			m_pBuffer;
 protected:
-	CList< CTransfer* > m_pList;
+	std::list<CTransfer*> m_pList;
 	HANDLE			m_hThread;
 	volatile BOOL	m_bThread;
 	CEvent			m_pWakeup;
-	DWORD			m_nRunCookie;
 
 // Operations
 public:
@@ -79,24 +83,32 @@ protected:
 
 // List Access
 public:
-	inline POSITION GetIterator() const
+	inline const_TransferItem begin() const
 	{
-		return m_pList.GetHeadPosition();
+		return m_pList.begin();
 	}
 
-	inline CTransfer* GetNext(POSITION& pos) const
+	inline const_TransferItem end() const
 	{
-		return m_pList.GetNext( pos );
+		return m_pList.end();
 	}
 
-	inline INT_PTR GetCount() const
+	inline size_t size() const
 	{
-		return m_pList.GetCount();
+		return m_pList.size();
 	}
 
 	inline BOOL Check(CTransfer* pTransfer) const
 	{
-		return m_pList.Find( pTransfer ) != NULL;
+		const_TransferItem index  = m_pList.begin();
+		const_TransferItem indexEnd  = m_pList.end();
+
+		for (; index != indexEnd; index++ )
+		{
+			if ( *index == pTransfer ) return TRUE;
+		}
+
+		return FALSE;;
 	}
 
 	friend class CTransfer;
