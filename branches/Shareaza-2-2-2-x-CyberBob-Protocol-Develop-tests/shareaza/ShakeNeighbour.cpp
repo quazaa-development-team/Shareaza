@@ -180,7 +180,7 @@ BOOL CShakeNeighbour::OnConnected()
 	{
 		m_pOutput->Print( "CONNECT BACK\r\n\r\n" ); 
 		DelayClose( 0 ); // Wait for data to be sent and then close connection
-		theApp.Message( MSG_SYSTEM, _T("TCP Firewall test passed for %s."), (LPCTSTR)m_sAddress );
+		theApp.Message( MSG_SYSTEM, _T("TCP Firewall test passed for %s, port %lu."), (LPCTSTR)m_sAddress, m_pHost.sin_port );
 	}
 	else
 	{
@@ -812,7 +812,7 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 		// We don't want to accept Hubs or UltraPeers from clients that have bugs that pollute 
 		// the host cache, so stop here.
 	}
-	else if ( !m_bInitiated && m_nState == nrsHandshake1 )
+	else if ( !m_bInitiated )
 	{
 		// if we accept connection from remote and is header for first request, any of "X-Try" headers should not be
 		// processed, because no guarantee the given list of nodes are not old.
@@ -843,8 +843,8 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			CString strHost = strValue.Left( nPos );// Copy the text up to the comma into strHost
 			strValue = strValue.Mid( nPos + 1 );    // Clip that text and the comma off the start of strValue
 
-			// since there is no clever way to detect the given what Hosts' vender codes are, just add then as NULL
-			// in order to prevent HostCache/KHL pollution done by mis-assumptions.
+			// since there is no clever way to detect what the given Hosts' vender codes are, just add then as NULL
+			// in order to prevent HostCache/KHL pollution done by wrong assumptions.
 			if ( HostCache.Gnutella2.Add( strHost, 0, NULL ) ) nCount++; // Count it
 		}
 		// Tell discovery services the remote computer's IP address, and how many hosts it just told us about
@@ -872,8 +872,8 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			// The remote computer accepts Gnutella2 packets, is sending them, or is Shareaza
 			if ( m_bG2Accept || m_bG2Send || m_bShareaza )
 			{
-				// since there is no clever way to detect the given what Hosts' vender codes are, just add then as NULL
-				// in order to prevent HostCache/KHL pollution done by mis-assumptions.
+				// since there is no clever way to detect what the given Hosts' vender codes are, just add then as NULL
+				// in order to prevent HostCache/KHL pollution done by wrong assumptions.
 				if ( HostCache.Gnutella2.Add( strHost, 0, NULL ) ) nCount++; // Count it
 
 			} 
@@ -971,8 +971,8 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 				m_nNodeType = ntLeaf;
 
 			} // The remote computer sent us headers like "X-Ultrapeer: True" and "X-Ultrapeer-Needed: True"
-			else if ( m_bUltraPeerSet == TS_TRUE && m_bUltraPeerNeeded == TS_TRUE ) // && Network.NeedMoreHubs() )
-			{
+			else if ( m_bUltraPeerSet == TS_TRUE && m_bUltraPeerNeeded != TS_FALSE )
+			{// seems like GnucDNA type node do not give "X-Ultrapeer-needed:" header
 				// Record that we are both hubs
 				m_nNodeType = ntNode;
 
@@ -1081,7 +1081,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 			else if ( m_bUltraPeerSet == TS_UNKNOWN )
 			{
 				// Record that remote Node type is Unknown
-				m_nNodeType = ntNull;
+				m_nNodeType = ntLeaf;
 			}
 
 		} // The remote computer is an ultrapeer, and we are not running in hub mode
@@ -1278,8 +1278,8 @@ BOOL CShakeNeighbour::OnHeadersCompleteG1()
 				m_nNodeType = ntLeaf;
 
 			} // The remote computer told us it's an ultrapeer and that it needs connections to more ultrapeers
-			else if ( m_bUltraPeerSet == TS_TRUE && m_bUltraPeerNeeded == TS_TRUE )
-			{
+			else if ( m_bUltraPeerSet == TS_TRUE && m_bUltraPeerNeeded != TS_FALSE )
+			{// seems like GnucDNA type node do not give "X-Ultrapeer-needed:" header
 				// Record that we are both ultrapeers
 				m_nNodeType = ntNode;
 
