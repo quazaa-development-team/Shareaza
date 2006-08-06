@@ -1109,7 +1109,7 @@ void CHomeConnectionBox::Setup()
 	
 	for ( int nP = 0 ; nP < 4 ; nP++ )
 	{
-		for ( int nT = 0 ; nT < 3 ; nT++ )
+		for ( int nT = 0 ; nT < 5 ; nT++ )
 		{
 			m_pdCount[ nP ][ nT ] = NULL;
 			m_sCount[ nP ][ nT ].Empty();
@@ -1143,7 +1143,7 @@ void CHomeConnectionBox::Setup()
 	
 	for ( int nP = 0 ; nP < 4 ; nP++ )
 	{
-		for ( int nT = 0 ; nT < 3 ; nT++ )
+		for ( int nT = 0 ; nT < 5 ; nT++ )
 		{
 			if ( m_pdCount[ nP ][ nT ] != NULL )
 			{
@@ -1164,7 +1164,7 @@ void CHomeConnectionBox::Update()
 	CSingleLock pLock( &Network.m_pSection );
 	if ( ! pLock.Lock( 50 ) ) return;
 	
-	int nCount[4][4] = {};
+	int nCount[4][5] = {};
 	int nTotal = 0;
 	CString str;
 	

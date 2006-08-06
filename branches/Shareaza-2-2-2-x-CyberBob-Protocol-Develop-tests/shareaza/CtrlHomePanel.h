@@ -195,8 +195,8 @@ public:
 protected:
 	CRichElement*	m_pdConnectedHours;
 	CRichElement*	m_pdConnectedMinutes;
-	CRichElement*	m_pdCount[4][3];
-	CString			m_sCount[4][3];
+	CRichElement*	m_pdCount[4][5];
+	CString			m_sCount[4][5];
 
 // Operations
 public:
