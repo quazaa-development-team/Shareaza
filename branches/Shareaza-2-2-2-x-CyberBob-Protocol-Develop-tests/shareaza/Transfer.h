@@ -35,7 +35,7 @@ public:
 
 // Attributes
 public:
-	DWORD					m_nRunCookie;
+	std::list<CTransfer*>::iterator	m_pSelf;
 public:
 	CList< CString >		m_pSourcesSent;
 	CArray< CString >		m_pHeaderName;

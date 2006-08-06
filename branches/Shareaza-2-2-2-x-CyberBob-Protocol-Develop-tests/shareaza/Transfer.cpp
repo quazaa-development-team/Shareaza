@@ -37,7 +37,6 @@ static char THIS_FILE[]=__FILE__;
 
 CTransfer::CTransfer()
 {
-	m_nRunCookie = 0;
 }
 
 CTransfer::~CTransfer()

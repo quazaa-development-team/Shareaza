@@ -22,9 +22,8 @@
 #if !defined(AFX_TRANSFERS_H__950AC162_FF34_4B40_8D8A_2745AA245316__INCLUDED_)
 #define AFX_TRANSFERS_H__950AC162_FF34_4B40_8D8A_2745AA245316__INCLUDED_
 
+#include "Transfer.h"
 #pragma once
-
-class CTransfer;
 
 class CTransfers;
 
@@ -100,6 +99,7 @@ public:
 
 	inline BOOL Check(CTransfer* pTransfer) const
 	{
+		/*
 		const_TransferItem index  = m_pList.begin();
 		const_TransferItem indexEnd  = m_pList.end();
 
@@ -108,7 +108,9 @@ public:
 			if ( *index == pTransfer ) return TRUE;
 		}
 
-		return FALSE;;
+		return FALSE;
+		*/
+		return ( pTransfer->m_pSelf != NULL );
 	}
 
 	friend class CTransfer;
