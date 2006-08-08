@@ -1467,8 +1467,10 @@ void CMainWnd::OnUpdateNetworkConnect(CCmdUI* pCmdUI)
 	pCmdUI->Enable( TRUE );
 
 	UINT nTextID = 0;
+	bool bNetworksEnabled = ( Settings.Gnutella1.EnableToday || 
+		Settings.Gnutella2.EnableToday || Settings.eDonkey.EnableToday );
 
-	if ( Network.IsWellConnected() )
+	if ( Network.IsWellConnected() || !bNetworksEnabled && Network.IsConnected() )
 	{
 		nTextID = IDS_NETWORK_CONNECTED;
 		pCmdUI->SetCheck( TRUE );
