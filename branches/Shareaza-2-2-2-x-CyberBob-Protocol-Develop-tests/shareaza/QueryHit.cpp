@@ -1152,7 +1152,8 @@ BOOL CQueryHit::ReadEDPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_n
 	
 	DWORD nTags = pPacket->ReadLongLE();
 
-	QWORD nSize = 0;
+	ULARGE_INTEGER nSize;
+	nSize.QuadPart = 0;
 	
 	while ( nTags-- > 0 )
 	{
@@ -1171,11 +1172,11 @@ BOOL CQueryHit::ReadEDPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_n
 		}
 		else if ( pTag.m_nKey == ED2K_FT_FILESIZE )
 		{
-			nSize += pTag.m_nValue;
+			nSize.LowPart = pTag.m_nValue;
 		}
 		else if ( pTag.m_nKey == ED2K_FT_FILESIZEUPPER )
 		{
-			nSize += ( (QWORD)pTag.m_nValue << 32 );
+			nSize.HighPart = pTag.m_nValue;
 		}
 		else if ( pTag.m_nKey == ED2K_FT_LASTSEENCOMPLETE )
 		{
@@ -1284,10 +1285,17 @@ BOOL CQueryHit::ReadEDPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_n
 		}
 	}
 
-	if ( nSize )
+	if ( nSize.QuadPart )
 	{
 		m_bSize = TRUE;
-		m_nSize = nSize;
+		m_nSize = nSize.QuadPart;
+	}
+	else
+	{
+		// eMule doesn't share 0 byte files, thus it should mean the file size is unknown.
+		// It means also a hit for the currently downloaded file but such files have empty 
+		// file names.
+		m_nSize = SIZE_UNKNOWN;
 	}
 
 	// Verify and set metadata

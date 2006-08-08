@@ -1062,7 +1062,6 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 
 BOOL CQuerySearch::Match(LPCTSTR pszFilename, QWORD nSize, LPCTSTR pszSchemaURI, CXMLElement* pXML, const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, const Hashes::Ed2kHash& oED2K, const Hashes::Md5Hash& oMD5)
 {
-
 	BOOL bHashCheck = FALSE;
 
 	if ( nSize < m_nMinSize || nSize > m_nMaxSize ) return FALSE;
