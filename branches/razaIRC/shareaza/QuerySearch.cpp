@@ -870,7 +870,7 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 
 BOOL CQuerySearch::Match(LPCTSTR pszFilename, QWORD nSize, LPCTSTR pszSchemaURI, CXMLElement* pXML, const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, const Hashes::Ed2kHash& oED2K)
 {
-	if ( nSize < m_nMinSize || nSize > m_nMaxSize ) return FALSE;
+	if ( nSize == SIZE_UNKNOWN || nSize < m_nMinSize || nSize > m_nMaxSize ) return FALSE;
 	
 	if ( m_oSHA1 )
 	{
@@ -1326,6 +1326,10 @@ void CQuerySearch::MakeKeywords(CString& strPhrase, bool bExpression)
 			str.Append( L" " );
 	}
 	str += strPhrase.Mid( nPrevWord, nPos - nPrevWord );
+
+	// Greek last sigma fix
+	str += L" ";
+	Replace( str, _T("\x03C3 "), _T("\x03C2 ") ); 
 
 	strPhrase = str.TrimLeft().TrimRight( L" -" );
 	return;
