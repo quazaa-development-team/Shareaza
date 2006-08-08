@@ -66,6 +66,7 @@ protected:
 	BOOL			m_bTigerFailed;
 	BOOL			m_bHeadRequest;
 	DWORD			m_nRetryAfter;
+	BOOL			m_bGUIDSent;
 
 // Operations
 public:

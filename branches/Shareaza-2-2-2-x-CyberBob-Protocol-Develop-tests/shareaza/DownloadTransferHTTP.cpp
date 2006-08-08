@@ -72,6 +72,7 @@ CDownloadTransferHTTP::CDownloadTransferHTTP(CDownloadSource* pSource) : CDownlo
 	
 	m_nRetryDelay	= Settings.Downloads.RetryDelay;
 	m_nRetryAfter	= 0;
+	m_bGUIDSent		= FALSE;
 }
 
 CDownloadTransferHTTP::~CDownloadTransferHTTP()
@@ -388,7 +389,7 @@ BOOL CDownloadTransferHTTP::SendRequest()
 			strLine += "\r\n";
 			m_pOutput->Print( strLine );
 
-			if ( m_nRequests == 0 )
+			if ( m_bGUIDSent == FALSE )
 			{
 				// copy Profile's GUID
 				Hashes::Guid oID( MyProfile.oGUID );
@@ -403,6 +404,7 @@ BOOL CDownloadTransferHTTP::SendRequest()
 
 				// Print the string into the output buffer, and write the output buffer to the remote computer
 				m_pOutput->Print( strGUID );
+				m_bGUIDSent = TRUE;
 			}
 		}
 	}
