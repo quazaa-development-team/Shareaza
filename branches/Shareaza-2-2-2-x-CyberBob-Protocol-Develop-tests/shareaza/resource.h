@@ -1155,6 +1155,7 @@
 #define IDS_WIZARD_UPNP_SETUP           16812
 #define IDS_WIZARD_DISCOVERY            16813
 #define IDS_WIZARD_ED2K                 16814
+#define IDS_UPNP_SERVICES_ERROR         16815
 #define IDS_SETTINGS_WARN_QUEUELIMIT    16816
 #define IDS_SETTINGS_FILEPATH_TOO_LONG  16817
 #define IDS_SETTINGS_FILEPATH_NOT_SAME  16818
@@ -1342,6 +1343,8 @@
 #define IDS_GENERAL_AUTO                20007
 #define IDS_GENERAL_DEFAULT             20008
 #define IDS_GENERAL_CUSTOM              20009
+#define IDS_GENERAL_BACK                20010
+#define IDS_GENERAL_NEXT                20011
 #define IDS_STATUS_CONNECTING           20100
 #define IDS_STATUS_REQUESTING           20101
 #define IDS_STATUS_RESPONSE             20102
