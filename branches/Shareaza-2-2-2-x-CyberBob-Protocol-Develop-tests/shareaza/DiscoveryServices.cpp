@@ -1605,22 +1605,22 @@ BOOL CDiscoveryService::ResolveGnutella()
 	int nSkip = 0;
 
 	// Check it has a valid protocol
-	if ( _tcsnicmp( strHost, _T("gnutella:host:"),  14 ) == 0 ) 
+	if ( _tcsnicmp( strHost, _T("gnutella:host:"),  14 ) == 0 )
 	{
 		nBootType = 1;
 		nSkip = 14;
 	}
-	else if ( _tcsnicmp( strHost, _T("gnutella2:host:"), 15 ) == 0 ) 
+	else if ( _tcsnicmp( strHost, _T("gnutella2:host:"), 15 ) == 0 )
 	{
 		nBootType = 2;
 		nSkip = 15;
 	}
-	else if ( _tcsnicmp( strHost, _T("udphc:"), 6 ) == 0 ) 
+	else if ( _tcsnicmp( strHost, _T("uhc://"), 6 ) == 0 )
 	{
 		nBootType = 3;
 		nSkip = 6;
 	}
-	else if ( _tcsnicmp( strHost, _T("udpkhl:"), 7 ) == 0 ) 
+	else if ( _tcsnicmp( strHost, _T("ukhl://"), 7 ) == 0 )
 	{
 		nBootType = 4;
 		nSkip = 7;
