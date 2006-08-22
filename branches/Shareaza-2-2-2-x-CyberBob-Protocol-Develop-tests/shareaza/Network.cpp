@@ -48,6 +48,7 @@
 #include "Buffer.h"
 #include "G1Packet.h"
 #include "G2Packet.h"
+#include "GGEP.h"
 #include "G1Neighbour.h"
 
 #include "WndMain.h"
@@ -660,9 +661,17 @@ void CNetwork::OnWinsock(WPARAM wParam, LPARAM lParam)
 		{
 			HostCache.ForProtocol( pResolve->m_nProtocol )->Add( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort );
 		}
-		else
+		else if ( pResolve->m_nCommand == 1 || pResolve->m_nCommand == 2 )
 		{
 			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, pResolve->m_nCommand );
+		}
+		else if ( pResolve->m_nCommand == 3 )
+		{
+			// code to invoke UDPHC/UDPKHL Sender.
+			if ( pResolve->m_nProtocol == PROTOCOL_G1 )
+				UDPHostCache((IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort);
+			if ( pResolve->m_nProtocol == PROTOCOL_G2 )
+				UDPKnownHubCache((IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort);
 		}
 	}
 	else if ( pResolve->m_nCommand > 0 )
@@ -980,4 +989,35 @@ void CNetwork::OnQueryHits(CQueryHit* pHits)
 	}
 
 	pHits->Delete();
+}
+
+void CNetwork::UDPHostCache( IN_ADDR* pAddress, WORD nPort )
+{
+	bool bNeedFreeLeafSlot = Neighbours.IsG1Ultrapeer() ? true : false;
+
+	CG1Packet* pPing = CG1Packet::New( G1_PACKET_PING, 1, Hashes::Guid( MyProfile.oGUID ) );
+
+	CGGEPBlock pBlock;
+	CGGEPItem* pItem;
+	
+	pItem = pBlock.Add( L"SCP" );
+	if ( bNeedFreeLeafSlot ) 
+		pItem->WriteByte( 1 );
+	else
+		pItem->WriteByte( 0 );
+
+	pItem = pBlock.Add( L"DNA" );
+	if ( bNeedFreeLeafSlot ) 
+		pItem->WriteByte( 1 );
+	else
+		pItem->WriteByte( 0 );
+
+	pBlock.Write( pPing );
+	Datagrams.Send( pAddress, nPort, pPing, TRUE, NULL, FALSE );
+}
+
+void CNetwork::UDPKnownHubCache( IN_ADDR* pAddress, WORD nPort )
+{
+	CG2Packet* pKHLR = CG2Packet::New( G2_PACKET_KHL_REQ );
+	Datagrams.Send( pAddress, nPort, pKHLR, TRUE, NULL, FALSE );
 }

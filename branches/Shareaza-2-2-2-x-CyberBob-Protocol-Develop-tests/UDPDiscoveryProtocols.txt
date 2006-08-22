@@ -1,0 +1,11 @@
+Modified "Bootstrap" type to hold them.
+
+to use UDP stuffs adding address with prefix:
+
+* Prefix "udphc:" for Gnutella1 UDP HostCache.
+* Prefix "udpkhl:" for Gnutella2 UDP Known Hub Cache.(Still in test phase)
+
+for some extra, there is way to use TCP connections.
+
+* Prefix "gnutella:host:" will make Gnutella1 connection to the address specified.
+* Prefix "gnutella2:host:" will make Gnutella2 connection to the address specified.

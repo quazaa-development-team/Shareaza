@@ -1598,19 +1598,99 @@ BOOL CDiscoveryService::Execute(int nMode)
 
 BOOL CDiscoveryService::ResolveGnutella()
 {
-	CString strHost	= m_sAddress;
-	int nPort		= GNUTELLA_DEFAULT_PORT;
-	int nPos		= strHost.Find( ':' );
-	
-	if ( nPos >= 0 && _stscanf( strHost.Mid( nPos + 1 ), _T("%i"), &nPort ) == 1 )
-		strHost = strHost.Left( nPos );
-	
 	if ( ! Network.Connect( FALSE ) ) return FALSE;
-	
-	if ( Network.AsyncResolve( strHost, (WORD)nPort, PROTOCOL_G1, 0 ) )
+
+	CString strHost	= m_sAddress;
+	int nBootType = 0; // 0 = old BootStrap, 1 = Gnutella TCP, 2 = Gnutella2 TCP, 3 = Gnutella UDPHC, 4 = Gnutella2 UDPKHL
+	int nSkip = 0;
+
+	// Check it has a valid protocol
+	if ( _tcsnicmp( strHost, _T("gnutella:host:"),  14 ) == 0 ) 
 	{
-		OnSuccess();
-		return TRUE;
+		nBootType = 1;
+		nSkip = 14;
+	}
+	else if ( _tcsnicmp( strHost, _T("gnutella2:host:"), 15 ) == 0 ) 
+	{
+		nBootType = 2;
+		nSkip = 15;
+	}
+	else if ( _tcsnicmp( strHost, _T("udphc:"), 6 ) == 0 ) 
+	{
+		nBootType = 3;
+		nSkip = 6;
+	}
+	else if ( _tcsnicmp( strHost, _T("udpkhl:"), 7 ) == 0 ) 
+	{
+		nBootType = 4;
+		nSkip = 7;
+	}
+
+	int nPort		= GNUTELLA_DEFAULT_PORT;
+
+	if (nBootType == 0)
+	{
+		int nPos		= strHost.Find( ':' );
+		if ( nPos >= 0 && _stscanf( strHost.Mid( nPos + 1 ), _T("%i"), &nPort ) == 1 )
+			strHost = strHost.Left( nPos );
+
+		if ( Network.AsyncResolve( strHost, (WORD)nPort, PROTOCOL_G1, 0 ) )
+		{
+			OnSuccess();
+			return TRUE;
+		}
+	}
+	else if (nBootType == 1)
+	{
+		strHost = strHost.Mid( nSkip );
+		int nPos		= strHost.Find( ':');
+		if ( nPos >= 0 && _stscanf( strHost.Mid( nPos + 1 ), _T("%i"), &nPort ) == 1 )
+			strHost = strHost.Left( nPos );
+
+		if ( Network.AsyncResolve( strHost, (WORD)nPort, PROTOCOL_G1, 1 ) )
+		{
+			OnSuccess();
+			return TRUE;
+		}
+	}
+	else if (nBootType == 2)
+	{
+		strHost = strHost.Mid( nSkip );
+		int nPos		= strHost.Find( ':');
+		if ( nPos >= 0 && _stscanf( strHost.Mid( nPos + 1 ), _T("%i"), &nPort ) == 1 )
+			strHost = strHost.Left( nPos );
+
+		if ( Network.AsyncResolve( strHost, (WORD)nPort, PROTOCOL_G2, 1 ) )
+		{
+			OnSuccess();
+			return TRUE;
+		}
+	}
+	else if (nBootType == 3)
+	{
+		strHost = strHost.Mid( nSkip );
+		int nPos		= strHost.Find( ':');
+		if ( nPos >= 0 && _stscanf( strHost.Mid( nPos + 1 ), _T("%i"), &nPort ) == 1 )
+			strHost = strHost.Left( nPos );
+
+		if ( Network.AsyncResolve( strHost, (WORD)nPort, PROTOCOL_G1, 3 ) )
+		{
+			OnSuccess();
+			return TRUE;
+		}
+	}
+	else if (nBootType == 4)
+	{
+		strHost = strHost.Mid( nSkip );
+		int nPos		= strHost.Find( ':');
+		if ( nPos >= 0 && _stscanf( strHost.Mid( nPos + 1 ), _T("%i"), &nPort ) == 1 )
+			strHost = strHost.Left( nPos );
+
+		if ( Network.AsyncResolve( strHost, (WORD)nPort, PROTOCOL_G2, 3 ) )
+		{
+			OnSuccess();
+			return TRUE;
+		}
 	}
 	
 	OnFailure();
