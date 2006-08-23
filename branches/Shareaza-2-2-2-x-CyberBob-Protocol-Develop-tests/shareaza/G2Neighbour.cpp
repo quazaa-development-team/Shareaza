@@ -357,8 +357,16 @@ void CG2Neighbour::SendStartups()
 {
 	CG2Packet* pPing = CG2Packet::New( G2_PACKET_PING, TRUE );
 
-	pPing->WritePacket("VER",0);
-	pPing->WritePacket("SFL",0);
+	pPing->WritePacket( "VER", 0);
+	pPing->WritePacket( "SFL", 0);
+	pPing->WritePacket( "UDP", 6 );
+	pPing->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
+	pPing->WriteShortBE( htons( Network.m_pHost.sin_port ) );
+	if ( Network.IsFirewalled() )
+	{
+		theApp.Message( MSG_DEBUG, _T("Sending a Firewall test request to %s."), m_sAddress );
+		pPing->WritePacket( "TFW", 0 );
+	}
 
 	Send( pPing, TRUE, TRUE );
 	m_tLastPingOut = GetTickCount();
@@ -612,7 +620,7 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 		pPacket->m_nPosition = nNext;
 	}
 
-	if ( !bRelay && nAddress == 0 && nPort == 0 )
+	if ( !bRelay )
 	{
 		if (bVersion)
 		{
