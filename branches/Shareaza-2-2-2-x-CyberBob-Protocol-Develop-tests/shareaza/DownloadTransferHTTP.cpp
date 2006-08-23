@@ -393,7 +393,7 @@ BOOL CDownloadTransferHTTP::SendRequest()
 			{
 				// copy Profile's GUID
 				Hashes::Guid oID( MyProfile.oGUID );
-				// Compose the X-GUID string, which is like "MyGUID: /" with two newlines at the end (do)
+				// Compose the X-MyGUID string, which is like "X-MyGUID: " with two newlines at the end (do)
 				CString strGUID;
 				// MFC's CString::Format is like sprintf, "%.2X" formats a byte into 2 hexidecimal characters like "ff"
 				strGUID.Format(	_T("X-MyGUID: %.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X/\r\n"),
