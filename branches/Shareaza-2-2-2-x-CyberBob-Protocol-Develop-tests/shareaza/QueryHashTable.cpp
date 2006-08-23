@@ -1014,11 +1014,11 @@ BOOL CQueryHashTable::Check(const CQuerySearch* pSearch) const
 	
 	if ( !pSearch->m_oURNs.empty() )
 	{
-		std::list<DWORD>::const_iterator indexUrnList = pSearch->urnBegin();
-		CString strUrnList ="";
-		for ( ; indexUrnList != pSearch->urnEnd() ; indexUrnList++ )
+		std::list<DWORD>::const_iterator indexUrn = pSearch->urnBegin();
+		std::list<DWORD>::const_iterator indexUrnEnd = pSearch->urnEnd();
+		for ( ; indexUrn != indexUrnEnd ; indexUrn++ )
 		{
-			if ( CheckHash(*indexUrnList) ) return TRUE;
+			if ( CheckHash(*indexUrn) ) return TRUE;
 		}
 		return FALSE;
 	}
@@ -1028,8 +1028,8 @@ BOOL CQueryHashTable::Check(const CQuerySearch* pSearch) const
 	if ( !pSearch->m_oKeywordHashList.empty() )
 	{
 		std::list<DWORD>::const_iterator indexKeyword = pSearch->keywordBegin();
-		CString strKeywordList ="";
-		for ( ; indexKeyword != pSearch->keywordEnd() ; indexKeyword++ )
+		std::list<DWORD>::const_iterator indexKeywordEnd = pSearch->keywordEnd();
+		for ( ; indexKeyword != indexKeywordEnd ; indexKeyword++ )
 		{
 			if ( CheckHash(*indexKeyword) ) nWordHits++;
 		}
