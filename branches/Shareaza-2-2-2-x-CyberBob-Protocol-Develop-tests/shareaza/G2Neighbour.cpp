@@ -1327,8 +1327,8 @@ BOOL CG2Neighbour::OnHAW(CG2Packet* pPacket)
 											// in RouteCache.
 		// Note: because it is not same as Main RouteCache used on Normal Packet Handling, it is not big problem right now.
 		//		However this can cause problem if in future this GUID gets used for getting GUID for normal routing too...
-		//		P.S. I do not know what other G2 Nodes(GnucDNA) use this GUID as main RouteCache or separate cache, so better
-		//			check up with them.
+		//		P.S. I do not know what other G2 Nodes(such as GnucDNA) use this GUID as main RouteCache or separate cache,
+		//			so better check up with them.
 
 		pPtr[0] = nTTL  - 1;
 		pPtr[1] = nHops + 1;
