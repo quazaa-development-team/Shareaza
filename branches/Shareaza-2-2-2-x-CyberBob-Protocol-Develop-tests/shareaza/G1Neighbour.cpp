@@ -513,8 +513,11 @@ BOOL CG1Neighbour::OnPing(CG1Packet* pPacket)
 
 	// TEST: send out Pong with GGEP "GUE" to test if raza start recieving GUESS packets
 	pGGEP.Add( L"GUE" );
+
+	//Give Vender code
 	CGGEPItem * pVC = pGGEP.Add( L"VC");
-	pVC->WriteUTF8( L"RAZAA" );
+	pVC->WriteUTF8( SHAREAZA_VENDOR_T );
+	pVC->WriteUTF8( L"A" );
 
 	// Save information from this ping packet in the CG1Neighbour object
 	m_tLastInPing   = dwNow;                // Record that we last got a ping packet from this remote computer right now

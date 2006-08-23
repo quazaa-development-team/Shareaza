@@ -1109,8 +1109,11 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 
 	// TEST: Try indicate GUESS supported Node.  (GGEP "GUE")
 	pGGEP.Add( L"GUE" );
+
+	//Give Vender code
 	CGGEPItem * pVC = pGGEP.Add( L"VC");
-	pVC->WriteUTF8( L"RAZAA" );
+	pVC->WriteUTF8( SHAREAZA_VENDOR_T );
+	pVC->WriteUTF8( L"A" );
 
 	// Make a new pong packet, the response to a ping
 	CG1Packet* pPong = CG1Packet::New(			// Gets it quickly from the Gnutella packet pool
