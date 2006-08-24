@@ -1,0 +1,11 @@
+Extra stuffs not related to Developing Protocol, the list of things below has been done on this branch.
+
+* Show Real FileSize? in Library/DownloadList/SearchResults.
+* MultiPaged? DownloadEdit
+    - has been separated to General/Hashes/Action pages.
+    - now Erase range dont flush hash set, but it just reverify
+    - function "Forget current veryfication status and reverify" has been changed to more apropriate function.
+      and forgetting Hashset has separated to "Purge hashset" function
+* Search keyword overrider for searching download items has been implemented
+* HTTP Head Request for checking THEX/Metadata URI before start Downloading file
+* HTTP Close Reconnect for downloading from some Web servers which reply with "Connection: Close"
