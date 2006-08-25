@@ -55,6 +55,18 @@ protected:
 									//
 
 	// Set to true when we have received the following handshake headers
+	BOOL        m_bG1Send;          // The remote computer is going to send us Gnutella1 packets
+									// It Did not send any "Content-Type: " or sent us a header like one of these
+									//
+									//    Content-Type: application/x-gnutella-packets
+									//    
+									//
+	BOOL        m_bG1Accept;        // The remote computer accepts Gnutella2 packets
+									// It Did not send any "Accept: " or sent us a header like one of these
+									//
+									//    Accept: application/x-gnutella-packets
+									//
+									//
 	BOOL        m_bG2Send;          // The remote computer is going to send us Gnutella2 packets
 									// It sent us a header like one of these
 									//

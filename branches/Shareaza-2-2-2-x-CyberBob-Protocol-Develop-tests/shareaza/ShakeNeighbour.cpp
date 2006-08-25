@@ -342,14 +342,35 @@ void CShakeNeighbour::SendMinimalHeaders()
 		// If we initiated the connection to the remote computer
 		if ( m_bInitiated )
 		{
-			// Tell the remote computer we know how to read Gnutella and Gnutella2 packets
-			m_pOutput->Print( "Accept: application/x-gnutella2,application/x-gnutella-packets\r\n" );
+			if (Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday)
+			{
+				// Tell the remote computer we know how to read Gnutella and Gnutella2 packets
+				m_pOutput->Print( "Accept: application/x-gnutella2,application/x-gnutella-packets\r\n" );
+			}
+			else if (Settings.Gnutella2.EnableToday)
+			{
+				m_pOutput->Print( "Accept: application/x-gnutella2\r\n" );
+			}
 		}
 		else if ( m_bG2Accept ) // The remote computer contacted us, and accepts Gnutella2 packets
 		{
 			// Reply by saying we accept them also, and will be sending them
 			m_pOutput->Print( "Accept: application/x-gnutella2\r\n" );
 			m_pOutput->Print( "Content-Type: application/x-gnutella2\r\n" );
+		}
+	}
+	else if ( Settings.Gnutella1.EnableToday && ( m_nProtocol != PROTOCOL_G2 ) )
+	{
+		// If we initiated the connection to the remote computer
+		if ( m_bInitiated )
+		{
+			m_pOutput->Print( "Accept: application/x-gnutella-packets\r\n" );
+		}
+		else if ( m_bG1Accept ) // The remote computer contacted us, and accepts Gnutella2 packets
+		{
+			// Reply by saying we accept them also, and will be sending them
+			m_pOutput->Print( "Accept: application/x-gnutella-packets\r\n" );
+			m_pOutput->Print( "Content-Type: application/x-gnutella-packets\r\n" );
 		}
 	}
 }
@@ -373,19 +394,43 @@ void CShakeNeighbour::SendPublicHeaders()
 	m_pOutput->Print( strHeader );
 
 	// If the settings say connect to Gnutella2 and this function got passed Gnutella2 or the unknown network
-	if ( ( Settings.Gnutella2.EnableToday ) && ( m_nProtocol != PROTOCOL_G1 ) ) // The protocol ID is Gnutella2 or unknown
+
+	if ( m_bInitiated )
 	{
-		// If we initiated the connection to the remote computer
-		if ( m_bInitiated )
+		if ( m_nProtocol == PROTOCOL_G1 )
+		{
+			// Tell the remote computer we accept Gnutella packets
+			m_pOutput->Print( "Accept: application/x-gnutella-packets\r\n" );
+		}
+		else if ( m_nProtocol == PROTOCOL_G2 )
+		{
+			// Tell the remote computer we accept Gnutella2 packets
+			m_pOutput->Print( "Accept: application/x-gnutella2\r\n" );
+		}
+		else if ( m_nProtocol == PROTOCOL_NULL )
 		{
 			// Tell the remote computer we accept Gnutella and Gnutella2 packets
-			m_pOutput->Print( "Accept: application/x-gnutella2,application/x-gnutella-packets\r\n" );
+			if ( Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday )
+				m_pOutput->Print( "Accept: application/x-gnutella2,application/x-gnutella-packets\r\n" );
+			else if ( Settings.Gnutella2.EnableToday )
+				m_pOutput->Print( "Accept: application/x-gnutella2\r\n" );
+			else if ( Settings.Gnutella1.EnableToday )
+				m_pOutput->Print( "Accept: application/x-gnutella-packets\r\n" );
 		}
-		else if ( m_bG2Accept ) // The remote computer contacted us, and accepts Gnutella2 packets
+	}
+	else 
+	{
+		// The remote computer contacted us, and accepts Gnutella2 packets
+		if ( m_bG2Accept && ( Settings.Gnutella2.EnableToday ) && ( m_nProtocol != PROTOCOL_G1 ) )
 		{
 			// Tell the remote computer we accept Gnutella2 packets and will be sending it Gnutella2 packets
 			m_pOutput->Print( "Accept: application/x-gnutella2\r\n" );			// We can read Gnutella2 packets
 			m_pOutput->Print( "Content-Type: application/x-gnutella2\r\n" );	// You will be getting them from us
+		}
+		else if ( ( Settings.Gnutella1.EnableToday ) && ( m_nProtocol != PROTOCOL_G2 ) )
+		{
+			m_pOutput->Print( "Accept: application/x-gnutella-packets\r\n" );		// We can read Gnutella1 packets
+			m_pOutput->Print( "Content-Type: application/x-gnutella-packets\r\n" );	// You will be getting them from us
 		}
 	}
 
@@ -463,6 +508,12 @@ void CShakeNeighbour::SendPrivateHeaders()
 		m_pOutput->Print( "Accept: application/x-gnutella2\r\n" );
 		m_pOutput->Print( "Content-Type: application/x-gnutella2\r\n" );
 	}
+	else if ( m_bInitiated && m_bG1Send && m_bG1Accept && ( m_nProtocol != PROTOCOL_G2 ) )
+	{
+		// Tell it we also accept gnutella2 packets, and we're also going to send them
+		m_pOutput->Print( "Accept: application/x-gnutella-packets\r\n" );
+		m_pOutput->Print( "Content-Type: application/x-gnutella-packets\r\n" );
+	}
 
 	// If we initiated the connection to the remote computer
 	if ( m_bInitiated )
@@ -506,7 +557,7 @@ void CShakeNeighbour::SendHostHeaders(LPCTSTR pszMessage)
 	{
 		// Send nothing
 	}
-	else if ( m_bG2Accept || m_bG2Send || m_bShareaza )
+	else if ( ( m_bG2Accept || m_bG2Send || m_bShareaza ) && m_nProtocol != PROTOCOL_G1 )
 	{
 		// The remote computer accepts Gnutella2 packets, sends them, or is Shareaza too
 
@@ -534,7 +585,7 @@ void CShakeNeighbour::SendHostHeaders(LPCTSTR pszMessage)
 			m_pOutput->Print( "\r\n" );
 		}
 	}
-	else
+	else if ( ( m_bG1Accept || m_bG1Send ) && m_nProtocol != PROTOCOL_G1 )
 	{
 		// This computer is running Gnutella
 
@@ -782,16 +833,18 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 		}
 
 	} // The remote computer is telling us it accepts and can understand a kind of packets
-	else if ( strHeader.CompareNoCase( _T("Accept") ) == 0 && Settings.Gnutella2.EnableToday ) // And we're connected to Gnutella2
+	else if ( strHeader.CompareNoCase( _T("Accept") ) == 0 ) // And we're connected to Gnutella2
 	{
 		// Set m_bG2Accept to true if it accepts Gnutella2 or Shareaza packets
+		m_bG1Accept |= ( strValue.Find( _T("application/x-gnutella-packets") ) >= 0 );
 		m_bG2Accept |= ( strValue.Find( _T("application/x-gnutella2") ) >= 0 );
 		m_bG2Accept |= ( strValue.Find( _T("application/x-shareaza") ) >= 0 );
 
 	} // The remote computer is telling us it is sending a kind of packets
-	else if ( strHeader.CompareNoCase( _T("Content-Type") ) == 0 && Settings.Gnutella2.EnableToday ) // And we're connected to Gnutella2
+	else if ( strHeader.CompareNoCase( _T("Content-Type") ) == 0 ) // And we're connected to Gnutella2
 	{
 		// Set m_bG2Send to true if it is sending Gnutella2 or Shareaza packets
+		m_bG1Send |= ( strValue.Find( _T("application/x-gnutella-packets") ) >= 0 );
 		m_bG2Send |= ( strValue.Find( _T("application/x-gnutella2") ) >= 0 );
 		m_bG2Send |= ( strValue.Find( _T("application/x-shareaza") ) >= 0 );
 
@@ -870,7 +923,7 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			strValue = strValue.Mid( nPos + 1 );     // Clip that text and the comma off the start of strValue
 
 			// The remote computer accepts Gnutella2 packets, is sending them, or is Shareaza
-			if ( m_bG2Accept || m_bG2Send || m_bShareaza )
+			if ( m_bG2Accept || m_bG2Send )
 			{
 				// since there is no clever way to detect what the given Hosts' vender codes are, just add then as NULL
 				// in order to prevent HostCache/KHL pollution done by wrong assumptions.
@@ -907,8 +960,14 @@ BOOL CShakeNeighbour::OnHeadersComplete()
 		m_bUltraPeerSet = TS_FALSE;
 	}
 
+	if ( m_bInitiated )
+	{
+		if ( ! m_bG1Accept && ! m_bG2Accept ) m_bG1Accept = TRUE;
+		if ( ! m_bG1Send && ! m_bG2Send ) m_bG1Send = TRUE;
+	}
+
 	// If the remote computer doesn't accept Gnutella2 packets, or it does but we contacted it and it's not going to send them
-	if ( ! m_bG2Accept || ( m_bInitiated && ! m_bG2Send ) )
+	if (  ( ! m_bInitiated && ! m_bG2Accept ) || ( m_bInitiated && ! m_bG2Send ) )
 	{
 		// This is a Gnutella connection
 		m_nProtocol = PROTOCOL_G1;
@@ -1517,7 +1576,7 @@ void CShakeNeighbour::OnHandshakeComplete()
 	CNeighbour* pNeighbour = NULL;
 
 	// If the remote computer is G2, or can send and understand Gnutella2 packets and isn't G1
-	if ( ( m_nProtocol == PROTOCOL_G2 ) || ( m_bG2Send && m_bG2Accept && ( m_nProtocol != PROTOCOL_G1 ) ) )
+	if ( m_bG2Send && m_bG2Accept && m_nProtocol != PROTOCOL_G1 )
 	{
 		// Record that the remote computer supports query routing
 		m_bQueryRouting = TRUE;
@@ -1526,11 +1585,9 @@ void CShakeNeighbour::OnHandshakeComplete()
 		pNeighbour = new CG2Neighbour( this );
 
 	}
-	else	// The remote computer is just Gnutella, not Gnutella2
+	else if (  m_bG1Send && m_bG1Accept && m_nProtocol != PROTOCOL_G2 )
 	{
-		// Record that the remote computer is not running Shareaza
-		m_bShareaza = FALSE;
-
+			// The remote computer is just Gnutella, not Gnutella2
 		// Make a new Gnutella neighbour object by copying values from this ShakeNeighbour one
 		pNeighbour = new CG1Neighbour( this );
 	}
