@@ -52,6 +52,8 @@ CShakeNeighbour::CShakeNeighbour() : CNeighbour( PROTOCOL_NULL ) // Call the CNe
 {
 	// Set member variables that record headers to false
 	m_bSentAddress   = FALSE; // We haven't told the remote computer "Listen-IP: 1.2.3.4:5"
+	m_bG1Send        = FALSE; // The remote computer hasn't said "Content-Type: application/x-gnutella-packets" yet
+	m_bG1Accept      = FALSE; // The remote computer hasn't said "Accept: application/x-gnutella-packets" yet
 	m_bG2Send        = FALSE; // The remote computer hasn't said "Content-Type: application/x-gnutella2" yet
 	m_bG2Accept      = FALSE; // The remote computer hasn't said "Accept: application/x-gnutella2" yet
 	m_bDeflateSend   = FALSE; // The remote computer hasn't said "Content-Encoding: deflate" yet
