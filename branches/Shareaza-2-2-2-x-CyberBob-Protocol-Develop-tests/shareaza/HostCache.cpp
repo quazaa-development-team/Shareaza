@@ -981,7 +981,7 @@ CNeighbour* CHostCacheHost::ConnectTo(BOOL bAutomatic)
 
 CG1Packet* CHostCacheHost::ToG1Ping(int nTTL, const Hashes::Guid& oGUID)
 {
-	bool bNeedFreeLeafSlot = Neighbours.IsG1Ultrapeer();
+	bool bNeedFreeLeafSlot = Neighbours.IsG1Ultrapeer()? true : false;
 
 	CG1Packet* pPing = CG1Packet::New( G1_PACKET_PING, nTTL, oGUID );
 
