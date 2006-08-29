@@ -1490,7 +1490,8 @@ BOOL CDownloadTransferHTTP::ReadContent()
 	if ( m_nPosition >= m_nLength )
 	{
 		m_pSource->AddFragment( m_nOffset, m_nLength );
-		return StartNextFragment();
+
+		if ( m_bKeepAlive ) return StartNextFragment();	// send next segment request only if it was keep-alive
 	}
 	
 	return TRUE;
@@ -1702,7 +1703,7 @@ void CDownloadTransferHTTP::OnDropped(BOOL /*bError*/)
 			m_pSource->m_bReConnect = TRUE;
 			Close( TS_TRUE );
 		}
-		else if ( m_nState == dtsDownloading )
+		else if ( m_nState == dtsDownloading || m_nState == dtsHeaders )
 		{
 			m_pSource->m_bCloseConn = TRUE;
 			m_pSource->m_bReConnect = TRUE;
@@ -1723,7 +1724,7 @@ void CDownloadTransferHTTP::OnDropped(BOOL /*bError*/)
 		m_pSource->m_bReConnect = FALSE;
 		Close( TS_TRUE );
 	}
-	else if ( m_nState == dtsHeaders || m_nState == dtsRequesting  )
+	else if ( m_nState == dtsRequesting )
 	{
 		m_pSource->m_bCloseConn = FALSE;
 		m_pSource->m_bReConnect = FALSE;

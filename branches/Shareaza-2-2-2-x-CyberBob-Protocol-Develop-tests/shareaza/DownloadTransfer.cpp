@@ -95,9 +95,14 @@ void CDownloadTransfer::Close(TRISTATE bKeepSource, DWORD nRetryAfter)
 		switch ( bKeepSource )
 		{
 		case TS_TRUE:
-			if ( m_pSource->m_bReConnect && m_pSource->m_nGnutella )
+			if ( m_pSource->m_bReConnect && ! m_pDownload->IsCompleted() )
 			{
-				m_pSource->OnResumeClosed();
+				if ( !m_pSource->m_bPushOnly )
+				{
+					if ( m_pSource->OnResumeClosed() ) return;
+				}
+				m_pSource->OnFailure( TRUE, Settings.Downloads.PushTimeout );
+				m_pSource->PushRequest();
 			}
 			else
 			{

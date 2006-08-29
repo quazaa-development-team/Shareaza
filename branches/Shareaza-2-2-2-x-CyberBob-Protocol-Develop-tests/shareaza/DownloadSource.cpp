@@ -514,17 +514,20 @@ void CDownloadSource::OnResume()
 //////////////////////////////////////////////////////////////////////
 // CDownloadSource closed connection resume handler
 
-void CDownloadSource::OnResumeClosed()
+BOOL CDownloadSource::OnResumeClosed()
 {
 	if ( m_pTransfer != NULL )
 	{
 		m_pTransfer->SetState(dtsNull);
-		m_pTransfer->m_pSource = NULL;
-		m_pTransfer = NULL;
+		m_pTransfer->CTransfer::Close();
+		if ( m_pTransfer->Initiate() ) return TRUE;
 	}
-
-	m_tAttempt = 0;	
-	m_pDownload->SetModified();
+	else
+	{
+		m_tAttempt = 0;	
+		m_pDownload->SetModified();
+	}
+	return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////

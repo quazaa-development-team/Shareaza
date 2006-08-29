@@ -110,7 +110,7 @@ public:
 	void		Remove(BOOL bCloseTransfer, BOOL bBan);
 	void		OnFailure(BOOL bNondestructive, DWORD nRetryAfter = 0);
 	void		OnResume();
-	void		OnResumeClosed();
+	BOOL		OnResumeClosed();
 public:
 	void		SetValid();
 	void		SetLastSeen();
