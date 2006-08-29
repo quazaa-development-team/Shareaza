@@ -872,7 +872,9 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 
 					if ( pItemPos->IsNamed( _T("u") ) )
 					{
-						strData = pItemPos->ToString();
+						strData = "urn:" + pItemPos->ToString();
+						theApp.Message( MSG_SYSTEM, _T("CQueryHit::ReadG1Packet GGEP u extension with content: %s"),
+							(LPCTSTR)strData );
 
 						if ( !m_oSHA1 ) m_oSHA1.fromUrn( strData );
 						if ( !m_oTiger ) m_oTiger.fromUrn( strData );
@@ -1003,14 +1005,17 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength)
 			else if ( nPacket >= 16 && strURN == _T("ed2k") )
 			{
 				pPacket->Read( m_oED2K );
+				m_oED2K.validate();
 			}
 			else if ( nPacket >= 16 && strURN == _T("md5") )
 			{
 				pPacket->Read( m_oMD5 );
+				m_oMD5.validate();
 			}
 			else if ( nPacket >= 20 && strURN == _T("btih") )
 			{
 				pPacket->Read( m_oBTH );
+				m_oBTH.validate();
 			}
 		}
 		else if ( strcmp( szType, "URL" ) == 0 )

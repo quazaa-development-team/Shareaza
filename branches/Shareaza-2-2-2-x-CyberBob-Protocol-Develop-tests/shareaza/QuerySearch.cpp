@@ -709,7 +709,9 @@ BOOL CQuerySearch::ReadG1Packet(CPacket* pPacket)
 
 					if ( pItemPos->IsNamed( _T("u") ) )
 					{
-						strData = pItemPos->ToString();
+						strData = "urn:" + pItemPos->ToString();
+						theApp.Message( MSG_SYSTEM, _T("CQuerySearch::ReadG1Packet GGEP u extension with content: %s"),
+							(LPCTSTR)strData );
 
 						if ( !m_oSHA1 ) m_oSHA1.fromUrn( strData );
 						if ( !m_oTiger ) m_oTiger.fromUrn( strData );
