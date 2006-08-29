@@ -76,9 +76,9 @@ protected:
 	int		AddExact(LPCTSTR pszString, size_t nStart, size_t nLength);
 	BOOL	PatchToOldShareaza(CQueryHashTable* pTarget, CNeighbour* pNeighbour);
 public:
-	static inline DWORD	HashWord(LPCTSTR pszString, size_t nStart, size_t nLength, DWORD nBits);
+	static			DWORD	HashWord(LPCTSTR pszString, size_t nStart, size_t nLength, DWORD nBits);
 protected:
-	static inline DWORD	HashNumber(DWORD nNumber, int nBits);
+	static	inline	DWORD	HashNumber(DWORD nNumber, int nBits);
 
 };
 
