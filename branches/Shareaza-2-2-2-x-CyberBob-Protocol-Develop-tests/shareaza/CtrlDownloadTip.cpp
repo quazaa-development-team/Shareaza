@@ -576,18 +576,7 @@ void CDownloadTipCtrl::PrepareFileInfo(CDownload* pDownload)
 		m_sMD5 = pDownload->m_oMD5.toShortUrn();
 		if ( m_sMD5.GetLength() )
 		{
-			if ( ! pDownload->m_pHashsetBlock )
-			{
-				if ( pDownload->m_oMD5.isTrusted() )
-				{
-					m_sMD5 += _T(" (") + strNoHashset + _T(")");
-				}
-				else
-				{
-					m_sMD5 += _T(" (") + strNoHashset + _T(", ") + strUntrusted + _T(")");
-				}
-			}
-			else if ( ! pDownload->m_oMD5.isTrusted() )
+			if ( ! pDownload->m_oMD5.isTrusted() )
 			{
 				m_sMD5 += _T(" (") + strUntrusted + _T(")");
 			}
