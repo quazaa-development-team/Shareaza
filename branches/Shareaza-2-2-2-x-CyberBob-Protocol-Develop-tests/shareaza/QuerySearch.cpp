@@ -164,7 +164,7 @@ CG1Packet* CQuerySearch::ToG1Packet()
 		pPacket->WriteByte( 0 );
 	}
 	
-	// Some Gnutella Node does not like forwarding Query containing URN
+	// Some Gnutella Node does not like forwarding Query containing URN with "HUGE" extension.
 	/* if ( m_oSHA1 )
 	{
 		strExtra = m_oSHA1.toUrn();
@@ -193,7 +193,7 @@ CG1Packet* CQuerySearch::ToG1Packet()
 		strExtra += m_pXML->ToString( TRUE );
 	}
 	
-	pPacket->WriteString( strExtra );
+	pPacket->WriteString( strExtra, FALSE );
 
 	if ( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 || m_oBTH )
 	{
@@ -201,43 +201,19 @@ CG1Packet* CQuerySearch::ToG1Packet()
 		CGGEPItem* pItem;
 		strExtra = "";
 
-		if ( m_oSHA1 )
+	/*	if ( m_oED2K )
 		{
 			pItem = pBlock.Add( L"u" );
-			pItem->UnsetCOBS();
-			pItem->UnsetSmall();
-			strExtra = "sha1:"+ m_oSHA1.toString();
+			pItem->SetCOBS();
+			pItem->SetSmall();
+			strExtra = "ed2k:"+ m_oED2K.toString();
 			pItem->WriteUTF8(strExtra);
-		}
-		if ( m_oTiger )
-		{
-			pItem = pBlock.Add( L"u" );
-			pItem->UnsetCOBS();
-			pItem->UnsetSmall();
-			strExtra = "tree:tiger/:"+ m_oTiger.toString();
-			pItem->WriteUTF8(strExtra);
-		}
-		if ( m_oED2K )
-		{
-			pItem = pBlock.Add( L"u" );
-			pItem->UnsetCOBS();
-			pItem->UnsetSmall();
-			strExtra = "ed2khash:"+ m_oED2K.toString();
-			pItem->WriteUTF8(strExtra);
-		}
-		if ( m_oMD5 )
-		{
-			pItem = pBlock.Add( L"u" );
-			pItem->UnsetCOBS();
-			pItem->UnsetSmall();
-			strExtra = "md5:"+ m_oMD5.toString();
-			pItem->WriteUTF8(strExtra);
-		}
+		} */
 		if ( m_oBTH )
 		{
 			pItem = pBlock.Add( L"u" );
-			pItem->UnsetCOBS();
-			pItem->UnsetSmall();
+			pItem->SetCOBS();
+			pItem->SetSmall();
 			strExtra = "btih:"+ m_oBTH.toString();
 			pItem->WriteUTF8(strExtra);
 		}
@@ -245,6 +221,8 @@ CG1Packet* CQuerySearch::ToG1Packet()
 		if ( m_oSHA1 &&  m_oTiger )
 		{
 			CGGEPItem* pItem = pBlock.Add( _T("H") );
+			pItem->SetCOBS();
+			pItem->SetSmall();
 			pItem->WriteByte( 2 );
 			pItem->Write( &m_oSHA1[ 0 ], 20 );
 			pItem->Write( &m_oTiger[ 0 ], 24 );
@@ -252,13 +230,16 @@ CG1Packet* CQuerySearch::ToG1Packet()
 		else if ( m_oSHA1 )
 		{
 			CGGEPItem* pItem = pBlock.Add( _T("H") );
+			pItem->SetCOBS();
+			pItem->SetSmall();
 			pItem->WriteByte( 1 );
 			pItem->Write( &m_oSHA1[ 0 ], 20 );
 		}
-
-		if ( m_oMD5 )
+		else if ( m_oMD5 )
 		{
 			CGGEPItem* pItem = pBlock.Add( _T("H") );
+			pItem->SetCOBS();
+			pItem->SetSmall();
 			pItem->WriteByte( 3 );
 			pItem->Write( &m_oMD5[ 0 ], 16 );
 		}
@@ -266,6 +247,8 @@ CG1Packet* CQuerySearch::ToG1Packet()
 		pPacket->WriteByte(0x1C);
 		pBlock.Write( pPacket );
 	}	
+
+	pPacket->WriteByte( 0 );
 
 	return pPacket;
 }

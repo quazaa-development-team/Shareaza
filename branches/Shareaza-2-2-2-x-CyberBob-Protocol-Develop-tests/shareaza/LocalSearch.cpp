@@ -122,7 +122,10 @@ INT_PTR CLocalSearch::Execute(INT_PTR nMaximum)
 		if ( UploadQueues.GetQueueRemaining() == 0 ) return 0;
 	}
 
-	if ( nMaximum == 0 ) nMaximum = Settings.Gnutella.MaxHits;
+	if ( nMaximum == -1 )
+		nMaximum = 0;
+	else
+		nMaximum = Settings.Gnutella.MaxHits;
 
 	if ( m_pSearch )
 	{
@@ -237,11 +240,14 @@ BOOL CLocalSearch::AddHitG1(CLibraryFile* pFile, int nIndex)
 
 	if ( pFile->m_oSHA1 &&  pFile->m_oTiger )
 	{
-		strHash = "urn:bitprint:" + pFile->m_oSHA1.toString() + "." + pFile->m_oTiger.toString();
-		m_pPacket->WriteString( strHash );
+		//strHash = "urn:bitprint:" + pFile->m_oSHA1.toString() + "." + pFile->m_oTiger.toString();
+		strHash = pFile->m_oSHA1.toUrn();
+		m_pPacket->WriteString( strHash, FALSE );
 		bHuge	= TRUE;
 
 		CGGEPItem* pItem = pBlock.Add( _T("H") );
+		pItem->SetCOBS();
+		pItem->SetSmall();
 		pItem->WriteByte( 2 );
 		pItem->Write( &pFile->m_oSHA1[ 0 ], 20 );
 		pItem->Write( &pFile->m_oTiger[ 0 ], 24 );
@@ -250,17 +256,19 @@ BOOL CLocalSearch::AddHitG1(CLibraryFile* pFile, int nIndex)
 	else if ( pFile->m_oSHA1 )
 	{
 		strHash = pFile->m_oSHA1.toUrn();
-		m_pPacket->WriteString( strHash );
+		m_pPacket->WriteString( strHash, FALSE );
 		bHuge	= TRUE;
 
 		CGGEPItem* pItem = pBlock.Add( _T("H") );
+		pItem->SetCOBS();
+		pItem->SetSmall();
 		pItem->WriteByte( 1 );
 		pItem->Write( &pFile->m_oSHA1[ 0 ], 20 );
 	}
 	else if ( pFile->m_oTiger )
 	{
-		strHash = pFile->m_oTiger.toUrn();
-		m_pPacket->WriteString( strHash );
+		strHash = "urn:tth:" + pFile->m_oTiger.toString();
+		m_pPacket->WriteString( strHash, FALSE );
 		bHuge	= TRUE;
 	}
 
@@ -268,16 +276,19 @@ BOOL CLocalSearch::AddHitG1(CLibraryFile* pFile, int nIndex)
 	{
 		if ( !bHuge )
 		{
-			strHash = pFile->m_oED2K.toUrn();
-			m_pPacket->WriteString( strHash );
+			strHash = "urn:ed2k:" + pFile->m_oED2K.toString();
+			m_pPacket->WriteString( strHash, FALSE );
 			bHuge	= TRUE;
 		}
-		CGGEPItem* pItem;
-		pItem = pBlock.Add( L"u" );
-		pItem->UnsetCOBS();
-		pItem->UnsetSmall();
-		strHash = "ed2khash:"+ pFile->m_oED2K.toString();
-		pItem->WriteUTF8(strHash);
+		else
+		{
+			CGGEPItem* pItem;
+			pItem = pBlock.Add( L"u" );
+			pItem->SetCOBS();
+			pItem->SetSmall();
+			strHash = "ed2k:"+ pFile->m_oED2K.toString();
+			pItem->WriteUTF8(strHash);
+		}
 	}
 
 	if ( pFile->m_oMD5 )
@@ -285,32 +296,30 @@ BOOL CLocalSearch::AddHitG1(CLibraryFile* pFile, int nIndex)
 		if ( !bHuge )
 		{
 			strHash = pFile->m_oMD5.toUrn();
-			m_pPacket->WriteString( strHash );
+			m_pPacket->WriteString( strHash, FALSE );
 			bHuge	= TRUE;
 		}
-
-		CGGEPItem* pItem;
-		pItem = pBlock.Add( _T("H") );
-		pItem->WriteByte( 3 );
-		pItem->Write( &pFile->m_oMD5[ 0 ], 16 );
-
-		pItem = pBlock.Add( L"u" );
-		pItem->UnsetCOBS();
-		pItem->UnsetSmall();
-		strHash = "md5:"+ pFile->m_oMD5.toString();
-		pItem->WriteUTF8(strHash);
+		else
+		{
+			CGGEPItem* pItem = pBlock.Add( _T("H") );
+			pItem->SetCOBS();
+			pItem->SetSmall();
+			pItem->WriteByte( 3 );
+			pItem->Write( &pFile->m_oMD5[ 0 ], 16 );
+		}
 	}
-	else
-	{
-		m_pPacket->WriteByte( 0 );
-	}
-
-	if ( pFile->m_pSchema != NULL && pFile->m_pMetadata != NULL && ( m_pSearch == NULL || m_pSearch->m_bWantXML ) )
+	
+	/* if ( pFile->m_pSchema != NULL && pFile->m_pMetadata != NULL && ( m_pSearch == NULL || m_pSearch->m_bWantXML ) )
 	{
 		AddMetadata( pFile->m_pSchema, pFile->m_pMetadata, nIndex );
+	} */
+
+	if ( !pBlock.IsEmpty() )
+	{
+		if ( bHuge ) m_pPacket->WriteByte( 0x1C );
+		pBlock.Write( m_pPacket );
 	}
 
-	pBlock.Write( m_pPacket );
 	m_pPacket->WriteByte( 0 );
 
 	return TRUE;
@@ -568,7 +577,7 @@ BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int /*nIndex*/)
 //////////////////////////////////////////////////////////////////////
 // CLocalSearch execute partial files
 
-int CLocalSearch::ExecutePartialFiles(INT_PTR /*nMaximum*/)
+int CLocalSearch::ExecutePartialFiles(INT_PTR nMaximum)
 {
 	ASSERT( m_nProtocol == PROTOCOL_G2 );
 	ASSERT( m_pSearch != NULL );
@@ -582,7 +591,8 @@ int CLocalSearch::ExecutePartialFiles(INT_PTR /*nMaximum*/)
 	int nCount = 0;
 	m_pPacket = NULL;
 
-	for ( POSITION pos = Downloads.GetIterator() ; pos ; )
+	nMaximum = min( nMaximum, Downloads.GetCount() );
+	for ( POSITION pos = Downloads.GetIterator() ; nCount < nMaximum ; )
 	{
 		CDownload* pDownload = Downloads.GetNext( pos );
 

@@ -588,7 +588,7 @@ CList< CLibraryFile* >* CLibraryMaps::Search(CQuerySearch* pSearch, int nMaximum
 
 	if ( pSearch == NULL )
 	{
-		for ( POSITION pos = GetFileIterator() ; pos && ( nMaximum == 0 || nHit <= nMaximum ) ; nHit++ )
+		for ( POSITION pos = GetFileIterator() ; pos && ( nMaximum == 0 || nHit <= nMaximum ) ;)
 		{
 			CLibraryFile* pFile = GetNextFile( pos );
 			
@@ -598,13 +598,14 @@ CList< CLibraryFile* >* CLibraryMaps::Search(CQuerySearch* pSearch, int nMaximum
 				{
 					if ( ! pHits ) pHits = new CList< CLibraryFile* >( 64 );
 					pHits->AddTail( pFile );
+					nHit++;
 				}
 			}
 		}
 	}
 	else if ( pSearch->m_oSHA1 || pSearch->m_oTiger || pSearch->m_oED2K || pSearch->m_oMD5 )
 	{
-		for ( POSITION pos = GetFileIterator() ; pos && ( 	nMaximum == 0 || nHit <= nMaximum ) ; nHit++ )
+		for ( POSITION pos = GetFileIterator() ; pos && ( 	nMaximum == 0 || nHit <= nMaximum ) ;)
 		{
 			CLibraryFile* pFile = GetNextFile( pos );
 			
@@ -617,6 +618,7 @@ CList< CLibraryFile* >* CLibraryMaps::Search(CQuerySearch* pSearch, int nMaximum
 				{
 					if ( ! pHits ) pHits = new CList< CLibraryFile* >( 64 );
 					pHits->AddTail( pFile );
+					nHit++;
 					if ( ! bLocal && (pSearch->m_oSHA1 || pSearch->m_oTiger) )
 					{
 						pFile->m_nHitsToday++;
