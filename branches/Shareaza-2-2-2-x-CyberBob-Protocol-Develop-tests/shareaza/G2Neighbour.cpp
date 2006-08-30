@@ -629,11 +629,11 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 			sVersion = theApp.m_sVersion;
 
 			pPong->WritePacket( "VC", pPong->GetStringLenUTF8( sVendorCode ) );
-			pPong->WriteStringUTF8( sVendorCode, TRUE );
+			pPong->WriteStringUTF8( sVendorCode, FALSE );
 			pPong->WritePacket( "AN", pPong->GetStringLenUTF8( sName ) );
-			pPong->WriteStringUTF8( sName, TRUE );
+			pPong->WriteStringUTF8( sName, FALSE );
 			pPong->WritePacket( "AV", pPong->GetStringLenUTF8( sVersion ) );
-			pPong->WriteStringUTF8( sVersion, TRUE );
+			pPong->WriteStringUTF8( sVersion, FALSE );
 		}
 
 		if ( bSupportedFeature )
@@ -790,15 +790,15 @@ BOOL CG2Neighbour::OnPong( CG2Packet* pPacket )
 		{
 			DWORD nOffset = pPacket->m_nPosition + nLength;
 
-			if ( strcmp( szType, "VC" ) == 0 && nLength >= 4 )	// Vendor Code of Remote Node  (e.g. "RAZA")
+			if ( strcmp( szType, "VC" ) == 0 && nLength != 0 )	// Vendor Code of Remote Node  (e.g. "RAZA")
 			{
 				sVendorCode = pPacket->ReadStringUTF8(nLength);
 			}
-			else if ( strcmp( szType, "AN" ) == 0 && nLength >= 2 )	// Agent name of Remote Node (e.g. "Shareaza")
+			else if ( strcmp( szType, "AN" ) == 0 && nLength != 0 )	// Agent name of Remote Node (e.g. "Shareaza")
 			{
 				sName = pPacket->ReadStringUTF8(nLength);
 			}
-			else if ( strcmp( szType, "AV" ) == 0 && nLength >= 2 )	// Agent version of Remote Node (e.g. 2.2.2.20)
+			else if ( strcmp( szType, "AV" ) == 0 && nLength != 0 )	// Agent version of Remote Node (e.g. 2.2.2.20)
 			{
 				sVersion = pPacket->ReadStringUTF8(nLength);
 			}

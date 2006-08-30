@@ -1188,11 +1188,11 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		sName = CLIENT_NAME;
 		sVersion = theApp.m_sVersion;
 		pPong->WritePacket( "VC", pPong->GetStringLen( sVendorCode ) );
-		pPong->WriteString( sVendorCode, TRUE );
+		pPong->WriteString( sVendorCode, FALSE );
 		pPong->WritePacket( "AN", pPong->GetStringLen( sName ) );
-		pPong->WriteString( sName, TRUE );
+		pPong->WriteString( sName, FALSE );
 		pPong->WritePacket( "AV", pPong->GetStringLen( sVersion ) );
-		pPong->WriteString( sVersion, TRUE );
+		pPong->WriteString( sVersion, FALSE );
 
 	}
 	if ( bWantSourceAddr )
@@ -1220,6 +1220,9 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		// indicate UDPKHL/1.0
 		pSFL->WritePacket( "UDPKHL",2 );
 		pSFL->WriteByte(1);
+		pSFL->WriteByte(0);
+
+		// end compound
 		pSFL->WriteByte(0);
 
 		// adding SFL packet as conpound packet in PONG
@@ -1389,7 +1392,7 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 				pPacket->m_nPosition = nSkipInner;
 			}
 		}
-		else if ( strcmp( szType, "SIPP" ) == 0 && bCompound == TRUE )	// SIPP: source IP/PORT of UDP Ping packet, this is for
+		else if ( strcmp( szType, "SIPP" ) == 0 && bCompound == FALSE )	// SIPP: source IP/PORT of UDP Ping packet, this is for
 		{																// UDP ip/port detection on NAT/NAPT to find outside 
 																		// IP/PORT.
 			MyAddr.sin_addr.S_un.S_addr = pPacket->ReadLongLE();
@@ -1406,7 +1409,7 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		{
 			CString str = inet_ntoa( pHost->sin_addr );
 			theApp.Message( MSG_SYSTEM, _T("Pong from %s:%u said IP:PORT is not same as setting, possibly on NAT, %s:%u"), 
-			str, pHost->sin_port, inet_ntoa( MyAddr.sin_addr ),  ntohs(MyAddr.sin_port) );
+			str, ntohs(pHost->sin_port), inet_ntoa( MyAddr.sin_addr ),  ntohs(MyAddr.sin_port) );
 		}
 		return TRUE;
 	}
