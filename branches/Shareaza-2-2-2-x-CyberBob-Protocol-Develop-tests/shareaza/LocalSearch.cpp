@@ -206,7 +206,7 @@ BOOL CLocalSearch::AddHit(CLibraryFile* pFile, int nIndex)
 	return TRUE;
 }
 
-BOOL CLocalSearch::AddHitG1(CLibraryFile* pFile, int nIndex)
+BOOL CLocalSearch::AddHitG1(CLibraryFile* pFile, int /* nIndex */ )
 {
 	// Check that the file is actually available. (We must not return ghost hits to G1!)
 	if ( ! pFile->IsAvailable() ) return FALSE;
