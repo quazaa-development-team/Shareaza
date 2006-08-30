@@ -629,11 +629,11 @@ BOOL CDownloadTransferHTTP::OnRun()
 			{
 				Close( TS_TRUE );
 			}
-			else if ( m_pSource->m_nFailures >= 5 )
+			else if ( m_pSource->m_nFailures >= 3 )
 			{
 				Close( TS_UNKNOWN );
 			}
-			else if ( m_pSource->m_nFailures >= 10 )
+			else if ( m_pSource->m_nFailures >= 5 )
 			{
 				Close( TS_FALSE );
 			}
@@ -763,6 +763,7 @@ BOOL CDownloadTransferHTTP::ReadResponseLine()
 	if ( strCode == _T("200") || strCode == _T("206") )
 	{
 		m_bBadResponse = FALSE;
+		m_pSource->m_nFailures = 0;
 	}
 	else if ( strCode == _T("503") )
 	{
