@@ -1179,7 +1179,7 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		}
 		if ( nCount > 0 ) m_pSource->m_oPushProxyList = pProxies;
 	}
-	else if ( strHeader.CompareNoCase( _T("Retry-After") ) == 0 )
+	else if ( strHeader.CompareNoCase( _T("Retry-After") ) == 0 && m_bBusyFault )
 	{
 		_stscanf( strValue, _T("%i"), &m_nRetryAfter);
 	}
