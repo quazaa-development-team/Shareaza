@@ -360,6 +360,20 @@ BOOL CDownloadTransferHTTP::SendRequest()
 		m_pOutput->Print( strLine );
 	}
 
+	if ( m_nRequests == 0 )
+	{
+		if ( m_bInitiated ) SendMyAddress();
+
+		strLine = MyProfile.GetNick().Left( 255 );
+
+		if ( strLine.GetLength() > 0 )
+		{
+			strLine = _T("X-Nick: ") + URLEncode( strLine ) + _T("\r\n");
+			m_pOutput->Print( strLine );
+		}
+	}
+
+
 	if ( Network.m_bEnabled && m_bInitiated && Settings.Gnutella2.EnableToday )
 	{
 		CNeighbour * NHubs;
@@ -409,11 +423,6 @@ BOOL CDownloadTransferHTTP::SendRequest()
 		}
 	}
 
-	if ( Network.IsStable() && !Network.IsFirewalled() )
-	{
-		CConnection::SendMyAddress();
-	}
-
 	m_pOutput->Print( "Connection: Keep-Alive\r\n" ); //BearShare assumes close
 
 	if ( Settings.Gnutella2.EnableToday ) m_pOutput->Print( "X-Features: g2/1.0\r\n" );
@@ -447,19 +456,6 @@ BOOL CDownloadTransferHTTP::SendRequest()
 	if ( m_bWantBackwards && Settings.Downloads.AllowBackwards )
 	{
 		m_pOutput->Print( "Accept-Encoding: backwards\r\n" );
-	}
-	
-	if ( m_nRequests == 0 )
-	{
-		if ( m_bInitiated ) SendMyAddress();
-		
-		strLine = MyProfile.GetNick().Left( 255 );
-		
-		if ( strLine.GetLength() > 0 )
-		{
-			strLine = _T("X-Nick: ") + URLEncode( strLine ) + _T("\r\n");
-			m_pOutput->Print( strLine );
-		}
 	}
 	
 	if ( m_pSource->m_nPort == INTERNET_DEFAULT_HTTP_PORT )
