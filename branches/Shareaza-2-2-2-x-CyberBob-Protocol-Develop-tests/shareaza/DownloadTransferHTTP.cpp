@@ -471,7 +471,7 @@ BOOL CDownloadTransferHTTP::SendRequest()
     // m_pOutput->Print( "X-Queue: 0.1\r\n" );
     if ( !m_bHeadRequest ) m_pOutput->Print( "X-Queue: 0.1\r\n" );
 	
-	if ( m_pSource->m_bSHA1 )
+	if ( m_pDownload->m_oSHA1 )
 	{
 		CString strURN = m_pDownload->m_oSHA1.toUrn();
 		
@@ -479,51 +479,51 @@ BOOL CDownloadTransferHTTP::SendRequest()
 		m_pOutput->Print( strURN + _T("\r\n") );
 	}
 
-	if ( m_pSource->m_bTiger )
+	if ( m_pDownload->m_oTiger )
 	{
 		CString strURN = m_pDownload->m_oTiger.toUrn();
 		m_pOutput->Print( "X-Content-URN: " );
 		m_pOutput->Print( strURN + _T("\r\n") );
 	}
 
-	if ( m_pSource->m_bED2K )
+	if ( m_pDownload->m_oED2K )
 	{
 		CString strURN = m_pDownload->m_oED2K.toUrn();
 		m_pOutput->Print( "X-Content-URN: " );
 		m_pOutput->Print( strURN + _T("\r\n") );
 	}
 
-	if ( m_pSource->m_bMD5 )
+	if ( m_pDownload->m_oMD5 )
 	{
 		CString strURN = m_pDownload->m_oMD5.toUrn();
 		m_pOutput->Print( "X-Content-URN: " );
 		m_pOutput->Print( strURN + _T("\r\n") );
 	}
 
-	if ( ( m_pSource->m_bSHA1 || m_pSource->m_bTiger || m_pSource->m_bED2K || m_pSource->m_bMD5 ) && 
+	if ( ( m_pDownload->m_oSHA1 || m_pDownload->m_oTiger || m_pDownload->m_oED2K || m_pDownload->m_oMD5 ) && 
 			Settings.Library.SourceMesh && ! m_bTigerFetch && ! m_bMetaFetch )
 	{
 		CString strURN;
 
-		if ( m_pSource->m_bSHA1 && m_pSource->m_bTiger )
+		if ( m_pDownload->m_oSHA1 && m_pDownload->m_oTiger )
 		{
 			strURN = _T("urn:bitprint:")
 					+ m_pDownload->m_oSHA1.toString() + '.'
 					+ m_pDownload->m_oTiger.toString();
 		}
-		else if ( m_pSource->m_bSHA1 )
+		else if ( m_pDownload->m_oSHA1 )
 		{
 			strURN = m_pDownload->m_oSHA1.toUrn();
 		}
-		else if ( m_pSource->m_bTiger )
+		else if ( m_pDownload->m_oTiger )
 		{
 			strURN = m_pDownload->m_oTiger.toUrn();
 		}
-		else if ( m_pSource->m_bED2K )
+		else if ( m_pDownload->m_oED2K )
 		{
 			strURN = m_pDownload->m_oED2K.toUrn();
 		}
-		else if ( m_pSource->m_bMD5 )
+		else if ( m_pDownload->m_oMD5 )
 		{
 			strURN = m_pDownload->m_oMD5.toUrn();
 		}
