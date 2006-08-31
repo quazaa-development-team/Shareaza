@@ -314,11 +314,12 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		m_nGnutella |= 1;
 	}
 	else if ( strHeader.CompareNoCase( _T("X-MyGUID") ) == 0 )
-	{	
+	{
+		strValue.Trim();
 		for ( int nByte = 0 ; nByte < 16 ; nByte++ )
 		{
 			int nValue;
-			_stscanf( strValue.Mid( 10 + nByte * 2, 2 ), _T("%X"), &nValue );
+			_stscanf( strValue.Mid( nByte * 2, 2 ), _T("%X"), &nValue );
 			m_oGUID[ nByte ] = (BYTE)nValue;
 		}
 		m_oGUID.validate();
