@@ -2306,11 +2306,11 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	if ( /* ! pPacket->m_bCompound */ TRUE ) return FALSE; // block execution of code for above reason
 
 	if ( Security.IsDenied( &pHost->sin_addr ) || Network.IsFirewalledAddress( (LPVOID*)&pHost->sin_addr, TRUE ) ||
-		! Network.IsReserved( &pHost->sin_addr ) ) return FALSE;
+		Network.IsReserved( &pHost->sin_addr ) ) return FALSE;
 
 	CHAR szType[9], szInner[9];
 	DWORD nLength, nInner;
-	BOOL bCompound, bCachedKeys;
+	BOOL bCompound;
 
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
 
@@ -2321,7 +2321,7 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		if (	strcmp( szType, "NH" ) == 0 ||
 				strcmp( szType, "CH" ) == 0 )
 		{
-			DWORD nAddress = 0, nKey = 0, tSeen = tNow;
+			DWORD nAddress = 0, tSeen = tNow, tAdjust = 0;
 			WORD nPort = 0;
 			CString strVendor;
 
@@ -2340,52 +2340,28 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 					{
 						strVendor = pPacket->ReadString( 4 );
 					}
-					else if ( strcmp( szInner, "QK" ) == 0 && nInner >= 4 )
-					{
-						nKey = pPacket->ReadLongBE();
-						bCachedKeys = TRUE;
-					}
 					else if ( strcmp( szInner, "TS" ) == 0 && nInner >= 4 )
 					{
-						tSeen = pPacket->ReadLongBE() + tNow;
+						tSeen = pPacket->ReadLongBE() + tAdjust;
 					}
 
 					pPacket->m_nPosition = nNextX;
 				}
 
-			}
-
-			if ( bCompound || 0 == strcmp( szType, "CH" ) )
-			{
-				while ( pPacket->m_nPosition < nNext && pPacket->ReadPacket( szInner, nInner ) )
+				if ( nLength >= 6 )
 				{
-					DWORD nNextX = pPacket->m_nPosition + nInner;
-
-					if ( strcmp( szInner, "NA" ) == 0 && nInner >= 6 )
-					{
-						nAddress = pPacket->ReadLongLE();
-						nPort = pPacket->ReadShortBE();
-					}
-					else if ( strcmp( szInner, "V" ) == 0 && nInner >= 4 )
-					{
-						strVendor = pPacket->ReadString( 4 );
-					}
-					else if ( strcmp( szInner, "QK" ) == 0 && nInner >= 4 )
-					{
-						nKey = pPacket->ReadLongBE();
-						bCachedKeys = TRUE;
-					}
-					else if ( strcmp( szInner, "TS" ) == 0 && nInner >= 4 )
-					{
-						tSeen = pPacket->ReadLongBE() + tNow;
-					}
-
-					pPacket->m_nPosition = nNextX;
+					nAddress = pPacket->ReadLongLE();
+					nPort = pPacket->ReadShortBE();
+					if ( nLength >= 10 ) tSeen = pPacket->ReadLongBE() + tAdjust;
 				}
 
 			}
+			else if ( strcmp( szType, "TS" ) == 0 && nLength >= 4 )
+			{
+				tAdjust = (LONG)tNow - (LONG)pPacket->ReadLongBE();
+			}
 
-			if ( ! Security.IsDenied( (IN_ADDR*)&nAddress ) && ! Network.IsFirewalledAddress( &nAddress, TRUE ) &&
+			if ( ! Security.IsDenied( (IN_ADDR*)&nAddress ) && ! Network.IsFirewalledAddress( &nAddress, TRUE, TRUE ) &&
                 ! Network.IsReserved((IN_ADDR*)&nAddress) && strVendor.GetLength() == 4 && nPort != 0 && 
 				nAddress != Network.m_pHost.sin_addr.S_un.S_addr)
 			{
@@ -2396,13 +2372,8 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 				if ( pCached != NULL )
 				{
 					pCached->m_pVendor->m_sCode = strVendor;
-					if ( pCached->m_nKeyValue == 0 ||
-						 pCached->m_nKeyHost != Network.m_pHost.sin_addr.S_un.S_addr )
-					{
-						pCached->SetKey( nKey, (IN_ADDR*)&nAddress );
-					}
 				}
-				HubHorizonPool.Add( (IN_ADDR*)&nAddress, nPort );
+				// HubHorizonPool.Add( (IN_ADDR*)&nAddress, nPort );
 			}
 		}
 
@@ -2415,6 +2386,9 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 // KHLR - KHL(Known Hub List) request, go over UDP packet more like UDPHC for G1.
 BOOL CDatagrams::OnKHLR(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
+	if ( Security.IsDenied( &pHost->sin_addr ) || Network.IsFirewalledAddress( (LPVOID*)&pHost->sin_addr, TRUE ) ||
+		Network.IsReserved( &pHost->sin_addr ) ) return FALSE;
+
 	CG2Packet* pKHLA = CG2Packet::New( G2_PACKET_KHL_ANS, TRUE );
 
 	//	DWORD nBase = pPacket->m_nPosition;
@@ -2431,17 +2405,17 @@ BOOL CDatagrams::OnKHLR(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 			if ( pNeighbour->m_pVendor && pNeighbour->m_pVendor->m_sCode.GetLength() == 4 )
 			{
 				pKHLA->WritePacket( "NH", 14 + 6, TRUE );					// 4
-				pKHLA->WritePacket( "HS", 2 );							// 4
-				pKHLA->WriteShortBE( (WORD)pNeighbour->m_nLeafCount );	// 2
+				pKHLA->WritePacket( "HS", 2 );								// 4
+				pKHLA->WriteShortBE( (WORD)pNeighbour->m_nLeafCount );		// 2
 				pKHLA->WritePacket( "V", 4 );								// 3
 				pKHLA->WriteString( pNeighbour->m_pVendor->m_sCode );		// 5
 			}
 			else
 			{
 				pKHLA->WritePacket( "NH", 7 + 6, TRUE );					// 4
-				pKHLA->WritePacket( "HS", 2 );							// 4
-				pKHLA->WriteShortBE( (WORD)pNeighbour->m_nLeafCount );	// 2
-				pKHLA->WriteByte( 0 );									// 1
+				pKHLA->WritePacket( "HS", 2 );								// 4
+				pKHLA->WriteShortBE( (WORD)pNeighbour->m_nLeafCount );		// 2
+				pKHLA->WriteByte( 0 );										// 1
 			}
 
 			pKHLA->WriteLongLE( pNeighbour->m_pHost.sin_addr.S_un.S_addr );	// 4
@@ -2462,26 +2436,43 @@ BOOL CDatagrams::OnKHLR(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 			Neighbours.Get( &pCachedHost->m_pAddress ) == NULL &&
 			pCachedHost->m_pAddress.S_un.S_addr != Network.m_pHost.sin_addr.S_un.S_addr )
 		{
+			/*
 			int nLength = 10;
 
 			if ( pCachedHost->m_pVendor && pCachedHost->m_pVendor->m_sCode.GetLength() == 4 )
-				nLength += 7;
-			if ( nLength > 10 )
-				nLength ++;
+				nLength += 8;
+			//if ( nLength > 10 )
+			//	nLength ++;
 
 			pKHLA->WritePacket( "CH", nLength, nLength > 10 );
 
 			if ( pCachedHost->m_pVendor && pCachedHost->m_pVendor->m_sCode.GetLength() == 4 )
 			{
-				pKHLA->WritePacket( "V", 4 );								// 3
-				pKHLA->WriteString( pCachedHost->m_pVendor->m_sCode, FALSE );	// 4
+				pKHLA->WritePacket( "V", 5 );									// 3
+				pKHLA->WriteString( pCachedHost->m_pVendor->m_sCode, TRUE );	// 4
 			}
 
-			if ( nLength > 10 ) pPacket->WriteByte( 0 );					// 1
+			//if ( nLength > 10 ) pPacket->WriteByte( 0 );						// 1
 
 			pKHLA->WriteLongLE( pCachedHost->m_pAddress.S_un.S_addr );			// 4
 			pKHLA->WriteShortBE( pCachedHost->m_nPort );						// 2
 			pKHLA->WriteLongBE( pCachedHost->m_tSeen );							// 4
+			*/
+
+			BOOL bCompound = ( pCachedHost->m_pVendor && pCachedHost->m_pVendor->m_sCode.GetLength() > 0 );
+			CG2Packet* pCHPacket = CG2Packet::New( "CH", bCompound );
+
+			if ( bCompound )
+			{
+				pCHPacket->WritePacket( "V", pCachedHost->m_pVendor->m_sCode.GetLength() );
+				pCHPacket->WriteString( pCachedHost->m_pVendor->m_sCode );
+			}
+			pCHPacket->WriteLongLE( pCachedHost->m_pAddress.S_un.S_addr );					// 4
+			pCHPacket->WriteShortBE( pCachedHost->m_nPort );								// 2
+			pCHPacket->WriteLongBE( pCachedHost->m_tSeen );									// 4
+			pKHLA->WritePacket( pCHPacket );
+			pCHPacket->Release();
+
 
 			nCount--;
 		}

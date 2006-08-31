@@ -100,7 +100,7 @@ public:
 	BOOL		IsReserved(IN_ADDR* pAddress, bool bCheckLocal=true);
 	WORD		RandomPort() const;
 	void		CreateID(Hashes::Guid& oID);
-	BOOL		IsFirewalledAddress(LPVOID pAddress, BOOL bIncludeSelf = FALSE);
+	BOOL		IsFirewalledAddress(LPVOID pAddress, BOOL bIncludeSelf = FALSE, BOOL bForceCheck = FALSE );
 	void		TestRemoteFirewall(DWORD nAddress, WORD nPort);
 public:
 	BOOL		GetNodeRoute(const Hashes::Guid& oGUID, CNeighbour** ppNeighbour, SOCKADDR_IN* pEndpoint);

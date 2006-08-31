@@ -400,10 +400,10 @@ void CNetwork::CreateID(Hashes::Guid& oID)
 //////////////////////////////////////////////////////////////////////
 // CNetwork firewalled address checking
 
-BOOL CNetwork::IsFirewalledAddress(LPVOID pAddress, BOOL bIncludeSelf)
+BOOL CNetwork::IsFirewalledAddress(LPVOID pAddress, BOOL bIncludeSelf, BOOL bForceCheck)
 {
 	if ( ! pAddress ) return TRUE;
-	if ( ! Settings.Connection.IgnoreLocalIP ) return FALSE;
+	if ( ! bForceCheck && ! Settings.Connection.IgnoreLocalIP ) return FALSE;
 	
 	DWORD nAddress = *(DWORD*)pAddress;
 	
