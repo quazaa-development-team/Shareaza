@@ -841,6 +841,77 @@ BOOL CNetwork::SendPush( CDownloadSource * pSource )
 		}
 		bSent = TRUE;
 	}
+
+	if (!bSent)
+	{
+		if ( pSource->m_nProtocol == PROTOCOL_G1 && (pSource->m_oGUID).isValid() )
+		{
+			CPacket* pPacket = CG1Packet::New( G1_PACKET_PUSH,
+				Settings.Gnutella1.MaximumTTL - 1 );
+
+			pPacket->Write( pSource->m_oGUID );
+			pPacket->WriteLongLE( pSource->m_nIndex );
+			pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
+			pPacket->WriteShortLE( htons( m_pHost.sin_port ) );
+
+			Datagrams.Send( &(pSource->m_pAddress), pSource->m_nPort, pPacket );
+			bSent = TRUE;
+		}
+
+		if ( pSource->m_nProtocol == PROTOCOL_G2 )
+		{
+			if ( (pSource->m_oGUID).isValid() )
+			{
+				CG2Packet* pPacket = CG2Packet::New( G2_PACKET_PUSH, TRUE );
+
+				pPacket->WritePacket( G2_PACKET_TO, 16 );
+				pPacket->Write( pSource->m_oGUID );
+				pPacket->WriteByte( 0 );
+
+				pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
+				pPacket->WriteShortBE( htons( m_pHost.sin_port ) );
+
+				Datagrams.Send( &(pSource->m_pAddress), pSource->m_nPort, pPacket, TRUE, NULL, FALSE );
+				bSent = TRUE;
+			}
+			else
+			{
+				CG2Packet* pPacket = CG2Packet::New( G2_PACKET_PUSH, TRUE );
+				Hashes::Guid oDummyGUID;
+				pPacket->WritePacket( "DP", 16 );	// Dummy packet get around G2 routing code.
+				pPacket->Write( oDummyGUID );		// Write Dummy invalid GUID to make up the length.
+				pPacket->WriteByte( 0 );			// end compound.
+
+				pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
+				pPacket->WriteShortBE( htons( m_pHost.sin_port ) );
+
+				Datagrams.Send( &(pSource->m_pAddress), pSource->m_nPort, pPacket, TRUE, NULL, FALSE );
+				bSent = TRUE;
+			}
+		}
+
+		if ( pSource->m_nProtocol == PROTOCOL_HTTP )
+		{
+			// if the node is from Source exchange but having difficulty to connect.
+			// Try using UDP to knock the door just in case the TCP port is blocked but UDP is open.
+			// using G2 UDP because:
+			//		1. G1 source exchange do not use "Alt-Location: " anymore, so it is not likely to he on this protocol.
+			//		2. G1 PUSH packet requires proper GUID when G2 PUSH just has to be compound but unnecessary to have it.
+			CG2Packet* pPacket = CG2Packet::New( G2_PACKET_PUSH, TRUE );
+			Hashes::Guid oDummyGUID;
+			pPacket->WritePacket( "DP", 16 );	// Dummy packet get around G2 routing code.
+			pPacket->Write( oDummyGUID );		// Write Dummy invalid GUID to make up the length.
+			pPacket->WriteByte( 0 );			// end compound.
+
+			pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
+			pPacket->WriteShortBE( htons( m_pHost.sin_port ) );
+
+			Datagrams.Send( &(pSource->m_pAddress), pSource->m_nPort, pPacket, TRUE, NULL, FALSE );
+			bSent = TRUE;
+		}
+
+	}
+
 	return bSent;
 }
 
