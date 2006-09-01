@@ -591,8 +591,7 @@ int CLocalSearch::ExecutePartialFiles(INT_PTR nMaximum)
 	int nCount = 0;
 	m_pPacket = NULL;
 
-	nMaximum = min( nMaximum, Downloads.GetCount() );
-	for ( POSITION pos = Downloads.GetIterator() ; nCount < nMaximum ; )
+	for ( POSITION pos = Downloads.GetIterator() ; pos && ( nMaximum == 0 || nCount < nMaximum ); )
 	{
 		CDownload* pDownload = Downloads.GetNext( pos );
 
