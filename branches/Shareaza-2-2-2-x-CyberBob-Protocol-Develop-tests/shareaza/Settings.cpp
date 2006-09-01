@@ -213,6 +213,8 @@ void CSettings::Setup()
 	Add( _T("Discovery.FailureLimit"), &Discovery.FailureLimit, 2 );
 	Add( _T("Discovery.UpdatePeriod"), &Discovery.UpdatePeriod, 1800 );
 	Add( _T("Discovery.DefaultUpdate"), &Discovery.DefaultUpdate, 3600 );
+	Add( _T("Discovery.DisableAutoQuery"), &Discovery.DisableAutoQuery, 0 );
+	Add( _T("Discovery.DisableManualQuery"), &Discovery.DisableManualQuery, 1 );
 	Add( _T("Discovery.DisableService"), &Discovery.DisableService, 0 );
 	Add( _T("Discovery.BootstrapCount"), &Discovery.BootstrapCount, 10 );
 	Add( _T("Discovery.G2DAddress"), &Discovery.G2DAddress, _T("stats.shareaza.com:6446") );
@@ -762,6 +764,7 @@ void CSettings::SmartUpgrade()
 	{
 		Gnutella1.QuerySearchUTF8 = TRUE;
 		Gnutella1.QueryHitUTF8 = TRUE;
+		Discovery.DisableManualQuery = TRUE;
 	}
 }
 

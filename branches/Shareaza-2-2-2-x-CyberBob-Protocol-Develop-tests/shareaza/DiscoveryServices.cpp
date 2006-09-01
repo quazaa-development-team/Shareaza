@@ -584,7 +584,7 @@ void CDiscoveryServices::AddDefaults()
 BOOL CDiscoveryServices::Update()
 {
 	//new option to disable Discovery for private/test use
-	if ( Settings.Discovery.DisableService) return TRUE;
+	if ( Settings.Discovery.DisableService || Settings.Discovery.DisableAutoQuery ) return TRUE;
 
 	PROTOCOLID nProtocol;
 	DWORD tNow = (DWORD)time( NULL );
@@ -645,7 +645,7 @@ BOOL CDiscoveryServices::Update()
 BOOL CDiscoveryServices::Execute(BOOL bSecondary)
 {
 	//new option to disable Discovery for private/test use
-	if ( Settings.Discovery.DisableService) return TRUE;
+	if ( Settings.Discovery.DisableService ) return TRUE;
 
 	CSingleLock pLock( &Network.m_pSection );
 	if ( ! pLock.Lock( 250 ) ) return FALSE;
@@ -1593,7 +1593,7 @@ void CDiscoveryService::Serialize(CArchive& ar, int /*nVersion*/)
 BOOL CDiscoveryService::Execute(int nMode)
 {
 	//new option to disable Discovery for private/test use
-	if ( Settings.Discovery.DisableService) return TRUE;
+	if ( Settings.Discovery.DisableService || Settings.Discovery.DisableManualQuery ) return TRUE;
 
 	CSingleLock pLock( &Network.m_pSection );
 	if ( ! pLock.Lock( 250 ) ) return FALSE;

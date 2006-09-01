@@ -208,7 +208,7 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 	// If we are already connected, see if we need to query discovery services and exit.
 	if ( m_bEnabled )
 	{
-		if ( bAutoConnect ) DiscoveryServices.Execute();
+		if ( bAutoConnect && !Settings.Discovery.DisableAutoQuery ) DiscoveryServices.Execute();
 		return TRUE;
 	}
 	

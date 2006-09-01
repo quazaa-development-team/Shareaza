@@ -1278,14 +1278,15 @@ void CNeighboursWithConnect::Maintain()
 					// We're looping for Gnutella2 right now
 					if ( nProtocol == PROTOCOL_G2 )
 					{
-						// Execute the discovery services (do)
-						DiscoveryServices.Execute( TRUE );
+						// Execute the discovery services (do) if Auto Query is not disabled.
+						if ( !Settings.Discovery.DisableAutoQuery ) DiscoveryServices.Execute( TRUE );
 
 					} // We're looping for Gnutella right now
 					else if ( nProtocol == PROTOCOL_G1 )
 					{
-						// If the Gnutella host cache is empty (do), execute discovery services (do)
-						if ( pCache->GetOldest() == NULL ) DiscoveryServices.Execute( TRUE );
+						// If the Gnutella host cache is empty (do) and Auto is not Disabled, execute discovery services (do)
+						if ( pCache->GetOldest() == NULL && !Settings.Discovery.DisableAutoQuery )
+							DiscoveryServices.Execute( TRUE );
 					}
 				}
 			}

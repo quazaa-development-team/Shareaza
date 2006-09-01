@@ -236,6 +236,8 @@ public:
 		DWORD		FailureLimit;
 		DWORD		UpdatePeriod;
 		DWORD		DefaultUpdate;
+		BOOL		DisableAutoQuery;
+		BOOL		DisableManualQuery;
 		BOOL		DisableService;
 		DWORD		BootstrapCount;
 		CString		G2DAddress;
