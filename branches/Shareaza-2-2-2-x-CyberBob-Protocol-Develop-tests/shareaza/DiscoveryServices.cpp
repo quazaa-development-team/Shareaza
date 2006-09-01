@@ -157,7 +157,7 @@ CDiscoveryService* CDiscoveryServices::Add(LPCTSTR pszAddress, int nType, PROTOC
 		if ( _tcschr( pszAddress, '.' ) != NULL )
 			pService = new CDiscoveryService( CDiscoveryService::dsGnutella, strAddress );
 
-		if ( _tcsnicmp( strAddress, _T("gnutella:host:"),  14 ) == 0 )
+		if ( _tcsnicmp( strAddress, _T("gnutella1:host:"),  15 ) == 0 )
 		{
 			pService->m_bGnutella1 = TRUE;
 			pService->m_bGnutella2 = FALSE;
@@ -1626,10 +1626,10 @@ BOOL CDiscoveryService::ResolveGnutella()
 	int nSkip = 0;
 
 	// Check it has a valid protocol
-	if ( _tcsnicmp( strHost, _T("gnutella:host:"),  14 ) == 0 )
+	if ( _tcsnicmp( strHost, _T("gnutella1:host:"),  15 ) == 0 )
 	{
 		nBootType = 1;
-		nSkip = 14;
+		nSkip = 15;
 		m_bGnutella1 = TRUE;
 		m_bGnutella2 = FALSE;
 	}
