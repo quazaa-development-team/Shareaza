@@ -257,7 +257,7 @@ CHostCacheHost* CHostCacheList::Add(IN_ADDR* pAddress, WORD nPort, DWORD tSeen, 
 		return NULL;
 
 	// Don't add own firewalled IPs
-	if ( Network.IsFirewalledAddress( &pAddress->S_un.S_addr, TRUE ) ) 
+	if ( Network.IsFirewalledAddress( &pAddress->S_un.S_addr, TRUE, TRUE ) ) 
 		return NULL;
 
 	// Don't add own IP if set not to. (Above check may not run if not ignoring local IPs)
@@ -266,6 +266,10 @@ CHostCacheHost* CHostCacheList::Add(IN_ADDR* pAddress, WORD nPort, DWORD tSeen, 
 
 	// Check security settings, don't add blocked IPs
 	if ( Security.IsDenied( pAddress ) )
+		return NULL;
+
+	// check against IANA Reserved address.
+	if ( Network.IsReserved( pAddress ) )
 		return NULL;
 
 	// Try adding it to the cache. (duplicates will be rejected)
@@ -307,7 +311,7 @@ BOOL CHostCacheList::Add(LPCTSTR pszHost, DWORD tSeen, LPCTSTR pszVendor)
 		 return TRUE;
 	
 	// Don't add own firewalled IPs
-	if ( Network.IsFirewalledAddress( &nAddress, TRUE ) ) 
+	if ( Network.IsFirewalledAddress( &nAddress, TRUE, TRUE ) ) 
 		return TRUE;
 
 	// Don't add own IP if set not to. (Above check may not run if not ignoring local IPs)
@@ -316,6 +320,10 @@ BOOL CHostCacheList::Add(LPCTSTR pszHost, DWORD tSeen, LPCTSTR pszVendor)
 
 	// Check security settings, don't add blocked IPs
 	if ( Security.IsDenied( (IN_ADDR*)&nAddress ) )
+		 return TRUE;
+
+	// check against IANA Reserved address.
+	if ( Network.IsReserved( (IN_ADDR*)&nAddress ) )
 		 return TRUE;
 
 	// Try adding it to the cache. (duplicates will be rejected)
