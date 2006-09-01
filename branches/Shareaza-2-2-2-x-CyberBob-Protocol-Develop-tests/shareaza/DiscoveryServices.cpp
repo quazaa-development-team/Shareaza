@@ -1640,17 +1640,17 @@ BOOL CDiscoveryService::ResolveGnutella()
 		m_bGnutella1 = FALSE;
 		m_bGnutella2 = TRUE;
 	}
-	else if ( _tcsnicmp( strHost, _T("uhc://"), 6 ) == 0 )
+	else if ( _tcsnicmp( strHost, _T("uhc:"), 4 ) == 0 )
 	{
 		nBootType = 3;
-		nSkip = 6;
+		nSkip = 4;
 		m_bGnutella1 = TRUE;
 		m_bGnutella2 = FALSE;
 	}
-	else if ( _tcsnicmp( strHost, _T("ukhl://"), 7 ) == 0 )
+	else if ( _tcsnicmp( strHost, _T("ukhl:"), 5 ) == 0 )
 	{
 		nBootType = 4;
-		nSkip = 7;
+		nSkip = 5;
 		m_bGnutella1 = FALSE;
 		m_bGnutella2 = TRUE;
 	}
