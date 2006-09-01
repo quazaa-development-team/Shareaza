@@ -156,6 +156,27 @@ CDiscoveryService* CDiscoveryServices::Add(LPCTSTR pszAddress, int nType, PROTOC
 	case CDiscoveryService::dsGnutella:
 		if ( _tcschr( pszAddress, '.' ) != NULL )
 			pService = new CDiscoveryService( CDiscoveryService::dsGnutella, strAddress );
+
+		if ( _tcsnicmp( strAddress, _T("gnutella:host:"),  14 ) == 0 )
+		{
+			pService->m_bGnutella1 = TRUE;
+			pService->m_bGnutella2 = FALSE;
+		}
+		else if ( _tcsnicmp( strAddress, _T("gnutella2:host:"), 15 ) == 0 )
+		{
+			pService->m_bGnutella1 = FALSE;
+			pService->m_bGnutella2 = TRUE;
+		}
+		else if ( _tcsnicmp( strAddress, _T("uhc:"), 4 )  == 0 )
+		{
+			pService->m_bGnutella1 = TRUE;
+			pService->m_bGnutella2 = FALSE;
+		}
+		else if ( _tcsnicmp( strAddress, _T("ukhl:"), 5 )  == 0 )
+		{
+			pService->m_bGnutella1 = FALSE;
+			pService->m_bGnutella2 = TRUE;
+		}
 		break;
 
 	case CDiscoveryService::dsBlocked:
@@ -1609,28 +1630,36 @@ BOOL CDiscoveryService::ResolveGnutella()
 	{
 		nBootType = 1;
 		nSkip = 14;
+		m_bGnutella1 = TRUE;
+		m_bGnutella2 = FALSE;
 	}
 	else if ( _tcsnicmp( strHost, _T("gnutella2:host:"), 15 ) == 0 )
 	{
 		nBootType = 2;
 		nSkip = 15;
+		m_bGnutella1 = FALSE;
+		m_bGnutella2 = TRUE;
 	}
 	else if ( _tcsnicmp( strHost, _T("uhc://"), 6 ) == 0 )
 	{
 		nBootType = 3;
 		nSkip = 6;
+		m_bGnutella1 = TRUE;
+		m_bGnutella2 = FALSE;
 	}
 	else if ( _tcsnicmp( strHost, _T("ukhl://"), 7 ) == 0 )
 	{
 		nBootType = 4;
 		nSkip = 7;
+		m_bGnutella1 = FALSE;
+		m_bGnutella2 = TRUE;
 	}
 
-	int nPort		= GNUTELLA_DEFAULT_PORT;
+	int nPort = GNUTELLA_DEFAULT_PORT;
 
 	if (nBootType == 0)
 	{
-		int nPos		= strHost.Find( ':' );
+		int nPos = strHost.Find( ':' );
 		if ( nPos >= 0 && _stscanf( strHost.Mid( nPos + 1 ), _T("%i"), &nPort ) == 1 )
 			strHost = strHost.Left( nPos );
 
