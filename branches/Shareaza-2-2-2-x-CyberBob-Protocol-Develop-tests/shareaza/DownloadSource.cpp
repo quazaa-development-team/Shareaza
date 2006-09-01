@@ -149,6 +149,12 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, CQueryHit* pHit)
 	}
 	
 	ResolveURL();
+
+	if ( m_nProtocol == PROTOCOL_HTTP )
+	{
+		m_nProtocol = pHit->m_nProtocol;
+	}
+
 	m_bCloseConn	= FALSE;
 	m_bReConnect	= FALSE;			// No Initial Reconnect setting
 	m_nPushAttempted	= 0;
@@ -180,6 +186,11 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, DWORD nClientID, WORD nCl
 	
 	m_bED2K		= TRUE;
 	m_sServer	= _T("eDonkey2000");
+
+	m_pAddress = (IN_ADDR&)nClientID;
+	m_nPort = nClientPort;
+	m_pServerAddress = (IN_ADDR&)nServerIP;
+	m_nServerPort = nServerPort;
 	
 	ResolveURL();
 

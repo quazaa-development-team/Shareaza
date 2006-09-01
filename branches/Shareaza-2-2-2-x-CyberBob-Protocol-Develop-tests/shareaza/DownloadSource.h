@@ -136,25 +136,48 @@ public:
 public:
 	inline bool CDownloadSource::Equals(CDownloadSource* pSource) const
 	{
-		if ( m_oGUID.isValid() && pSource->m_oGUID.isValid() )
-			return m_oGUID == pSource->m_oGUID;
-		
-		if ( m_nServerPort != pSource->m_nServerPort )
+		BOOL bSameProtocol = FALSE;
+
+		if (	m_nProtocol == PROTOCOL_G1 ||
+				m_nProtocol == PROTOCOL_G2 ||
+				m_nProtocol == PROTOCOL_HTTP	)
 		{
-			return FALSE;
-		}
-		else if ( m_nServerPort > 0 )
-		{
-			if ( m_pServerAddress.S_un.S_addr != pSource->m_pServerAddress.S_un.S_addr ) return FALSE;
-			if ( m_pAddress.S_un.S_addr != pSource->m_pAddress.S_un.S_addr ) return FALSE;
-		}
-		else
-		{
-			if ( m_pAddress.S_un.S_addr != pSource->m_pAddress.S_un.S_addr ) return FALSE;
-			if ( m_nPort != pSource->m_nPort ) return FALSE;
+			if (	pSource->m_nProtocol == PROTOCOL_G1 ||
+					pSource->m_nProtocol == PROTOCOL_G2 ||
+					pSource->m_nProtocol == PROTOCOL_HTTP	)
+			{
+				bSameProtocol = TRUE;
+			}
 		}
 
-		return TRUE;
+		if ( m_nProtocol == pSource->m_nProtocol )
+		{
+			bSameProtocol = TRUE;
+		}
+
+		if ( !bSameProtocol ) return FALSE;
+
+		if ( !m_bPushOnly && !pSource->m_bPushOnly )
+		{
+			if ( m_pAddress.S_un.S_addr == pSource->m_pAddress.S_un.S_addr )
+				if ( m_nPort == pSource->m_nPort ) return TRUE;
+		}
+		else if ( m_bPushOnly && pSource->m_bPushOnly )
+		{
+			if ( m_nServerPort > 0 )
+			{
+				if ( m_pAddress.S_un.S_addr == pSource->m_pAddress.S_un.S_addr )
+					if ( m_pServerAddress.S_un.S_addr == pSource->m_pServerAddress.S_un.S_addr ) return TRUE;
+			}
+		}
+
+		if ( bSameProtocol && validAndEqual( m_oGUID, pSource->m_oGUID ) )
+		{
+			if ( m_oGUID != NULL )
+				return TRUE;
+		}
+
+		return FALSE;
 	}
 
 	inline BOOL	CanInitiate(BOOL bNetwork, BOOL bEstablished) const

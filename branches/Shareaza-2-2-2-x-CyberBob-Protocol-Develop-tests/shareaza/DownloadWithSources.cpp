@@ -573,33 +573,18 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 		}
 	}
 	
-	bool bG2Exists = false;
-	bool bExistingIsRaza = false;
-	bool bDeleteSource = false;
-	CDownloadSource* pCopy = NULL;
-
 	if ( pSource->m_nRedirectionCount == 0 ) // Don't check for existing sources if source is a redirection
 	{
-		for ( CDownloadSource* pExisting = m_pSourceFirst ; pExisting ; )
+		for ( CDownloadSource* pExisting = m_pSourceFirst ; pExisting ; pExisting = pExisting->m_pNext )
 		{	
-			bool bSkip = false;
-
-			if ( pExisting->Equals( pSource ) ) // IPs and ports are equal
-			{	
-				if ( !bExistingIsRaza )
-					bExistingIsRaza = ( _tcsncmp( pExisting->m_sServer, _T("Shareaza"), 8 ) == 0 || 
-										_tcsncmp( pExisting->m_sServer, _T("SBeta"), 5 ) == 0 ||
-										_tcsncmp( pExisting->m_sServer, _T("RAZA"), 4 ) == 0 ||
-										_tcsncmp( pExisting->m_sServer, _T("RAZB"), 4 ) == 0 );
-
-				if ( !bG2Exists )
-					bG2Exists = ( pExisting->m_nProtocol == PROTOCOL_HTTP );
-
-				// Point to non-HTTP source which is Shareaza
-				if ( bExistingIsRaza )
-					pCopy = bG2Exists ? NULL : pExisting;
-				
-				if ( pExisting->m_nProtocol == pSource->m_nProtocol )
+			if ( pExisting->Equals( pSource ) )
+			{
+				if ( (	pExisting->m_nProtocol == PROTOCOL_HTTP ||
+					pExisting->m_nProtocol == PROTOCOL_G1 ||
+					pExisting->m_nProtocol == PROTOCOL_G2 ) &&
+					(	pSource->m_nProtocol == PROTOCOL_HTTP ||
+					pSource->m_nProtocol == PROTOCOL_G1 ||
+					pSource->m_nProtocol == PROTOCOL_G2 ) )
 				{
 					if ( !pSource->m_oHubList.empty() )
 					{
@@ -611,118 +596,24 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 						pExisting->m_oPushProxyList = pSource->m_oPushProxyList;
 						pExisting->m_nPushAttempted = 0;
 					}
-					pExisting->m_oGUID = pSource->m_oGUID;
-					bDeleteSource = true;
-				}
-
-				if ( pExisting->m_pTransfer != NULL ) // We already downloading
-				{
-					// Remove new source which is not HTTP and return
-					if ( pExisting->m_nProtocol == PROTOCOL_HTTP && pSource->m_nProtocol != PROTOCOL_HTTP )
-						bDeleteSource = true;
-				}
-				else // We are not downloading
-				{
-					// Replace non-HTTP source with a new one (we will add it later)
-					if ( pExisting->m_nProtocol != PROTOCOL_HTTP && pSource->m_nProtocol == PROTOCOL_HTTP )
+					if ( pExisting->m_pTransfer != NULL ) // We already downloading
 					{
-						// Set connection delay the same as for the old source
-						pSource->m_tAttempt = pExisting->m_tAttempt;
-						pCopy = NULL;	// We are adding HTTP source, thus no need to make G2
-						bSkip = true;	// Don't go to the next source
-
-						if ( pExisting->m_pNext )
-						{
-							pExisting = pExisting->m_pNext;
-							pExisting->m_pPrev->Remove( TRUE, FALSE );
-						}
-						else
-						{
-							pExisting->Remove( TRUE, FALSE );
-							pExisting = NULL;
-						}
+						if ( pSource->m_oGUID != NULL ) pExisting->m_oGUID = pSource->m_oGUID;
+						pExisting->m_pAddress = pSource->m_pAddress;
+						pExisting->m_nPort = pSource->m_nPort;
 					}
 				}
-			}
-
-			if ( !bSkip )
-				pExisting = pExisting->m_pNext;
-		}
-	}
-
-	// We don't need to make G2 source
-	if ( pCopy && bExistingIsRaza && bG2Exists )
-		pCopy = NULL;
-
-	// Make G2 source from the existing non-HTTP Shareaza source
-	if ( pCopy && Settings.Gnutella2.EnableToday )
-	{
-		CString strURL;
-		if ( m_oSHA1 )
-		{
-			strURL.Format( _T("http://%s:%i/uri-res/N2R?%s"),
-				(LPCTSTR)CString( inet_ntoa( pCopy->m_pAddress ) ),
-				pCopy->m_nPort, (LPCTSTR)m_oSHA1.toUrn() );
-		}
-		else if ( m_oED2K )
-		{
-			strURL.Format( _T("http://%s:%i/uri-res/N2R?%s"),
-				(LPCTSTR)CString( inet_ntoa( pCopy->m_pAddress ) ),
-				pCopy->m_nPort, (LPCTSTR)m_oED2K.toUrn() );
-		}
-		else if ( m_oBTH )
-		{
-			strURL.Format( _T("http://%s:%i/uri-res/N2R?%s"),
-				(LPCTSTR)CString( inet_ntoa( pCopy->m_pAddress ) ),
-				pCopy->m_nPort, (LPCTSTR)m_oBTH.toUrn() );
-		}
-		else if ( m_oMD5 )
-		{
-			strURL.Format( _T("http://%s:%i/uri-res/N2R?%s"),
-				(LPCTSTR)CString( inet_ntoa( pCopy->m_pAddress ) ),
-				pCopy->m_nPort, (LPCTSTR)m_oMD5.toUrn() );
-		}
-
-		if ( strURL.GetLength() )
-		{
-			CDownloadSource* pG2Source  = new CDownloadSource( (CDownload*)this, strURL );
-			pG2Source->m_sServer = pCopy->m_sServer;	// Copy user-agent
-			pG2Source->m_tAttempt = pCopy->m_tAttempt;	// Set the same connection delay
-			pG2Source->m_nProtocol = PROTOCOL_HTTP;
-
-			m_nSourceCount++;
-
-			pG2Source->m_pPrev = m_pSourceLast;
-			pG2Source->m_pNext = NULL;
-				
-			if ( m_pSourceLast != NULL )
-			{
-				m_pSourceLast->m_pNext = pG2Source;
-				m_pSourceLast = pG2Source;
-			}
-			else
-			{
-				m_pSourceFirst = m_pSourceLast = pG2Source;
-			}
-
-			if ( pG2Source->m_pTransfer == NULL )
-			{
-				if ( CDownloadTransfer* pTransfer = pG2Source->CreateTransfer() )
-					pTransfer->Initiate();
+					delete pSource;
+					return FALSE;
 			}
 		}
 	}
-	
-	if ( bDeleteSource )
-	{
-		delete pSource;
-		return FALSE;
-	}
 
-	m_nSourceCount++;
+	m_nSourceCount ++;
+
 	pSource->m_pPrev = m_pSourceLast;
 	pSource->m_pNext = NULL;
-		
+
 	if ( m_pSourceLast != NULL )
 	{
 		m_pSourceLast->m_pNext = pSource;
@@ -732,9 +623,9 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 	{
 		m_pSourceFirst = m_pSourceLast = pSource;
 	}
-	
+
 	SetModified();
-	
+
 	return TRUE;
 }
 
@@ -757,11 +648,12 @@ CString CDownloadWithSources::GetSourceURLs(CList< CString >* pState, int nMaxim
 			
 			// Only return appropriate sources
 			if ( ( nProtocol == PROTOCOL_HTTP ) && ( pSource->m_nProtocol != PROTOCOL_HTTP ) ) continue;
-			if ( ( nProtocol == PROTOCOL_G1 ) && ( pSource->m_nGnutella != 1 ) ) continue;
+			if ( ( nProtocol == PROTOCOL_G1 ) && ( pSource->m_nProtocol != PROTOCOL_G1 ) ) continue;
+			if ( ( nProtocol == PROTOCOL_G2 ) && ( pSource->m_nProtocol != PROTOCOL_G2 ) ) continue;
 
 			//if ( bHTTP && pSource->m_nProtocol != PROTOCOL_HTTP ) continue;
 			
-			if ( nProtocol == PROTOCOL_G1 )
+			if ( nProtocol == PROTOCOL_G1 ||  nProtocol == PROTOCOL_G2 )
 			{
 				if ( strSources.GetLength() ) 
 					strSources += ',';

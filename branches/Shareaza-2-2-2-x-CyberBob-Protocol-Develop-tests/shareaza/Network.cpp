@@ -824,7 +824,8 @@ BOOL CNetwork::SendPush( CDownloadSource * pSource )
 		}
 		bSent = TRUE;
 	}
-	else if ( !pSource->m_oHubList.empty() )
+
+	if ( !pSource->m_oHubList.empty() )
 	{
 		for ( CDownloadSource::HubIndex POS = pSource->m_oHubList.begin();POS != pSource->m_oHubList.end();POS++)
 		{

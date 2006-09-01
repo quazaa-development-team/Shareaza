@@ -553,19 +553,28 @@ BOOL CDownloadTransferHTTP::SendRequest()
 			}
 			else
 			{
-				strLine = m_pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_HTTP, m_pSource );
-				if ( strLine.GetLength() )
-				{
-					m_pOutput->Print( "Alt-Location: " );
-					m_pOutput->Print( strLine + _T("\r\n") );
-				}
-
 				strLine = m_pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_G1, m_pSource );
 				if ( strLine.GetLength() )
 				{
 					m_pOutput->Print( "X-Alt: " );
 					strLine.Format( _T("%s:%i"), (LPCTSTR)CString( inet_ntoa( Network.m_pHost.sin_addr ) ),
 						htons( Network.m_pHost.sin_port ) );
+					m_pOutput->Print( strLine + _T("\r\n") );
+				}
+
+				strLine = m_pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_G2, m_pSource );
+				if ( strLine.GetLength() )
+				{
+					m_pOutput->Print( "X-G2Alt: " );
+					strLine.Format( _T("%s:%i"), (LPCTSTR)CString( inet_ntoa( Network.m_pHost.sin_addr ) ),
+						htons( Network.m_pHost.sin_port ) );
+					m_pOutput->Print( strLine + _T("\r\n") );
+				}
+
+				strLine = m_pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_HTTP, m_pSource );
+				if ( strLine.GetLength() )
+				{
+					m_pOutput->Print( "Alt-Location: " );
 					m_pOutput->Print( strLine + _T("\r\n") );
 				}
 			}
@@ -1149,6 +1158,7 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 			}
 		}
 		if ( nCount > 0 ) m_pSource->m_oHubList = oHubList;
+		m_pSource->SetGnutella( 2 );
 	}
 	else if ( strHeader.CompareNoCase( _T("X-Push-Proxy") ) == 0 )
 	{	// The remote computer is giving us a list of G1 PushProxy the remote node is connected to
@@ -1178,6 +1188,7 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 			}
 		}
 		if ( nCount > 0 ) m_pSource->m_oPushProxyList = pProxies;
+		m_pSource->SetGnutella( 1 );
 	}
 	else if ( strHeader.CompareNoCase( _T("Retry-After") ) == 0 && m_bBusyFault )
 	{
@@ -1198,6 +1209,21 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 	// TS_TRUE    - keeps the source and will be distributed as X-Alt
 	// TS_UNKNOWN - keeps the source and will be dropped after several retries, will be
 	//            - added to m_pFailedSources when removed
+
+	switch ( m_pSource->m_nGnutella )
+	{
+		case 1:
+			m_pSource->m_nProtocol = PROTOCOL_G1;
+			break;
+		case 2:
+			m_pSource->m_nProtocol = PROTOCOL_G2;
+			break;
+		case 3:
+			m_pSource->m_nProtocol = PROTOCOL_G2;
+			break;
+		default:
+			break;
+	}
 
 	// Bad agent check should be moved here, because it can still give out sources with Source-Exchange.
 	if ( IsAgentBlocked() )
