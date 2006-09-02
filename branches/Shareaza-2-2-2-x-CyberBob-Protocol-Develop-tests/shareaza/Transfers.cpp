@@ -140,8 +140,9 @@ void CTransfers::Add(CTransfer* pTransfer)
 
 	if ( pTransfer->m_pSelf == NULL )
 	{
-		m_pList.push_back( pTransfer );
-		pTransfer->m_pSelf = ( --( m_pList.end() ) );
+		m_pList.push_front( pTransfer );
+		pTransfer->m_pSelf = m_pList.begin();
+		ASSERT( (*(pTransfer->m_pSelf)) == pTransfer );
 	}
 
 	//if ( Settings.General.Debug && Settings.General.DebugLog ) 
