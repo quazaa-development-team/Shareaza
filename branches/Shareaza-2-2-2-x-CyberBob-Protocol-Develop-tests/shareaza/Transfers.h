@@ -99,7 +99,7 @@ public:
 
 	inline BOOL Check(CTransfer* pTransfer) const
 	{
-		/*
+		
 		const_TransferItem index  = m_pList.begin();
 		const_TransferItem indexEnd  = m_pList.end();
 
@@ -109,8 +109,7 @@ public:
 		}
 
 		return FALSE;
-		*/
-		return ( pTransfer->m_pSelf != NULL );
+		//return ( pTransfer->m_pSelf != NULL );
 	}
 
 	friend class CTransfer;

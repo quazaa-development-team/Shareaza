@@ -138,12 +138,15 @@ void CTransfers::Add(CTransfer* pTransfer)
 
 	CTransfers::Lock oLock;
 
-	if ( pTransfer->m_pSelf == NULL )
-	{
-		m_pList.push_front( pTransfer );
-		pTransfer->m_pSelf = m_pList.begin();
-		ASSERT( (*(pTransfer->m_pSelf)) == pTransfer );
-	}
+//	ASSERT( pTransfer->m_pSelf == NULL );
+//	if ( pTransfer->m_pSelf == NULL )
+//	{
+//		m_pList.push_front( pTransfer );
+//		pTransfer->m_pSelf = m_pList.begin();
+//	}
+//	ASSERT( (*(pTransfer->m_pSelf)) == pTransfer );
+
+	if ( !Check(pTransfer) ) m_pList.push_front( pTransfer );
 
 	//if ( Settings.General.Debug && Settings.General.DebugLog ) 
 	//	theApp.Message( MSG_DEBUG, _T("CTransfers::Add(): %x"), pTransfer );
@@ -159,12 +162,17 @@ void CTransfers::Remove(CTransfer* pTransfer)
 	if ( pTransfer->m_hSocket != INVALID_SOCKET )
 		WSAEventSelect( pTransfer->m_hSocket, m_pWakeup, 0 );
 
+
 	CTransfers::Lock oLock;
-	if ( pTransfer->m_pSelf != NULL )
-	{
-		m_pList.erase(pTransfer->m_pSelf);
-		pTransfer->m_pSelf = NULL;
-	}
+	//ASSERT( (*(pTransfer->m_pSelf)) == pTransfer );
+	//if ( pTransfer->m_pSelf != NULL )
+	//{
+	//	m_pList.erase(pTransfer->m_pSelf);
+	//	pTransfer->m_pSelf = NULL;
+	//}
+	//ASSERT( pTransfer->m_pSelf == NULL );
+
+	m_pList.remove(pTransfer);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -205,14 +213,18 @@ void CTransfers::OnRunTransfers()
 {
 	CTransfers::Lock oLock;
 
-	TransferItem index  = m_pList.begin();
-	TransferItem indexEnd  = m_pList.end();
+	TransferItem index = m_pList.begin();
+	TransferItem indexEnd = m_pList.end();
 
 	for (; index != indexEnd; )
 	{
 		TransferItem iTemp = index;
+		ASSERT( iTemp == index );
 		index++;
+		//ASSERT( (*iTemp)->m_pSelf == iTemp );
 		(*(iTemp))->DoRun();
+		ASSERT( indexEnd == m_pList.end() );
+		ASSERT( iTemp != m_pList.end() );
 	}
 }
 
