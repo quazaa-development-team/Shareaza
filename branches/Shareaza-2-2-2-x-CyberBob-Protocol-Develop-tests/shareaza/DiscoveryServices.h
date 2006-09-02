@@ -124,6 +124,9 @@ public:
 	DWORD		m_nFailures;
 	DWORD		m_nAccessPeriod;
 	DWORD		m_nUpdatePeriod;
+	int			m_nSubType;
+	IN_ADDR		m_pAddress;
+	WORD		m_nPort;
 
 	enum
 	{
