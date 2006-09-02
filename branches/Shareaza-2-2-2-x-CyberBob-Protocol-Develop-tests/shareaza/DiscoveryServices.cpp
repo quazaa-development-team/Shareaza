@@ -159,23 +159,23 @@ CDiscoveryService* CDiscoveryServices::Add(LPCTSTR pszAddress, int nType, PROTOC
 
 		if ( _tcsnicmp( strAddress, _T("gnutella1:host:"),  15 ) == 0 )
 		{
-			pService->m_bGnutella1 = TRUE;
-			pService->m_bGnutella2 = FALSE;
+			nProtocol = PROTOCOL_G1;
+			pService->m_nSubType = 1;
 		}
 		else if ( _tcsnicmp( strAddress, _T("gnutella2:host:"), 15 ) == 0 )
 		{
-			pService->m_bGnutella1 = FALSE;
-			pService->m_bGnutella2 = TRUE;
+			nProtocol = PROTOCOL_G2;
+			pService->m_nSubType = 2;
 		}
 		else if ( _tcsnicmp( strAddress, _T("uhc:"), 4 )  == 0 )
 		{
-			pService->m_bGnutella1 = TRUE;
-			pService->m_bGnutella2 = FALSE;
+			nProtocol = PROTOCOL_G1;
+			pService->m_nSubType = 3;
 		}
 		else if ( _tcsnicmp( strAddress, _T("ukhl:"), 5 )  == 0 )
 		{
-			pService->m_bGnutella1 = FALSE;
-			pService->m_bGnutella2 = TRUE;
+			nProtocol = PROTOCOL_G2;
+			pService->m_nSubType = 4;
 		}
 		break;
 
@@ -350,6 +350,20 @@ CDiscoveryService* CDiscoveryServices::GetByAddress(LPCTSTR pszAddress) const
 			if ( pService->m_sAddress.CompareNoCase( pszAddress ) == 0 )
 				return pService;
 		}
+	}
+
+	return NULL;
+}
+
+CDiscoveryService* CDiscoveryServices::GetByAddress( IN_ADDR* pAddress, WORD nPort, int nSubType )
+{
+	for ( POSITION pos = GetIterator() ; pos ; )
+	{
+		CDiscoveryService* pService = GetNext( pos );
+
+			if ( pService->m_nSubType == nSubType && pService->m_pAddress.S_un.S_addr == pAddress->S_un.S_addr &&
+				pService->m_nPort == nPort )
+				return pService;
 	}
 
 	return NULL;
@@ -1305,7 +1319,7 @@ BOOL CDiscoveryServices::RunWebCacheGet(BOOL bCaches)
 BOOL CDiscoveryServices::RunWebCacheUpdate()
 {
 	//new option to disable Discovery for private/test use
-	if ( Settings.Discovery.DisableService) return TRUE;
+	if ( Settings.Discovery.DisableService ) return TRUE;
 
 	CSingleLock pLock( &Network.m_pSection, TRUE );
 	CString strURL, strOutput;
@@ -1531,6 +1545,11 @@ CDiscoveryService::CDiscoveryService(int nType, LPCTSTR pszAddress)
 	m_nAccessPeriod	= max( Settings.Discovery.UpdatePeriod, 1800u );
 	m_nUpdatePeriod	= Settings.Discovery.DefaultUpdate;
 	
+	m_nSubType		= 0;
+	m_nPort			= 0;
+
+	m_pAddress.S_un.S_addr = 0;
+
 	if ( pszAddress != NULL ) m_sAddress = pszAddress;
 }
 
@@ -1583,6 +1602,32 @@ void CDiscoveryService::Serialize(CArchive& ar, int /*nVersion*/)
 		ar >> m_nHosts;
 		ar >> m_nAccessPeriod;
 		ar >> m_nUpdatePeriod;
+
+		// Check it has a valid protocol
+		if ( _tcsnicmp( m_sAddress, _T("gnutella1:host:"),  15 ) == 0 )
+		{
+			m_bGnutella1 = TRUE;
+			m_bGnutella2 = FALSE;
+			m_nSubType = 1;
+		}
+		else if ( _tcsnicmp( m_sAddress, _T("gnutella2:host:"), 15 ) == 0 )
+		{
+			m_bGnutella1 = FALSE;
+			m_bGnutella2 = TRUE;
+			m_nSubType = 2;
+		}
+		else if ( _tcsnicmp( m_sAddress, _T("uhc:"), 4 ) == 0 )
+		{
+			m_bGnutella1 = TRUE;
+			m_bGnutella2 = FALSE;
+			m_nSubType = 3;
+		}
+		else if ( _tcsnicmp( m_sAddress, _T("ukhl:"), 5 ) == 0 )
+		{
+			m_bGnutella1 = FALSE;
+			m_bGnutella2 = TRUE;
+			m_nSubType = 4;
+		}
 	}
 }
 
@@ -1628,28 +1673,28 @@ BOOL CDiscoveryService::ResolveGnutella()
 	// Check it has a valid protocol
 	if ( _tcsnicmp( strHost, _T("gnutella1:host:"),  15 ) == 0 )
 	{
-		nBootType = 1;
+		m_nSubType = 1;
 		nSkip = 15;
 		m_bGnutella1 = TRUE;
 		m_bGnutella2 = FALSE;
 	}
 	else if ( _tcsnicmp( strHost, _T("gnutella2:host:"), 15 ) == 0 )
 	{
-		nBootType = 2;
+		m_nSubType = 2;
 		nSkip = 15;
 		m_bGnutella1 = FALSE;
 		m_bGnutella2 = TRUE;
 	}
 	else if ( _tcsnicmp( strHost, _T("uhc:"), 4 ) == 0 )
 	{
-		nBootType = 3;
+		m_nSubType = 3;
 		nSkip = 4;
 		m_bGnutella1 = TRUE;
 		m_bGnutella2 = FALSE;
 	}
 	else if ( _tcsnicmp( strHost, _T("ukhl:"), 5 ) == 0 )
 	{
-		nBootType = 4;
+		m_nSubType = 4;
 		nSkip = 5;
 		m_bGnutella1 = FALSE;
 		m_bGnutella2 = TRUE;
@@ -1657,7 +1702,7 @@ BOOL CDiscoveryService::ResolveGnutella()
 
 	int nPort = GNUTELLA_DEFAULT_PORT;
 
-	if (nBootType == 0)
+	if (m_nSubType == 0)
 	{
 		int nPos = strHost.Find( ':' );
 		if ( nPos >= 0 && _stscanf( strHost.Mid( nPos + 1 ), _T("%i"), &nPort ) == 1 )
@@ -1669,7 +1714,7 @@ BOOL CDiscoveryService::ResolveGnutella()
 			return TRUE;
 		}
 	}
-	else if (nBootType == 1)
+	else if (m_nSubType == 1)
 	{
 		strHost = strHost.Mid( nSkip );
 		int nPos		= strHost.Find( ':');
@@ -1678,11 +1723,11 @@ BOOL CDiscoveryService::ResolveGnutella()
 
 		if ( Network.AsyncResolve( strHost, (WORD)nPort, PROTOCOL_G1, 1 ) )
 		{
-			OnSuccess();
+			m_nAccesses ++;
 			return TRUE;
 		}
 	}
-	else if (nBootType == 2)
+	else if (m_nSubType == 2)
 	{
 		strHost = strHost.Mid( nSkip );
 		int nPos		= strHost.Find( ':');
@@ -1691,11 +1736,11 @@ BOOL CDiscoveryService::ResolveGnutella()
 
 		if ( Network.AsyncResolve( strHost, (WORD)nPort, PROTOCOL_G2, 1 ) )
 		{
-			OnSuccess();
+			m_nAccesses ++;
 			return TRUE;
 		}
 	}
-	else if (nBootType == 3)
+	else if (m_nSubType == 3)
 	{
 		strHost = strHost.Mid( nSkip );
 		int nPos		= strHost.Find( ':');
@@ -1704,11 +1749,11 @@ BOOL CDiscoveryService::ResolveGnutella()
 
 		if ( Network.AsyncResolve( strHost, (WORD)nPort, PROTOCOL_G1, 3 ) )
 		{
-			OnSuccess();
+			OnAccess();
 			return TRUE;
 		}
 	}
-	else if (nBootType == 4)
+	else if (m_nSubType == 4)
 	{
 		strHost = strHost.Mid( nSkip );
 		int nPos		= strHost.Find( ':');
@@ -1717,7 +1762,7 @@ BOOL CDiscoveryService::ResolveGnutella()
 
 		if ( Network.AsyncResolve( strHost, (WORD)nPort, PROTOCOL_G2, 3 ) )
 		{
-			OnSuccess();
+			OnAccess();
 			return TRUE;
 		}
 	}

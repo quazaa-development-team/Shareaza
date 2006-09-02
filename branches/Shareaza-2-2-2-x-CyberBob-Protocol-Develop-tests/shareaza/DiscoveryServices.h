@@ -68,6 +68,7 @@ public:
 	BOOL				QueryForHosts(PROTOCOLID nProtocol);
 	DWORD				MetQueried() const;
 	CDiscoveryService*	GetByAddress(LPCTSTR pszAddress) const;
+	CDiscoveryService*	GetByAddress( IN_ADDR* pAddress, WORD nPort, int nSubType );
 	void				Clear();
 
 public:

@@ -655,6 +655,9 @@ void CNetwork::OnWinsock(WPARAM wParam, LPARAM lParam)
 	if ( ! m_pLookups.Lookup( (HANDLE)wParam, pResolve ) ) return;
 	m_pLookups.RemoveKey( (HANDLE)wParam );
 
+	CString strAddress;
+	CDiscoveryService* pService;
+
 	if ( WSAGETASYNCERROR(lParam) == 0 )
 	{
 		if ( pResolve->m_nCommand == 0 )
@@ -669,16 +672,83 @@ void CNetwork::OnWinsock(WPARAM wParam, LPARAM lParam)
 		{
 			// code to invoke UDPHC/UDPKHL Sender.
 			if ( pResolve->m_nProtocol == PROTOCOL_G1 )
+			{
+				strAddress = L"uhc:" + *(pResolve->m_sAddress);
+				pService = DiscoveryServices.GetByAddress( strAddress );
+				if ( pService == NULL )
+				{
+					strAddress.AppendFormat(_T(":%u"), pResolve->m_nPort );
+					pService = DiscoveryServices.GetByAddress( strAddress );
+				}
+
+				if ( pService != NULL )
+				{
+					pService->m_pAddress = *((IN_ADDR*)pResolve->m_pHost.h_addr);
+					pService->m_nPort =  pResolve->m_nPort;
+				}
 				UDPHostCache((IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort);
-			if ( pResolve->m_nProtocol == PROTOCOL_G2 )
+			}
+			else if ( pResolve->m_nProtocol == PROTOCOL_G2 )
+			{
+				strAddress = L"ukhl:" + *(pResolve->m_sAddress);
+				pService = DiscoveryServices.GetByAddress( strAddress );
+				if ( pService == NULL )
+				{
+					strAddress.AppendFormat(_T(":%u"), pResolve->m_nPort );
+					pService = DiscoveryServices.GetByAddress( strAddress );
+				}
+
+				if ( pService != NULL )
+				{
+					pService->m_pAddress =  *((IN_ADDR*)pResolve->m_pHost.h_addr);
+					pService->m_nPort =  pResolve->m_nPort;
+				}
 				UDPKnownHubCache((IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort);
+			}
 		}
 	}
-	else if ( pResolve->m_nCommand > 0 )
+	else if ( pResolve->m_nCommand == 0 )
 	{
 		theApp.Message( MSG_ERROR, IDS_NETWORK_RESOLVE_FAIL, LPCTSTR( *pResolve->m_sAddress ) );
 	}
-	
+	else
+	{
+		if ( pResolve->m_nCommand == 3 )
+		{
+			if ( pResolve->m_nProtocol == PROTOCOL_G1 )
+			{
+				strAddress = L"uhc:" + *(pResolve->m_sAddress);
+				pService = DiscoveryServices.GetByAddress( strAddress );
+				if ( pService == NULL )
+				{
+					strAddress.AppendFormat(_T(":%u"), pResolve->m_nPort );
+					pService = DiscoveryServices.GetByAddress( strAddress );
+				}
+
+				if ( pService != NULL )
+				{
+					pService->OnFailure();
+				}
+			}
+			else if ( pResolve->m_nProtocol == PROTOCOL_G2 )
+			{
+				strAddress = L"ukhl:" + *(pResolve->m_sAddress);
+				pService = DiscoveryServices.GetByAddress( strAddress );
+				if ( pService == NULL )
+				{
+					strAddress.AppendFormat(_T(":%u"), pResolve->m_nPort );
+					pService = DiscoveryServices.GetByAddress( strAddress );
+				}
+
+				if ( pService != NULL )
+				{
+					pService->OnFailure();
+				}
+			}
+		}
+
+	}
+
 	delete pResolve->m_sAddress;
 	delete pResolve;
 }

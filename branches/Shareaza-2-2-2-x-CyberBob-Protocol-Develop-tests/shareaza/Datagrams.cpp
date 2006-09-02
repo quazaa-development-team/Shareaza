@@ -49,6 +49,7 @@
 #include "EDPacket.h"
 #include "Security.h"
 #include "HostCache.h"
+#include "DiscoveryServices.h"
 #include "QueryKeys.h"
 #include "HubHorizon.h"
 #include "LibraryMaps.h"
@@ -1252,8 +1253,10 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 	DWORD nFiles   = pPacket->ReadLongLE();  // 4 bytes, the number of files the source computer is sharing
 	DWORD nVolume  = pPacket->ReadLongLE();  // 4 bytes, the total size of all those files
 
-	// If that IP address is in our list of computers to not talk to
-	if ( Security.IsDenied( (IN_ADDR*)&nAddress ) )
+	CDiscoveryService * pService = DiscoveryServices.GetByAddress( &(pHost->sin_addr) , ntohs(pHost->sin_port), 3 );
+
+	// If that IP address is in our list of computers to not talk to, except ones in UHC list in discovery
+	if ( pService == NULL && Security.IsDenied( (IN_ADDR*)&nAddress ) )
 	{
 		// Record the packet as dropped, do nothing else, and leave now
 		Statistics.Current.Gnutella1.Dropped++;
@@ -1267,6 +1270,7 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 		// There is a GGEP block here, and checking and adjusting the TTL and hops counts worked
 		if ( pGGEP.ReadFromPacket( pPacket ) )
 		{
+			int nCount = 0;
 			CGGEPItem* pIPPs = pGGEP.Find( L"IPP", 6 );
 			// GDNA has a bug in their code; they send DIP but receive DIPP
 			CGGEPItem* pGDNAs = pGGEP.Find( L"DIPP", 6 );
@@ -1287,15 +1291,17 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 						WORD nPort = 0;
 						pItem->Read( (void*)&nAddress, 4 );
 						pItem->Read( (void*)&nPort, 2 );
-						if ( ! Network.IsFirewalledAddress( (IN_ADDR*)&nAddress, TRUE ) && 
-							! Network.IsReserved( (IN_ADDR*)&nAddress ) && nPort != 0 )
+						if ( nPort != 0 )
 						{
+							CHostCacheHost * pCachedHost;
 							theApp.Message( MSG_DEBUG, _T("Got %s host through pong (%s:%i)"), 
 								(LPCTSTR)str, (LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nAddress ) ), nPort ); 
-							HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, nPort, 0, pGDNAs ? (LPCTSTR)str : NULL );
+							pCachedHost = HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, nPort, 0, pGDNAs ? (LPCTSTR)str : NULL );
 							// Add to separate cache to have a quick access only to GDNAs
 							if ( pGDNAs )
 								HostCache.G1DNA.Add( (IN_ADDR*)&nAddress, nPort, 0, (LPCTSTR)str );
+
+							if ( pCachedHost != NULL ) nCount++;
 						}
 					}
 				}
@@ -1303,7 +1309,14 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 					pIPPs = NULL;
 				else if ( pGDNAs )
 					pGDNAs = NULL;
+
+				if ( pService != NULL )
+				{
+					pService->OnSuccess();
+					pService->m_nHosts = nCount;
+				}
 			}
+
 		}
 		else
 		{
@@ -2305,12 +2318,15 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
 	if ( /* ! pPacket->m_bCompound */ TRUE ) return FALSE; // block execution of code for above reason
 
-	if ( Security.IsDenied( &pHost->sin_addr ) || Network.IsFirewalledAddress( (LPVOID*)&pHost->sin_addr, TRUE ) ||
-		Network.IsReserved( &pHost->sin_addr ) ) return FALSE;
+	CDiscoveryService * pService = DiscoveryServices.GetByAddress( &(pHost->sin_addr) , ntohs(pHost->sin_port), 4 );
+
+	if ( pService == NULL && ( Security.IsDenied( &pHost->sin_addr ) || Network.IsFirewalledAddress( (LPVOID*)&pHost->sin_addr, TRUE ) ||
+		Network.IsReserved( &pHost->sin_addr ) ) ) return FALSE;
 
 	CHAR szType[9], szInner[9];
 	DWORD nLength, nInner;
 	BOOL bCompound;
+	int nCount = 0;
 
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
 
@@ -2371,6 +2387,7 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 
 				if ( pCached != NULL )
 				{
+					nCount++;
 					pCached->m_pVendor->m_sCode = strVendor;
 				}
 				// HubHorizonPool.Add( (IN_ADDR*)&nAddress, nPort );
@@ -2378,6 +2395,12 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		}
 
 		pPacket->m_nPosition = nNext;
+	}
+
+	if ( pService != NULL )
+	{
+		pService->OnSuccess();
+		pService->m_nHosts = nCount;
 	}
 
 	return TRUE;
