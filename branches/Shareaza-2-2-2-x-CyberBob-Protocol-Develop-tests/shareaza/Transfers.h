@@ -35,6 +35,8 @@ class CTransfers
 public:
 	typedef std::list<CTransfer*>::iterator TransferItem;
 	typedef std::list<CTransfer*>::const_iterator const_TransferItem;
+	typedef std::list<CTransfer*>::reverse_iterator reverse_TransferItem;
+	typedef std::list<CTransfer*>::const_reverse_iterator const_reverse_TransferItem;
 
 // Construction
 public:
@@ -64,6 +66,7 @@ protected:
 	HANDLE			m_hThread;
 	volatile BOOL	m_bThread;
 	CEvent			m_pWakeup;
+	DWORD			m_nRunCookie;
 
 // Operations
 public:

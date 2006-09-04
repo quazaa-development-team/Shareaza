@@ -47,6 +47,7 @@ CTransfers::CTransfers()
 	m_pBuffer		= new BYTE[ m_nBuffer ];
 	m_hThread		= NULL;
 	m_bThread		= FALSE;
+	m_nRunCookie	= 0;
 }
 
 CTransfers::~CTransfers()
@@ -213,7 +214,9 @@ void CTransfers::OnRunTransfers()
 {
 	CTransfers::Lock oLock;
 
-	TransferItem index = m_pList.begin();
+	++m_nRunCookie;
+
+/*	TransferItem index = m_pList.begin();
 	TransferItem indexEnd = m_pList.end();
 
 	for (; index != indexEnd; )
@@ -225,6 +228,19 @@ void CTransfers::OnRunTransfers()
 		(*(iTemp))->DoRun();
 		ASSERT( indexEnd == m_pList.end() );
 		ASSERT( iTemp != m_pList.end() );
+	}*/
+	const_reverse_TransferItem temp;
+	CTransfer * pTransfer;
+
+	while( !m_pList.empty() )
+	{
+		temp = m_pList.rbegin();
+		if ( (*(temp))->m_nRunCookie == m_nRunCookie ) break;
+		(*(temp))->m_nRunCookie = m_nRunCookie;
+		pTransfer = *temp;
+		m_pList.pop_back();
+		m_pList.push_front(pTransfer);
+		pTransfer->DoRun();
 	}
 }
 
