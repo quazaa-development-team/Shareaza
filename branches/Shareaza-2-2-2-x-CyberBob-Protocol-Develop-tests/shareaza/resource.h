@@ -585,7 +585,7 @@
 #define IDC_ROTATE_TIME_SPIN            1308
 #define IDC_MARKED_CHECK                1309
 #define IDC_BANDWIDTH_VALUE             1310
-#define IDC_PARTIAL_ENABLE              1311
+#define IDC_QUEUE_PARTIALONLY           1311
 #define IDC_TRANSFERS_MAX               1312
 #define IDC_TRANSFERS_MAX_SPIN          1313
 #define IDC_BANDWIDTH_SLIDER            1314
@@ -697,6 +697,8 @@
 #define IDC_MESSAGE_DUPLICATES          1431
 #define IDC_DOWNLOADEDITPAGE_GENERAL_APPLY 1432
 #define IDC_DOWNLOADEDITPAGE_HASHES_APPLY 1433
+#define IDC_QUEUE_COMPLETEONLY          1434
+#define IDC_QUEUE_BOTH                  1435
 #define IDC_FILTERS                     1500
 #define IDC_SAVE_FILTER                 1501
 #define IDC_SET_DEFAULT_FILTER          1502
@@ -1714,7 +1716,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        284
 #define _APS_NEXT_COMMAND_VALUE         33137
-#define _APS_NEXT_CONTROL_VALUE         1434
+#define _APS_NEXT_CONTROL_VALUE         1436
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

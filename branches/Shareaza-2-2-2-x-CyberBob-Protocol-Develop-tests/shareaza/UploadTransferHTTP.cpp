@@ -325,7 +325,7 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		m_oGUID.validate();
 	}
 	else if ( strHeader.CompareNoCase( _T("X-G2NH") ) == 0 )
-	{	
+	{
 		// The remote computer is giving us a list of G2 hubs the remote node is connected to
 		// Not really Useful here because there is no way to find/store both Hub address and
 		// GUID to PUSH connect to remote node at this time... but might be useful in future.
@@ -850,7 +850,8 @@ BOOL CUploadTransferHTTP::QueueRequest()
 			ASSERT( m_pQueue != NULL );
 
 			// If the queue can't accept this file
-			if ( ! m_pQueue->CanAccept( m_nProtocol, m_sFileName, m_nFileSize, m_bFilePartial, m_sFileTags ) )
+			if ( ! m_pQueue->CanAccept( m_nProtocol, m_sFileName, m_nFileSize, 
+				( m_bFilePartial ? CUploadQueue::ulqPartial: CUploadQueue::ulqComplete ), m_sFileTags ) )
 			{	// This is probably a partial that has completed
 				theApp.Message( MSG_DEBUG, _T("File queue error- Partial may have recently completed") );
 
@@ -872,7 +873,8 @@ BOOL CUploadTransferHTTP::QueueRequest()
 		else if ( UploadQueues.Enqueue( this ) )
 		{
 			ASSERT( m_pQueue != NULL );
-			ASSERT( m_pQueue->CanAccept( m_nProtocol, m_sFileName, m_nFileSize, m_bFilePartial, m_sFileTags ) );
+			ASSERT( m_pQueue->CanAccept( m_nProtocol, m_sFileName, m_nFileSize, 
+				( m_bFilePartial ? CUploadQueue::ulqPartial : CUploadQueue::ulqComplete ), m_sFileTags ) );
 			
 			nPosition = UploadQueues.GetPosition( this, TRUE );
 			ASSERT( nPosition >= 0 );
@@ -1117,6 +1119,11 @@ void CUploadTransferHTTP::SendFileHeaders()
 		m_pOutput->Print( strHeader );
 	}
 
+	if ( m_pQueue == NULL && !m_bHead )
+	{
+		m_pOutput->Print( "Retry-After: 3600\r\n" );
+	}
+
 	if ( m_nGnutella < 2 )
 	{
 		LPCTSTR pszURN = (LPCTSTR)m_sRequest + 13;
@@ -1125,8 +1132,8 @@ void CUploadTransferHTTP::SendFileHeaders()
 		// Send X-NAlt for partial transfers only
 		if ( CDownload* pDownload = Downloads.FindByURN( pszURN ) )
 		{
-			strHeader = _T("X-NAlt: ") + pDownload->GetTopFailedSources( 15, PROTOCOL_G1 ) + _T("\r\n");
-			m_pOutput->Print( strHeader );
+			strHeader = pDownload->GetTopFailedSources( 15, PROTOCOL_G1 ) + _T("\r\n");
+			if ( strHeader.GetLength() ) m_pOutput->Print( _T("X-NAlt: ") + strHeader );
 		}
 	}
 }
