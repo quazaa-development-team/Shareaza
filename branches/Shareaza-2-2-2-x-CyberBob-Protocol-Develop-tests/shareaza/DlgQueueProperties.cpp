@@ -36,7 +36,7 @@ static char THIS_FILE[] = __FILE__;
 BEGIN_MESSAGE_MAP(CQueuePropertiesDlg, CSkinDialog)
 	//{{AFX_MSG_MAP(CQueuePropertiesDlg)
 	ON_BN_CLICKED(IDC_QUEUE_PARTIALONLY, OnPartialClicked)
-	ON_BN_CLICKED(IDC_QUEUE_COMPLETEONLY, OnCompleteClicked)
+	ON_BN_CLICKED(IDC_QUEUE_LIBRARYONLY, OnLibraryClicked)
 	ON_BN_CLICKED(IDC_QUEUE_BOTH, OnBothClicked)
 	ON_BN_CLICKED(IDC_MINIMUM_CHECK, OnMinimumCheck)
 	ON_BN_CLICKED(IDC_MAXIMUM_CHECK, OnMaximumCheck)
@@ -86,7 +86,7 @@ void CQueuePropertiesDlg::DoDataExchange(CDataExchange* pDX)
 	CSkinDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CQueuePropertiesDlg)
 	DDX_Control(pDX, IDC_QUEUE_PARTIALONLY, m_wndPartialOnly);
-	DDX_Control(pDX, IDC_QUEUE_COMPLETEONLY, m_wndCompleteOnly);
+	DDX_Control(pDX, IDC_QUEUE_LIBRARYONLY, m_wndLibraryOnly);
 	DDX_Control(pDX, IDC_QUEUE_BOTH, m_wndBoth);
 	DDX_Control(pDX, IDC_MATCH_TEXT, m_wndMatch);
 	DDX_Control(pDX, IDC_BANDWIDTH_POINTS, m_wndBandwidthPoints);
@@ -162,19 +162,19 @@ BOOL CQueuePropertiesDlg::OnInitDialog()
 	if ( m_nFileStatusFlag == CUploadQueue::ulqPartial )
 	{
 		m_wndPartialOnly.SetCheck(BST_CHECKED);
-		m_wndCompleteOnly.SetCheck(BST_UNCHECKED);
+		m_wndLibraryOnly.SetCheck(BST_UNCHECKED);
 		m_wndBoth.SetCheck(BST_UNCHECKED);
 	}
-	else if ( m_nFileStatusFlag == CUploadQueue::ulqComplete )
+	else if ( m_nFileStatusFlag == CUploadQueue::ulqLibrary )
 	{
 		m_wndPartialOnly.SetCheck(BST_UNCHECKED);
-		m_wndCompleteOnly.SetCheck(BST_CHECKED);
+		m_wndLibraryOnly.SetCheck(BST_CHECKED);
 		m_wndBoth.SetCheck(BST_UNCHECKED);
 	}
 	else
 	{
 		m_wndPartialOnly.SetCheck(BST_UNCHECKED);
-		m_wndCompleteOnly.SetCheck(BST_UNCHECKED);
+		m_wndLibraryOnly.SetCheck(BST_UNCHECKED);
 		m_wndBoth.SetCheck(BST_CHECKED);
 	}
 
@@ -234,7 +234,7 @@ BOOL CQueuePropertiesDlg::OnInitDialog()
 	UpdateData( FALSE );
 
 	m_wndPartialOnly.EnableWindow(TRUE);
-	m_wndCompleteOnly.EnableWindow(TRUE);
+	m_wndLibraryOnly.EnableWindow(TRUE);
 	m_wndBoth.EnableWindow(TRUE);
 
 	m_wndMinSize.EnableWindow( m_bMinSize );
@@ -354,7 +354,7 @@ void CQueuePropertiesDlg::OnOK()
 	m_pQueue->m_sName = m_sName;
 
 	if ( m_wndBoth.GetCheck() ) m_nFileStatusFlag = (CUploadQueue::ulqBoth);
-	if ( m_wndCompleteOnly.GetCheck() ) m_nFileStatusFlag = (CUploadQueue::ulqComplete);
+	if ( m_wndLibraryOnly.GetCheck() ) m_nFileStatusFlag = (CUploadQueue::ulqLibrary);
 	if ( m_wndPartialOnly.GetCheck() ) m_nFileStatusFlag = (CUploadQueue::ulqPartial);
 	m_pQueue->m_nFileStateFlag = ( m_nFileStatusFlag != CUploadQueue::ulqNull ) ? m_nFileStatusFlag : (CUploadQueue::ulqBoth);
 
@@ -430,20 +430,20 @@ void CQueuePropertiesDlg::OnOK()
 void CQueuePropertiesDlg::OnPartialClicked()
 {
 	m_wndPartialOnly.SetCheck(BST_CHECKED);
-	m_wndCompleteOnly.SetCheck(BST_UNCHECKED);
+	m_wndLibraryOnly.SetCheck(BST_UNCHECKED);
 	m_wndBoth.SetCheck(BST_UNCHECKED);
 }
 
-void CQueuePropertiesDlg::OnCompleteClicked()
+void CQueuePropertiesDlg::OnLibraryClicked()
 {
 	m_wndPartialOnly.SetCheck(BST_UNCHECKED);
-	m_wndCompleteOnly.SetCheck(BST_CHECKED);
+	m_wndLibraryOnly.SetCheck(BST_CHECKED);
 	m_wndBoth.SetCheck(BST_UNCHECKED);
 }
 
 void CQueuePropertiesDlg::OnBothClicked()
 {
 	m_wndPartialOnly.SetCheck(BST_UNCHECKED);
-	m_wndCompleteOnly.SetCheck(BST_UNCHECKED);
+	m_wndLibraryOnly.SetCheck(BST_UNCHECKED);
 	m_wndBoth.SetCheck(BST_CHECKED);
 }

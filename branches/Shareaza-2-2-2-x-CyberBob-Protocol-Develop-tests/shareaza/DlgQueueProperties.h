@@ -40,7 +40,7 @@ public:
 	//{{AFX_DATA(CQueuePropertiesDlg)
 	enum { IDD = IDD_QUEUE_PROPERTIES };
 	CButton m_wndPartialOnly;
-	CButton m_wndCompleteOnly;
+	CButton m_wndLibraryOnly;
 	CButton m_wndBoth;
 	CEdit	m_wndMatch;
 	CEdit	m_wndBandwidthPoints;
@@ -100,7 +100,7 @@ protected:
 	afx_msg void OnChangeTransfersMax();
 	afx_msg void OnMatchCheck();
 	afx_msg void OnPartialClicked();
-	afx_msg void OnCompleteClicked();
+	afx_msg void OnLibraryClicked();
 	afx_msg void OnBothClicked();
 	//}}AFX_MSG
 

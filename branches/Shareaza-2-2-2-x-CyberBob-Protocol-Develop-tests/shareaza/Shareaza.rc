@@ -2680,10 +2680,10 @@ BEGIN
     GROUPBOX        "&Entry Criteria:",IDC_STATIC,5,50,180,177,WS_GROUP
     CONTROL         "Partially downloaded files only",IDC_QUEUE_PARTIALONLY,
                     "Button",BS_AUTORADIOBUTTON | WS_TABSTOP,15,65,160,12
-    CONTROL         "Complete files only",IDC_QUEUE_COMPLETEONLY,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,15,82,
-                    160,10
-    CONTROL         "Both partial and complete files",IDC_QUEUE_BOTH,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,15,96,
-                    159,10
+    CONTROL         "Shared Library files only",IDC_QUEUE_LIBRARYONLY,"Button",
+                    BS_AUTORADIOBUTTON | WS_TABSTOP,15,82,160,10
+    CONTROL         "Both partial and library files",IDC_QUEUE_BOTH,"Button",
+                    BS_AUTORADIOBUTTON | WS_TABSTOP,15,96,159,10
     CONTROL         "Minimum source file size:",IDC_MINIMUM_CHECK,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,15,110,110,12
     EDITTEXT        IDC_MINIMUM_VALUE,130,110,45,12,ES_AUTOHSCROLL

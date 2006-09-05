@@ -697,7 +697,7 @@
 #define IDC_MESSAGE_DUPLICATES          1431
 #define IDC_DOWNLOADEDITPAGE_GENERAL_APPLY 1432
 #define IDC_DOWNLOADEDITPAGE_HASHES_APPLY 1433
-#define IDC_QUEUE_COMPLETEONLY          1434
+#define IDC_QUEUE_LIBRARYONLY           1434
 #define IDC_QUEUE_BOTH                  1435
 #define IDC_FILTERS                     1500
 #define IDC_SAVE_FILTER                 1501

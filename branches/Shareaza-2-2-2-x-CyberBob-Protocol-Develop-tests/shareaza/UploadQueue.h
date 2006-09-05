@@ -62,7 +62,7 @@ public:
 	BOOL		m_bSelected;
 	DWORD		m_nMeasured;
 
-	enum		{ulqNull = 0, ulqPartial = 1, ulqComplete = 2, ulqBoth = 3};
+	enum		{ ulqNull = 0, ulqPartial = 1, ulqLibrary = 2, ulqBoth = 3 };
 // Operations
 public:
 	CString		GetCriteriaString() const;
