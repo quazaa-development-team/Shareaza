@@ -411,7 +411,8 @@ BOOL CDownloadWithTransfers::OnAcceptPush(const Hashes::Guid& oClientID, CConnec
 	
 	for ( pSource = GetFirstSource() ; pSource ; pSource = pSource->m_pNext )
 	{
-		if ( pSource->m_nProtocol == PROTOCOL_HTTP && pSource->CheckPush( oClientID ) && 
+		if ( ( pSource->m_nProtocol == PROTOCOL_G1 || pSource->m_nProtocol == PROTOCOL_G2 ||
+			pSource->m_nProtocol == PROTOCOL_HTTP ) && pSource->CheckPush( oClientID ) && 
 			( nFileIndex == 0 || pSource->m_nIndex == nFileIndex ) ) break;
 	}
 	
