@@ -663,6 +663,7 @@ BOOL CDatagrams::OnDatagram(SOCKADDR_IN* pHost, BYTE* pBuffer, DWORD nLength)
 		else
 		{
 			pG1Packet->Release();
+			if ( TRUE /* should put setting define if the packet should go through all packet handlers or not */) return TRUE;
 		}
 	}
 
@@ -680,9 +681,14 @@ BOOL CDatagrams::OnDatagram(SOCKADDR_IN* pHost, BYTE* pBuffer, DWORD nLength)
 			pPacket->SmartDump( NULL, &pHost->sin_addr, FALSE );
 			EDClients.OnUDP( pHost, pPacket );
 			pPacket->Release();
+			return TRUE;
+		}
+		else
+		{
+			pPacket->Release();
+			if ( TRUE /* should put setting define if the packet should go through all packet handlers or not */) return TRUE;
 		}
 
-		return TRUE;
 	}
 
 	SGP_HEADER* pSGP = (SGP_HEADER*)pBuffer;
