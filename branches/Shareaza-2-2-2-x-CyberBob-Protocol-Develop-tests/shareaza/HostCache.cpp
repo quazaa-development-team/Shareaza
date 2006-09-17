@@ -50,12 +50,13 @@ CHostCache HostCache;
 
 CHostCache::CHostCache() :
 		Gnutella1( PROTOCOL_G1 ), Gnutella2( PROTOCOL_G2 ),
-		eDonkey( PROTOCOL_ED2K ), G1DNA( PROTOCOL_G1 ) 
+		eDonkey( PROTOCOL_ED2K )/*, G1DNA( PROTOCOL_G1 ) */
 {
 	m_pList.AddTail( &Gnutella1 );
 	m_pList.AddTail( &Gnutella2 );
 	m_pList.AddTail( &eDonkey );
-	m_pList.AddTail( &G1DNA );
+	// there is no point holding it so removing it
+	//m_pList.AddTail( &G1DNA );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -989,19 +990,13 @@ CNeighbour* CHostCacheHost::ConnectTo(BOOL bAutomatic)
 
 CG1Packet* CHostCacheHost::ToG1Ping(int nTTL, const Hashes::Guid& oGUID)
 {
-	bool bNeedFreeLeafSlot = Neighbours.IsG1Ultrapeer()? true : false;
+	bool bNeedFreePeerSlot = Neighbours.IsG1Ultrapeer()? true : false;
 
 	CG1Packet* pPing = CG1Packet::New( G1_PACKET_PING, nTTL, oGUID );
 
 	CGGEPBlock pBlock;
 	CGGEPItem* pItem = pBlock.Add( L"SCP" );
-	if ( bNeedFreeLeafSlot ) 
-		pItem->WriteByte( 1 );
-	else
-		pItem->WriteByte( 0 );
-
-	pItem = pBlock.Add( L"DNA" );
-	if ( bNeedFreeLeafSlot ) 
+	if ( bNeedFreePeerSlot )
 		pItem->WriteByte( 1 );
 	else
 		pItem->WriteByte( 0 );

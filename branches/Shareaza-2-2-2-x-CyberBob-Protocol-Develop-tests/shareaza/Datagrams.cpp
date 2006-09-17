@@ -1115,7 +1115,7 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 	}
 
 	// TEST: Try indicate GUESS supported Node.  (GGEP "GUE")
-	pGGEP.Add( L"GUE" );
+	if ( IsStable() ) pGGEP.Add( L"GUE" );
 
 	//Give Vender code
 	CGGEPItem * pVC = pGGEP.Add( L"VC");
@@ -1278,43 +1278,32 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 		{
 			int nCount = 0;
 			CGGEPItem* pIPPs = pGGEP.Find( L"IPP", 6 );
-			// GDNA has a bug in their code; they send DIP but receive DIPP
-			CGGEPItem* pGDNAs = pGGEP.Find( L"DIPP", 6 );
-			if ( !pGDNAs ) pGDNAs = pGGEP.Find( L"DIP", 6 );
 
 			// We got a response to SCP extension, add hosts to cache if IPP extension exists
-			while ( pIPPs || pGDNAs )
+			if ( pIPPs != NULL )
 			{
-				CGGEPItem* pItem = pIPPs ? pIPPs : pGDNAs;
-				CString str = pGDNAs ? L"GDNA" : L"G1";
 				// The first four bytes represent the IP address and the last two represent the port
 				// The length of the number of bytes of IPP must be divisible by 6
-				if ( ( pItem->m_nLength - pItem->m_nPosition ) % 6 == 0 )
+				if ( ( pIPPs->m_nLength - pIPPs->m_nPosition ) % 6 == 0 )
 				{
-					while ( pItem->m_nPosition != pItem->m_nLength )
+					while ( pIPPs->m_nPosition != pIPPs->m_nLength )
 					{
-						DWORD nAddress = 0;
-						WORD nPort = 0;
-						pItem->Read( (void*)&nAddress, 4 );
-						pItem->Read( (void*)&nPort, 2 );
+						DWORD nIPPAddress = 0;
+						WORD nIPPPort = 0;
+						pIPPs->Read( (void*)&nIPPAddress, 4 );
+						pIPPs->Read( (void*)&nIPPPort, 2 );
 						if ( nPort != 0 )
 						{
 							CHostCacheHost * pCachedHost;
-							theApp.Message( MSG_DEBUG, _T("Got %s host through pong (%s:%i)"), 
-								(LPCTSTR)str, (LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nAddress ) ), nPort ); 
-							pCachedHost = HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, nPort, 0, pGDNAs ? (LPCTSTR)str : NULL );
+							theApp.Message( MSG_DEBUG, _T("Got Gnutella hosts through UDP pong (%s:%i)"), 
+								(LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nIPPAddress ) ), nIPPPort ); 
+							pCachedHost = HostCache.Gnutella1.Add( (IN_ADDR*)&nIPPAddress, nIPPPort, 0, NULL );
 							// Add to separate cache to have a quick access only to GDNAs
-							if ( pGDNAs )
-								HostCache.G1DNA.Add( (IN_ADDR*)&nAddress, nPort, 0, (LPCTSTR)str );
 
 							if ( pCachedHost != NULL ) nCount++;
 						}
 					}
 				}
-				if ( pIPPs )
-					pIPPs = NULL;
-				else if ( pGDNAs )
-					pGDNAs = NULL;
 
 				if ( pService != NULL )
 				{

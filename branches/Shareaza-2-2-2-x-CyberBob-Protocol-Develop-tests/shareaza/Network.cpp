@@ -1135,7 +1135,7 @@ void CNetwork::OnQueryHits(CQueryHit* pHits)
 
 void CNetwork::UDPHostCache( IN_ADDR* pAddress, WORD nPort )
 {
-	bool bNeedFreeLeafSlot = Neighbours.IsG1Ultrapeer() ? true : false;
+	bool bNeedFreePeerSlot = Neighbours.IsG1Ultrapeer() ? true : false;
 
 	CG1Packet* pPing = CG1Packet::New( G1_PACKET_PING, 1, Hashes::Guid( MyProfile.oGUID ) );
 
@@ -1143,13 +1143,7 @@ void CNetwork::UDPHostCache( IN_ADDR* pAddress, WORD nPort )
 	CGGEPItem* pItem;
 	
 	pItem = pBlock.Add( L"SCP" );
-	if ( bNeedFreeLeafSlot ) 
-		pItem->WriteByte( 1 );
-	else
-		pItem->WriteByte( 0 );
-
-	pItem = pBlock.Add( L"DNA" );
-	if ( bNeedFreeLeafSlot ) 
+	if ( bNeedFreePeerSlot ) 
 		pItem->WriteByte( 1 );
 	else
 		pItem->WriteByte( 0 );
