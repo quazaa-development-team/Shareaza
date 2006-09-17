@@ -93,7 +93,8 @@ public:
 	DWORD				m_nSortOrder;			// How should this source be sorted in the list?
 	int					m_nColour;
 	DWORD				m_tAttempt;
-	int					m_nFailures;
+	int					m_nFailures;			// failure count.
+	int					m_nBusyCount;			// busy count. (used for incrementing RetryDelay)
 	int					m_nRedirectionCount;
 	Fragments::List		m_oAvailable;
 	Fragments::List		m_oPastFragments;

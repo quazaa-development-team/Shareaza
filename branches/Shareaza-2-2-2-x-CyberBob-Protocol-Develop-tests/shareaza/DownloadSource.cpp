@@ -61,6 +61,7 @@ CDownloadSource::CDownloadSource(CDownload* pDownload)
 	m_bCloseConn	= FALSE;
 	m_bReConnect	= FALSE;			// No Initial Reconnect setting
 	m_nPushAttempted	= 0;
+	m_nBusyCount	= 0;
 }
 
 void CDownloadSource::Construct(CDownload* pDownload)
@@ -102,6 +103,8 @@ void CDownloadSource::Construct(CDownload* pDownload)
 
 	m_bReConnect		= FALSE;			// No Initial Reconnect setting
 	m_nPushAttempted	= 0;
+	m_nBusyCount	= 0;
+
 }
 
 CDownloadSource::~CDownloadSource()
@@ -158,6 +161,7 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, CQueryHit* pHit)
 	m_bCloseConn	= FALSE;
 	m_bReConnect	= FALSE;			// No Initial Reconnect setting
 	m_nPushAttempted	= 0;
+	m_nBusyCount	= 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -197,6 +201,7 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, DWORD nClientID, WORD nCl
 	m_bCloseConn	= FALSE;
 	m_bReConnect	= FALSE;			// No Initial Reconnect setting
 	m_nPushAttempted	= 0;
+	m_nBusyCount	= 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -229,6 +234,7 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, const Hashes::BtGuid& oGU
 	m_bCloseConn	= FALSE;
 	m_bReConnect	= FALSE;			// No Initial Reconnect setting
 	m_nPushAttempted	= 0;
+	m_nBusyCount	= 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -259,6 +265,7 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, LPCTSTR pszURL, BOOL /*bS
 	m_bCloseConn	= FALSE;
 	m_bReConnect	= FALSE;			// No Initial Reconnect setting
 	m_nPushAttempted	= 0;
+	m_nBusyCount	= 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -463,7 +470,9 @@ void CDownloadSource::OnFailure(BOOL bNondestructive, DWORD nRetryAfter)
 		m_pTransfer = NULL;
 	}
 	
-	DWORD nDelay = Settings.Downloads.RetryDelay * ( 1u << m_nFailures );
+	DWORD nDelayFactor = max( ( m_nBusyCount != 0 ) ? (m_nBusyCount - 1) : 0, m_nFailures );
+
+	DWORD nDelay = Settings.Downloads.RetryDelay * ( 1u << nDelayFactor );
 
 	if ( nRetryAfter != 0 )
 	{
@@ -471,7 +480,7 @@ void CDownloadSource::OnFailure(BOOL bNondestructive, DWORD nRetryAfter)
 	}
 	else
 	{
-		if ( TRUE || m_nFailures < 20 )
+		if ( nDelayFactor < 20 )
 		{
 			if ( nDelay > 3600000 ) nDelay = 3600000;
 		}
@@ -483,33 +492,29 @@ void CDownloadSource::OnFailure(BOOL bNondestructive, DWORD nRetryAfter)
 	
 	nDelay += GetTickCount();
 	
-	if ( bNondestructive && m_bCloseConn && m_bReConnect )
+	// This is not too good because if the source has Uploaded even 1Byte data, Max failure gets set to 40
+	//int nMaxFailures = ( m_bReadContent ? 40 : 3 );
+
+	int nMaxFailures = Settings.Downloads.MaxAllowedFailures;
+
+	if ( nMaxFailures < 20 && m_pDownload->GetSourceCount() > 20 ) nMaxFailures = 0;
+
+	m_pDownload->SetModified();
+
+	if ( bNondestructive || ( ++m_nFailures < nMaxFailures ) )
 	{
-		m_tAttempt = nDelay;
-		m_pDownload->SetModified();
+		m_tAttempt = max( m_tAttempt, nDelay );
 	}
 	else
 	{
-		int nMaxFailures = ( m_bReadContent ? 40 : 3 );
-		if ( nMaxFailures < 20 && m_pDownload->GetSourceCount() > 20 ) nMaxFailures = 0;
-
-		m_pDownload->SetModified();
-
-		if ( bNondestructive || ( ++m_nFailures < nMaxFailures ) )
+		if ( Settings.Downloads.NeverDrop )
 		{
-			m_tAttempt = max( m_tAttempt, nDelay );
+			m_tAttempt = nDelay;
 		}
 		else
 		{
-			if ( Settings.Downloads.NeverDrop )
-			{
-				m_tAttempt = nDelay;
-			}
-			else
-			{
-				// Add to the bad sources list (X-NAlt)
-				m_pDownload->RemoveSource( this, TRUE );
-			}
+			// Add to the bad sources list (X-NAlt)
+			m_pDownload->RemoveSource( this, TRUE );
 		}
 	}
 }

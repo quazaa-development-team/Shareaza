@@ -638,17 +638,9 @@ BOOL CDownloadTransferHTTP::OnRun()
 			{
 				Close( TS_TRUE );
 			}
-			else if ( m_pSource->m_nFailures >= 3 )
-			{
-				Close( TS_UNKNOWN );
-			}
-			else if ( m_pSource->m_nFailures >= 5 )
-			{
-				Close( TS_FALSE );
-			}
 			else
 			{
-				Close( TS_TRUE );
+				Close( TS_UNKNOWN );
 			}
 			return FALSE;
 		}
@@ -773,6 +765,7 @@ BOOL CDownloadTransferHTTP::ReadResponseLine()
 	{
 		m_bBadResponse = FALSE;
 		m_pSource->m_nFailures = 0;
+		if ( !m_bHeadRequest ) m_pSource->m_nBusyCount = 0;
 	}
 	else if ( strCode == _T("503") )
 	{
@@ -969,7 +962,7 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 				&& ( !oED2K.fromUrn( strValue ) || m_pSource->CheckHash( oED2K ) )
 				&& ( !oMD5.fromUrn( strValue ) || m_pSource->CheckHash( oMD5  ) ) )
 			{
-				if ( !m_bTigerFailed && oTiger && Settings.Downloads.VerifyTiger && !m_bTigerIgnore && m_sTigerTree.IsEmpty()
+				if ( !m_bTigerFailed && oTiger && Settings.Downloads.VerifyTiger && !m_bTigerIgnore && oTiger && m_sTigerTree.IsEmpty()
 					&& (  ( _tcsistr( m_sUserAgent, L"Shareaza 2.1" ) != NULL
 						&&	_tcsistr( m_sUserAgent, L"2.1.0.0" ) == NULL )
 						||	_tcsistr( m_sUserAgent, L"Shareaza 2.2.0" ) != NULL ) )
@@ -1016,6 +1009,18 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 			{
 				m_sTigerTree = strValue.SpanExcluding( _T("; ") );
 				Replace( m_sTigerTree, _T("ed2k=0"), _T("ed2k=1") );
+				
+				int nPos = m_sTigerTree.GetLength() + 1;
+				Hashes::TigerHash oTiger;
+				oTiger.fromString( strValue.Mid( nPos ) );
+				if ( oTiger && !m_pSource->CheckHash(oTiger) )
+				{
+					theApp.Message( MSG_ERROR, IDS_DOWNLOAD_WRONG_HASH, (LPCTSTR)m_sAddress,
+						(LPCTSTR)m_pDownload->GetDisplayName() );
+					Close( TS_FALSE );
+					return FALSE;
+				}
+
 			}
 		}
 		m_pSource->SetGnutella( 1 );
@@ -1272,10 +1277,25 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 			{
 				m_pDownload->m_nSize = m_nContentLength;
 			}
-			m_bHeadRequest = FALSE;
-			if ( m_pDownload->NeedTigerTree() && !m_sTigerTree.IsEmpty() && !m_bTigerFailed ) m_bTigerFetch = TRUE;
-			m_nContentLength = SIZE_UNKNOWN;
-			return StartNextFragment();
+
+			if ( ! m_bGotRanges )
+			{
+				m_pSource->SetAvailableRanges( NULL );
+			}
+
+			if ( !m_bRangeFault )
+			{
+				m_bHeadRequest = FALSE;
+				if ( m_pDownload->NeedTigerTree() && !m_sTigerTree.IsEmpty() && !m_bTigerFailed ) m_bTigerFetch = TRUE;
+				m_nContentLength = SIZE_UNKNOWN;
+				return StartNextFragment();
+			}
+			else
+			{
+				Close( TS_FALSE );
+				return FALSE;
+			}
+
 		}
 	}
 	else if ( ! m_pSource->CanInitiate( TRUE, TRUE ) )
@@ -1313,6 +1333,7 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 		else
 		{
 			SetState( dtsBusy );
+			m_pSource->m_nBusyCount++;
 			m_tRequest = GetTickCount();
 			return TRUE;
 		}
