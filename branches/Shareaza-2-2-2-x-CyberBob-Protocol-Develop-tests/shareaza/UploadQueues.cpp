@@ -416,7 +416,7 @@ int CUploadQueues::QueueRank(PROTOCOLID nProtocol, CLibraryFile *pFile )
 	{
 		CUploadQueue* pQueue = GetNext( pos );
 
-		if ( pQueue->CanAccept(	nProtocol, pFile->m_sName, pFile->m_nSize, FALSE, pFile->m_sShareTags ) )
+		if ( pQueue->CanAccept(	nProtocol, pFile->m_sName, pFile->m_nSize, CUploadQueue::ulqLibrary, pFile->m_sShareTags ) )
 		{	// If this queue will accept this file
 
 			if ( pQueue->GetQueueRemaining() > 0 )
