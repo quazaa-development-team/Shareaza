@@ -52,6 +52,86 @@ static char THIS_FILE[]=__FILE__;
 
 CDownloads Downloads;
 
+//////////////////////////////////////////////////////////////////////
+// CITMQueryHit construction
+
+CDownloads::CITMQueryHit::CITMQueryHit()
+{
+	m_pHits = NULL;
+}
+
+CDownloads::CITMQueryHit::CITMQueryHit( CQueryHit * pHits )
+{
+
+	if ( pHits != NULL )
+	{
+		CQueryHit* tempHits1 = pHits;
+		CQueryHit* tempHits2 = NULL;
+
+		m_pHits = new CQueryHit( PROTOCOL_NULL );
+		m_pHits->Copy(pHits);
+		tempHits2 = m_pHits;
+		tempHits1 = tempHits1->m_pNext;
+
+		for (; tempHits1 != NULL ; tempHits1 = tempHits1->m_pNext )
+		{
+			tempHits2->m_pNext = new CQueryHit( PROTOCOL_NULL );
+			tempHits2 = tempHits2->m_pNext;
+			tempHits2->Copy( tempHits1 );
+		}
+	}
+}
+
+CDownloads::CITMQueryHit::~CITMQueryHit()
+{
+	m_pHits->Delete();
+}
+
+//////////////////////////////////////////////////////////////////////
+// CITMQueryHit Function member implementations
+
+CDownloads::CITMQueryHit* CDownloads::CITMQueryHit::CreateMessage( CQueryHit * pHits )
+{
+	CITMQueryHit* pITMHit = NULL;
+
+	if ( pHits != NULL )
+	{
+		pITMHit = new CITMQueryHit();
+		
+		CQueryHit* tempHits1 = pHits;
+		CQueryHit* tempHits2 = NULL;
+
+		pITMHit->m_pHits = new CQueryHit( PROTOCOL_NULL );
+		pITMHit->m_pHits->Copy(pHits);
+		tempHits2 = pITMHit->m_pHits;
+		tempHits1 = tempHits1->m_pNext;
+
+		for (; tempHits1 != NULL ; tempHits1 = tempHits1->m_pNext )
+		{
+			tempHits2->m_pNext = new CQueryHit( PROTOCOL_NULL );
+			tempHits2 = tempHits2->m_pNext;
+			tempHits2->Copy( tempHits1 );
+		}
+	}
+
+	return pITMHit;
+
+	//return ( (CITMQueue::CITMItem *) new CITMQueryHit( CQueryHit * pHits ) );
+}
+
+BOOL CDownloads::CITMQueryHit::OnProcess()
+{
+	if ( m_pHits == NULL ) return TRUE;
+
+	CTransfers::Lock oLock;
+	for ( POSITION pos = Downloads.GetIterator() ; pos ; )
+	{
+		CDownload* pDownload = Downloads.GetNext( pos );
+		if ( pDownload->IsMoving() == FALSE ) pDownload->OnQueryHits( m_pHits );
+	}	
+
+	return TRUE;
+}
 
 //////////////////////////////////////////////////////////////////////
 // CDownloads construction
@@ -1172,7 +1252,8 @@ void CDownloads::OnRun()
 
 void CDownloads::OnQueryHits(CQueryHit* pHits)
 {
-	CSingleLock pLock( &Transfers.m_pSection );
+
+/*	CSingleLock pLock( &Transfers.m_pSection );
 	
 	if ( ! pLock.Lock( 50 ) ) return;
 	
@@ -1181,6 +1262,11 @@ void CDownloads::OnQueryHits(CQueryHit* pHits)
 		CDownload* pDownload = GetNext( pos );
 		if ( pDownload->IsMoving() == FALSE ) pDownload->OnQueryHits( pHits );
 	}	
+*/
+
+	if ( pHits != NULL ) 
+		Transfers.m_pMessageQueue.PushMessage( (CITMQueue::CITMItem*)CITMQueryHit::CreateMessage(pHits) );
+
 }
 
 //////////////////////////////////////////////////////////////////////

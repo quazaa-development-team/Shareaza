@@ -379,6 +379,9 @@
 				RelativePath="..\shareaza\ImageServices.cpp">
 			</File>
 			<File
+				RelativePath="..\shareaza\ITMQueue.cpp">
+			</File>
+			<File
 				RelativePath="..\shareaza\Library.cpp">
 			</File>
 			<File
@@ -1877,6 +1880,9 @@
 			</File>
 			<File
 				RelativePath="..\shareaza\ImageServices.h">
+			</File>
+			<File
+				RelativePath="..\shareaza\ITMQueue.h">
 			</File>
 			<File
 				RelativePath="..\shareaza\Library.h">

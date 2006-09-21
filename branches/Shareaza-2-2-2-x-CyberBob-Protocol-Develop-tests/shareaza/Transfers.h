@@ -23,6 +23,7 @@
 #define AFX_TRANSFERS_H__950AC162_FF34_4B40_8D8A_2745AA245316__INCLUDED_
 
 #include "Transfer.h"
+#include "ITMQueue.h"
 #pragma once
 
 class CTransfers;
@@ -46,6 +47,7 @@ public:
 // Attributes
 public:
 	CMutex			m_pSection;
+	CITMQueue		m_pMessageQueue;
 class Lock
 {
 public:

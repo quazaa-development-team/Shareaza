@@ -41,7 +41,7 @@ CTransfers Transfers;
 //////////////////////////////////////////////////////////////////////
 // CTransfers construction
 
-CTransfers::CTransfers()
+CTransfers::CTransfers() : 	m_pMessageQueue()
 {
 	m_nBuffer		= 256*1024;
 	m_pBuffer		= new BYTE[ m_nBuffer ];
@@ -204,6 +204,9 @@ void CTransfers::OnRun()
 		CTransfers::Lock(), Uploads.OnRun(), OnCheckExit();
 
 		TransferFiles.CommitDeferred();
+
+		m_pMessageQueue.ProcessMessages();
+
 	}
 
 	Downloads.m_nTransfers = Downloads.m_nBandwidth = 0;

@@ -153,7 +153,7 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, CQueryHit* pHit)
 	
 	ResolveURL();
 
-	if ( m_nProtocol == PROTOCOL_HTTP )
+	if ( pHit->m_nProtocol == PROTOCOL_G1 || pHit->m_nProtocol == PROTOCOL_G2 )
 	{
 		m_nProtocol = pHit->m_nProtocol;
 	}
@@ -685,6 +685,10 @@ BOOL CDownloadSource::PushRequest()
 	{
 		if ( ! m_oGUID ) return FALSE;
 		
+		if ( Network.SendPush( m_oGUID, m_nIndex, m_nProtocol, m_pAddress, m_nPort, m_oPushProxyList, m_oHubList ) )
+			return TRUE;
+
+		/*
 		BOOL bPushSucceed = FALSE;
 		if ( !m_oHubList.empty() || !m_oPushProxyList.empty() )
 		{
@@ -702,6 +706,7 @@ BOOL CDownloadSource::PushRequest()
 
 		if ( bPushSucceed ) m_tAttempt = GetTickCount() + Settings.Downloads.PushTimeout;
 		return bPushSucceed;
+		*/
 	}
 	
 	return FALSE;

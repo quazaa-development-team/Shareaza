@@ -1662,7 +1662,10 @@ void CQueryHit::Copy(CQueryHit* pOther)
 	m_nSize			= pOther->m_nSize;
 	m_sSchemaURI	= pOther->m_sSchemaURI;
 	m_sSchemaPlural	= pOther->m_sSchemaPlural;
-	m_pXML			= pOther->m_pXML;
+
+	// m_pXML			= pOther->m_pXML;
+	// pOther->m_pXML	= NULL;
+	if ( pOther->m_pXML != NULL ) m_pXML = pOther->m_pXML->Clone();
 
 	m_bMatched		= pOther->m_bMatched;
 	m_bExactMatch	= pOther->m_bExactMatch;
@@ -1670,7 +1673,9 @@ void CQueryHit::Copy(CQueryHit* pOther)
 	m_bFiltered		= pOther->m_bFiltered;
 	m_bDownload		= pOther->m_bDownload;
 
-	pOther->m_pXML = NULL;
+	m_nProtocol		= pOther->m_nProtocol;
+	m_oPushProxyList= pOther->m_oPushProxyList;
+	m_oHubList		= pOther->m_oHubList;
 }
 
 void CQueryHit::Delete()

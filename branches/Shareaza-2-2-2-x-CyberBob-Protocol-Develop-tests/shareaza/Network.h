@@ -27,6 +27,7 @@
 #define AFX_NETWORK_H__544414B1_3698_4C92_B0B0_1DC56AB48074__INCLUDED_
 
 #pragma once
+#include "ITMQueue.h"
 
 class CNeighbour;
 class CBuffer;
@@ -40,6 +41,11 @@ class CDownloadSource;
 
 class CNetwork
 {
+// typedef
+public:
+	typedef std::list<SOCKADDR_IN> HubList;
+	typedef std::list<SOCKADDR_IN>::iterator HubIndex;
+
 // Construction
 public:
 	CNetwork();
@@ -78,6 +84,38 @@ protected:
 		};
 	};
 	CMap< HANDLE, HANDLE, ResolveStruct*, ResolveStruct* > m_pLookups;
+	CITMQueue		m_pMessageQueue;
+
+public:
+	class CITMSendPush : CITMQueue::CITMItem
+	{
+	// typedef
+	public:
+		typedef std::list<SOCKADDR_IN> HubList;
+		typedef std::list<SOCKADDR_IN>::iterator HubIndex;
+
+	// Constructor
+	public:
+		CITMSendPush();
+		~CITMSendPush();
+
+	// Data Members
+	public:
+		PROTOCOLID		m_nProtocol;
+		IN_ADDR			m_pAddress;
+		WORD			m_nPort;
+		Hashes::Guid	m_oGUID;
+		DWORD			m_nIndex;
+		HubList			m_oPushProxies;
+		HubList			m_oG2Hubs;
+
+	// function members
+	public:
+		static CITMSendPush* CreateMessage( PROTOCOLID nProtocol, const Hashes::Guid& oGUID, const DWORD nIndex, IN_ADDR pAddress,
+											WORD nPort, const HubList& oPushProxies, const HubList& oG2Hubs );
+		virtual BOOL OnProcess();
+
+	};
 
 // Operations
 public:
@@ -105,7 +143,9 @@ public:
 public:
 	BOOL		GetNodeRoute(const Hashes::Guid& oGUID, CNeighbour** ppNeighbour, SOCKADDR_IN* pEndpoint);
 	BOOL		RoutePacket(CG2Packet* pPacket);
-	BOOL		SendPush(const Hashes::Guid& oGUID, DWORD nIndex = 0);
+	BOOL		SendPush(const Hashes::Guid& oGUID, DWORD nIndex, PROTOCOLID nProtocol = PROTOCOL_HTTP, IN_ADDR pAddress = IN_ADDR(),
+						WORD nPort = 0,	HubList& oPushProxyList = HubList(), HubList& oHubList = HubList());
+	//BOOL		SendPush(const Hashes::Guid& oGUID, DWORD nIndex = 0);
 	BOOL		SendPush( CDownloadSource * pSource );
 	BOOL		RouteHits(CQueryHit* pHits, CPacket* pPacket);
 	void		OnWinsock(WPARAM wParam, LPARAM lParam);

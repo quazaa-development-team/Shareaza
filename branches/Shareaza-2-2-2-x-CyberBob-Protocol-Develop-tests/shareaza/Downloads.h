@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "ITMQueue.h"
+
 class CDownload;
 class CDownloadSource;
 class CConnection;
@@ -32,7 +34,6 @@ class CMatchFile;
 class CBuffer;
 class CShareazaURL;
 class CEDClient;
-
 
 class CDownloads
 {
@@ -62,12 +63,32 @@ protected:
 	CList< CDownload* > m_pList;
 	CMap< ULONG, ULONG, int, int > m_pHostLimits;
 	int				m_nRunCookie;
+
 public:
 	enum
 	{
 		dlPathNull, dlPathComplete, dlPathIncomplete
 	};
 
+	class CITMQueryHit : CITMQueue::CITMItem
+	{
+		// Constructor
+	public:
+		CITMQueryHit();
+		CITMQueryHit( CQueryHit * pHits );
+		~CITMQueryHit();
+
+		// Data Members
+	public:
+		CQueryHit*	m_pHits;
+
+		// function members
+	public:
+		static CITMQueryHit* CreateMessage( CQueryHit * pHits );
+		virtual BOOL OnProcess();
+
+	};
+	
 // Operations
 public:
 	CDownload*	Add();

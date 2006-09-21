@@ -585,6 +585,9 @@
 				RelativePath="ImageServices.cpp">
 			</File>
 			<File
+				RelativePath=".\ITMQueue.cpp">
+			</File>
+			<File
 				RelativePath="Library.cpp">
 			</File>
 			<File
@@ -2432,6 +2435,9 @@
 			</File>
 			<File
 				RelativePath="ImageServices.h">
+			</File>
+			<File
+				RelativePath=".\ITMQueue.h">
 			</File>
 			<File
 				RelativePath="Library.h">
