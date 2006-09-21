@@ -25,6 +25,7 @@
 #include "QuerySearch.h"
 #include "QueryHit.h"
 #include "Network.h"
+#include "Security.h"
 #include "G1Packet.h"
 #include "G2Packet.h"
 #include "EDPacket.h"
@@ -129,6 +130,8 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 		if ( pnHops ) *pnHops = pPacket->m_nHops + 1;
 	}
 	
+	oQueryID.validate();
+
 	try
 	{
 		BYTE	nCount		= pPacket->ReadByte();
@@ -229,7 +232,8 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 		
 		pPacket->Seek( 16, CG1Packet::seekEnd );
 		pPacket->Read( oClientID );
-		
+		oClientID.validate();
+
 		DWORD nIndex = 0;
 		
 		for ( pLastHit = pFirstHit ; pLastHit ; pLastHit = pLastHit->m_pNext, nIndex++ )
@@ -374,12 +378,15 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 			else if ( strcmp( szType, "GU" ) == 0 && nLength == 16 )
 			{
 				pPacket->Read( oClientID );
+				oClientID.validate();
 				oIncrID		= oClientID;
 			}
 			else if ( ( strcmp( szType, "NA" ) == 0 || strcmp( szType, "NI" ) == 0 ) && nLength >= 6 )
 			{
 				nAddress	= pPacket->ReadLongLE();
 				if ( Network.IsReserved( (IN_ADDR*)&nAddress ), false )
+					AfxThrowUserException();
+				if ( Security.IsDenied( (IN_ADDR*)&nAddress ), false )
 					AfxThrowUserException();
 				nPort		= pPacket->ReadShortBE();
 			}
@@ -475,17 +482,16 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 		
 		for ( HubIndex index = oHubList.begin();index != oHubList.end();index++)
 		{
-
 			oIncrID[15]++;
-			oClientID.validate();
-			Network.NodeRoute->Add( oClientID, &(*index) );
+			Network.NodeRoute->Add( oIncrID, &(*index) );
 		}
 
 		BYTE nHops = pPacket->ReadByte() + 1;
 		if ( pnHops ) *pnHops = nHops;
 		
 		pPacket->Read( oSearchID );
-		
+		oSearchID.validate();
+
 		if ( ! bPush ) bPush = ( nPort == 0 || Network.IsFirewalledAddress( &nAddress ) );
 		
 		DWORD nIndex = 0;
@@ -1430,7 +1436,8 @@ void CQueryHit::ReadEDAddress(CEDPacket* pPacket, SOCKADDR_IN* pServer)
 	*i++ = htons( pServer->sin_port );
 	*i++ = nAddress;
 	*i++ = m_nPort;
-	
+	m_oClientID.validate();
+
 	if ( nAddress == 0 )
 	{
 		m_bResolveURL = FALSE;
