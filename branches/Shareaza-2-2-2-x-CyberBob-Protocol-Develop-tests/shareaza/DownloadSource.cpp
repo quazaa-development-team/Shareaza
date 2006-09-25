@@ -671,7 +671,7 @@ BOOL CDownloadSource::PushRequest()
 		// check if clients array is full or not, if it is full, do not request
 		if ( EDClients.IsFull() ) return FALSE;
 
-		CDownloadTransferED2K* pTransfer;
+		CDownloadTransferED2K* pTransfer = NULL;
 		// if ed2k PUSH source do not have transfer object, make blank one and assign
 		if ( m_pTransfer == NULL )
 		{
