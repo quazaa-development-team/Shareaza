@@ -231,6 +231,8 @@ BOOL CDownloadTransferED2K::OnConnected()
 	m_pSource->m_sServer	= m_sUserAgent = m_pClient->m_sUserAgent;
 	m_pSource->m_sNick		= m_pClient->m_sNick;
 	m_pSource->SetLastSeen();
+
+	m_pSource->m_nPushAttempted = 0;
 	
 	theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_CONNECTED, (LPCTSTR)m_sAddress );
 	

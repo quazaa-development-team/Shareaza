@@ -660,25 +660,55 @@ BOOL CDownloadSource::PushRequest()
 	}
 	else if ( m_nProtocol == PROTOCOL_ED2K )
 	{
+		// in order to make ED2K callback (push source) connection needs Server address and port
 		if ( m_nServerPort == 0 ) return FALSE;
-		if ( EDClients.IsFull() ) return TRUE;
-		
-		CEDClient* pClient = EDClients.Connect( m_pAddress.S_un.S_addr, m_nPort,
-			&m_pServerAddress, m_nServerPort, m_oGUID );
-		
-		if ( pClient != NULL && pClient->m_bConnected )
+		if ( m_pServerAddress.S_un.S_addr == 0 ) return FALSE;
+
+		// In order to accept in-coming ed2k callback connection, need to have non-connected CEDClient linked up
+		// with CDownloadSource and CDownloadTransferED2K, should be placed in array "CEDClients"
+		// Note: this might not be the best way, but currently only this is the work around to make ed2k PUSH download connection
+
+		// check if clients array is full or not, if it is full, do not request
+		if ( EDClients.IsFull() ) return FALSE;
+
+		CDownloadTransferED2K* pTransfer;
+		// if ed2k PUSH source do not have transfer object, make blank one and assign
+		if ( m_pTransfer == NULL )
 		{
-			pClient->SeekNewDownload();
-			m_nPushAttempted++;
-			return TRUE;
+			pTransfer = new CDownloadTransferED2K(this);
+			m_pTransfer = dynamic_cast<CDownloadTransfer*>( pTransfer );
+			if ( m_pTransfer == NULL ) delete pTransfer;
 		}
-		
-		if ( Neighbours.PushDonkey( m_pAddress.S_un.S_addr, &m_pServerAddress, m_nServerPort ) )
+		else	// if already had Transfer object, Try cast it to ED2K transfer
 		{
-			theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_PUSH_SENT, (LPCTSTR)m_pDownload->m_sDisplayName );
-			m_tAttempt = GetTickCount() + Settings.Downloads.PushTimeout;
-			m_nPushAttempted++;
-			return TRUE;
+			CDownloadTransferED2K* pTransfer = dynamic_cast<CDownloadTransferED2K*>(m_pTransfer);
+		}
+
+		// if source does not have transfer object, can not get EDClient object so skip
+		if ( pTransfer != NULL )
+		{
+			// check if m_pTransfer is CDownloadTransferED2K object or not.
+			CDownloadTransferED2K* pTransfer = dynamic_cast<CDownloadTransferED2K*>(m_pTransfer);
+			if ( pTransfer != NULL && pTransfer->m_pClient == NULL ) // if it was ED2K transfer, and it did not have any EDClient
+			{
+				// create blank CEDClient object and assign it to ED2K transfer.
+				pTransfer->m_pClient = new CEDClient();
+				pTransfer->m_pClient->m_pDownload = pTransfer;
+				// set ClientID, ServerAddress:Port and GUID to CEDClient object.
+				pTransfer->m_pClient->ConnectTo( m_pAddress.S_un.S_addr, m_nPort, &m_pServerAddress, m_nServerPort, m_oGUID );
+				pTransfer->m_pClient->m_sNick = m_sNick;
+			}
+
+			// if everything are ready, send callback request to server.
+			if ( pTransfer != NULL && pTransfer->m_pClient != NULL && !pTransfer->m_pClient->m_bConnected &&
+				Neighbours.PushDonkey( m_pAddress.S_un.S_addr, &m_pServerAddress, m_nServerPort ) )
+			{
+				// when it succeed to send call back request, set next attempt time to re-ask time
+				theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_PUSH_SENT, (LPCTSTR)m_pDownload->m_sDisplayName );
+				m_tAttempt = GetTickCount() + Settings.eDonkey.ReAskTime;
+				m_nPushAttempted++;
+				return TRUE;
+			}
 		}
 	}
 	else
@@ -686,29 +716,13 @@ BOOL CDownloadSource::PushRequest()
 		if ( ! m_oGUID ) return FALSE;
 		
 		if ( Network.SendPush( m_oGUID, m_nIndex, m_nProtocol, m_pAddress, m_nPort, m_oPushProxyList, m_oHubList ) )
-			return TRUE;
-
-		/*
-		BOOL bPushSucceed = FALSE;
-		if ( !m_oHubList.empty() || !m_oPushProxyList.empty() )
 		{
-			bPushSucceed = Network.SendPush( this );
-			if (bPushSucceed) m_nPushAttempted++;
-		}
-
-		if ( Network.SendPush( m_oGUID, m_nIndex ) )
-		{
-			theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_PUSH_SENT, (LPCTSTR)m_pDownload->m_sDisplayName );
 			m_tAttempt = GetTickCount() + Settings.Downloads.PushTimeout;
-			bPushSucceed = TRUE;
-			m_nPushAttempted = 0; // Reset the Attempt count if the GUID is still in CRouteCache
+			m_nPushAttempted++;
+			return TRUE;
 		}
-
-		if ( bPushSucceed ) m_tAttempt = GetTickCount() + Settings.Downloads.PushTimeout;
-		return bPushSucceed;
-		*/
 	}
-	
+
 	return FALSE;
 }
 

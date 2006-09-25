@@ -112,7 +112,7 @@ public:
 	// function members
 	public:
 		static CITMSendPush* CreateMessage( PROTOCOLID nProtocol, const Hashes::Guid& oGUID, const DWORD nIndex, IN_ADDR pAddress,
-											WORD nPort, const HubList& oPushProxies, const HubList& oG2Hubs );
+											WORD nPort, const HubList& oPushProxies = HubList(), const HubList& oG2Hubs = HubList() );
 		virtual BOOL OnProcess();
 
 	};
@@ -161,6 +161,7 @@ public:
 
 	friend class CHandshakes;
 	friend class CNeighbours;
+	friend class CNeighboursWithED2K;
 };
 
 extern CNetwork Network;

@@ -27,6 +27,7 @@
 #include "Handshakes.h"
 #include "Neighbours.h"
 #include "Neighbour.h"
+#include "EDNeighbour.h"
 #include "Datagrams.h"
 #include "HostCache.h"
 #include "RouteCache.h"
@@ -48,6 +49,7 @@
 #include "Buffer.h"
 #include "G1Packet.h"
 #include "G2Packet.h"
+#include "EDpacket.h"
 #include "GGEP.h"
 #include "G1Neighbour.h"
 
@@ -64,16 +66,18 @@ static char THIS_FILE[]=__FILE__;
 
 CNetwork Network;
 
-typedef CNetwork::CITMSendPush CITMSP;
-
 //////////////////////////////////////////////////////////////////////
 // CITMSendPush construction
 
-CITMSP::CITMSendPush() : m_oGUID(), m_oPushProxies(), m_oG2Hubs()
+CNetwork::CITMSendPush::CITMSendPush() : m_oGUID(), m_oPushProxies(), m_oG2Hubs()
 {
+	m_nProtocol				= PROTOCOL_NULL;
+	m_pAddress.S_un.S_addr	= 0;
+	m_nPort					= 0;
+	m_nIndex				= 0;
 }
 
-CITMSP::~CITMSendPush()
+CNetwork::CITMSendPush::~CITMSendPush()
 {
 	m_oGUID.clear();
 	m_oPushProxies.clear();
@@ -83,85 +87,139 @@ CITMSP::~CITMSendPush()
 //////////////////////////////////////////////////////////////////////
 // CITMSendPush Function member implementations
 
-CITMSP* CITMSP::CreateMessage( PROTOCOLID nProtocol, const Hashes::Guid& oGUID, const DWORD nIndex, IN_ADDR pAddress, WORD nPort,
-							  const HubList& oPushProxies, const HubList& oG2Hubs )
+CNetwork::CITMSendPush* CNetwork::CITMSendPush::CreateMessage( PROTOCOLID nProtocol, const Hashes::Guid& oGUID, const DWORD nIndex,
+															IN_ADDR pAddress, WORD nPort, const HubList& oPushProxies,
+															const HubList& oG2Hubs )
 {
-	CITMSP* tempSP	= new CITMSP();
+	CITMSendPush* tempSP	= new CITMSendPush();
 	tempSP->m_nProtocol = nProtocol;
-	tempSP->m_oGUID = oGUID;
-	tempSP->m_nIndex = nIndex;
-	tempSP->m_pAddress.S_un.S_addr = pAddress.S_un.S_addr;
-	tempSP->m_nPort = nPort;
-	if ( oPushProxies.empty() ) tempSP->m_oPushProxies = oPushProxies;
-	if ( oG2Hubs.empty() ) tempSP->m_oG2Hubs = oG2Hubs;
+
+	if ( nProtocol == PROTOCOL_HTTP || nProtocol == PROTOCOL_G1 || nProtocol == PROTOCOL_G2 )
+	{
+		tempSP->m_oGUID = oGUID;
+		tempSP->m_nIndex = nIndex;
+		tempSP->m_pAddress.S_un.S_addr = pAddress.S_un.S_addr;
+		tempSP->m_nPort = nPort;
+		if ( oPushProxies.empty() ) tempSP->m_oPushProxies = oPushProxies;
+		if ( oG2Hubs.empty() ) tempSP->m_oG2Hubs = oG2Hubs;
+	}
+	else if ( nProtocol == PROTOCOL_ED2K )
+	{
+		tempSP->m_nIndex = nIndex; // ClientID
+		tempSP->m_pAddress.S_un.S_addr = pAddress.S_un.S_addr; // Server address
+		tempSP->m_nPort = nPort; // Server Port
+	}
 	return tempSP;
 }
 
-BOOL CITMSP::OnProcess()
+BOOL CNetwork::CITMSendPush::OnProcess()
 {
 	if ( ! Network.IsListening() ) return FALSE;
+
+	// error, protocol can not be PROTOCOL_NULL
+	if ( m_nProtocol == PROTOCOL_NULL ) return FALSE;
 
 	CSingleLock pLock( &Network.m_pSection, TRUE );
 	//if ( ! pLock.Lock( 250 ) ) return TRUE;
 
-	Hashes::Guid oGUID2 = m_oGUID;
-	SOCKADDR_IN pEndpoint;
-	CNeighbour* pOrigin;
 	int nCount = 0;
+	SOCKADDR_IN pEndpoint;
 
-	if ( !m_oGUID.isValid() ) return TRUE;
-
-	while ( Network.GetNodeRoute( oGUID2, &pOrigin, &pEndpoint ) )
+	if ( m_nProtocol == PROTOCOL_HTTP || m_nProtocol == PROTOCOL_G1 || m_nProtocol == PROTOCOL_G2 )
 	{
-		if ( pOrigin != NULL && pOrigin->m_nProtocol == PROTOCOL_G1 )
+		Hashes::Guid oGUID2 = m_oGUID;
+		CNeighbour* pOrigin;
+
+		if ( !m_oGUID.isValid() ) return TRUE;
+
+		while ( Network.GetNodeRoute( oGUID2, &pOrigin, &pEndpoint ) )
 		{
-			CG1Packet* pPacket = CG1Packet::New( G1_PACKET_PUSH,
-				Settings.Gnutella1.MaximumTTL - 1 );
-
-			pPacket->Write( m_oGUID );
-			pPacket->WriteLongLE( m_nIndex );
-			pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
-			pPacket->WriteShortLE( htons( Network.m_pHost.sin_port ) );
-
-			pOrigin->Send( pPacket );
-			nCount++;
-		}
-		else
-		{
-
-			if ( pOrigin != NULL )
+			if ( pOrigin != NULL && pOrigin->m_nProtocol == PROTOCOL_G1 )
 			{
-				CG2Packet* pPacket = CG2Packet::New( G2_PACKET_PUSH, TRUE );
+				CG1Packet* pPacket = CG1Packet::New( G1_PACKET_PUSH,
+					Settings.Gnutella1.MaximumTTL - 1 );
 
-				pPacket->WritePacket( G2_PACKET_TO, 16 );
 				pPacket->Write( m_oGUID );
-
-				pPacket->WriteByte( 0 );
+				pPacket->WriteLongLE( m_nIndex );
 				pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
-				pPacket->WriteShortBE( htons( Network.m_pHost.sin_port ) );
+				pPacket->WriteShortLE( htons( Network.m_pHost.sin_port ) );
 
 				pOrigin->Send( pPacket );
 				nCount++;
 			}
 			else
 			{
-				pLock.Unlock();
-				//Datagrams.Send( &pEndpoint, pPacket, TRUE, NULL, FALSE  );
-				HubIndex iTemp = m_oG2Hubs.begin();
-				HubIndex iEnd = m_oG2Hubs.end();
-				BOOL bFound = FALSE;
 
-				for (;iTemp != iEnd;iTemp++)
+				if ( pOrigin != NULL )
 				{
-					if ( (*iTemp).sin_addr.S_un.S_addr == pEndpoint.sin_addr.S_un.S_addr &&
-						 (*iTemp).sin_port == pEndpoint.sin_port )
-						bFound = TRUE;
+					CG2Packet* pPacket = CG2Packet::New( G2_PACKET_PUSH, TRUE );
+
+					pPacket->WritePacket( G2_PACKET_TO, 16 );
+					pPacket->Write( m_oGUID );
+
+					pPacket->WriteByte( 0 );
+					pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
+					pPacket->WriteShortBE( htons( Network.m_pHost.sin_port ) );
+
+					pOrigin->Send( pPacket );
+					nCount++;
 				}
-				if ( !bFound ) m_oG2Hubs.push_back( pEndpoint );
-				pLock.Lock();
+				else
+				{
+					pLock.Unlock();
+					//Datagrams.Send( &pEndpoint, pPacket, TRUE, NULL, FALSE  );
+					HubIndex iTemp = m_oG2Hubs.begin();
+					HubIndex iEnd = m_oG2Hubs.end();
+					BOOL bFound = FALSE;
+
+					for (;iTemp != iEnd;iTemp++)
+					{
+						if ( (*iTemp).sin_addr.S_un.S_addr == pEndpoint.sin_addr.S_un.S_addr &&
+							(*iTemp).sin_port == pEndpoint.sin_port )
+							bFound = TRUE;
+					}
+					if ( !bFound ) m_oG2Hubs.push_back( pEndpoint );
+					pLock.Lock();
+				}
 			}
+			oGUID2[15] ++;
 		}
-		oGUID2[15] ++;
+
+	}
+	else if ( m_nProtocol == PROTOCOL_ED2K )
+	{
+		BOOL bReqSucceed = FALSE;
+
+		// If we don't have a socket listening for incoming connections, leave now
+		if ( ! Network.IsListening() ) return FALSE;
+
+		// Get the neighbour with the given IP address, and look at it as an eDonkey2000 computer
+		CEDNeighbour* pNeighbour = (CEDNeighbour*)Neighbours.Get( &m_pAddress );
+
+		// If we found it, and it really is running eDonkey2000
+		if ( ( pNeighbour != NULL ) && ( pNeighbour->m_nProtocol == PROTOCOL_ED2K ) && ( ! CEDPacket::IsLowID( pNeighbour->m_nClientID ) ) )
+		{
+			// Make a new eDonkey2000 call back request packet, write in the client ID, and send it to the eDonkey2000 computer
+			CEDPacket* pPacket = CEDPacket::New( ED2K_C2S_CALLBACKREQUEST );
+			pPacket->WriteLongLE( m_nIndex );
+			bReqSucceed = pNeighbour->Send( pPacket );
+		}
+
+		if ( !bReqSucceed )
+		{
+			// lugdunum requests no more of this
+			CEDPacket* pPacket = CEDPacket::New( ED2K_C2SG_CALLBACKREQUEST );
+			pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
+			pPacket->WriteShortLE( htons( Network.m_pHost.sin_port ) );
+			pPacket->WriteLongLE( m_nIndex );
+			bReqSucceed = Datagrams.Send( &m_pAddress, m_nPort + 4, pPacket ) ;
+		}
+
+		return bReqSucceed;
+	}
+	else
+	{
+		return FALSE;
 	}
 
 	pLock.Unlock();
@@ -244,8 +302,6 @@ BOOL CITMSP::OnProcess()
 	return TRUE;
 
 }
-
-#undef CITMSP
 
 //////////////////////////////////////////////////////////////////////
 // CNetwork construction
@@ -1010,59 +1066,6 @@ BOOL CNetwork::SendPush(const Hashes::Guid& oGUID, DWORD nIndex, PROTOCOLID nPro
 								oPushProxyList, oHubList ) );
 
 	return TRUE;
-
-/*
-	CSingleLock pLock( &Network.m_pSection );
-	if ( ! pLock.Lock( 250 ) ) return TRUE;
-
-	if ( ! IsListening() ) return FALSE;
-	
-	Hashes::Guid oGUID2 = oGUID;
-	SOCKADDR_IN pEndpoint;
-	CNeighbour* pOrigin;
-	int nCount = 0;
-	
-	while ( GetNodeRoute( oGUID2, &pOrigin, &pEndpoint ) )
-	{
-		if ( pOrigin != NULL && pOrigin->m_nProtocol == PROTOCOL_G1 )
-		{
-			CG1Packet* pPacket = CG1Packet::New( G1_PACKET_PUSH,
-				Settings.Gnutella1.MaximumTTL - 1 );
-			
-			pPacket->Write( oGUID );
-			pPacket->WriteLongLE( nIndex );
-			pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
-			pPacket->WriteShortLE( htons( m_pHost.sin_port ) );
-			
-			pOrigin->Send( pPacket );
-		}
-		else
-		{
-			CG2Packet* pPacket = CG2Packet::New( G2_PACKET_PUSH, TRUE );
-			
-			pPacket->WritePacket( G2_PACKET_TO, 16 );
-			pPacket->Write( oGUID );
-			
-			pPacket->WriteByte( 0 );
-			pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
-			pPacket->WriteShortBE( htons( m_pHost.sin_port ) );
-			
-			if ( pOrigin != NULL )
-			{
-				pOrigin->Send( pPacket );
-			}
-			else
-			{
-				Datagrams.Send( &pEndpoint, pPacket, TRUE, NULL, FALSE  );
-			}
-		}
-		
-		oGUID2[15] ++;
-		nCount++;
-	}
-	
-	return nCount > 0;
-*/
 }
 
 BOOL CNetwork::SendPush( CDownloadSource * pSource )
@@ -1072,121 +1075,6 @@ BOOL CNetwork::SendPush( CDownloadSource * pSource )
 								pSource->m_nIndex, pSource->m_pAddress, pSource->m_nPort, pSource->m_oPushProxyList,
 								pSource->m_oHubList ) );
 	return TRUE;
-
-/*
-	BOOL bSent = FALSE;
-	if ( ! IsListening() ) return FALSE;
-	
-	if ( !pSource->m_oPushProxyList.empty() )
-	{
-		for ( CDownloadSource::HubIndex POS = pSource->m_oPushProxyList.begin();POS != pSource->m_oPushProxyList.end();POS++)
-		{
-			CPacket* pPacket = CG1Packet::New( G1_PACKET_PUSH,
-				Settings.Gnutella1.MaximumTTL - 1 );
-
-			pPacket->Write( pSource->m_oGUID );
-			pPacket->WriteLongLE( pSource->m_nIndex );
-			pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
-			pPacket->WriteShortLE( htons( m_pHost.sin_port ) );
-
-			Datagrams.Send( &(*POS), pPacket );
-		}
-		bSent = TRUE;
-	}
-
-	if ( !pSource->m_oHubList.empty() )
-	{
-		for ( CDownloadSource::HubIndex POS = pSource->m_oHubList.begin();POS != pSource->m_oHubList.end();POS++)
-		{
-			CG2Packet* pPacket = CG2Packet::New( G2_PACKET_PUSH, TRUE );
-
-			pPacket->WritePacket( G2_PACKET_TO, 16 );
-			pPacket->Write( pSource->m_oGUID );
-
-			pPacket->WriteByte( 0 );
-			pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
-			pPacket->WriteShortBE( htons( m_pHost.sin_port ) );
-			Datagrams.Send( &(*POS), pPacket, TRUE, NULL, FALSE  );
-		}
-		bSent = TRUE;
-	}
-
-	if (!bSent)
-	{
-		if ( pSource->m_nProtocol == PROTOCOL_G1 && (pSource->m_oGUID).isValid() )
-		{
-			CPacket* pPacket = CG1Packet::New( G1_PACKET_PUSH,
-				Settings.Gnutella1.MaximumTTL - 1 );
-
-			pPacket->Write( pSource->m_oGUID );
-			pPacket->WriteLongLE( pSource->m_nIndex );
-			pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
-			pPacket->WriteShortLE( htons( m_pHost.sin_port ) );
-
-			Datagrams.Send( &(pSource->m_pAddress), pSource->m_nPort, pPacket );
-			bSent = TRUE;
-		}
-
-		if ( pSource->m_nProtocol == PROTOCOL_G2 )
-		{
-			if ( (pSource->m_oGUID).isValid() )
-			{
-				CG2Packet* pPacket = CG2Packet::New( G2_PACKET_PUSH, TRUE );
-
-				pPacket->WritePacket( G2_PACKET_TO, 16 );
-				pPacket->Write( pSource->m_oGUID );
-				pPacket->WriteByte( 0 );
-
-				pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
-				pPacket->WriteShortBE( htons( m_pHost.sin_port ) );
-
-				Datagrams.Send( &(pSource->m_pAddress), pSource->m_nPort, pPacket, TRUE, NULL, FALSE );
-				bSent = TRUE;
-			}
-			else
-			{
-				CG2Packet* pPacket = CG2Packet::New( G2_PACKET_PUSH, TRUE );
-				Hashes::Guid oDummyGUID;
-				pPacket->WritePacket( "DP", 16 );	// Dummy packet get around G2 routing code.
-				pPacket->Write( oDummyGUID );		// Write Dummy invalid GUID to make up the length.
-				pPacket->WriteByte( 0 );			// end compound.
-
-				pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
-				pPacket->WriteShortBE( htons( m_pHost.sin_port ) );
-
-				Datagrams.Send( &(pSource->m_pAddress), pSource->m_nPort, pPacket, TRUE, NULL, FALSE );
-				bSent = TRUE;
-			}
-		}
-
-		
-		// Need to think something other than "GIV", "PUSH" for negotiation
-		if ( pSource->m_nProtocol == PROTOCOL_HTTP )
-		{
-			// if the node is from Source exchange but having difficulty to connect.
-			// Try using UDP to knock the door just in case the TCP port is blocked but UDP is open.
-			// using G2 UDP because:
-			//		1. G1 source exchange do not use "Alt-Location: " anymore, so it is not likely to be on this protocol.
-			//		2. G1 PUSH packet requires proper GUID when G2 PUSH just has to be compound but not necessary to have proper one
-			//			if the destination is the node which you wanna send PUSH packet to.
-
-			//CG2Packet* pPacket = CG2Packet::New( G2_PACKET_PUSH, TRUE );
-			//Hashes::Guid oDummyGUID;
-			//pPacket->WritePacket( "DP", 16 );	// Dummy packet get around G2 routing code.
-			//pPacket->Write( oDummyGUID );		// Write Dummy invalid GUID to make up the length.
-			//pPacket->WriteByte( 0 );			// end compound.
-
-			//pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
-			//pPacket->WriteShortBE( htons( m_pHost.sin_port ) );
-
-			//Datagrams.Send( &(pSource->m_pAddress), pSource->m_nPort, pPacket, TRUE, NULL, FALSE );
-			//bSent = TRUE;
-		}
-		
-
-	}
-	return bSent;
-	*/
 
 }
 
