@@ -85,6 +85,7 @@ public:
 	int					GetG2SourceCount(BOOL bNoPush = FALSE, BOOL bSane = FALSE) const;
 	int					GetBTSourceCount(BOOL bNoPush = FALSE) const;
 	int					GetED2KCompleteSourceCount() const;
+	void				GetMultiSourceCount(BOOL bSane, int* nHTTPSources = NULL, int* nG1Sources = NULL, int* nG2Sources = NULL, int* nED2KSources = NULL, int* nBTSources = NULL);
 	BOOL				CheckSource(CDownloadSource* pSource) const;
 	void				AddFailedSource(CDownloadSource* pSource, bool bLocal = true, bool bOffline = false);
 	void				AddFailedSource(LPCTSTR pszUrl, bool bLocal = true, bool bOffline = false);

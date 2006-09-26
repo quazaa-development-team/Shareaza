@@ -54,9 +54,9 @@ protected:
 	void	StopSearch();
 private:
 	void	StartManualSearch();
-	void	StartAutomaticSearch();
+	void	StartAutomaticSearch( BOOL bG1 = TRUE, BOOL bG2 = TRUE, BOOL bED2K = TRUE );
 	BOOL	CanSearch() const;
-	void	PrepareSearch();
+	void	PrepareSearch( BOOL bG1 = TRUE, BOOL bG2 = TRUE, BOOL bED2K = TRUE );
 
 };
 

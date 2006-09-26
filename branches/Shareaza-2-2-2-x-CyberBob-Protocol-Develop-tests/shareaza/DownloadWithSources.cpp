@@ -100,6 +100,41 @@ int CDownloadWithSources::GetSourceCount(BOOL bNoPush, BOOL bSane) const
 	return nCount;
 }
 
+void CDownloadWithSources::GetMultiSourceCount(BOOL bSane, int * nHTTPSources, int * nG1Sources, int * nG2Sources, int * nED2KSources, int * nBTSources)
+{
+	DWORD tNow = GetTickCount();
+
+	for ( CDownloadSource* pSource = m_pSourceFirst ; pSource ; pSource = pSource->m_pNext )
+	{
+		if ( ! bSane ||
+			pSource->m_tAttempt < tNow ||
+			pSource->m_tAttempt - tNow <= 900000 )
+		{
+			switch( pSource->m_nProtocol )
+			{
+				case PROTOCOL_HTTP:
+					if ( nHTTPSources != NULL) (*nHTTPSources)++;
+					break;
+				case PROTOCOL_G1:
+					if ( nG1Sources != NULL) (*nG1Sources)++;
+					break;
+				case PROTOCOL_G2:
+					if ( nG2Sources != NULL) (*nG2Sources)++;
+					break;
+				case PROTOCOL_ED2K:
+					if ( nED2KSources != NULL) (*nED2KSources)++;
+					break;
+				case PROTOCOL_BT:
+					if ( nBTSources != NULL) (*nBTSources)++;
+					break;
+				default:
+					// What kind of Protocol source would it be?
+					break;
+			}
+		}
+	}
+}
+
 int CDownloadWithSources::GetG2SourceCount(BOOL bNoPush, BOOL bSane) const
 {
 	DWORD tNow = GetTickCount();
@@ -157,7 +192,6 @@ int CDownloadWithSources::GetED2KCompleteSourceCount() const
 			 ( pSource->m_tAttempt < tNow || pSource->m_tAttempt - tNow <= 900000 ) &&	// Only count sources that are probably active
 			 ( pSource->m_nProtocol == PROTOCOL_ED2K ) &&		// Only count ed2k sources
              ( pSource->m_oAvailable.empty() ) )				// Only count complete sources
-			
 		{
 			nCount++;
 		}
@@ -558,11 +592,11 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 
 		// CyberBob note: not sure if this is good idea or not, because there is some possibility that the client 
 		//                without server connection exist.  e.g. Kad node, Shareaza with server disconnected, etc...
-		if ( pSource->m_pServerAddress.S_un.S_un_b.s_b1 == 0 )
+		if ( pSource->m_bPushOnly && pSource->m_pServerAddress.S_un.S_un_b.s_b1 == 0 )
 		{
 			// commented out for Test reason (CyberBob)
-			//delete pSource;
-			//return FALSE;
+			delete pSource;
+			return FALSE;
 		}
 		// CyberBob note: this is because Shareaza somehow can not connect to FW node with PUSH but this is actually better be in
 		//				  settings to control action.

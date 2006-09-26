@@ -101,14 +101,23 @@ void CDownloadWithSearch::RunSearch(DWORD tNow)
 	}
 	else if ( tNow > m_tSearchCheck && tNow - m_tSearchCheck >= 1000 )
 	{
-		BOOL bFewSources = GetSourceCount( FALSE, TRUE ) < Settings.Downloads.MinSources;
+		// BOOL bFewSources = GetSourceCount( FALSE, TRUE ) < Settings.Downloads.MinSources;
+		int nHTTP = 0, nG1 = 0, nG2 = 0, nED2K = 0, nBT = 0;
+		BOOL bFewSources;
+
+		GetMultiSourceCount( TRUE, &nHTTP, &nG1, &nG2, &nED2K, &nBT );
 		BOOL bDataStarve = ( tNow > m_tReceived ? tNow - m_tReceived : 0 ) > Settings.Downloads.StarveTimeout * 1000;
+
+		bFewSources = ( ( ( nG1 < Settings.Downloads.MinSources ) || ( nG2 < Settings.Downloads.MinSources ) || 
+						( nED2K < Settings.Downloads.MinSources ) || ( nHTTP < Settings.Downloads.MinSources ) ) && 
+						!( m_oBTH && nBT >= Settings.Downloads.MinSources && Settings.BitTorrent.PreferenceBTSources ) );
 
 		m_tSearchCheck = tNow;
 
 		if ( IsPaused() == FALSE && ( bFewSources || bDataStarve ) )
 		{
-			StartAutomaticSearch();
+			StartAutomaticSearch( nG1 < Settings.Downloads.MinSources, nG2 < Settings.Downloads.MinSources,
+								nED2K < Settings.Downloads.MinSources );
 		}
 		else
 		{
@@ -134,12 +143,12 @@ void CDownloadWithSearch::StartManualSearch()
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithSearch start (or continue) an autoamtic search
 
-void CDownloadWithSearch::StartAutomaticSearch()
+void CDownloadWithSearch::StartAutomaticSearch( BOOL bG1, BOOL bG2, BOOL bED2K )
 {
 	CSingleLock pLock( &SearchManager.m_pSection );
 	if ( ! pLock.Lock( 10 ) ) return;
 	
-	PrepareSearch();
+	PrepareSearch( bG1, bG2, bED2K );
 	
 	m_pSearch->m_nPriority = CManagedSearch::spLowest;
 	m_pSearch->Start();
@@ -156,12 +165,15 @@ BOOL CDownloadWithSearch::CanSearch() const
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithSearch prepare a managed search object
 
-void CDownloadWithSearch::PrepareSearch()
+void CDownloadWithSearch::PrepareSearch( BOOL bG1, BOOL bG2, BOOL bED2K )
 {
 	if ( m_pSearch == NULL ) m_pSearch = new CManagedSearch();
 	CQuerySearch* pSearch = m_pSearch->m_pSearch.get();
 	
-	pSearch->m_bAndG1 = Settings.Gnutella1.EnableToday;
+	m_pSearch->m_bAllowG1 = Settings.Gnutella1.EnableToday && bG1;
+	m_pSearch->m_bAllowG2 = Settings.Gnutella2.EnableToday && bG2;
+
+	pSearch->m_bAndG1 = m_pSearch->m_bAllowG1;
 
 	if ( pSearch->m_bAndG1 )
 	{
@@ -198,7 +210,7 @@ void CDownloadWithSearch::PrepareSearch()
 	if ( m_oED2K )
 	{
 		pSearch->m_oED2K = m_oED2K;
-		m_pSearch->m_bAllowED2K = TRUE;
+		m_pSearch->m_bAllowED2K = bED2K && Settings.eDonkey.EnableToday;
 	}
 	else
 	{
