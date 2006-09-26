@@ -574,8 +574,27 @@ void CDiscoveryServices::AddDefaults()
 	{
 		theApp.Message( MSG_ERROR, _T("Default discovery service load failed- using application defined list.") );
 		CString strServices;
-		strServices.LoadString( IDS_DISCOVERY_DEFAULTS );
-	
+//		strServices.LoadString( IDS_DISCOVERY_DEFAULTS );
+
+
+
+		HMODULE hModule = GetModuleHandle( NULL );
+		HRSRC hRes = FindResource( hModule, MAKEINTRESOURCE( IDR_DEFAULTSERVICES ), _T("FILE") );
+
+		if ( hRes == NULL ) return;
+
+		DWORD nSize			= SizeofResource( hModule, hRes );
+		HGLOBAL hMemory		= ::LoadResource( hModule, hRes );
+		LPTSTR pszOutput	= strServices.GetBuffer( nSize + 1 );
+		LPCSTR pszInput		= (LPCSTR)LockResource( hMemory );
+
+		while ( nSize-- ) *pszOutput++ = *pszInput++;
+		*pszOutput++ = 0;
+
+		strServices.ReleaseBuffer();
+
+
+
 		for ( strServices += '\n' ; strServices.GetLength() ; )
 		{
 			CString strService = strServices.SpanExcluding( _T("\r\n") );
@@ -583,10 +602,29 @@ void CDiscoveryServices::AddDefaults()
 		
 			if ( strService.GetLength() > 0 )
 			{
-				if ( _tcsistr( strService, _T("server.met") ) == NULL )
-					Add( strService, CDiscoveryService::dsWebCache );
-				else
-					Add( strService, CDiscoveryService::dsServerMet, PROTOCOL_ED2K );
+				TCHAR cType;
+				cType = strService.GetAt( 0 );
+				strService = strService.Right( strService.GetLength() - 2 );
+
+				switch( cType )
+				{
+				case '1': Add( strService, CDiscoveryService::dsWebCache, PROTOCOL_G1 );	// G1 service
+					break;
+				case '2': Add( strService, CDiscoveryService::dsWebCache, PROTOCOL_G2 );	// G2 service
+					break;
+				case 'M': Add( strService, CDiscoveryService::dsWebCache );					// Multinetwork service
+					break;
+				case 'D': Add( strService, CDiscoveryService::dsServerMet, PROTOCOL_ED2K );	// eDonkey service
+					break;
+				case 'X': Add( strService, CDiscoveryService::dsBlocked );					// Blocked service
+					break;
+				case '#':																	// Comment line
+					break;
+				}
+				//if ( _tcsistr( strService, _T("server.met") ) == NULL )
+				//	Add( strService, CDiscoveryService::dsWebCache );
+				//else
+				//	Add( strService, CDiscoveryService::dsServerMet, PROTOCOL_ED2K );
 			}
 		}
 	}
