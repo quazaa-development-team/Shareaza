@@ -177,6 +177,7 @@
 #define IDD_DOWNLOADEDITPAGE_GENERAL    280
 #define IDD_DOWNLOADEDITPAGE_HASHES     281
 #define IDD_DOWNLOADEDITPAGE_ACTIONS    282
+#define IDR_DEFAULTSERVICES             284
 #define IDC_CONNECT_HOST                1000
 #define IDC_CONNECT_PORT                1001
 #define IDC_SCHEMAS                     1002
@@ -1715,7 +1716,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
-#define _APS_NEXT_RESOURCE_VALUE        284
+#define _APS_NEXT_RESOURCE_VALUE        286
 #define _APS_NEXT_COMMAND_VALUE         33137
 #define _APS_NEXT_CONTROL_VALUE         1436
 #define _APS_NEXT_SYMED_VALUE           104
