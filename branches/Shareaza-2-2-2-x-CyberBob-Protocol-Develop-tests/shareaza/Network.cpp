@@ -1035,9 +1035,10 @@ BOOL CNetwork::RoutePacket(CG2Packet* pPacket)
 			if ( pOrigin->m_nProtocol == PROTOCOL_G1 &&
 				 pPacket->IsType( G2_PACKET_PUSH ) )
 			{
-				CG1Neighbour* pG1 = (CG1Neighbour*)pOrigin;
-				pPacket->SkipCompound();
-				pG1->SendG2Push( oGUID, pPacket );
+				//CG1Neighbour* pG1 = (CG1Neighbour*)pOrigin;
+				//pPacket->SkipCompound();
+				//pG1->SendG2Push( oGUID, pPacket );
+				return TRUE;
 			}
 			else
 			{
@@ -1088,7 +1089,7 @@ BOOL CNetwork::RouteHits(CQueryHit* pHits, CPacket* pPacket)
 	
 	if ( ! QueryRoute->Lookup( pHits->m_oSearchID, &pOrigin, &pEndpoint ) ) return FALSE;
 	
-	BOOL bWrapped = FALSE;
+	//BOOL bWrapped = FALSE;
 	
 	if ( pPacket->m_nProtocol == PROTOCOL_G1 )
 	{
@@ -1107,12 +1108,12 @@ BOOL CNetwork::RouteHits(CQueryHit* pHits, CPacket* pPacket)
 		}
 		else if ( pG2->IsType( G2_PACKET_HIT_WRAP ) )
 		{
-			if ( ! pG2->SeekToWrapped() ) return FALSE;
-			GNUTELLAPACKET* pG1 = (GNUTELLAPACKET*)( pPacket->m_pBuffer + pPacket->m_nPosition );
-			if ( pG1->m_nTTL == 0 ) return FALSE;
-			pG1->m_nTTL --;
-			pG1->m_nHops ++;
-			bWrapped = TRUE;
+			//if ( ! pG2->SeekToWrapped() ) return FALSE;
+			//GNUTELLAPACKET* pG1 = (GNUTELLAPACKET*)( pPacket->m_pBuffer + pPacket->m_nPosition );
+			//if ( pG1->m_nTTL == 0 ) return FALSE;
+			//pG1->m_nTTL --;
+			//pG1->m_nHops ++;
+			//bWrapped = TRUE;
 		}
 	}
 	
@@ -1124,14 +1125,14 @@ BOOL CNetwork::RouteHits(CQueryHit* pHits, CPacket* pPacket)
 		}
 		else if ( pOrigin->m_nProtocol == PROTOCOL_G1 && pPacket->m_nProtocol == PROTOCOL_G2 )
 		{
-			if ( ! bWrapped ) return FALSE;
-			pPacket = CG1Packet::New( (GNUTELLAPACKET*)( pPacket->m_pBuffer + pPacket->m_nPosition ) );
-			pOrigin->Send( pPacket, TRUE, TRUE );
+			//if ( ! bWrapped ) return FALSE;
+			//pPacket = CG1Packet::New( (GNUTELLAPACKET*)( pPacket->m_pBuffer + pPacket->m_nPosition ) );
+			//pOrigin->Send( pPacket, TRUE, TRUE );
 		}
 		else if ( pOrigin->m_nProtocol == PROTOCOL_G2 && pPacket->m_nProtocol == PROTOCOL_G1 )
 		{
-			pPacket = CG2Packet::New( G2_PACKET_HIT_WRAP, (CG1Packet*)pPacket );
-			pOrigin->Send( pPacket, TRUE, FALSE );	// Don't buffer
+			//pPacket = CG2Packet::New( G2_PACKET_HIT_WRAP, (CG1Packet*)pPacket );
+			//pOrigin->Send( pPacket, TRUE, FALSE );	// Don't buffer
 		}
 		else
 		{
@@ -1147,8 +1148,8 @@ BOOL CNetwork::RouteHits(CQueryHit* pHits, CPacket* pPacket)
 	else
 	{
 		if ( pEndpoint.sin_addr.S_un.S_addr == Network.m_pHost.sin_addr.S_un.S_addr ) return FALSE;
-		pPacket = CG2Packet::New( G2_PACKET_HIT_WRAP, (CG1Packet*)pPacket );
-		Datagrams.Send( &pEndpoint, (CG2Packet*)pPacket, TRUE );
+		//pPacket = CG2Packet::New( G2_PACKET_HIT_WRAP, (CG1Packet*)pPacket );
+		//Datagrams.Send( &pEndpoint, (CG2Packet*)pPacket, TRUE );
 	}
 	
 	if ( pPacket->m_nProtocol == PROTOCOL_G1 )
