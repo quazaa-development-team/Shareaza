@@ -396,15 +396,15 @@ BOOL CLibraryDictionary::BuildHashTable()
 			//Add the keywords to the table
 			m_pTable->AddString( strWord );
 
-			CString str;
-			str.Format( _T("Word Added: %s"), strWord );
-			theApp.Message( MSG_DEFAULT, str );
+			//CString str;
+			//str.Format( _T("Word Added: %s"), strWord );
+			//theApp.Message( MSG_DEFAULT, str );
 		}
 		else
 		{
-			CString str;
-			str.Format( _T("Word not added: %s"), strWord );
-			theApp.Message( MSG_DEFAULT, str );
+			//CString str;
+			//str.Format( _T("Word not added: %s"), strWord );
+			//theApp.Message( MSG_DEFAULT, str );
 
 		}
 	}
@@ -435,15 +435,15 @@ BOOL CLibraryDictionary::BuildHashTable()
 				m_pTable->AddExactString( pFile->m_oMD5.toUrn() );
 			}
 
-			CString str;
-			str.Format( _T("File added: %s"), pFile->m_sName );
-			theApp.Message( MSG_DEFAULT, str );
+			//CString str;
+			//str.Format( _T("File added: %s"), pFile->m_sName );
+			//theApp.Message( MSG_DEFAULT, str );
 		}
 		else
 		{
-			CString str;
-			str.Format( _T("File not added: %s"), pFile->m_sName );
-			theApp.Message( MSG_DEFAULT, str );
+			//CString str;
+			//str.Format( _T("File not added: %s"), pFile->m_sName );
+			//theApp.Message( MSG_DEFAULT, str );
 
 		}
 	}
