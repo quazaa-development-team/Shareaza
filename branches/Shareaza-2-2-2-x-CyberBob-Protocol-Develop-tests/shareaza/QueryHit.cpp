@@ -53,7 +53,7 @@ static char THIS_FILE[]=__FILE__;
 // CQueryHit construction
 
 CQueryHit::CQueryHit(PROTOCOLID nProtocol, const Hashes::Guid& oSearchID) :
-	m_sPreview("")
+	m_sPreview(""), m_oSHA1(), m_oTiger(), m_oED2K(), m_oMD5(), m_oBTH()
 {
 	m_pNext = NULL;
 	

@@ -250,14 +250,17 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		}
 	}
 	else if (	strHeader.CompareNoCase( _T("X-Gnutella-Content-URN") ) == 0 ||
-				strHeader.CompareNoCase( _T("X-Content-URN") ) == 0 ||
 				strHeader.CompareNoCase( _T("Content-URN") ) == 0 )
 	{
 		HashesFromURN( strValue );
 		m_nGnutella |= 1;
 	}
+	else if ( strHeader.CompareNoCase( _T("X-Content-URN") ) == 0 )
+	{
+		HashesFromURN( strValue );
+		m_nGnutella |= 2;
+	}
 	else if (	strHeader.CompareNoCase( _T("X-Gnutella-Alternate-Location") ) == 0 ||
-				strHeader.CompareNoCase( _T("Alt-Location") ) == 0 ||
 				strHeader.CompareNoCase( _T("X-Alt") ) == 0 )
 	{
 		if ( Settings.Library.SourceMesh )
@@ -265,6 +268,14 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 			if ( strValue.Find( _T("Zhttp://") ) < 0 ) m_sLocations = strValue;
 		}
 		m_nGnutella |= 1;
+	}
+	else if ( strHeader.CompareNoCase( _T("Alt-Location") ) == 0 )
+	{
+		if ( Settings.Library.SourceMesh )
+		{
+			if ( strValue.Find( _T("Zhttp://") ) < 0 ) m_sLocations = strValue;
+		}
+		m_nGnutella |= 2;
 	}
 	else if ( strHeader.CompareNoCase( _T("X-NAlt") ) == 0 )
 	{
@@ -287,6 +298,7 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 	else if ( strHeader.CompareNoCase( _T("X-Node") ) == 0 )
 	{
 		m_bNotShareaza = TRUE; // Shareaza doesn't send this header
+		m_nGnutella |= 1;
 	}
 	else if ( strHeader.CompareNoCase( _T("X-Queue") ) == 0 )
 	{
@@ -665,13 +677,13 @@ BOOL CUploadTransferHTTP::IsNetworkDisabled()
 {
 	if ( Settings.Connection.RequireForTransfers == FALSE ) return FALSE;
 	
-	if ( m_nGnutella > 2 )
+	if ( m_nGnutella & 2 )
 	{
-		if ( ! Settings.Gnutella2.EnableToday ) return TRUE;
+		if ( Settings.Gnutella2.EnableToday ) return FALSE;
 	}
-	else if ( m_nGnutella == 1 )
+	else if ( m_nGnutella & 1 )
 	{
-		if ( ! Settings.Gnutella1.EnableToday ) return TRUE;
+		if ( Settings.Gnutella1.EnableToday ) return FALSE;
 	}
 	else
 	{

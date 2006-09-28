@@ -51,7 +51,8 @@ public:
 	CDownloadSource(CDownload* pDownload, CQueryHit* pHit);
 	CDownloadSource(CDownload* pDownload, DWORD nClientID, WORD nClientPort, DWORD nServerIP, WORD nServerPort, const Hashes::Guid& oGUID);
     CDownloadSource(CDownload* pDownload, const Hashes::BtGuid& oGUID, IN_ADDR* pAddress, WORD nPort);
-	CDownloadSource(CDownload* pDownload, LPCTSTR pszURL, BOOL bSHA1 = FALSE, BOOL bHashAuth = FALSE, FILETIME* pLastSeen = NULL, int nRedirectionCount = 0);
+	CDownloadSource(CDownload* pDownload, LPCTSTR pszURL, BOOL bSHA1 = FALSE, BOOL bHashAuth = FALSE, FILETIME* pLastSeen = NULL,
+					int nRedirectionCount = 0, PROTOCOLID nProtocol = PROTOCOL_HTTP);
 	virtual ~CDownloadSource();
 private:
 	inline void Construct(CDownload* pDownload);

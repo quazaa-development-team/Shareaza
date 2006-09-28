@@ -528,7 +528,7 @@ BOOL CDownloadTransferHTTP::SendRequest()
 			strURN = m_pDownload->m_oMD5.toUrn();
 		}
 
-		if ( m_pDownload->IsShared() && m_pDownload->IsStarted() && Network.IsStable() && !Network.IsFirewalled() )
+		if ( m_pDownload->IsShared() && m_pDownload->IsStarted() && Network.IsStable() && !Network.IsFirewalled() && m_nRequests > 0)
 		{
 			if ( strURN.GetLength() )
 			{
@@ -585,6 +585,16 @@ BOOL CDownloadTransferHTTP::SendRequest()
 				if ( strLine.GetLength() )
 				{
 					m_pOutput->Print( "X-NAlt: " + strLine );
+					m_pOutput->Print( _T("\r\n") );
+				}
+			}
+
+			if ( m_pSource->m_nGnutella >= 2 )
+			{
+				strLine = m_pDownload->GetTopFailedSources( 15, PROTOCOL_G2 );
+				if ( strLine.GetLength() )
+				{
+					m_pOutput->Print( "X-G2NAlt: " + strLine );
 					m_pOutput->Print( _T("\r\n") );
 				}
 			}
@@ -1025,18 +1035,45 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		}
 		m_pSource->SetGnutella( 1 );
 	}
-	else if (	strHeader.CompareNoCase( _T("X-Gnutella-Alternate-Location") ) == 0 ||
-				strHeader.CompareNoCase( _T("Alt-Location") ) == 0 ||
-				strHeader.CompareNoCase( _T("X-Alt") ) == 0 )
+	else if (	strHeader.CompareNoCase( _T("X-Gnutella-Alternate-Location") ) == 0 )
 	{
 		if ( Settings.Library.SourceMesh )
 		{
 			if ( strValue.Find( _T("Zhttp://") ) < 0 )
 			{
-				m_pDownload->AddSourceURLs( strValue, m_bHashMatch );
+				m_pDownload->AddSourceURLs( strValue, m_bHashMatch, FALSE, PROTOCOL_HTTP );
 			}
 		}
 		m_pSource->SetGnutella( 1 );
+	}
+	else if ( strHeader.CompareNoCase( _T("X-Alt") ) == 0 )
+	{
+		if ( Settings.Library.SourceMesh )
+		{
+			m_pDownload->AddSourceURLs( strValue, m_bHashMatch, FALSE, PROTOCOL_G1 );
+		}
+		m_pSource->SetGnutella( 1 );
+	}
+	else if (	strHeader.CompareNoCase( _T("Alt-Location") ) == 0 )
+	{
+		if ( Settings.Library.SourceMesh )
+		{
+			if ( strValue.Find( _T("Zhttp://") ) < 0 )
+			{
+				m_pDownload->AddSourceURLs( strValue, m_bHashMatch,  FALSE, PROTOCOL_HTTP );
+			}
+		}
+		m_pSource->SetGnutella( 2 );	// basically any of Gnutella1 servents do not use this "Alt-Location" so assume
+										// it is G2 for now.
+	}
+	else if (	strHeader.CompareNoCase( _T("X-G2Alt") ) == 0 )
+	{
+		if ( Settings.Library.SourceMesh )
+		{
+			m_pDownload->AddSourceURLs( strValue, m_bHashMatch,  FALSE, PROTOCOL_G2 );
+		}
+		m_pSource->SetGnutella( 2 );	// basically any of Gnutella1 servents do not use this "Alt-Location" so assume
+		// it is G2 for now.
 	}
 	else if ( strHeader.CompareNoCase( _T("X-Available-Ranges") ) == 0 )
 	{

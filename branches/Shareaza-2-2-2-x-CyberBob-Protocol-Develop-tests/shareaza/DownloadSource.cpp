@@ -240,7 +240,8 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, const Hashes::BtGuid& oGU
 //////////////////////////////////////////////////////////////////////
 // CDownloadSource construction from URL
 
-CDownloadSource::CDownloadSource(CDownload* pDownload, LPCTSTR pszURL, BOOL /*bSHA1*/, BOOL bHashAuth, FILETIME* pLastSeen, int nRedirectionCount)
+CDownloadSource::CDownloadSource(CDownload* pDownload, LPCTSTR pszURL, BOOL /*bSHA1*/, BOOL bHashAuth, FILETIME* pLastSeen, int nRedirectionCount,
+								 PROTOCOLID nProtocol)
 : m_oAvailable( pDownload->m_nSize ), m_oPastFragments( pDownload->m_nSize )
 {
 	Construct( pDownload );
@@ -265,6 +266,10 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, LPCTSTR pszURL, BOOL /*bS
 	m_bCloseConn	= FALSE;
 	m_bReConnect	= FALSE;			// No Initial Reconnect setting
 	m_nPushAttempted	= 0;
+	if ( nProtocol == PROTOCOL_G1 || nProtocol == PROTOCOL_G2 )
+	{
+		m_nProtocol		= nProtocol;
+	}
 	m_nBusyCount	= 0;
 }
 
