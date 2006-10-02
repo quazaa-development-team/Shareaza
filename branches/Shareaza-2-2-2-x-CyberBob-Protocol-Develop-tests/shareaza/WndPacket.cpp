@@ -432,7 +432,7 @@ void CPacketWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 
 		if ( GetAsyncKeyState( VK_SHIFT ) & 0x8000 )
 		{
-			for ( int nType = 0 ; nType < 16 ; nType++ )
+			for ( int nType = 0 ; nType < 19 ; nType++ )
 			{
 				m_bTypeG2[ nType ] = ( nCmd == (UINT)nType ) ? TRUE : FALSE;
 			}
