@@ -592,7 +592,7 @@
 #define IDC_ROTATE_TIME_SPIN            1308
 #define IDC_MARKED_CHECK                1309
 #define IDC_BANDWIDTH_VALUE             1310
-#define IDC_PARTIAL_ENABLE              1311
+#define IDC_QUEUE_PARTIALONLY           1311
 #define IDC_TRANSFERS_MAX               1312
 #define IDC_TRANSFERS_MAX_SPIN          1313
 #define IDC_BANDWIDTH_SLIDER            1314
@@ -720,6 +720,8 @@
 #define IDC_IRC_COLOR_BG                1450
 #define IDC_IRC_COLOR_TEXT              1451
 #define IDC_IRC_COLOR_SERVER5           1452
+#define IDC_QUEUE_LIBRARYONLY           1490
+#define IDC_QUEUE_BOTH                  1491
 #define IDC_FILTERS                     1500
 #define IDC_SAVE_FILTER                 1501
 #define IDC_SET_DEFAULT_FILTER          1502
@@ -883,12 +885,6 @@
 #define IDS_TIP_FILE_FIREWALLED         8335
 #define IDS_TIP_FILE_UNSTABLE           8336
 #define IDS_TIP_UNTRUSTED               8337
-#define IDS_PROPERTY_PAGE_GENERAL       9000
-#define IDS_PROPERTY_PAGE_METADATA      9001
-#define IDS_PROPERTY_PAGE_REVIEW        9002
-#define IDS_PROPERTY_PAGE_COMMENTS      9002
-#define IDS_PROPERTY_PAGE_SHARING       9003
-#define IDS_PROPERTY_PAGE_SOURCES       9004
 #define IDR_HTML_ABOUT                  12001
 #define IDR_HTML_FILENOTFOUND           12002
 #define IDR_HTML_HASHMISMATCH           12003
@@ -1088,6 +1084,7 @@
 #define IDS_UPLOAD_QUEUE_COMPLETE       16376
 #define IDS_UPLOAD_QUEUE_HTTP_GUARD     16377
 #define IDS_DOWNLOAD_416_WITHOUT_RANGE  16378
+#define IDS_UPLOAD_QUEUE_LIBRARY        16379
 #define IDS_LIBRARY_CONFIRM_EXECUTE     16384
 #define IDS_LIBRARY_METADATA_MANY       16385
 #define IDS_LIBRARY_METADATA_EDIT       16386
@@ -1184,6 +1181,7 @@
 #define IDS_WIZARD_UPNP_SETUP           16812
 #define IDS_WIZARD_DISCOVERY            16813
 #define IDS_WIZARD_ED2K                 16814
+#define IDS_UPNP_SERVICES_ERROR         16815
 #define IDS_SETTINGS_WARN_QUEUELIMIT    16816
 #define IDS_SETTINGS_FILEPATH_TOO_LONG  16817
 #define IDS_SETTINGS_FILEPATH_NOT_SAME  16818
@@ -1375,6 +1373,8 @@
 #define IDS_GENERAL_AUTO                20007
 #define IDS_GENERAL_DEFAULT             20008
 #define IDS_GENERAL_CUSTOM              20009
+#define IDS_GENERAL_BACK                20010
+#define IDS_GENERAL_NEXT                20011
 #define IDS_STATUS_CONNECTING           20100
 #define IDS_STATUS_REQUESTING           20101
 #define IDS_STATUS_RESPONSE             20102
