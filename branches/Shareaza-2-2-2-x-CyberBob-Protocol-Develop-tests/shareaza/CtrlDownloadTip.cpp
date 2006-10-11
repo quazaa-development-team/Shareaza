@@ -30,6 +30,8 @@
 #include "DownloadSource.h"
 #include "DownloadTransfer.h"
 #include "DownloadTransferBT.h"
+#include "DownloadTransferED2K.h"
+#include "EDClient.h"
 #include "FragmentedFile.h"
 #include "FragmentBar.h"
 #include "Skin.h"
@@ -641,17 +643,33 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 //	CDownload* pDownload = pSource->m_pDownload;
 
 	if ( pSource->m_sNick.GetLength() > 0 )
-		m_sName = pSource->m_sNick + _T(" (") + inet_ntoa( pSource->m_pAddress ) + ')';
+	{
+		m_sName = pSource->m_sNick;
+		if ( ( pSource->m_nProtocol == PROTOCOL_ED2K ) && ( pSource->m_bPushOnly == TRUE ) )
+		{
+			m_sName.AppendFormat( _T(" (%lu@%s:%u)"), pSource->m_pAddress.S_un.S_addr, 
+				(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+		}
+		else if ( pSource->m_bPushOnly )
+		{
+			m_sName.AppendFormat( _T(" (%s)"), (LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pAddress ) ) );
+		}
+		else
+		{
+			m_sName.AppendFormat( _T(" (%s:%u)"), (LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pAddress ) ), pSource->m_nPort );
+		}
+	}
 	else
 	{
 		if ( ( pSource->m_nProtocol == PROTOCOL_ED2K ) && ( pSource->m_bPushOnly == TRUE ) )
 		{
-			m_sName.Format( _T("%lu@%s"), (DWORD)pSource->m_pAddress.S_un.S_addr,
-				(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ) );
+			m_sName.Format( _T("%lu@%s:%u"), (DWORD)pSource->m_pAddress.S_un.S_addr,
+				(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
 		}
 		else
 		{
 			m_sName = inet_ntoa( pSource->m_pAddress );
+			m_sName.AppendFormat( _T(":%u"), pSource->m_nPort );
 		}
 	}
 
@@ -694,7 +712,7 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 	m_sz.cy += TIP_TEXTHEIGHT + TIP_RULE;
 
 	AddSize( pDC, m_sURL, 80 );
-	m_sz.cy += TIP_TEXTHEIGHT * 4;
+	m_sz.cy += TIP_TEXTHEIGHT * 6;
 
 	m_sz.cy += TIP_GAP;
 	m_sz.cy += TIP_TEXTHEIGHT;
@@ -780,6 +798,76 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownloadSource* pSource)
 	DrawText( pDC, &pt, strText );
 	DrawText( pDC, &pt, pSource->m_sServer, 80 );
 	pt.y += TIP_TEXTHEIGHT;
+
+	strText = "Connection:";
+	DrawText( pDC, &pt, strText );
+	if ( pSource->m_pTransfer )
+	{
+		switch( pSource->m_nProtocol )
+		{
+			case PROTOCOL_HTTP:
+			case PROTOCOL_G1:
+			case PROTOCOL_G2:
+				if ( !pSource->m_pTransfer->m_bConnected )
+					DrawText( pDC, &pt, _T("Not Connected"), 80 );
+				else if ( pSource->m_pTransfer->m_bInitiated )
+					DrawText( pDC, &pt, _T("Locally Initiated"), 80 );
+				else
+					DrawText( pDC, &pt, _T("Remotely Initiated"), 80 );
+				break;
+
+			case PROTOCOL_ED2K:
+				{
+					CDownloadTransferED2K* pTransfer = dynamic_cast<CDownloadTransferED2K*>(pSource->m_pTransfer);
+					if ( pTransfer != NULL && pTransfer->m_pClient != NULL && pTransfer->m_pClient->m_bConnected )
+					{
+						if ( pTransfer->m_pClient->m_bInitiated )
+							DrawText( pDC, &pt, _T("Locally Initiated"), 80 );
+						else
+							DrawText( pDC, &pt, _T("Remotely Initiated"), 80 );
+					}
+					else
+						DrawText( pDC, &pt, _T("Not connected"), 80 );
+				}
+				break;
+
+			case PROTOCOL_BT:
+				DrawText( pDC, &pt, _T("Unknown"), 80 );
+				break;
+			default:
+				DrawText( pDC, &pt, _T("Unknown"), 80 );
+				break;
+		}
+	}
+	else
+	{
+		DrawText( pDC, &pt, _T("Not connected"), 80 );
+	}
+	pt.y += TIP_TEXTHEIGHT;
+
+
+	strText = "GUID:";
+	DrawText( pDC, &pt, strText );
+
+	if (pSource->m_oGUID.isValid())
+	{
+		Hashes::Guid oID( pSource->m_oGUID );
+		// Compose the X-MyGUID string, which is like "X-MyGUID: " with two newlines at the end (do)
+		// MFC's CString::Format is like sprintf, "%.2X" formats a byte into 2 hexidecimal characters like "ff"
+		strText.Format(	_T("%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X"),
+			int( oID[0] ),  int( oID[1] ),  int( oID[2] ),  int( oID[3] ),		// Our GUID
+			int( oID[4] ),  int( oID[5] ),  int( oID[6] ),  int( oID[7] ),
+			int( oID[8] ),  int( oID[9] ),  int( oID[10] ), int( oID[11] ),
+			int( oID[12] ), int( oID[13] ), int( oID[14] ), int( oID[15] ) );
+	}
+	else
+	{
+		strText = _T("Invalid GUID");
+	}
+
+	DrawText( pDC, &pt, strText, 80 );
+	pt.y += TIP_TEXTHEIGHT;
+
 
 	pt.y += TIP_GAP;
 
