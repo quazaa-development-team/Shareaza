@@ -323,7 +323,7 @@ void CSettings::Setup()
 	Add( _T("eDonkey.SendPortServer"), &eDonkey.SendPortServer, TRUE );
 	Add( _T("eDonkey.MagnetSearch"), &eDonkey.MagnetSearch, TRUE );
 	Add( _T("eDonkey.MinServerFileSize"), &eDonkey.MinServerFileSize, 0 );
-	Add( _T("eDonkey.DefaultServerFlags"), &eDonkey.DefaultServerFlags, 0xFFFFFFFF );	
+	Add( _T("eDonkey.DefaultServerFlags"), &eDonkey.DefaultServerFlags, 0xFFFFFFFF );
 	Add( _T("eDonkey.Endgame"), &eDonkey.Endgame, TRUE );
 	Add( _T("eDonkey.LargeFileSupport"), &eDonkey.LargeFileSupport, FALSE );
 	Add( _T("eDonkey.ServerCacheCount"), &eDonkey.ServerCacheSize, 128 );
@@ -563,7 +563,7 @@ void CSettings::Load()
 
 	// Reset certain network variables if bandwidth is too low
 	// Set ed2k and G1
-	if ( GetOutgoingBandwidth() < 2 ) 
+	if ( GetOutgoingBandwidth() < 2 )
 	{
 		eDonkey.EnableToday		= FALSE;
 		eDonkey.EnableAlways	= FALSE;
@@ -646,7 +646,7 @@ void CSettings::SmartUpgrade()
 		CTime tNextCheck = CTime::GetCurrentTime() + tPeriod;
 		theApp.WriteProfileInt( _T("VersionCheck"), _T("NextCheck"), (DWORD)tNextCheck.GetTime() );
 	}
-*/	
+*/
 	// Add OGG handling if needed
 	if ( ( nVersion < SMART_VERSION || Live.FirstRun ) &&
 		_tcsistr( MediaPlayer.FileTypes, _T("|ogg|") ) == NULL )
@@ -728,7 +728,7 @@ void CSettings::SmartUpgrade()
 
 	if ( nVersion < 29 )
 	{
-		Downloads.MinSources	= 1;		// Lower Max value- should reset it in case  
+		Downloads.MinSources	= 1;		// Lower Max value- should reset it in case
 		Downloads.StarveTimeout = 2700;		// Increased due to ed2k queues (Tripping too often)
 		
 		Gnutella.MaxResults		= 100;		// No longer includes ed2k max files
@@ -738,7 +738,7 @@ void CSettings::SmartUpgrade()
 
 	if ( nVersion < 30 )
 	{
-		BitTorrent.RequestSize	= 16384;	// Other BT clients have changed this value (undocumented) 
+		BitTorrent.RequestSize	= 16384;	// Other BT clients have changed this value (undocumented)
 	}
 
 	if ( nVersion < 31 )
@@ -1172,7 +1172,7 @@ CString CSettings::ExactVolume(QWORD nVolume, BOOL bForceEnabled){
 }
 
 //////////////////////////////////////////////////////////////////////
-// CSettings::CheckBandwidth 
+// CSettings::CheckBandwidth
 
 DWORD CSettings::GetOutgoingBandwidth()
 {	// This returns the available (Affected by limit) outgoing bandwidth in KB/s
