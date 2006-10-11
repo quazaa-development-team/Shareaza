@@ -160,8 +160,6 @@ public:
 	CHostCacheList	Gnutella1;
 	CHostCacheList	Gnutella2;
 	CHostCacheList	eDonkey;
-	// there is no point holding it so removing it
-	//CHostCacheList	G1DNA;
 	CList< CHostCacheList* > m_pList;
 
 // Operations

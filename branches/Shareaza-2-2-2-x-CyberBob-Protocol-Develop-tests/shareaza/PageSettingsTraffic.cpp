@@ -141,6 +141,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Gnutella1.QuerySearchUTF8, 1, 0, 1 );
 	AddSetting( &Settings.Gnutella1.QueryHitUTF8, 1, 0, 1 );
 	AddSetting( &Settings.Gnutella1.MaxHostsInPongs, 1, 5, 30 );
+	AddSetting( &Settings.Gnutella1.HostCacheSize, 1, 32, 16384 );
 
 	AddSetting( &Settings.Gnutella2.EnableAlways, 1, 0, 1 );
 	AddSetting( &Settings.Gnutella2.PingRelayLimit, 1, 10, 30);
@@ -163,6 +164,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Gnutella2.RequeryDelay, 60*60, 1, 24, _T(" h") );
 	AddSetting( &Settings.Gnutella2.HubHorizonSize, 1, 32, 512 );
 	AddSetting( &Settings.Gnutella2.QueryLimit, 1, 0, 10000 );
+	AddSetting( &Settings.Gnutella2.HostCacheSize, 1, 32, 16384 );
 
 	AddSetting( &Settings.eDonkey.FastConnect, 1, 0, 1 );
 	AddSetting( &Settings.eDonkey.ForceHighID, 1, 0, 1 );
@@ -189,7 +191,8 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.eDonkey.MinServerFileSize, 1, 0, 50, _T(" MB") );
 	AddSetting( &Settings.eDonkey.TagNames, 1, 0, 1 );
 	AddSetting( &Settings.eDonkey.Endgame, 1, 0, 1 );
-	
+	AddSetting( &Settings.eDonkey.ServerCacheSize, 1, 32, 16384 );
+
 	AddSetting( &Settings.BitTorrent.DefaultTrackerPeriod, 60000, 5, 120, _T(" m") );
 	AddSetting( &Settings.BitTorrent.MaxTrackerRetry, 1, 1, 8 );
 	AddSetting( &Settings.BitTorrent.TorrentCodePage, 1, 0, 9999999 );

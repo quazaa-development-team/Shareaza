@@ -262,6 +262,7 @@ void CSettings::Setup()
 	Add( _T("Gnutella1.QuerySearchUTF8"), &Gnutella1.QuerySearchUTF8, TRUE );
 	Add( _T("Gnutella1.QueryHitUTF8"), &Gnutella1.QueryHitUTF8, TRUE );
 	Add( _T("Gnutella1.MaxHostsInPongs"), &Settings.Gnutella1.MaxHostsInPongs, 10 );
+	Add( _T("Gnutella1.HostCacheCount"), &Gnutella1.HostCacheSize, 128 );
 
 	Add( _T("Gnutella2.ClientMode"), &Gnutella2.ClientMode, MODE_AUTO );
 	Add( _T("Gnutella2.HubVerified"), &Gnutella2.HubVerified, FALSE );
@@ -289,6 +290,7 @@ void CSettings::Setup()
 	Add( _T("Gnutella2.RequeryDelay"), &Gnutella2.RequeryDelay, 4*60*60 );
 	Add( _T("Gnutella2.HubHorizonSize"), &Gnutella2.HubHorizonSize, 128 );
 	Add( _T("Gnutella2.QueryLimit"), &Gnutella2.QueryLimit, 2400 );
+	Add( _T("Gnutella2.HostCacheCount"), &Gnutella2.HostCacheSize, 1024 );
 	
 	Add( _T("eDonkey.EnableAlways"), &eDonkey.EnableAlways, FALSE );
 	Add( _T("eDonkey.FastConnect"), &eDonkey.FastConnect, TRUE );
@@ -324,6 +326,7 @@ void CSettings::Setup()
 	Add( _T("eDonkey.DefaultServerFlags"), &eDonkey.DefaultServerFlags, 0xFFFFFFFF );	
 	Add( _T("eDonkey.Endgame"), &eDonkey.Endgame, TRUE );
 	Add( _T("eDonkey.LargeFileSupport"), &eDonkey.LargeFileSupport, FALSE );
+	Add( _T("eDonkey.ServerCacheCount"), &eDonkey.ServerCacheSize, 128 );
 	
 	Add( _T("BitTorrent.AdvancedInterface"), &BitTorrent.AdvancedInterface, FALSE );
 	Add( _T("BitTorrent.AdvancedInterfaceSet"), &BitTorrent.AdvancedInterfaceSet, FALSE );

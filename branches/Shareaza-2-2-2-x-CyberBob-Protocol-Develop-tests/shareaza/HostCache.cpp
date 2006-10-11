@@ -50,13 +50,11 @@ CHostCache HostCache;
 
 CHostCache::CHostCache() :
 		Gnutella1( PROTOCOL_G1 ), Gnutella2( PROTOCOL_G2 ),
-		eDonkey( PROTOCOL_ED2K )/*, G1DNA( PROTOCOL_G1 ) */
+		eDonkey( PROTOCOL_ED2K )
 {
 	m_pList.AddTail( &Gnutella1 );
 	m_pList.AddTail( &Gnutella2 );
 	m_pList.AddTail( &eDonkey );
-	// there is no point holding it so removing it
-	//m_pList.AddTail( &G1DNA );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -224,7 +222,21 @@ void CHostCacheList::Clear()
 {
 	if ( m_pBuffer == NULL )
 	{
-		m_nBuffer	= Settings.Gnutella.HostCacheSize;
+		switch( m_nProtocol )
+		{
+			case PROTOCOL_G1:
+				m_nBuffer	= Settings.Gnutella1.HostCacheSize;
+				break;
+			case PROTOCOL_G2:
+				m_nBuffer	= Settings.Gnutella2.HostCacheSize;
+				break;
+			case PROTOCOL_ED2K:
+				m_nBuffer	= Settings.eDonkey.ServerCacheSize;
+				break;
+			default:
+				m_nBuffer	= Settings.Gnutella.HostCacheSize;
+				break;
+		}
 		m_pBuffer	= new CHostCacheHost[ m_nBuffer ];
 	}
 	

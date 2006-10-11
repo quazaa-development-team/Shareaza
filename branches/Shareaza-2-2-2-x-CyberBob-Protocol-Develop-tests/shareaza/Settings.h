@@ -292,6 +292,7 @@ public:
 		BOOL		QueryHitUTF8;				// Use UTF-8 encoding to read Gnutella1 QueryHit packets
 		BOOL		QuerySearchUTF8;			// Use UTF-8 encoding to create Gnutella1 Query packets
 		int			MaxHostsInPongs;			// The number of hosts included in the response of pings having SCP GGEP block
+		DWORD		HostCacheSize;
 	} Gnutella1;
 
 	struct sGnutella2
@@ -323,6 +324,7 @@ public:
 		DWORD		RequeryDelay;
 		DWORD		HubHorizonSize;
 		DWORD		QueryLimit;
+		DWORD		HostCacheSize;
 	} Gnutella2;
 	
 	struct seDonkey
@@ -362,6 +364,7 @@ public:
 		DWORD		DefaultServerFlags;			// Default server flags (for UDP searches)
 		BOOL		Endgame;					// Allow endgame mode when completing downloads. (Download same chunk from multiple sources)
 		BOOL		LargeFileSupport;			// Allow 64 bit file sizes
+		DWORD		ServerCacheSize;
 	} eDonkey;
 	
 	struct sBitTorrent
