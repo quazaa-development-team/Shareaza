@@ -266,6 +266,7 @@ inline bool IsWord(LPCTSTR pszString, size_t nStart, size_t nLength)
 // Client's name
 #define CLIENT_NAME			"Shareaza"
 
+#define CUSTOM_ID_STRING	"(CB)"
 
 // Network ID stuff
 
@@ -280,5 +281,5 @@ inline bool IsWord(LPCTSTR pszString, size_t nStart, size_t nLength)
 // 2 Character BT peer-id code
 // SZ = Raza, AZ = Azerus, etc
 #define BT_ID1				'S'
-#define BT_ID2				'Z'
+#define BT_ID2				'~'
 

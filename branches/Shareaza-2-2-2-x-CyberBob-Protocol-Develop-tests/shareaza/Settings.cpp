@@ -1002,9 +1002,14 @@ void CSettings::SetStartup(BOOL bStartup)
 
 CString CSettings::SmartAgent()
 {
-	CString strAgent = _T( CLIENT_NAME ); 
+	CString strAgent = _T( CLIENT_NAME );
 	strAgent += _T(" ");
 	strAgent += theApp.m_sVersion;
+
+#ifdef CUSTOM_ID_STRING
+	strAgent += _T(" ");
+	strAgent += _T( CUSTOM_ID_STRING );
+#endif // CUSTOM_ID_STRING
 
 	return strAgent;
 }
