@@ -35,18 +35,11 @@ class CRouteCacheItem
 {
 // Attributes
 public:
-	CRouteCacheItem*	m_pNext;
-	DWORD				m_tAdded;
-	Hashes::Guid		m_oGUID;
-	const CNeighbour*	m_pNeighbour;
-	SOCKADDR_IN			m_pEndpoint;
-	DWORD				m_nProtocol;
-	enum
-	{
-		PROTOCOL_G1 = 1,	// Gnutella
-		PROTOCOL_G2 = 2,	// Gnutella2
-		PROTOCOL_MIX = 3	// Gnutella/Gnutela2
-	};
+	CRouteCacheItem*			m_pNext;
+	DWORD						m_tAdded;
+	Hashes::Guid				m_oGUID;
+	const CNeighbour*			m_pNeighbour;
+	SOCKADDR_IN					m_pEndpoint;
 };
 
 

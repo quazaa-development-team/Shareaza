@@ -37,8 +37,8 @@ static char THIS_FILE[]=__FILE__;
 
 #undef HASH_SIZE
 #undef HASH_MASK
-const unsigned HASH_SIZE = 1024u;
-const unsigned HASH_MASK = 0x3FF;
+const unsigned HASH_SIZE = 512u;
+const unsigned HASH_MASK = 0x1FF;
 
 const DWORD MIN_BUFFER_SIZE = 1024u;
 const DWORD MAX_BUFFER_SIZE = 40960u;
@@ -208,7 +208,7 @@ CRouteCacheItem* CRouteCacheTable::RCT_Add(const Hashes::Guid& oGUID, const CNei
 {
 	if ( m_nUsed == m_nBuffer || ! m_pFree ) return NULL;
 	
-	if ( oGUID == NULL ) // There seem to be packets with oGUID == NULL (on heavy load) -> return NULL
+	if ( !oGUID.isValid() ) // There seem to be packets with oGUID == NULL (on heavy load) -> return NULL
 		return NULL;
 	
 	WORD nGUID = 0;
