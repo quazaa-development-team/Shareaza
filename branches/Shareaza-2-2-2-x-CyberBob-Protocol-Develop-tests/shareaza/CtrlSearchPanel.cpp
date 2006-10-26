@@ -67,6 +67,7 @@ BEGIN_MESSAGE_MAP(CSearchAdvancedBox, CTaskBox)
 	ON_BN_CLICKED(IDC_SEARCH_GNUTELLA2, OnG2Clicked)
 	ON_BN_CLICKED(IDC_SEARCH_GNUTELLA1, OnG1Clicked)
 	ON_BN_CLICKED(IDC_SEARCH_EDONKEY, OnED2KClicked)
+	ON_MESSAGE(WM_CTLCOLORSTATIC, OnCtlColorStatic)
 //	ON_BN_CLICKED(IDC_SEARCH_PARTIAL, OnPartialClicked)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
@@ -789,6 +790,7 @@ void CSearchAdvancedBox::OnPaint()
 	}
 	else
 	{
+		// Paints the background behind controls except checkboxes (see OnCtlColorStatic)
 		pDC->SetBkMode( OPAQUE );
 		pDC->SetBkColor( CoolInterface.m_crTaskBoxClient );
 		nFlags |= ETO_OPAQUE;
@@ -797,7 +799,7 @@ void CSearchAdvancedBox::OnPaint()
 	CFont* pOldFont = (CFont*)pDC->SelectObject( &CoolInterface.m_fntNormal );
 	
 	pDC->SetTextColor( 0 );
-	
+
 	LoadString( strControlTitle, IDS_SEARCH_PANEL_INPUT_3 );
 	rct.SetRect( BOX_MARGIN + 1, BOX_MARGIN, rc.right - BOX_MARGIN, BOX_MARGIN + 16 );
 	pDC->ExtTextOut( rct.left, rct.top, nFlags, &rct, strControlTitle, NULL );
@@ -822,8 +824,26 @@ void CSearchAdvancedBox::OnPaint()
 	}
 	else
 	{
+		// Fills the background of the advanced box
 		pDC->FillSolidRect( &rc, CoolInterface.m_crTaskBoxClient );
 	}
+}
+
+LRESULT CSearchAdvancedBox::OnCtlColorStatic(WPARAM wParam, LPARAM /*lParam*/)
+{
+	HBRUSH hbr = NULL;
+	HDC hDCStatic = (HDC)wParam;
+
+	SetBkMode( hDCStatic, TRANSPARENT );
+
+	if ( m_crBack != CoolInterface.m_crTaskBoxClient )
+	{
+		if ( m_brBack.m_hObject ) m_brBack.DeleteObject();
+		m_brBack.CreateSolidBrush( m_crBack = CoolInterface.m_crTaskBoxClient );
+	}
+	hbr = m_brBack;
+
+	return (LRESULT)hbr;
 }
 
 // CSearchAdvancedBox Check Boxes
@@ -1043,3 +1063,4 @@ void CSearchResultsBox::OnExpanded(BOOL bOpen)
 {
 	theApp.WriteProfileInt( _T("Settings"), _T("SearchPanelResults"), bOpen );
 }
+

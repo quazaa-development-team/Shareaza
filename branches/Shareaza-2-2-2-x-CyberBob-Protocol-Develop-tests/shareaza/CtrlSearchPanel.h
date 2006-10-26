@@ -89,6 +89,8 @@ public:
 	CButton			m_wndCheckBoxG1;
 	CButton			m_wndCheckBoxG2;
 	CButton			m_wndCheckBoxED2K;
+	CBrush			m_brBack;
+	COLORREF		m_crBack;
 //	CButton			m_wndCheckBoxpartial;
 	
 // Operations
@@ -110,6 +112,7 @@ protected:
 	afx_msg void OnG1Clicked();
 	afx_msg void OnED2KClicked();
 //	afx_msg void OnPartialClicked();
+	afx_msg LRESULT OnCtlColorStatic(WPARAM, LPARAM);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };
