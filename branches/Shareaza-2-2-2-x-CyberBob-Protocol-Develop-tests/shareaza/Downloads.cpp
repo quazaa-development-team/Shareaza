@@ -715,7 +715,8 @@ CDownload* CDownloads::FindByBitprint(const Hashes::Sha1Hash& oSHA1, const Hashe
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = GetNext( pos );
-		if ( ( !pDownload->m_oSHA1 || validAndEqual( pDownload->m_oSHA1, oSHA1 ) ) && 
+		if ( ( pDownload->m_oSHA1 || pDownload->m_oTiger ) && 
+			( !pDownload->m_oSHA1 || validAndEqual( pDownload->m_oSHA1, oSHA1 ) ) && 
 			( !pDownload->m_oTiger || validAndEqual( pDownload->m_oTiger, oTiger ) ) )
 		{
 			if ( ! bSharedOnly || ( pDownload->IsShared() && pDownload->IsStarted() ) )
