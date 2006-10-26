@@ -647,15 +647,17 @@ CDownload* CDownloads::FindByURN(LPCTSTR pszURN, BOOL bSharedOnly) const
 	{
 		if ( ( pDownload = FindByBitprint( oSHA1, oTiger, bSharedOnly ) ) != NULL ) return pDownload;
 	}
+	else
+	{
+		if ( oSHA1.fromUrn( pszURN ) )
+		{
+			if ( ( pDownload = FindBySHA1( oSHA1, bSharedOnly ) ) != NULL ) return pDownload;
+		}
 
-    if ( oSHA1.fromUrn( pszURN ) )
-	{
-		if ( ( pDownload = FindBySHA1( oSHA1, bSharedOnly ) ) != NULL ) return pDownload;
-	}
-	
-	if ( oTiger.fromUrn( pszURN ) )
-	{
-		if ( ( pDownload = FindByTiger( oTiger, bSharedOnly ) ) != NULL ) return pDownload;
+		if ( oTiger.fromUrn( pszURN ) )
+		{
+			if ( ( pDownload = FindByTiger( oTiger, bSharedOnly ) ) != NULL ) return pDownload;
+		}
 	}
 	
 	if ( oED2K.fromUrn( pszURN ) )
@@ -673,9 +675,13 @@ CDownload* CDownloads::FindByURN(LPCTSTR pszURN, BOOL bSharedOnly) const
 
 CDownload* CDownloads::FindByHash(const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger,
 								  const Hashes::Ed2kHash& oED2K, const Hashes::Md5Hash& oMD5,
-								  const Hashes::BtHash& oBTH, BOOL bSharedOnly) const
+								  const Hashes::BtHash& oBTH, QWORD nMinSize,
+								  QWORD nMaxSize, BOOL bSharedOnly) const
 {
 	if ( !oSHA1 && !oTiger && !oED2K && !oMD5 && !oBTH ) return NULL;
+
+	bool bMinSize = !(nMinSize == SIZE_UNKNOWN) && !(nMinSize == 0);
+	bool bMaxSize = !(nMaxSize == SIZE_UNKNOWN) && !(nMaxSize == 0);
 
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
@@ -692,6 +698,10 @@ CDownload* CDownloads::FindByHash(const Hashes::Sha1Hash& oSHA1, const Hashes::T
 				( !validAndUnequal( pDownload->m_oBTH, oBTH ) ) )
 		{
 			if ( ! bSharedOnly || ( pDownload->IsShared() && pDownload->IsStarted() ) )
+				if ( ( !bMinSize && !bMaxSize ) || 
+					( !bMaxSize && nMinSize <= pDownload->m_nSize ) || 
+					( !bMinSize && nMaxSize >= pDownload->m_nSize ) || 
+					( nMinSize <= pDownload->m_nSize && nMaxSize >= pDownload->m_nSize ) )
 				return pDownload;
 		}
 	}

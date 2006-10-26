@@ -1285,6 +1285,7 @@ BOOL CMatchFile::Add(CQueryHit* pHit, BOOL bForce)
 	CSingleLock pLock1( &Library.m_pSection );
 	BOOL bLocked = FALSE;
 	
+	/*
 	if ( !m_oSHA1 && pHit->m_oSHA1 )
 	{
 		m_oSHA1 = pHit->m_oSHA1;
@@ -1332,6 +1333,24 @@ BOOL CMatchFile::Add(CQueryHit* pHit, BOOL bForce)
 			bLocked = TRUE;
 		}
 	}
+	*/
+
+	// test code which replace above commented out code
+	if ( !m_oSHA1 && pHit->m_oSHA1 ) m_oSHA1 = pHit->m_oSHA1;
+	if ( !m_oTiger && pHit->m_oTiger ) m_oTiger = pHit->m_oTiger;
+	if ( !m_oED2K && pHit->m_oED2K ) m_oED2K = pHit->m_oED2K;
+	if ( !m_oMD5 && pHit->m_oMD5 ) m_oMD5 = pHit->m_oMD5;
+
+	if ( pHit->m_oSHA1 || pHit->m_oTiger || pHit->m_oED2K || pHit->m_oMD5 )
+	{
+		if ( ! m_bExisting && pLock1.Lock( 100 ) )
+		{
+			if ( CLibraryFile* pExisting = LibraryMaps.LookupFileByHash( m_oSHA1, m_oTiger, m_oED2K, m_oMD5, m_nSize, m_nSize ) )
+				m_bExisting = pExisting->IsAvailable() ? 1 : 2;
+			bLocked = TRUE;
+		}
+	}
+	// test code ends here -------------------------------------
 
 	if ( bLocked ) pLock1.Unlock();
 	
@@ -1341,6 +1360,7 @@ BOOL CMatchFile::Add(CQueryHit* pHit, BOOL bForce)
 		
 		if ( pLock2.Lock( 50 ) )
 		{
+			/*
 			if ( m_oSHA1 && Downloads.FindBySHA1( m_oSHA1 ) != NULL )
 			{
 				m_bDownload = TRUE;
@@ -1357,6 +1377,15 @@ BOOL CMatchFile::Add(CQueryHit* pHit, BOOL bForce)
 			{
 				m_bDownload = TRUE;
 			}
+			*/
+
+			// test code which replace above commented out code
+			if ( ( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 )
+				&& Downloads.FindByHash( m_oSHA1, m_oTiger, m_oED2K, m_oMD5, Hashes::BtHash(), m_nSize, m_nSize ) != NULL )
+			{
+				m_bDownload = TRUE;
+			}
+			// test code ends here -------------------------------------
 		}
 	}
 	

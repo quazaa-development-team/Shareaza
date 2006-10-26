@@ -63,7 +63,11 @@ protected:
 	BOOL		m_bTigerTree;
 	BOOL		m_bMetadata;
 	BOOL		m_bHttp11;
-	CString		m_sLocations;
+	CString		m_sAltG1Locations;
+	CString		m_sXAlt;
+	CString		m_sXNAlt;
+	CString		m_sAltLocations;
+	CString		m_sXG2Alt;
 	CString		m_sRanges;
 	Hashes::Guid m_oGUID;
 	HubList		m_oHubList;

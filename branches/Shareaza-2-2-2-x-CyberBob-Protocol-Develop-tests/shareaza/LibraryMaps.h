@@ -61,6 +61,9 @@ public:
 	CLibraryFile*	LookupFileByName(LPCTSTR pszName, BOOL bSharedOnly = FALSE, BOOL bAvailableOnly = FALSE);
 	CLibraryFile*	LookupFileByPath(LPCTSTR pszPath, BOOL bSharedOnly = FALSE, BOOL bAvailableOnly = FALSE);
 	CLibraryFile*	LookupFileByURN(LPCTSTR pszURN, BOOL bSharedOnly = FALSE, BOOL bAvailableOnly = FALSE);
+	CLibraryFile*	LookupFileByHash(const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, const Hashes::Ed2kHash& oED2K,
+								const Hashes::Md5Hash& oMD5, QWORD nMinSize = SIZE_UNKNOWN, QWORD nMaxSize = SIZE_UNKNOWN,
+								BOOL bSharedOnly = FALSE, BOOL bAvailableOnly = FALSE) const;
 	CLibraryFile*	LookupFileByBitprint(const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, BOOL bSharedOnly = FALSE, BOOL bAvailableOnly = FALSE);
 	CLibraryFile*	LookupFileBySHA1(const Hashes::Sha1Hash& oSHA1, BOOL bSharedOnly = FALSE, BOOL bAvailableOnly = FALSE);
 	CLibraryFile*	LookupFileByTiger(const Hashes::TigerHash& oTiger, BOOL bSharedOnly = FALSE, BOOL bAvailableOnly = FALSE);

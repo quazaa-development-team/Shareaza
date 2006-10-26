@@ -529,7 +529,7 @@ void CHandshakes::RunStableUpdate()
 		// If there isn't a record of when we first connected yet, set it to the current time.
 		if ( m_tStableTime == 0 ) m_tStableTime = (DWORD)time( NULL ); // The function time( NULL ) resolves to the number of seconds since 1970
 
-		// Update the discovery services (do)
-		DiscoveryServices.Update();
+		// if Discovery Auto query is not disabled, Update the discovery services (do)
+		if ( !Settings.Discovery.DisableAutoQuery ) DiscoveryServices.Update();
 	}
 }

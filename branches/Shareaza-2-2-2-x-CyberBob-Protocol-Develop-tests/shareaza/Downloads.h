@@ -114,7 +114,8 @@ public:
 	BOOL		Swap(CDownload* p1, CDownload* p2);
 	CDownload*	FindByURN(LPCTSTR pszURN, BOOL bSharedOnly = FALSE) const;
 	CDownload*	FindByHash(const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, const Hashes::Ed2kHash& oED2K,
-							const Hashes::Md5Hash& oMD5, const Hashes::BtHash& oBTH, BOOL bSharedOnly) const;
+							const Hashes::Md5Hash& oMD5, const Hashes::BtHash& oBTH, QWORD nMinSize = SIZE_UNKNOWN,
+							QWORD nMaxSize = SIZE_UNKNOWN, BOOL bSharedOnly = FALSE) const;
 	CDownload*	FindByBitprint(const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, BOOL bSharedOnly = FALSE) const;
     CDownload*	FindBySHA1(const Hashes::Sha1Hash& oSHA1, BOOL bSharedOnly = FALSE) const;
     CDownload*	FindByTiger(const Hashes::TigerHash& oTiger, BOOL bSharedOnly = FALSE) const;
