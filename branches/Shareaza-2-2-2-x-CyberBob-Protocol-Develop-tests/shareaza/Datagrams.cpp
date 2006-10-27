@@ -1258,6 +1258,8 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 	DWORD nAddress = pPacket->ReadLongLE();  // 4 bytes, IP address
 	DWORD nFiles   = pPacket->ReadLongLE();  // 4 bytes, the number of files the source computer is sharing
 	DWORD nVolume  = pPacket->ReadLongLE();  // 4 bytes, the total size of all those files
+	UNUSED_ALWAYS(nFiles);
+	UNUSED_ALWAYS(nVolume);
 
 	CDiscoveryService * pService = DiscoveryServices.GetByAddress( &(pHost->sin_addr) , ntohs(pHost->sin_port), 3 );
 
@@ -1433,6 +1435,8 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 BOOL CDatagrams::OnQuery(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 {
 	//TODO
+	UNUSED_ALWAYS(pHost);
+	UNUSED_ALWAYS(pPacket);
 	return TRUE;
 }
 
@@ -1549,6 +1553,8 @@ BOOL CDatagrams::OnQueryAck(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 BOOL CDatagrams::OnHit(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 {
 	//TODO
+	UNUSED_ALWAYS(pHost);
+	UNUSED_ALWAYS(pPacket);
 	return TRUE;
 }
 
@@ -1882,7 +1888,9 @@ BOOL CDatagrams::OnPush(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 
 BOOL CDatagrams::OnRUDP(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 {
-	// To do: should implement asap, since a lot of request for this.
+	// To do: should implement asap, since a lot of request for this
+	UNUSED_ALWAYS(pHost);
+	UNUSED_ALWAYS(pPacket);
 	return FALSE;
 }
 
@@ -2071,6 +2079,8 @@ BOOL CDatagrams::OnCrawlAnswer(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 BOOL CDatagrams::OnModeChangeReq(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
 	//TODO
+	UNUSED_ALWAYS(pHost);
+	UNUSED_ALWAYS(pPacket);
 	return TRUE;
 }
 
@@ -2078,6 +2088,8 @@ BOOL CDatagrams::OnModeChangeReq(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 BOOL CDatagrams::OnModeChangeAck(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
 	//TODO
+	UNUSED_ALWAYS(pHost);
+	UNUSED_ALWAYS(pPacket);
 	return TRUE;
 }
 
@@ -2085,12 +2097,16 @@ BOOL CDatagrams::OnModeChangeAck(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 BOOL CDatagrams::OnPrivateMessage(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
 	//TODO
+	UNUSED_ALWAYS(pHost);
+	UNUSED_ALWAYS(pPacket);
 	return TRUE;
 }
 
 // little Question, is this needed for UDP?
 BOOL CDatagrams::OnClose(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
+	UNUSED_ALWAYS(pHost);
+	UNUSED_ALWAYS(pPacket);
 	return TRUE;
 }
 
@@ -2297,6 +2313,8 @@ BOOL CDatagrams::OnVendor(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 BOOL CDatagrams::OnCommonQueryHash(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 {
 	//TODO
+	UNUSED_ALWAYS(pHost);
+	UNUSED_ALWAYS(pPacket);
 	return TRUE;
 }
 
@@ -2304,6 +2322,8 @@ BOOL CDatagrams::OnCommonQueryHash(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 BOOL CDatagrams::OnBye(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 {
 	//TODO
+	UNUSED_ALWAYS(pHost);
+	UNUSED_ALWAYS(pPacket);
 	return TRUE;
 }
 
@@ -2404,6 +2424,8 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 // KHLR - KHL(Known Hub List) request, go over UDP packet more like UDPHC for G1.
 BOOL CDatagrams::OnKHLR(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
+	UNUSED_ALWAYS(pPacket);
+
 	if ( Security.IsDenied( &pHost->sin_addr ) || Network.IsFirewalledAddress( (LPVOID*)&pHost->sin_addr, TRUE ) ||
 		Network.IsReserved( &pHost->sin_addr ) ) return FALSE;
 

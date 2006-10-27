@@ -849,38 +849,20 @@ LRESULT CSearchAdvancedBox::OnCtlColorStatic(WPARAM wParam, LPARAM /*lParam*/)
 // CSearchAdvancedBox Check Boxes
 void CSearchAdvancedBox::OnG2Clicked()
 {
-	if (m_wndCheckBoxG2.GetCheck() == BST_CHECKED)
-	{
-		m_wndCheckBoxG2.SetCheck(BST_UNCHECKED);
-	}
-	else
-	{
-		m_wndCheckBoxG2.SetCheck(BST_CHECKED);
-	}
+	CButton* pBox = &m_wndCheckBoxG2;
+	pBox->SetCheck( pBox->GetCheck() == BST_CHECKED ? BST_UNCHECKED : BST_CHECKED );
 }
 
 void CSearchAdvancedBox::OnG1Clicked()
 {
-	if (m_wndCheckBoxG1.GetCheck() == BST_CHECKED)
-	{
-		m_wndCheckBoxG1.SetCheck(BST_UNCHECKED);
-	}
-	else
-	{
-		m_wndCheckBoxG1.SetCheck(BST_CHECKED);
-	}
+	CButton* pBox = &m_wndCheckBoxG1;
+	pBox->SetCheck( pBox->GetCheck() == BST_CHECKED ? BST_UNCHECKED : BST_CHECKED );
 }
 
 void CSearchAdvancedBox::OnED2KClicked()
 {
-	if (m_wndCheckBoxED2K.GetCheck() == BST_CHECKED)
-	{
-		m_wndCheckBoxED2K.SetCheck(BST_UNCHECKED);
-	}
-	else
-	{
-		m_wndCheckBoxED2K.SetCheck(BST_CHECKED);
-	}
+	CButton* pBox = &m_wndCheckBoxED2K;
+	pBox->SetCheck( pBox->GetCheck() == BST_CHECKED ? BST_UNCHECKED : BST_CHECKED );
 }
 
 /////////////////////////////////////////////////////////////////////////////

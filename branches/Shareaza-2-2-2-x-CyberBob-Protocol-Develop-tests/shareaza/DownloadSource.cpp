@@ -686,14 +686,14 @@ BOOL CDownloadSource::PushRequest()
 		}
 		else	// if already had Transfer object, Try cast it to ED2K transfer
 		{
-			CDownloadTransferED2K* pTransfer = dynamic_cast<CDownloadTransferED2K*>(m_pTransfer);
+			CDownloadTransferED2K* pTransfer = reinterpret_cast< CDownloadTransferED2K* >(m_pTransfer);
 		}
 
 		// if source does not have transfer object, can not get EDClient object so skip
 		if ( pTransfer != NULL )
 		{
 			// check if m_pTransfer is CDownloadTransferED2K object or not.
-			CDownloadTransferED2K* pTransfer = dynamic_cast<CDownloadTransferED2K*>(m_pTransfer);
+			CDownloadTransferED2K* pTransfer = reinterpret_cast< CDownloadTransferED2K* >(m_pTransfer);
 			if ( pTransfer != NULL && pTransfer->m_pClient == NULL ) // if it was ED2K transfer, and it did not have any EDClient
 			{
 				// create blank CEDClient object and assign it to ED2K transfer.
