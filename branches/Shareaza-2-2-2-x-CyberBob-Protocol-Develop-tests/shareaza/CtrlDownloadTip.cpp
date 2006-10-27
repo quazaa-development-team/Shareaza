@@ -818,7 +818,7 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownloadSource* pSource)
 
 			case PROTOCOL_ED2K:
 				{
-					CDownloadTransferED2K* pTransfer = reinterpret_cast< CDownloadTransferED2K* >(pSource->m_pTransfer);
+					CDownloadTransferED2K* pTransfer = dynamic_cast<CDownloadTransferED2K*>(pSource->m_pTransfer);
 					if ( pTransfer != NULL && pTransfer->m_pClient != NULL && pTransfer->m_pClient->m_bConnected )
 					{
 						if ( pTransfer->m_pClient->m_bInitiated )
