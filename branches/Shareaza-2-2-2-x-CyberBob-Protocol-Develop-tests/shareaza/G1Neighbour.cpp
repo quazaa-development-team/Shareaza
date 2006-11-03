@@ -378,7 +378,7 @@ BOOL CG1Neighbour::SendPing(DWORD dwNow, const Hashes::Guid& oGUID)
 		( bool( oGUID ) || bNeedPeers ) ? 0 : Settings.Gnutella1.DefaultTTL, oGUID );
 
 	// Send "Supports Cached Pongs" extension along with a packet, to receive G1 hosts for cache
-	if ( Settings.Gnutella1.EnableGGEP /* && bNeedPeers */ )
+	if ( Settings.Gnutella1.EnableGGEP && bNeedHubs )
 	{
 		CGGEPBlock pBlock;
 		CGGEPItem* pItem = pBlock.Add( L"SCP" );
@@ -716,10 +716,20 @@ BOOL CG1Neighbour::OnPong(CG1Packet* pPacket)
 				sVendorCode.Format( _T("%s"), (LPCTSTR)szVendor);
 			}
 
-			if ( pUP != NULL && pGUE != NULL && HostCache.Gnutella1.CountHosts() < 10 )
+			if ( pUP != NULL && pGUE != NULL )
 			{
 				sVendorCode.Trim( _T(" ") );
-				HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, nPort, 0, (LPCTSTR)sVendorCode );
+				if ( HostCache.Gnutella1.CountHosts() < ( Settings.Gnutella1.HostCacheSize * 0.8 ) )
+				{
+					HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, nPort, 0,
+											( sVendorCode.GetLength() ? (LPCTSTR)sVendorCode : NULL ) );
+				}
+				else
+				{
+					CHostCacheHost* pCachedHost = HostCache.Gnutella1.Find( (IN_ADDR*)&nAddress );
+					if ( pCachedHost != NULL ) pCachedHost->Update( nPort, 0, ( sVendorCode.GetLength() ?
+																				(LPCTSTR)sVendorCode : NULL ) );
+				}
 				theApp.Message( MSG_SYSTEM, _T("Got %s host through pong marked with GGEP GUE and UP (%s:%i)"), 
 					(LPCTSTR)sVendorCode, (LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nAddress ) ), nPort ); 
 			}
