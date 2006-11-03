@@ -214,6 +214,7 @@ void CSettings::Setup()
 	Add( _T("Discovery.UpdatePeriod"), &Discovery.UpdatePeriod, 1800 );
 	Add( _T("Discovery.DefaultUpdate"), &Discovery.DefaultUpdate, 3600 );
 	Add( _T("Discovery.DisableAutoQuery"), &Discovery.DisableAutoQuery, 0 );
+	Add( _T("Discovery.DisableAutoUpdate"), &Discovery.DisableAutoUpdate, 0 );
 	Add( _T("Discovery.DisableManualQuery"), &Discovery.DisableManualQuery, 1 );
 	Add( _T("Discovery.DisableService"), &Discovery.DisableService, 0 );
 	Add( _T("Discovery.BootstrapCount"), &Discovery.BootstrapCount, 10 );

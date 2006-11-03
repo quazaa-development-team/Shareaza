@@ -237,6 +237,7 @@ public:
 		DWORD		UpdatePeriod;
 		DWORD		DefaultUpdate;
 		BOOL		DisableAutoQuery;
+		BOOL		DisableAutoUpdate;
 		BOOL		DisableManualQuery;
 		BOOL		DisableService;
 		DWORD		BootstrapCount;

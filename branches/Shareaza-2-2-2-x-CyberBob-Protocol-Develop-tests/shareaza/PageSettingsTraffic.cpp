@@ -217,6 +217,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Discovery.UpdatePeriod, 60, 1, 60 * 24, _T(" m") );
 	AddSetting( &Settings.Discovery.DefaultUpdate, 60, 1, 60 * 24, _T(" m") );
 	AddSetting( &Settings.Discovery.DisableAutoQuery, 1, 0, 1 );
+	AddSetting( &Settings.Discovery.DisableAutoUpdate, 1, 0, 1 );
 	AddSetting( &Settings.Discovery.DisableManualQuery, 1, 0, 1 );
 	AddSetting( &Settings.Discovery.DisableService, 1, 0, 1 );
 	AddSetting( &Settings.Discovery.BootstrapCount, 1, 0, 20 );

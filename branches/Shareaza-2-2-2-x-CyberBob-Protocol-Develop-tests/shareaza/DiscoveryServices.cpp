@@ -636,7 +636,7 @@ void CDiscoveryServices::AddDefaults()
 BOOL CDiscoveryServices::Update()
 {
 	//new option to disable Discovery for private/test use
-	if ( Settings.Discovery.DisableService || Settings.Discovery.DisableAutoQuery ) return TRUE;
+	if ( Settings.Discovery.DisableService ) return TRUE;
 
 	PROTOCOLID nProtocol;
 	DWORD tNow = (DWORD)time( NULL );
