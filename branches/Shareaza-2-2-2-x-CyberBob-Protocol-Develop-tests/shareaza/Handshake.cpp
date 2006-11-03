@@ -273,6 +273,12 @@ BOOL CHandshake::OnRead()
 			OnWrite();
 		}
 	}
+	else if ( _tcsnicmp( strLine, _T("CONNECT BACK"), 12 ) == 0 ) 
+	{
+		// "CONNECT BACK" TCP firewall test succeed.
+		theApp.Message( MSG_DEBUG, _T("CONNECT BACK from %s: TCP incomming connection test has passed, you are not Firewalled "), 
+						(LPCTSTR)m_sAddress );
+	}
 	else
 	{
 		// The first header starts with something else, report that we couldn't figure out the handshake
