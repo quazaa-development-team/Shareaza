@@ -379,7 +379,7 @@ BOOL CNetwork::CanTestFirewall()
 {
 	DWORD tNow = GetTickCount();
 
-	if ( ( tNow - m_tLastFirewallTest ) >= 60 * 1000 )	// One test in 10 sec.
+	if ( ( tNow - m_tLastFirewallTest ) >= 180 * 1000 )	// One test in 3 min.
 		return TRUE;
 
 	return FALSE;
