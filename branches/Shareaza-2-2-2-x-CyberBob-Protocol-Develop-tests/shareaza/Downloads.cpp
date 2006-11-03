@@ -44,6 +44,8 @@
 
 #include "WndMain.h"
 
+#include "XML.h"
+
 #ifdef _DEBUG
 #undef THIS_FILE
 static char THIS_FILE[]=__FILE__;
@@ -111,6 +113,7 @@ CDownloads::CITMQueryHit* CDownloads::CITMQueryHit::CreateMessage( CQueryHit * p
 			tempHits2->m_pNext = new CQueryHit( PROTOCOL_NULL );
 			tempHits2 = tempHits2->m_pNext;
 			tempHits2->Copy( tempHits1 );
+			if ( tempHits1->m_pXML == NULL && tempHits2->m_pXML != NULL ) tempHits1->m_pXML = tempHits2->m_pXML->Clone();
 		}
 	}
 

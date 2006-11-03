@@ -102,7 +102,7 @@ public:
 // Static Decode Operations
 public:
 	static CQueryHit*	FromPacket(CG1Packet* pPacket, int* pnHops = NULL);
-	static CQueryHit*	FromPacket(CG2Packet* pPacket, int* pnHops = NULL);
+	static CQueryHit*	FromPacket(CG2Packet* pPacket, int* pnHops = NULL, SOCKADDR_IN* pSender = NULL );
 	static CQueryHit*	FromPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_nServerFlags, const Hashes::Guid& pSearchID = Hashes::Guid());
 protected:
 	static BOOL			CheckBogus(CQueryHit* pFirstHit);

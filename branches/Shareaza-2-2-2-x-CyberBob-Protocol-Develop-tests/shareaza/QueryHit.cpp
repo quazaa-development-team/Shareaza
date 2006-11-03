@@ -261,7 +261,7 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 //////////////////////////////////////////////////////////////////////
 // CQueryHit from G2 packet
 
-CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
+CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops, SOCKADDR_IN* pSender)
 {
 	if ( pPacket->IsType( G2_PACKET_HIT_WRAP ) )
 	{
@@ -484,6 +484,21 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 		{
 			oIncrID[15]++;
 			Network.NodeRoute->Add( oIncrID, &(*index) );
+		}
+
+		if ( pSender != NULL )
+		{
+			HubIndex iTemp = oHubList.begin();
+			HubIndex iEnd = oHubList.end();
+			BOOL bFound = FALSE;
+
+			for (;iTemp != iEnd;iTemp++)
+			{
+				if ( (*iTemp).sin_addr.S_un.S_addr == pSender->sin_addr.S_un.S_addr &&
+					(*iTemp).sin_port == pSender->sin_port )
+					bFound = TRUE;
+			}
+			if ( !bFound ) oHubList.push_front( *pSender );
 		}
 
 		BYTE nHops = pPacket->ReadByte() + 1;
@@ -1663,9 +1678,8 @@ void CQueryHit::Copy(CQueryHit* pOther)
 	m_sSchemaURI	= pOther->m_sSchemaURI;
 	m_sSchemaPlural	= pOther->m_sSchemaPlural;
 
-	// m_pXML			= pOther->m_pXML;
-	// pOther->m_pXML	= NULL;
-	if ( pOther->m_pXML != NULL ) m_pXML = pOther->m_pXML->Clone();
+	m_pXML			= pOther->m_pXML;
+	pOther->m_pXML	= NULL;
 
 	m_bMatched		= pOther->m_bMatched;
 	m_bExactMatch	= pOther->m_bExactMatch;
