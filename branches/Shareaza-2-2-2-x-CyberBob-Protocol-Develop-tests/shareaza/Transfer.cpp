@@ -42,7 +42,7 @@ CTransfer::CTransfer()
 
 CTransfer::~CTransfer()
 {
-	ASSERT( m_hSocket == INVALID_SOCKET );
+	//ASSERT( m_hSocket == INVALID_SOCKET );
 	if ( m_hSocket != INVALID_SOCKET ) Close();
 }
 
