@@ -373,8 +373,9 @@ void CHandshakes::OnRun()
 		// Send and receive data with each remote computer in the list
 		RunHandshakes();
 
+		// this line here does not look good, might make the connection lost.
 		// Loop to accept some more connections from computers that have called our listening socket
-		while ( AcceptConnection() );
+		//while ( AcceptConnection() );
 
 		// If we've listened for and accepted at least one connection, update the discovery services
 		RunStableUpdate();
@@ -443,10 +444,10 @@ BOOL CHandshakes::AcceptConnection()
 		// Set linger period to zero (it will close the socket immediatelly)
 		// Default behaviour is to send data and close or timeout and close
 		linger ls = {1, 0};
-		int ret = setsockopt( m_hSocket, SOL_SOCKET, SO_LINGER, (char*)&ls, sizeof(ls) );
+		int ret = setsockopt( hSocket, SOL_SOCKET, SO_LINGER, (char*)&ls, sizeof(ls) );
 
 		// Close the socket we just accepted the connection with
-		shutdown( m_hSocket, SD_RECEIVE );
+		shutdown( hSocket, SD_RECEIVE );
 		ret = closesocket( hSocket );
 
 		// Report that this connection was denied for security reasons
