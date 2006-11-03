@@ -209,6 +209,9 @@ BOOL CShareazaURL::ParseMagnet(LPCTSTR pszURL)
 		{
 			m_sName = strValue;
 			m_oSHA1.clear();
+			m_oTiger.clear();
+			m_oED2K.clear();
+			m_oMD5.clear();
 		}
 		else if ( _tcsicmp( strKey, _T("xl") ) == 0 )
 		{
@@ -656,12 +659,22 @@ auto_ptr< CQuerySearch > CShareazaURL::ToQuery()
 	{
 		pSearch->m_oSHA1 = m_oSHA1;
 	}
+
+	if ( m_oTiger )
+	{
+		pSearch->m_oTiger = m_oTiger;
+	}
 	
 	if ( m_oED2K )
 	{
 		pSearch->m_oED2K = m_oED2K;
 	}
 	
+	if ( m_oMD5 )
+	{
+		pSearch->m_oMD5 = m_oMD5;
+	}
+
 	return pSearch;
 }
 
