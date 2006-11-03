@@ -142,6 +142,14 @@ BOOL CGGEPBlock::ReadFromString(LPCTSTR pszData)
 	return ReadInternal();
 }
 
+BOOL CGGEPBlock::ReadFromBuffer(LPVOID pszData, DWORD nLength)
+{
+	m_pInput = (BYTE*)pszData;
+	m_nInput = nLength;
+
+	return ReadInternal();
+}
+
 //////////////////////////////////////////////////////////////////////
 // CGGEPBlock read internal
 

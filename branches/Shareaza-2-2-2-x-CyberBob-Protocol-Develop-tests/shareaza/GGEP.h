@@ -52,6 +52,7 @@ public:
 public:
 	BOOL		ReadFromPacket(CPacket* pPacket);
 	BOOL		ReadFromString(LPCTSTR pszData);
+	BOOL		ReadFromBuffer(LPVOID pszData, DWORD nLength);
 	void		Write(CPacket* pPacket);
 	void		Write(CString& str);
 	static		CGGEPBlock* FromPacket(CPacket* pPacket);
