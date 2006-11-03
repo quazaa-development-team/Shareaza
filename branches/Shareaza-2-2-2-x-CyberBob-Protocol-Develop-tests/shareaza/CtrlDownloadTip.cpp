@@ -690,6 +690,50 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 		}
 	}
 
+	m_sHubList = "";
+	m_sPushProxyList = "";
+	if ( pSource->m_nProtocol == PROTOCOL_G1 ||
+		pSource->m_nProtocol == PROTOCOL_G2 ||
+		pSource->m_nProtocol == PROTOCOL_HTTP )
+	{
+		if ( !pSource->m_oPushProxyList.empty() )
+		{
+			CDownloadSource::HubList::iterator oHubListIndex = pSource->m_oPushProxyList.begin();
+			CDownloadSource::HubList::iterator oHubListEndMark = pSource->m_oPushProxyList.end();
+			int nHubCount = 0;
+
+			for (;oHubListIndex != oHubListEndMark && nHubCount < 5 ;oHubListIndex++)
+			{
+				if ( nHubCount ) m_sPushProxyList += _T(",");
+				m_sPushProxyList += CString( inet_ntoa( (*oHubListIndex).sin_addr ) ) + _T(':');
+				m_sPushProxyList.AppendFormat( _T("%hu") ,ntohs( (*oHubListIndex).sin_port ) );
+				nHubCount++;
+			}
+			if ( nHubCount != pSource->m_oPushProxyList.size() )
+			{
+				m_sPushProxyList.AppendFormat( _T(", (%i more)"), (pSource->m_oPushProxyList.size() - nHubCount) );
+			}
+		}
+		if ( !pSource->m_oHubList.empty() )
+		{
+			CDownloadSource::HubList::iterator oHubListIndex = pSource->m_oHubList.begin();
+			CDownloadSource::HubList::iterator oHubListEndMark = pSource->m_oHubList.end();
+			int nHubCount = 0;
+
+			for (;oHubListIndex != oHubListEndMark && nHubCount < 5;oHubListIndex++)
+			{
+				if ( nHubCount ) m_sHubList += _T(",");
+				m_sHubList += CString( inet_ntoa( (*oHubListIndex).sin_addr ) ) + _T(':');
+				m_sHubList.AppendFormat( _T("%hu") ,ntohs( (*oHubListIndex).sin_port ) );
+				nHubCount++;
+			}
+			if ( nHubCount != pSource->m_oHubList.size() )
+			{
+				m_sHubList.AppendFormat( _T(", (%i more)"), (pSource->m_oHubList.size() - nHubCount) );
+			}
+		}
+	}
+
 	m_pHeaderName.RemoveAll();
 	m_pHeaderValue.RemoveAll();
 
@@ -712,7 +756,9 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 	m_sz.cy += TIP_TEXTHEIGHT + TIP_RULE;
 
 	AddSize( pDC, m_sURL, 80 );
-	m_sz.cy += TIP_TEXTHEIGHT * 6;
+	AddSize( pDC, m_sHubList, 80 );
+	AddSize( pDC, m_sPushProxyList, 80 );
+	m_sz.cy += TIP_TEXTHEIGHT * 8;
 
 	m_sz.cy += TIP_GAP;
 	m_sz.cy += TIP_TEXTHEIGHT;
@@ -846,7 +892,7 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownloadSource* pSource)
 	pt.y += TIP_TEXTHEIGHT;
 
 
-	strText = "GUID:";
+	strText = _T("GUID:");
 	DrawText( pDC, &pt, strText );
 
 	if (pSource->m_oGUID.isValid())
@@ -868,6 +914,32 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownloadSource* pSource)
 	DrawText( pDC, &pt, strText, 80 );
 	pt.y += TIP_TEXTHEIGHT;
 
+
+	strText = _T("PushProxies:");
+	DrawText( pDC, &pt, strText );
+	if ( m_sPushProxyList.GetLength() )
+	{
+		DrawText( pDC, &pt, m_sPushProxyList, 80 );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+	else
+	{
+		DrawText( pDC, &pt, _T("Empty"), 80 );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+
+	strText = _T("Hubs:");
+	DrawText( pDC, &pt, strText );
+	if ( m_sHubList.GetLength() )
+	{
+		DrawText( pDC, &pt, m_sHubList, 80 );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+	else
+	{
+		DrawText( pDC, &pt, _T("Empty"), 80 );
+		pt.y += TIP_TEXTHEIGHT;
+	}
 
 	pt.y += TIP_GAP;
 
