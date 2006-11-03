@@ -755,9 +755,9 @@ void CSearchAdvancedBox::OnSize(UINT nType, int cx, int cy)
 
 //	if ( m_wndNetworks.m_hWnd != NULL )
 //		DeferWindowPos( hDWP, m_wndNetworks, NULL, BOX_MARGIN, 27, cx - BOX_MARGIN * 2, 256, SWP_SHOWWINDOW|SWP_NOZORDER );
-	if ( m_wndCheckBoxG1.m_hWnd != NULL )
-		DeferWindowPos( hDWP, m_wndCheckBoxG2, NULL, BOX_MARGIN, 27, ( cx - BOX_MARGIN * 4 ) /2, 14, SWP_SHOWWINDOW );
 	if ( m_wndCheckBoxG2.m_hWnd != NULL )
+		DeferWindowPos( hDWP, m_wndCheckBoxG2, NULL, BOX_MARGIN, 27, ( cx - BOX_MARGIN * 4 ) /2, 14, SWP_SHOWWINDOW );
+	if ( m_wndCheckBoxG1.m_hWnd != NULL )
 		DeferWindowPos( hDWP, m_wndCheckBoxG1, NULL, ( cx / 2 ) + BOX_MARGIN, 27, ( cx - BOX_MARGIN * 4 ) /2, 14, SWP_SHOWWINDOW );
 	if ( m_wndCheckBoxED2K.m_hWnd != NULL )
 		DeferWindowPos( hDWP, m_wndCheckBoxED2K, NULL, BOX_MARGIN, 47, ( cx - BOX_MARGIN * 4 ) /2, 14, SWP_SHOWWINDOW );
@@ -800,16 +800,19 @@ void CSearchAdvancedBox::OnPaint()
 	
 	pDC->SetTextColor( 0 );
 
+	// Text of "Search on this Network" check boxes
 	LoadString( strControlTitle, IDS_SEARCH_PANEL_INPUT_3 );
 	rct.SetRect( BOX_MARGIN + 1, BOX_MARGIN, rc.right - BOX_MARGIN, BOX_MARGIN + 16 );
 	pDC->ExtTextOut( rct.left, rct.top, nFlags, &rct, strControlTitle, NULL );
 	pDC->ExcludeClipRect( &rct );
 
+	// Text of "File size must be" above drop down box of MinFileSize and MaxFileSize
 	LoadString( strControlTitle, IDS_SEARCH_PANEL_INPUT_4 );
 	rct.OffsetRect( 0, 64 - rct.top );
 	pDC->ExtTextOut( rct.left, rct.top, nFlags, &rct, strControlTitle, NULL );
 	pDC->ExcludeClipRect( &rct );
 
+	// Text of "to" in between MinimumFileSize and MaximumFileSize
 	LoadString( strControlTitle, IDS_SEARCH_PANEL_INPUT_5 );
 	rct.OffsetRect( ( rc.Width() / 2 ) - ( BOX_MARGIN * 2 ) , 15 );
 	pDC->ExtTextOut( rct.left, rct.top, nFlags, &rct, strControlTitle, NULL );
@@ -827,6 +830,7 @@ void CSearchAdvancedBox::OnPaint()
 		// Fills the background of the advanced box
 		pDC->FillSolidRect( &rc, CoolInterface.m_crTaskBoxClient );
 	}
+
 }
 
 LRESULT CSearchAdvancedBox::OnCtlColorStatic(WPARAM wParam, LPARAM /*lParam*/)
