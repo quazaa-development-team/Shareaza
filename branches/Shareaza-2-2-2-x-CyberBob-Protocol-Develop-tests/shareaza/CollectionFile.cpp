@@ -113,10 +113,10 @@ CCollectionFile::File* CCollectionFile::FindByURN(LPCTSTR pszURN)
 	{
 		File* pFile = GetNextFile( pos );
 		
-		if ( validAndEqual( oSHA1, pFile->m_oSHA1 ) ) return pFile;
-		if ( validAndEqual( oMD5, pFile->m_oMD5 ) ) return pFile;
 		if ( validAndEqual( oTiger, pFile->m_oTiger ) ) return pFile;
+		if ( validAndEqual( oSHA1, pFile->m_oSHA1 ) ) return pFile;
 		if ( validAndEqual( oED2K, pFile->m_oED2K ) ) return pFile;
+		if ( validAndEqual( oMD5, pFile->m_oMD5 ) ) return pFile;
 	}
 
 	return NULL;
@@ -132,10 +132,18 @@ CCollectionFile::File* CCollectionFile::FindFile(CLibraryFile* pShared, BOOL bAp
 	for ( POSITION pos = GetFileIterator() ; pos ; )
 	{
 		pFile = GetNextFile( pos );
-		if ( validAndEqual( pShared->m_oSHA1, pFile->m_oSHA1 ) ) break;
-		if ( validAndEqual( pShared->m_oMD5, pFile->m_oMD5 ) ) break;
-		if ( validAndEqual( pShared->m_oTiger, pFile->m_oTiger ) ) break;
-		if ( validAndEqual( pShared->m_oED2K, pFile->m_oED2K ) ) break;
+		//if ( validAndEqual( pShared->m_oSHA1, pFile->m_oSHA1 ) ) break;
+		//if ( validAndEqual( pShared->m_oMD5, pFile->m_oMD5 ) ) break;
+		//if ( validAndEqual( pShared->m_oTiger, pFile->m_oTiger ) ) break;
+		//if ( validAndEqual( pShared->m_oED2K, pFile->m_oED2K ) ) break;
+		if ( ( ( pShared->m_oSHA1.isValid() && pFile->m_oSHA1.isValid() ) || 
+				( pShared->m_oTiger.isValid() && pFile->m_oTiger.isValid() ) || 
+				( pShared->m_oED2K.isValid() && pFile->m_oED2K.isValid() ) || 
+				( pShared->m_oMD5.isValid() && pFile->m_oMD5.isValid() ) ) &&
+				invalidOrEqual( pShared->m_oSHA1, pFile->m_oSHA1 ) &&
+				invalidOrEqual( pShared->m_oMD5, pFile->m_oMD5 ) &&
+				invalidOrEqual( pShared->m_oTiger, pFile->m_oTiger ) &&
+				invalidOrEqual( pShared->m_oED2K, pFile->m_oED2K ) ) return pFile;
 		pFile = NULL;
 	}
 
@@ -350,9 +358,12 @@ BOOL CCollectionFile::File::IsComplete() const
 
 BOOL CCollectionFile::File::IsDownloading() const
 {
-	return Downloads.FindBySHA1( m_oSHA1 )
-		|| Downloads.FindByTiger( m_oTiger )
-		|| Downloads.FindByED2K( m_oED2K );
+	Hashes::BtHash oBTH;
+	oBTH.clear();
+	return NULL != Downloads.FindByHash(m_oSHA1,m_oTiger,m_oED2K,m_oMD5,oBTH,FALSE);
+//	return Downloads.FindBySHA1( m_oSHA1 )
+//		|| Downloads.FindByTiger( m_oTiger )
+//		|| Downloads.FindByED2K( m_oED2K );
 }
 
 /////////////////////////////////////////////////////////////////////////////
