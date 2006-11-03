@@ -41,9 +41,9 @@
 // When the allocated block of memory needs to be bigger, make it 128 bytes bigger
 const uchar PACKET_GROW = 128u;
 
-// Sizes of buffers that hold 128 ASCII and 128 wide characters so MultiByteToWideChar can convert short text quickly
-#define PACKET_BUF_SCHAR 127
-#define PACKET_BUF_WCHAR 127
+// Sizes of buffers that hold 255 ASCII and 255 wide characters so MultiByteToWideChar can convert short text quickly
+#define PACKET_BUF_SCHAR 255
+#define PACKET_BUF_WCHAR 255
 
 // Shareaza's vendor code is "RAZA", here is that text in ASCII and wide characters
 #define SHAREAZA_VENDOR_A VENDOR_CODE
