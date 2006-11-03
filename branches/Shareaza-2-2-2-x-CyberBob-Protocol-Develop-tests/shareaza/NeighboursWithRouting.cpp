@@ -139,7 +139,7 @@ int CNeighboursWithRouting::RouteQuery(CQuerySearch* pSearch, CPacket* pPacket, 
 		if ( pNeighbour->m_nState < nrsConnected ) continue;
 
 		// This neighbour is running Gnutella software
-		if ( pNeighbour->m_nProtocol == PROTOCOL_G1 )
+		if ( pG1 != NULL && pNeighbour->m_nProtocol == PROTOCOL_G1 )
 		{
 			// The caller wants to include hubs, or it doesn't but our connection to this one is down to a leaf anyway
 			if ( bToHubs || pNeighbour->m_nNodeType == ntLeaf )
