@@ -44,7 +44,9 @@ public:
 	CString		m_sPath;
 public:
     Hashes::Sha1Hash m_oSHA1;
-    Hashes::Ed2kHash m_oED2K;
+	Hashes::TigerHash m_oTiger;
+	Hashes::Ed2kHash m_oED2K;
+    Hashes::Md5Hash m_oMD5;
     Hashes::BtHash m_oBTH;
     Hashes::BtGuid m_oBTC;
 	BOOL		m_bSize;

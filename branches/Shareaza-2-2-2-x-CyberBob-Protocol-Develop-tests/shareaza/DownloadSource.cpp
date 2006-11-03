@@ -287,7 +287,9 @@ BOOL CDownloadSource::ResolveURL()
 	}
 	
 	m_bSHA1		|= static_cast< BOOL >( bool( pURL.m_oSHA1 ) );
+	m_bTiger	|= static_cast< BOOL >( bool( pURL.m_oTiger ) );
 	m_bED2K		|= static_cast< BOOL >( bool( pURL.m_oED2K ) );
+	m_bMD5		|= static_cast< BOOL >( bool( pURL.m_oMD5 ) );
 
 	m_nProtocol	= pURL.m_nProtocol;
 	m_pAddress	= pURL.m_pAddress;

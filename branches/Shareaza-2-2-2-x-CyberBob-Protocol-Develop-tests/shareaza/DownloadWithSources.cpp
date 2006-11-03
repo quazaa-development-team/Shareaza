@@ -436,6 +436,18 @@ BOOL CDownloadWithSources::AddSourceURL(LPCTSTR pszURL, BOOL bURN, FILETIME* pLa
 	{
 		if ( m_oSHA1 != pURL.m_oSHA1 ) return FALSE;
 	}
+	if ( pURL.m_oTiger && m_oTiger )
+	{
+		if ( m_oTiger != pURL.m_oTiger ) return FALSE;
+	}
+	if ( pURL.m_oED2K && m_oED2K )
+	{
+		if ( m_oED2K != pURL.m_oED2K ) return FALSE;
+	}
+	if ( pURL.m_oMD5 && m_oMD5 )
+	{
+		if ( m_oMD5 != pURL.m_oMD5 ) return FALSE;
+	}
 	
 	if ( m_sDisplayName.IsEmpty() && _tcslen( pszURL ) > 9 )
 	{
