@@ -289,8 +289,8 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 					m_nED2KHits -= Stats.nHadFiltered;
 					break;
 				default:
-//					ASSERT( 0 )
-					;
+					//ASSERT( 0 );
+					break;
 				}
 			}
 		}
