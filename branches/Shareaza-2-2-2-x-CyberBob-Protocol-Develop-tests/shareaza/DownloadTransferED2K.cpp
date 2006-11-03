@@ -922,12 +922,13 @@ BOOL CDownloadTransferED2K::RunQueued(DWORD tNow)
 		Close( TS_UNKNOWN );
 		return FALSE;
 	}
-	else if ( m_pClient->m_nUDP > 0 && ! m_bUDP && tNow > m_tRequest && tNow - m_tRequest > Settings.eDonkey.ReAskTime * 1000 - 20000 )
+	else if ( Datagrams.IsStable() && m_pClient->m_nUDP > 0 && TRUE /* ! m_bUDP */ && tNow > m_tRequest && tNow - m_tRequest > Settings.eDonkey.ReAskTime * 1000 - 20000 )
 	{
 		CEDPacket* pPing = CEDPacket::New( ED2K_C2C_UDP_REASKFILEPING, ED2K_PROTOCOL_EMULE );
 		pPing->Write( m_pDownload->m_oED2K );
 		Datagrams.Send( &m_pClient->m_pHost.sin_addr, m_pClient->m_nUDP, pPing );
-		m_bUDP = TRUE;
+		//m_bUDP = TRUE;
+		m_tRequest = GetTickCount();
 	}
 	else if ( tNow > m_tRequest && tNow - m_tRequest > Settings.eDonkey.ReAskTime * 1000 )
 	{
@@ -939,7 +940,14 @@ BOOL CDownloadTransferED2K::RunQueued(DWORD tNow)
 		}
 		else
 		{
-			m_pClient->Connect();
+			if ( m_pSource->m_bPushOnly )
+			{
+				m_pSource->PushRequest();
+			}
+			else
+			{
+				m_pClient->Connect();
+			}
 		}
 	}
 	

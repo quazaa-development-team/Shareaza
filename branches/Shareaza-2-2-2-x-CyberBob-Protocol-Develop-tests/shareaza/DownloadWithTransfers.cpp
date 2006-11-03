@@ -278,10 +278,21 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 		if ( pSource->m_pTransfer != NULL )
 		{
 			// Already has a transfer
+			if ( ( pSource->m_nProtocol == PROTOCOL_ED2K ) && pSource->m_bPushOnly && int( tNow - pSource->m_tAttempt ) >= 0 )
+			{
+				if ( pPushHead == NULL && pSource->m_pTransfer->m_nState != dtsNull )
+				{
+					//pPushHead = pSource;
+				}
+				else if ( ! Settings.Downloads.NeverDrop && pSource->m_pTransfer->m_nState == dtsNull )
+				{
+					pSource->Remove( TRUE, FALSE );
+				}
+			}
 		}
 		else if ( ( pSource->m_nProtocol == PROTOCOL_ED2K ) && ( ( tNow - Downloads.m_tBandwidthAtMaxED2K ) < 5000 ) ) 
 		{
-			// ED2K use (Ratio) is maxxed out, no point in starting new transfers
+			// ED2K use (Ratio) is maxed out, no point in starting new transfers
 		}
 		else if ( pSource->m_bPushOnly == FALSE )
 		{
@@ -322,28 +333,29 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 		
 		pSource = pNext;
 	}
-	
+
+	BOOL bReturnVal = FALSE;
 	if ( pConnectHead != NULL )
 	{
 		CDownloadTransfer* pTransfer = pConnectHead->CreateTransfer();
-		return pTransfer != NULL && pTransfer->Initiate();
+		bReturnVal = ( pTransfer != NULL && pTransfer->Initiate() );
 	}
 	
 	if ( pPushHead != NULL )
 	{
-		if ( Network.GetStableTime() < 15 ) return FALSE;
+		if ( Network.GetStableTime() < 15 ) return bReturnVal;
 		if ( pPushHead->PushRequest() ) 
-		{
-			return FALSE;
-		}
-		else
 		{
 			SortSource( pPushHead, FALSE );
 		}
-		if ( ! Settings.Downloads.NeverDrop ) pPushHead->Remove( TRUE, FALSE );
+		else
+		{
+			if ( ! Settings.Downloads.NeverDrop ) pPushHead->Remove( TRUE, FALSE );
+		}
+		bReturnVal = TRUE;
 	}
 	
-	return FALSE;
+	return bReturnVal;
 }
 
 //////////////////////////////////////////////////////////////////////
