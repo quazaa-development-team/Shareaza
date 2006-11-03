@@ -199,7 +199,7 @@ BOOL CUploadQueue::Enqueue(CUploadTransfer* pUpload, BOOL bForce, BOOL bStart)
 		else
 			pUpload->m_nBandwidth = Settings.Bandwidth.Uploads / max( 1, m_nMinTransfers );
 	}
-		
+
 	return TRUE;
 }
 
