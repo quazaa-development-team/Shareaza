@@ -646,8 +646,12 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 					if ( pExisting->m_pTransfer != NULL ) // We already downloading
 					{
 						if ( pSource->m_oGUID != NULL ) pExisting->m_oGUID = pSource->m_oGUID;
-						pExisting->m_pAddress = pSource->m_pAddress;
+						pExisting->m_pAddress.S_un.S_addr = pSource->m_pAddress.S_un.S_addr;
 						pExisting->m_nPort = pSource->m_nPort;
+						pExisting->m_nIndex = pSource->m_nIndex;
+						pExisting->m_bClientExtended = pSource->m_bClientExtended;
+						pExisting->m_bPushOnly = pSource->m_bPushOnly;
+						pExisting->m_sURL = pSource->m_sURL;
 					}
 				}
 					delete pSource;
