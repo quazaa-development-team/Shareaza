@@ -481,6 +481,11 @@ void CDownloadSource::OnFailure(BOOL bNondestructive, DWORD nRetryAfter)
 
 	DWORD nDelay = Settings.Downloads.RetryDelay * ( 1u << nDelayFactor );
 
+	if ( m_nProtocol == PROTOCOL_ED2K && nDelay < ( Settings.eDonkey.ReAskTime * 1000 ) )
+	{
+		nDelay = Settings.eDonkey.ReAskTime * 1000;
+	}
+
 	if ( nRetryAfter != 0 )
 	{
 		nDelay = nRetryAfter * 1000;
@@ -491,9 +496,20 @@ void CDownloadSource::OnFailure(BOOL bNondestructive, DWORD nRetryAfter)
 		{
 			if ( nDelay > 3600000 ) nDelay = 3600000;
 		}
-		else  // I think it is nasty to set 1 Day delay
+		else if ( nDelayFactor < 40 )
 		{
-			if ( nDelay > 86400000 ) nDelay = 86400000; 
+			if ( nDelay > 7200000 ) nDelay = 7200000;
+		}
+		else if ( nDelayFactor < 80 )
+		{
+			if ( nDelay > 14400000 ) nDelay = 14400000;
+		}
+		else  // I think it is nasty to set 1 day delay
+		{
+			//if ( nDelay > 86400000 ) nDelay = 86400000;
+			// it is more than 80 Failure/Busy reply, thus just purge this node.
+			if ( !Settings.Downloads.NeverDrop ) m_pDownload->RemoveSource( this, TRUE );
+			return;
 		}
 	}
 	
