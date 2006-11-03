@@ -182,7 +182,7 @@ CG1Packet* CQuerySearch::ToG1Packet()
 		strExtra = _T("urn:");
 	}*/
 
-	// use this for instead of Real URN to be added as HUGE. since it is really looks like LimeWire ignore Query packet
+	// use this for instead of Real URN to be added as HUGE. since it really looks like LimeWire ignore Query packet
 	// with URNs specified.
 	strExtra = _T("urn:");
 
@@ -247,8 +247,6 @@ CG1Packet* CQuerySearch::ToG1Packet()
 		pPacket->WriteByte(0x1C);
 		pBlock.Write( pPacket );
 	}	
-
-	pPacket->WriteByte( 0 );
 
 	return pPacket;
 }
@@ -620,7 +618,8 @@ BOOL CQuerySearch::ReadG1Packet(CPacket* pPacket)
 	{
 		m_oGUID = ((CG1Packet*)pPacket)->m_oGUID;
 	}
-	
+
+	m_oGUID.validate();
 	if ( pPacket->GetRemaining() < 4 ) return FALSE;
 	
 	WORD nFlags = pPacket->ReadShortLE();
@@ -644,14 +643,20 @@ BOOL CQuerySearch::ReadG1Packet(CPacket* pPacket)
 	ToLower( m_sKeywords );
 	MakeKeywords( m_sKeywords, false );
 
-	if ( pPacket->GetRemaining() >= 1 )
+//	if ( pPacket->GetRemaining() >= 1 )
+//	{
+//		strData = pPacket->ReadStringASCII();
+//		if ( strData.GetLength() > 1024 ) strData.Empty();
+//	}
+
+	if ( !pPacket->GetRemaining() )
 	{
-		strData = pPacket->ReadStringASCII();
-		if ( strData.GetLength() > 1024 ) strData.Empty();
+		m_bAndG1 = TRUE;
+		return CheckValid( false );
 	}
-	
-	LPCTSTR pszData	= strData;
-	LPCTSTR pszEnd	= pszData + _tcslen( pszData );
+
+	LPCSTR pszData	= (LPCSTR)(pPacket->m_pBuffer + pPacket->m_nPosition);
+	LPCSTR pszEnd	= pszData + (pPacket->m_nLength - pPacket->m_nPosition + 1);
 	int nIterations = 0;
 	
 	while ( *pszData && pszData < pszEnd )
@@ -663,7 +668,7 @@ BOOL CQuerySearch::ReadG1Packet(CPacket* pPacket)
 			if ( ! Settings.Gnutella1.EnableGGEP ) break;
 			
 			CGGEPBlock pGGEP;
-			pGGEP.ReadFromString( pszData );
+			pGGEP.ReadFromBuffer( (LPVOID)pszData, pszEnd - pszData + 1);
 			
 			CGGEPItem* pItemPos = pGGEP.m_pFirst;
 			if ( pItemPos != NULL && pGGEP.m_nItemCount != 0 )
@@ -711,22 +716,24 @@ BOOL CQuerySearch::ReadG1Packet(CPacket* pPacket)
 
 		}
 
-		LPCTSTR pszSep = _tcschr( pszData, 0x1C );
-		size_t nLength = ( pszSep && *pszSep == 0x1C ) ? pszSep - pszData : _tcslen( pszData );
+		LPCSTR pszSep = strchr( pszData, 0x1C );
+		size_t nLength = ( pszSep && *pszSep == 0x1C ) ? pszSep - pszData : strlen( pszData );
 		
 		if ( !IsCharacter( *pszData ) ) nLength = 0;
 		
-		if ( nLength >= 4 && _tcsncmp( pszData, _T("urn:"), 4 ) == 0 )
+		if ( nLength >= 4 && strncmp( pszData, "urn:", 4 ) == 0 )
 		{
-			if ( !m_oSHA1 ) m_oSHA1.fromUrn( pszData );
-			if ( !m_oTiger ) m_oTiger.fromUrn( pszData );
-			if ( !m_oED2K ) m_oED2K.fromUrn( pszData );
-			if ( !m_oMD5 ) m_oMD5.fromUrn( pszData );
-			if ( !m_oBTH ) m_oBTH.fromUrn( pszData );
+			CString urnString(pszData, nLength);
+			if ( !m_oSHA1 ) m_oSHA1.fromUrn( urnString );
+			if ( !m_oTiger ) m_oTiger.fromUrn( urnString );
+			if ( !m_oED2K ) m_oED2K.fromUrn( urnString );
+			if ( !m_oMD5 ) m_oMD5.fromUrn( urnString );
+			if ( !m_oBTH ) m_oBTH.fromUrn( urnString );
 		}
-		else if ( nLength > 5 && _tcsncmp( pszData, _T("<?xml"), 5 ) == 0 )
+		else if ( nLength > 5 && strncmp( pszData, "<?xml", 5 ) == 0 )
 		{
-			m_pXML = CXMLElement::FromString( pszData, TRUE );
+			CString xmlString(pszData, nLength);
+			m_pXML = CXMLElement::FromString( xmlString, TRUE );
 			
 			if ( m_pXML == NULL ) continue;
 			
@@ -820,27 +827,34 @@ BOOL CQuerySearch::ReadG2Packet(CG2Packet* pPacket, SOCKADDR_IN* pEndpoint)
 			if ( nLength >= 20 && strURN == _T("sha1") )
 			{
 				pPacket->Read( m_oSHA1 );
+				m_oSHA1.validate();
 			}
 			else if ( nLength >= 44 && ( strURN == _T("bp") || strURN == _T("bitprint") ) )
 			{
 				pPacket->Read( m_oSHA1 );
 				pPacket->Read( m_oTiger );
+				m_oSHA1.validate();
+				m_oTiger.validate();
 			}
 			else if ( nLength >= 24 && ( strURN == _T("ttr") || strURN == _T("tree:tiger/") ) )
 			{
 				pPacket->Read( m_oTiger );
+				m_oTiger.validate();
 			}
 			else if ( nLength >= 16 && strURN == _T("ed2k") )
 			{
 				pPacket->Read( m_oED2K );
+				m_oED2K.validate();
 			}
 			else if ( nLength >= 16 && strURN == _T("md5") )
 			{
 				pPacket->Read( m_oMD5 );
+				m_oMD5.validate();
 			}
 			else if ( nLength >= 20 && strURN == _T("btih") )
 			{
 				pPacket->Read( m_oBTH );
+				m_oBTH.validate();
 			}
 		}
 		else if ( strcmp( szType, "DN" ) == 0 )
@@ -901,7 +915,8 @@ BOOL CQuerySearch::ReadG2Packet(CG2Packet* pPacket, SOCKADDR_IN* pEndpoint)
 	if ( pPacket->GetRemaining() < 16 ) return FALSE;
 	
 	pPacket->Read( m_oGUID );
-	
+	m_oGUID.validate();
+
 
 	return CheckValid();
 }
@@ -1103,7 +1118,7 @@ BOOL CQuerySearch::Match(LPCTSTR pszFilename, QWORD nSize, LPCTSTR pszSchemaURI,
 	{
 		TRISTATE bResult = MatchMetadata( pszSchemaURI, pXML );
 		if ( bResult != TS_UNKNOWN ) return ( bResult == TS_TRUE );
-		if ( m_sSearch.GetLength() > 0 )
+		if ( m_sKeywords.GetLength() > 0 )
 		{
 			bool bReject = false;
 			if ( MatchMetadataShallow( pszSchemaURI, pXML, &bReject ) )
@@ -1120,24 +1135,24 @@ BOOL CQuerySearch::Match(LPCTSTR pszFilename, QWORD nSize, LPCTSTR pszSchemaURI,
 					int nMinusPos = -1;
 					while ( !bNegative )
 					{
-						nMinusPos = m_sSearch.Find( '-', nMinusPos + 1 );
+						nMinusPos = m_sKeywords.Find( '-', nMinusPos + 1 );
 						if ( nMinusPos != -1 )
 						{
-							bNegative = ( IsCharacter( m_sSearch.GetAt( nMinusPos + 1 ) ) != 0 );
+							bNegative = ( IsCharacter( m_sKeywords.GetAt( nMinusPos + 1 ) ) != 0 );
 							if ( nMinusPos > 0 )
-								bNegative &= ( IsCharacter( m_sSearch.GetAt( nMinusPos - 1 ) ) == 0 );
+								bNegative &= ( IsCharacter( m_sKeywords.GetAt( nMinusPos - 1 ) ) == 0 );
 						}
 						else break;
 					}
 				}
-				return bNegative ? WordMatch( pszFilename, m_sSearch ) : TRUE;
+				return bNegative ? WordMatch( pszFilename, m_sKeywords ) : TRUE;
 			}
 			else if ( bReject )
 				return FALSE;
 		}
 	}
 	// If it's a search for similar files, the text doesn't have to match
-	return m_oSimilarED2K || m_sSearch.GetLength() && WordMatch( pszFilename, m_sSearch );
+	return m_oSimilarED2K || m_sSearch.GetLength() && WordMatch( pszFilename, m_sKeywords );
 }
 
 TRISTATE CQuerySearch::MatchMetadata(LPCTSTR pszSchemaURI, CXMLElement* pXML)
@@ -1194,7 +1209,7 @@ BOOL CQuerySearch::MatchMetadataShallow(LPCTSTR pszSchemaURI, CXMLElement* pXML,
 			if ( pMember->m_bSearched )
 			{
 				CString strTarget = pMember->GetValueFrom( pXML, _T(""), FALSE );
-				if ( WordMatch( strTarget, m_sSearch, bReject ) ) 
+				if ( WordMatch( strTarget, m_sKeywords, bReject ) ) 
 					return TRUE;
 				else if ( bReject && *bReject )
 					return FALSE;
@@ -1209,7 +1224,7 @@ BOOL CQuerySearch::MatchMetadataShallow(LPCTSTR pszSchemaURI, CXMLElement* pXML,
 
 			CString strTarget = pAttribute->GetValue();
 
-			if ( WordMatch( strTarget, m_sSearch, bReject ) ) 
+			if ( WordMatch( strTarget, m_sKeywords, bReject ) ) 
 				return TRUE;
 			else if ( bReject && *bReject )
 				return FALSE;
