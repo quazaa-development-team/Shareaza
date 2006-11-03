@@ -106,8 +106,11 @@ BOOL CProfileProfilePage::OnInitDialog()
 		if ( CXMLElement* pPolitical = pLocation->GetElementByName( _T("political") ) )
 		{
 			m_sLocCountry	= pPolitical->GetAttributeValue( _T("country") );
-			m_sLocCity		= pPolitical->GetAttributeValue( _T("city") ) + _T(", ")
-							+ pPolitical->GetAttributeValue( _T("state") );
+			m_sLocCity		= pPolitical->GetAttributeValue( _T("city") );
+			CString str		= pPolitical->GetAttributeValue( _T("state") );
+			if ( str.GetLength() && m_sLocCity.GetLength() )
+				m_sLocCity += _T(", ");
+            m_sLocCity += str;
 		}
 
 		if ( CXMLElement* pCoordinates = pLocation->GetElementByName( _T("coordinates") ) )
@@ -118,14 +121,14 @@ BOOL CProfileProfilePage::OnInitDialog()
 			if ( _stscanf( str, _T("%f"), &nValue ) == 1 )
 			{
 				m_sLocLatitude.Format( nValue >= 0 ?
-					_T("%.2f° N") : _T("%.2f° S"), double( fabs( nValue ) ) );
+					_T("%.2f\xb0 N") : _T("%.2f\xb0 S"), double( fabs( nValue ) ) );
 			}
 
 			str = pCoordinates->GetAttributeValue( _T("longitude") );
 
 			if ( _stscanf( str, _T("%f"), &nValue ) == 1 )
 			{
-				m_sLocLongitude.Format( nValue >= 0 ? _T("%.1f° E") : _T("%.1f° W"),
+				m_sLocLongitude.Format( nValue >= 0 ? _T("%.1f\xb0 E") : _T("%.1f\xb0 W"),
 					double( fabs( nValue ) ) );
 			}
 		}
@@ -150,6 +153,7 @@ BOOL CProfileProfilePage::OnInitDialog()
 	m_wndInterestRemove.EnableWindow( FALSE );
 
 	OnCloseUpCountry();
+	RecalcDropWidth( &m_wndCountry );
 
 	return TRUE;
 }
@@ -187,6 +191,7 @@ void CProfileProfilePage::OnCloseUpCountry()
 		}
 		m_wndCity.SetItemData( m_wndCity.AddString( strCity ), (LPARAM)pCity );
 	}
+	RecalcDropWidth( &m_wndCity );
 }
 
 void CProfileProfilePage::OnCloseUpCity()
