@@ -1951,6 +1951,10 @@ BOOL CDatagrams::OnCrawlRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		currentVersion = CLIENT_NAME;
 		currentVersion += " ";
 		currentVersion += theApp.m_sVersion;
+#ifdef CUSTOM_ID_STRING
+		currentVersion += " ";
+		currentVersion += CUSTOM_ID_STRING;
+#endif
 	}
 
 	pPacket->WritePacket(
@@ -2143,7 +2147,7 @@ BOOL CDatagrams::OnVendor(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 			Send( pHost, pReply ); // Send the reply packet to the remote computer
 
 		} // Vendor is the ASCII text "RAZA" for Shareaza
-		else if ( nVendor == 'AZAR' ) // It's backwards because of network byte order
+		else if ( nVendor == 'RAZA' ) // It's backwards because of network byte order
 		{
 			// Function code query for "RAZA" (do)
 			CG1Packet* pReply = CG1Packet::New( pPacket->m_nType, 1, pPacket->m_oGUID ); // Create a reply packet
@@ -2312,7 +2316,7 @@ BOOL CDatagrams::OnVendor(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 
 BOOL CDatagrams::OnCommonQueryHash(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 {
-	//TODO
+	//TODO  ---  one of useless packet handler for UDP but might need it in Future
 	UNUSED_ALWAYS(pHost);
 	UNUSED_ALWAYS(pPacket);
 	return TRUE;
@@ -2321,7 +2325,7 @@ BOOL CDatagrams::OnCommonQueryHash(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 // little Question, is this needed for UDP?
 BOOL CDatagrams::OnBye(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 {
-	//TODO
+	//TODO  --- the Most useless packet handler for UDP because it is connection less so no need to use Bye packet at all.
 	UNUSED_ALWAYS(pHost);
 	UNUSED_ALWAYS(pPacket);
 	return TRUE;
