@@ -1191,7 +1191,9 @@ void CNetwork::OnQuerySearch(CQuerySearch* pSearch, BOOL bOUT)
 void CNetwork::OnQueryHits(CQueryHit* pHits)
 {
 	Downloads.OnQueryHits( pHits );
+	theApp.OnQueryHits( pHits );
 
+/*
 	CSingleLock pLock( &theApp.m_pSection );
 
 	if ( pLock.Lock( 250 ) )
@@ -1223,6 +1225,7 @@ void CNetwork::OnQueryHits(CQueryHit* pHits)
 
 		pLock.Unlock();
 	}
+*/
 
 	pHits->Delete();
 }

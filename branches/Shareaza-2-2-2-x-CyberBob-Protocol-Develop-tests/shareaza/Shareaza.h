@@ -24,10 +24,11 @@
 #include "Resource.h"
 #include "ComObject.h"
 #include "ShareazaOM.h"
+#include "ITMQueue.h"
 
 class CUPnPFinder;
 class CMainWnd;
-
+class CQueryHit;
 
 class CShareazaApp : public CWinApp
 {
@@ -78,7 +79,28 @@ public:
 protected:
 	CCriticalSection	m_csMessage;
 	static TCHAR		szMessageBuffer[16384];
-	
+
+public:
+	CITMQueue		m_pMessageQueue;
+
+	class CITMQueryHit : CITMQueue::CITMItem
+	{
+		// Constructor
+	public:
+		CITMQueryHit();
+		CITMQueryHit( CQueryHit * pHits );
+		~CITMQueryHit();
+
+		// Data Members
+	public:
+		CQueryHit*	m_pHits;
+
+		// function members
+	public:
+		static CITMQueryHit* CreateMessage( CQueryHit * pHits );
+		virtual BOOL OnProcess();
+	};
+
 // Operations
 public:
 	static CMainWnd* SafeMainWnd();
@@ -93,6 +115,7 @@ public:
 	void		PrintMessage(int nType, LPCTSTR pszLog);
 	void		LogMessage(LPCTSTR pszLog);
 	void		DebugState(BOOL bState);
+	void		OnQueryHits(CQueryHit* pHits);
 
 // Overrides
 public:

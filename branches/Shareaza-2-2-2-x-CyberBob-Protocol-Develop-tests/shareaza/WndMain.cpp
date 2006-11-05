@@ -702,6 +702,8 @@ void CMainWnd::OnTimer(UINT_PTR /*nIDEvent*/)
 	
 	if ( m_bTimer ) return;
 	m_bTimer = TRUE;
+
+	theApp.m_pMessageQueue.ProcessMessages();
 	
 	for ( POSITION pos = m_pWindows.GetIterator() ; pos ; )
 	{

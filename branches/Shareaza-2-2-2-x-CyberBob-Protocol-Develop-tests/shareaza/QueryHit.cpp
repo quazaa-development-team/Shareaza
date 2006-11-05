@@ -1690,6 +1690,12 @@ void CQueryHit::Copy(CQueryHit* pOther)
 	m_nProtocol		= pOther->m_nProtocol;
 	m_oPushProxyList= pOther->m_oPushProxyList;
 	m_oHubList		= pOther->m_oHubList;
+
+	m_nSources		= pOther->m_nSources;
+	m_nUpSlots		= pOther->m_nUpSlots;
+	m_nUpQueue		= pOther->m_nUpQueue;
+	m_bCollection	= pOther->m_bCollection;
+	m_nRating		= pOther->m_nRating;
 }
 
 void CQueryHit::Delete()

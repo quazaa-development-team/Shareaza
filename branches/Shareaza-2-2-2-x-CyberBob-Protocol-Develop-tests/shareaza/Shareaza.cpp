@@ -57,6 +57,10 @@
 #include "DlgSplash.h"
 #include "DlgHelp.h"
 
+#include "QueryHit.h"
+#include "XML.h"
+#include "WndHitMonitor.h"
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
@@ -69,6 +73,123 @@ BEGIN_MESSAGE_MAP(CShareazaApp, CWinApp)
 END_MESSAGE_MAP()
 
 CShareazaApp theApp;
+
+//////////////////////////////////////////////////////////////////////
+// CITMQueryHit construction
+
+CShareazaApp::CITMQueryHit::CITMQueryHit()
+{
+	m_pHits = NULL;
+}
+
+CShareazaApp::CITMQueryHit::CITMQueryHit( CQueryHit * pHits )
+{
+
+	if ( pHits != NULL )
+	{
+		CQueryHit* tempHits1 = pHits;
+		CQueryHit* tempHits2 = NULL;
+
+		m_pHits = new CQueryHit( PROTOCOL_NULL );
+		m_pHits->Copy(pHits);
+		tempHits2 = m_pHits;
+		tempHits1 = tempHits1->m_pNext;
+
+		for (; tempHits1 != NULL ; tempHits1 = tempHits1->m_pNext )
+		{
+			tempHits2->m_pNext = new CQueryHit( PROTOCOL_NULL );
+			tempHits2 = tempHits2->m_pNext;
+			tempHits2->Copy( tempHits1 );
+		}
+	}
+}
+
+CShareazaApp::CITMQueryHit::~CITMQueryHit()
+{
+	m_pHits->Delete();
+}
+
+//////////////////////////////////////////////////////////////////////
+// CITMQueryHit Function member implementations
+
+CShareazaApp::CITMQueryHit* CShareazaApp::CITMQueryHit::CreateMessage( CQueryHit * pHits )
+{
+	CITMQueryHit* pITMHit = NULL;
+
+	if ( pHits != NULL )
+	{
+		pITMHit = new CITMQueryHit();
+
+		CQueryHit* tempHits1 = pHits;
+		CQueryHit* tempHits2 = NULL;
+
+		pITMHit->m_pHits = new CQueryHit( PROTOCOL_NULL );
+		pITMHit->m_pHits->Copy(pHits);
+		tempHits2 = pITMHit->m_pHits;
+		tempHits1 = tempHits1->m_pNext;
+
+		for (; tempHits1 != NULL ; tempHits1 = tempHits1->m_pNext )
+		{
+			tempHits2->m_pNext = new CQueryHit( PROTOCOL_NULL );
+			tempHits2 = tempHits2->m_pNext;
+			tempHits2->Copy( tempHits1 );
+			if ( tempHits1->m_pXML == NULL && tempHits2->m_pXML != NULL ) tempHits1->m_pXML = tempHits2->m_pXML->Clone();
+		}
+	}
+
+	return pITMHit;
+
+	//return ( (CITMQueue::CITMItem *) new CITMQueryHit( CQueryHit * pHits ) );
+}
+
+BOOL CShareazaApp::CITMQueryHit::OnProcess()
+{
+	if ( m_pHits == NULL ) return TRUE;
+
+	CSingleLock pLock( &theApp.m_pSection );
+
+	if ( pLock.Lock( 250 ) )
+	{
+		if ( CMainWnd* pMainWnd = theApp.SafeMainWnd() )
+		{
+			CWindowManager* pWindows	= &pMainWnd->m_pWindows;
+			CChildWnd* pMonitorWnd		= NULL;
+			CRuntimeClass* pMonitorType	= RUNTIME_CLASS(CHitMonitorWnd);
+			CChildWnd* pChildWnd		= NULL;
+
+			while ( ( pChildWnd = pWindows->Find( NULL, pChildWnd ) ) != NULL )
+			{
+				if ( pChildWnd->GetRuntimeClass() == pMonitorType )
+				{
+					pMonitorWnd = pChildWnd;
+				}
+				else
+				{
+					if ( pChildWnd->OnQueryHits( m_pHits ) ) 
+					{
+						m_pHits = NULL;
+						return TRUE;
+					}
+				}
+			}
+
+			if ( pMonitorWnd != NULL )
+			{
+				if ( pMonitorWnd->OnQueryHits( m_pHits ) )
+				{
+					m_pHits = NULL;
+					return TRUE;
+				}
+
+			}
+		}
+
+		pLock.Unlock();
+	}
+
+	return TRUE;
+}
+
 
 /////////////////////////////////////////////////////////////////////////////
 // CShareazaApp construction
@@ -778,6 +899,26 @@ BOOL CShareazaApp::InternalURI(LPCTSTR pszURI)
 
 	return TRUE;
 }
+
+void CShareazaApp::OnQueryHits(CQueryHit* pHits)
+{
+
+	/*	CSingleLock pLock( &Transfers.m_pSection );
+
+	if ( ! pLock.Lock( 50 ) ) return;
+
+	for ( POSITION pos = GetIterator() ; pos ; )
+	{
+	CDownload* pDownload = GetNext( pos );
+	if ( pDownload->IsMoving() == FALSE ) pDownload->OnQueryHits( pHits );
+	}	
+	*/
+
+	if ( pHits != NULL ) 
+		Transfers.m_pMessageQueue.PushMessage( (CITMQueue::CITMItem*)CITMQueryHit::CreateMessage(pHits) );
+
+}
+
 
 /////////////////////////////////////////////////////////////////////////////
 // Runtime class lookup
