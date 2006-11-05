@@ -185,6 +185,8 @@ void CSettings::Setup()
 	Add( _T("Connection.DeleteUPnPPorts"), &Connection.DeleteUPnPPorts, TRUE );
 	Add( _T("Connection.SkipWANPPPSetup"), &Connection.SkipWANPPPSetup, FALSE );
 	Add( _T("Connection.SkipWANIPSetup"), &Connection.SkipWANIPSetup, FALSE );
+	Add( _T("Connection.FWTestWait"), &Connection.FWTestWait, 1200 );
+	Add( _T("Connection.MaxFWTestQueue"), &Connection.MaxFWTestQueue, 5 );
 
 	Add( _T("Bandwidth.Request"), &Bandwidth.Request, 4096 );
 	Add( _T("Bandwidth.HubIn"), &Bandwidth.HubIn, 0 );

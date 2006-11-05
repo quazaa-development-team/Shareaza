@@ -372,21 +372,23 @@ BOOL CNetwork::IsStable() const
 }
 BOOL CNetwork::IsFirewalled()
 {
-	return !( Datagrams.IsStable() && IsStable() );
+	//return !( Datagrams.IsStable() && IsStable() );
+	return !IsStable();
 }
 
 BOOL CNetwork::CanTestFirewall() 
 {
 	DWORD tNow = GetTickCount();
 
-	if ( ( tNow - m_tLastFirewallTest ) >= 180 * 1000 )	// One test in 3 min.
+	if ( ( tNow - m_tLastFirewallTest ) >= Settings.Connection.FWTestWait * 1000 )	// One test in 3 min.
 		return TRUE;
 
 	return FALSE;
 }
+
 void CNetwork::TestRemoteFirewall(DWORD nAddress, WORD nPort)
 {
-	if ( nAddress != 0 && nPort != 0 && m_FWTestQueue.GetSize() <= 20 )	// max 20 queued tests to avoid flooding
+	if ( nAddress != 0 && nPort != 0 && (DWORD)m_FWTestQueue.GetSize() <= Settings.Connection.MaxFWTestQueue )	// max 20 queued tests to avoid flooding
 	{
 		sockaddr_in pHost;
 		pHost.sin_addr = *(in_addr*)&nAddress;

@@ -110,6 +110,8 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Connection.DeleteUPnPPorts, 1, 0, 1 );
 	AddSetting( &Settings.Connection.SkipWANPPPSetup, 1, 0, 1 );
 	AddSetting( &Settings.Connection.SkipWANIPSetup, 1, 0, 1 );
+	AddSetting( &Settings.Connection.FWTestWait, 1, 30, 7200, _T(" s") );
+	AddSetting( &Settings.Connection.FWTestWait, 2, 1, 64 );
 
 	AddSetting( &Settings.Gnutella.ConnectFactor, 1, 1, 20, _T("x") );
 	AddSetting( &Settings.Gnutella.MaxResults, 1, 1, 1000 );

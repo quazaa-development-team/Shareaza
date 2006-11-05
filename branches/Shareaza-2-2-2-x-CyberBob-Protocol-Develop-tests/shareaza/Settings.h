@@ -200,6 +200,8 @@ public:
 		BOOL		DeleteUPnPPorts;			// Delete forwarded ports on shutdown (UPnP)
 		BOOL		SkipWANPPPSetup;			// Skip WANPPPConn1 device setup (UPnP)
 		BOOL		SkipWANIPSetup;				// Skip WANIPConn1 device setup (UPnP)
+		DWORD		FWTestWait;
+		DWORD		MaxFWTestQueue;
 	} Connection;
 
 	struct sBandwidth
