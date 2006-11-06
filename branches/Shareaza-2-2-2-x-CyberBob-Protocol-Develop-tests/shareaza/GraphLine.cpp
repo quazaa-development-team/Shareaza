@@ -243,6 +243,9 @@ void CLineGraph::Paint(CDC* pDC, CRect* pRect)
 
 		for ( int nLayer = 4 ; nLayer ; nLayer-- )
 		{
+			if ( nPoints == 1 )
+				pDC->SetPixel( *pPoints, pItem->m_cPen[3] );
+			else
 			pDC->Polyline( pPoints, nPoints );
 
 			if ( nLayer > 1 )
@@ -331,6 +334,6 @@ void CLineGraph::PaintLegend(CDC* pDC, CRect* pRect)
 	{
 		CGraphItem* pItem = GetNextItem( pos );
 		pDC->SetTextColor( pItem->m_nColour );
-		pDC->ExtTextOut( nLeft, nTop, 0, NULL, _T("• ") + pItem->m_sName, NULL );
+		pDC->ExtTextOut( nLeft, nTop, 0, NULL, _T("E") + pItem->m_sName, NULL );
 	}
 }

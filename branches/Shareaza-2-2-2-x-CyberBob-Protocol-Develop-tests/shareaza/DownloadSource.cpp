@@ -68,6 +68,9 @@ void CDownloadSource::Construct(CDownload* pDownload)
 {
 	ASSERT( pDownload != NULL );
 	
+	SYSTEMTIME pTime;
+	GetSystemTime( &pTime );
+
 	m_pDownload		= pDownload;
 	m_pPrev			= NULL;
 	m_pNext			= NULL;
@@ -75,7 +78,9 @@ void CDownloadSource::Construct(CDownload* pDownload)
 	m_bSelected		= FALSE;
 	
 	m_nProtocol		= PROTOCOL_NULL;
+	ZeroMemory( &m_pAddress, sizeof( m_pAddress ) );
 	m_nPort			= 0;
+	ZeroMemory( &m_pServerAddress, sizeof( m_pServerAddress ) );
 	m_nServerPort	= 0;
 	
 	m_nIndex		= 0;
@@ -88,6 +93,7 @@ void CDownloadSource::Construct(CDownload* pDownload)
 	m_bPushOnly		= FALSE;
 	m_bCloseConn	= FALSE;
 	m_bReadContent	= FALSE;
+	SystemTimeToFileTime( &pTime, &m_tLastSeen );
 	m_nGnutella		= 0;
 	m_bClientExtended=FALSE;
 	
@@ -95,22 +101,14 @@ void CDownloadSource::Construct(CDownload* pDownload)
 	m_nColour		= -1;
 	m_tAttempt		= 0;
 	m_nFailures		= 0;
-	m_nRedirectionCount = 0;
-
-	SYSTEMTIME pTime;
-	GetSystemTime( &pTime );
-	SystemTimeToFileTime( &pTime, &m_tLastSeen );
-
 	m_bReConnect		= FALSE;			// No Initial Reconnect setting
 	m_nPushAttempted	= 0;
 	m_nBusyCount	= 0;
-
+	m_nRedirectionCount = 0;
 }
 
 CDownloadSource::~CDownloadSource()
 {
-//	m_pPastFragment->DeleteChain();
-//	m_pAvailable->DeleteChain();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -251,7 +249,6 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, LPCTSTR pszURL, BOOL /*bS
 	
 	if ( ! ResolveURL() ) return;
 	
-	//m_bSHA1			= bSHA1; //Done in ResolveURL now
 	m_bHashAuth		= bHashAuth;
 	
 	if ( pLastSeen != NULL )
