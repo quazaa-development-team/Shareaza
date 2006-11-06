@@ -2,8 +2,8 @@ Modified "Bootstrap" type to hold them.
 
 to use UDP stuffs adding address with prefix:
 
-* Prefix "uhc://" for Gnutella1 UDP HostCache.
-* Prefix "ukhl://" for Gnutella2 UDP Known Hub Cache.(Still in test phase)
+* Prefix "uhc:" for Gnutella1 UDP HostCache.
+* Prefix "ukhl:" for Gnutella2 UDP Known Hub Cache.(Still in test phase)
 
 for some extra, there is way to use TCP connections.
 
