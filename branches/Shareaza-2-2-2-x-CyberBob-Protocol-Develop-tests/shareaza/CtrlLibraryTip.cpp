@@ -109,7 +109,7 @@ BOOL CLibraryTipCtrl::OnPrepare()
 			m_sSHA1 = pFile->m_oSHA1.toShortUrn();
 			m_sTTH = pFile->m_oTiger.toShortUrn();
 			m_sED2K = pFile->m_oED2K.toShortUrn();
-			m_sED2K = pFile->m_oMD5.toShortUrn();
+			m_sMD5	= pFile->m_oMD5.toShortUrn();
 		}
 
 		// Metadata
