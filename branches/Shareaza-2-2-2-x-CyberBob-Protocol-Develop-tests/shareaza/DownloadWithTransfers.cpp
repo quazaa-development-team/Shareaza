@@ -247,7 +247,6 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 	
 	BOOL bConnected = Network.IsConnected();
 	CDownloadSource* pConnectHead = NULL;
-	CDownloadSource* pPushHead = NULL;
 
 	// If BT preferencing is on, check them first
 	if ( ( m_oBTH ) && ( Settings.BitTorrent.PreferenceBTSources ) )
@@ -280,7 +279,7 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 			// Already has a transfer
 			if ( ( pSource->m_nProtocol == PROTOCOL_ED2K ) && pSource->m_bPushOnly && int( tNow - pSource->m_tAttempt ) >= 0 )
 			{
-				if ( pPushHead == NULL && pSource->m_pTransfer->m_nState != dtsNull )
+				if ( pConnectHead == NULL && pSource->m_pTransfer->m_nState != dtsNull )
 				{
 					//pPushHead = pSource;
 				}
@@ -312,7 +311,7 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 				}
 			}
 		}
-		else if ( pSource->m_bPushOnly )
+		else
 		{
 			if ( ! Settings.Downloads.NeverDrop && pSource->m_nPushAttempted > 10 )
 			{
@@ -320,42 +319,40 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 			}
 			else if ( pSource->m_tAttempt <= tNow )
 			{
-				if ( pPushHead == NULL && pSource->CanInitiate( bConnected, FALSE ) ) pPushHead = pSource;
+				if ( pConnectHead == NULL && pSource->CanInitiate( bConnected, FALSE ) ) pConnectHead = pSource;
 			}
 		}
-		else
-		{
-			if ( pSource->m_tAttempt <= tNow )
-			{
-				if ( ! Settings.Downloads.NeverDrop ) pSource->Remove( TRUE, FALSE );
-			}
-		}
-		
+
+		if ( pConnectHead != NULL ) break;
 		pSource = pNext;
 	}
-
-	BOOL bReturnVal = FALSE;
+	
 	if ( pConnectHead != NULL )
 	{
-		CDownloadTransfer* pTransfer = pConnectHead->CreateTransfer();
-		bReturnVal = ( pTransfer != NULL && pTransfer->Initiate() );
-	}
-	
-	if ( pPushHead != NULL )
-	{
-		if ( Network.GetStableTime() < 15 ) return bReturnVal;
-		if ( pPushHead->PushRequest() ) 
+		if ( pConnectHead->m_bPushOnly )
 		{
-			SortSource( pPushHead, FALSE );
+			if ( Network.GetStableTime() < 15 || pConnectHead->PushRequest() ) 
+			{
+				SortSource( pConnectHead, FALSE );
+				return TRUE;
+			}
+			else
+			{
+				if ( ! Settings.Downloads.NeverDrop ) 
+					pConnectHead->Remove( TRUE, FALSE );
+				else
+					SortSource( pConnectHead, FALSE );
+			}
+			return TRUE;
 		}
 		else
 		{
-			if ( ! Settings.Downloads.NeverDrop ) pPushHead->Remove( TRUE, FALSE );
+			CDownloadTransfer* pTransfer = pConnectHead->CreateTransfer();
+			return ( pTransfer != NULL && pTransfer->Initiate() );
 		}
-		bReturnVal = TRUE;
 	}
 	
-	return bReturnVal;
+	return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -439,7 +436,7 @@ BOOL CDownloadWithTransfers::OnAcceptPush(const Hashes::Guid& oClientID, CConnec
 	if ( pConnection->m_hSocket == INVALID_SOCKET ) return FALSE;
 	
 	CDownloadTransferHTTP* pTransfer = (CDownloadTransferHTTP*)pSource->CreateTransfer();
-	ASSERT( pTransfer->m_nProtocol == PROTOCOL_HTTP );
+	ASSERT( pSource->m_nProtocol == PROTOCOL_G1 || pSource->m_nProtocol == PROTOCOL_G2 || pSource->m_nProtocol == PROTOCOL_HTTP );
 	return pTransfer->AcceptPush( pConnection );
 }
 
