@@ -1155,6 +1155,12 @@ void CDownloadWithSources::Serialize(CArchive& ar, int nVersion)
 			// Load details from disk
 			pSource->Serialize( ar, nVersion );
 
+			// it is really a waste if it is PUSH source for either ED2K or BT.
+			if ( ( pSource->m_nProtocol == PROTOCOL_ED2K || pSource->m_nProtocol == PROTOCOL_BT ) && pSource->m_bPushOnly )
+			{
+				RemoveSource( pSource, FALSE );
+			}
+
 			// Extract ed2k client ID from url (m_pAddress) because it wasn't saved
 			if ( ( !pSource->m_nPort ) && ( _tcsnicmp( pSource->m_sURL, _T("ed2kftp://"), 10 ) == 0 )  )
 			{
