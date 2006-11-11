@@ -331,14 +331,14 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 	{
 		if ( pConnectHead->m_bPushOnly )
 		{
-			if ( Network.GetStableTime() < 15 || pConnectHead->PushRequest() ) 
+			if ( Network.GetStableTime() < 15 || pConnectHead->PushRequest() )
 			{
 				SortSource( pConnectHead, FALSE );
 				return TRUE;
 			}
 			else
 			{
-				if ( ! Settings.Downloads.NeverDrop ) 
+				if ( ! Settings.Downloads.NeverDrop )
 					pConnectHead->Remove( TRUE, FALSE );
 				else
 					SortSource( pConnectHead, FALSE );
