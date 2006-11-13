@@ -329,7 +329,7 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 	
 	if ( pConnectHead != NULL )
 	{
-		if ( pConnectHead->m_bPushOnly )
+		if ( pConnectHead->m_bPushOnly && ! ( pConnectHead->m_nProtocol == PROTOCOL_ED2K ) )
 		{
 			if ( Network.GetStableTime() < 15 || pConnectHead->PushRequest() )
 			{

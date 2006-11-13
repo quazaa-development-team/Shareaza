@@ -940,14 +940,7 @@ BOOL CDownloadTransferED2K::RunQueued(DWORD tNow)
 		}
 		else
 		{
-			if ( m_pSource->m_bPushOnly )
-			{
-				m_pSource->PushRequest();
-			}
-			else
-			{
-				m_pClient->Connect();
-			}
+			m_pClient->Connect();
 		}
 	}
 	
