@@ -700,7 +700,7 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 		{
 			CDownloadSource::HubList::iterator oHubListIndex = pSource->m_oPushProxyList.begin();
 			CDownloadSource::HubList::iterator oHubListEndMark = pSource->m_oPushProxyList.end();
-			int nHubCount = 0;
+			unsigned int nHubCount = 0;
 
 			for (;oHubListIndex != oHubListEndMark && nHubCount < 5 ;oHubListIndex++)
 			{
@@ -718,7 +718,7 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 		{
 			CDownloadSource::HubList::iterator oHubListIndex = pSource->m_oHubList.begin();
 			CDownloadSource::HubList::iterator oHubListEndMark = pSource->m_oHubList.end();
-			int nHubCount = 0;
+			unsigned int nHubCount = 0;
 
 			for (;oHubListIndex != oHubListEndMark && nHubCount < 5;oHubListIndex++)
 			{
