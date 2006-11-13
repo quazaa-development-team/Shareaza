@@ -88,8 +88,24 @@ void CDownloadTransfer::Close(TRISTATE bKeepSource, DWORD nRetryAfter)
 {
 	SetState( dtsNull );
 
-	CTransfer::Close();
-
+	if ( m_nProtocol == PROTOCOL_G2 || m_nProtocol == PROTOCOL_G1 || m_nProtocol == PROTOCOL_HTTP )
+	{
+		CTransfer::Close();
+	}
+	else if ( m_nProtocol == PROTOCOL_ED2K )
+	{
+		// do not call CTransfer::Close()
+		// since ED2K Transfer object never use CTransfer
+		// NOTE: can not see anything use CConnection on ED2K transfer,
+		//		However CConnection call Close() on destruction so not important
+		//		calling it here.
+	}
+	else if ( m_nProtocol == PROTOCOL_BT )
+	{
+		// this might be able to removed like above ED2K transfer type.
+		CTransfer::Close();
+	}
+	
 	if ( m_pSource != NULL )
 	{
 		switch ( bKeepSource )
