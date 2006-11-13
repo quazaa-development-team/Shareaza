@@ -663,7 +663,7 @@ BOOL CDownloadSource::CheckHash(const Hashes::Md5Hash& oMD5)
 		m_pDownload->m_oMD5 = oMD5;
 	}
 
-	m_bED2K = TRUE;
+	m_bMD5 = TRUE;
 	m_pDownload->SetModified();
 
 	return TRUE;
