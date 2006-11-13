@@ -299,6 +299,10 @@ void CURLActionDlg::Update()
 		{
 			m_sHashValue = pURL->m_oED2K.toShortUrn();
 		}
+		else if ( pURL->m_oMD5 )
+		{
+			m_sHashValue = pURL->m_oMD5.toShortUrn();
+		}
 		else
 		{
 			LoadString(m_sHashValue, IDS_URL_UNSPECIFIED );
