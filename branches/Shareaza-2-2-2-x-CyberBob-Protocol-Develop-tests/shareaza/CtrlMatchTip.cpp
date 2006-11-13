@@ -387,6 +387,11 @@ void CMatchTipCtrl::LoadFromFile()
 		CLibraryFile* pExisting = NULL;
 
 		CQuickLock oLock( Library.m_pSection );
+
+		if ( pExisting == NULL && ( m_pFile->m_oSHA1 || m_pFile->m_oTiger || m_pFile->m_oED2K || m_pFile->m_oMD5 ) )
+			pExisting = LibraryMaps.LookupFileByHash( m_pFile->m_oSHA1, m_pFile->m_oTiger, m_pFile->m_oED2K, m_pFile->m_oMD5 );
+
+		/*
 		if ( pExisting == NULL && m_pFile->m_oSHA1 )
 			pExisting = LibraryMaps.LookupFileBySHA1( m_pFile->m_oSHA1 );
 		if ( pExisting == NULL && m_pFile->m_oTiger )
@@ -395,6 +400,7 @@ void CMatchTipCtrl::LoadFromFile()
 			pExisting = LibraryMaps.LookupFileByED2K( m_pFile->m_oED2K );
 		if ( pExisting == NULL && m_pFile->m_oMD5 )
 			pExisting = LibraryMaps.LookupFileByMD5( m_pFile->m_oMD5 );
+		*/
 		
 		if ( pExisting != NULL )
 		{
@@ -449,23 +455,26 @@ void CMatchTipCtrl::LoadFromFile()
 	{
 		if ( m_pFile->m_pBest->m_sNick.GetLength() )
 		{
-			m_sUser.Format( _T("%s (%s - %s)"),
+			m_sUser.Format( _T("%s (%s:%u - %s)"),
 				(LPCTSTR)m_pFile->m_pBest->m_sNick,
 				(LPCTSTR)CString( inet_ntoa( m_pFile->m_pBest->m_pAddress ) ),
+				m_pFile->m_pBest->m_nPort,
 				(LPCTSTR)m_pFile->m_pBest->m_pVendor->m_sName );
 		}
 		else
 		{
 			if ( ( m_pFile->m_pBest->m_nProtocol == PROTOCOL_ED2K ) && ( m_pFile->m_pBest->m_bPush == TS_TRUE ) )
 			{
-				m_sUser.Format( _T("%lu@%s - %s"), m_pFile->m_pBest->m_oClientID.begin()[2], 
+				m_sUser.Format( _T("%lu@%s:%u - %s"), m_pFile->m_pBest->m_oClientID.begin()[2], 
 					(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)*m_pFile->m_pBest->m_oClientID.begin() ) ),
+					(WORD)m_pFile->m_pBest->m_oClientID.begin()[1],
 					(LPCTSTR)m_pFile->m_pBest->m_pVendor->m_sName );
 			}
 			else
 			{
-				m_sUser.Format( _T("%s - %s"),
+				m_sUser.Format( _T("%s:%u - %s"),
 					(LPCTSTR)CString( inet_ntoa( m_pFile->m_pBest->m_pAddress ) ),
+					m_pFile->m_pBest->m_nPort,
 					(LPCTSTR)m_pFile->m_pBest->m_pVendor->m_sName );
 			}
 		}
@@ -592,24 +601,27 @@ void CMatchTipCtrl::LoadFromHit()
 
 	if ( m_pHit->m_sNick.GetLength() )
 	{
-		m_sUser.Format( _T("%s (%s - %s)"),
+		m_sUser.Format( _T("%s (%s:%u - %s)"),
 			(LPCTSTR)m_pHit->m_sNick,
 			(LPCTSTR)CString( inet_ntoa( m_pHit->m_pAddress ) ),
+			m_pHit->m_nPort,
 			(LPCTSTR)m_pHit->m_pVendor->m_sName );
 	}
 	else
 	{
 		if ( ( m_pHit->m_nProtocol == PROTOCOL_ED2K ) && ( m_pHit->m_bPush == TS_TRUE ) )
 		{
-			m_sUser.Format( _T("%lu@%s - %s"),
+			m_sUser.Format( _T("%lu@%s:%u - %s"),
 				m_pHit->m_oClientID.begin()[2], 
 				(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)*m_pHit->m_oClientID.begin() ) ),
+				(WORD)m_pHit->m_oClientID.begin()[1],
 				(LPCTSTR)m_pHit->m_pVendor->m_sName );
 		}
 		else
 		{
-			m_sUser.Format( _T("%s - %s"),
+			m_sUser.Format( _T("%s:%u - %s"),
 				(LPCTSTR)CString( inet_ntoa( m_pHit->m_pAddress ) ),
+				m_pHit->m_nPort,
 				(LPCTSTR)m_pHit->m_pVendor->m_sName );
 		}
 	}
