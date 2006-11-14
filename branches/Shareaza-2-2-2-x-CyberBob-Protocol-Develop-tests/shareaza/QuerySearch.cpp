@@ -22,6 +22,7 @@
 #include "StdAfx.h"
 #include "Shareaza.h"
 #include "Settings.h"
+#include "Buffer.h"
 #include "QuerySearch.h"
 #include "Network.h"
 #include "Neighbour.h"	// temp add
@@ -717,7 +718,7 @@ BOOL CQuerySearch::ReadG1Packet(CPacket* pPacket)
 		}
 
 		LPCSTR pszSep = strchr( pszData, 0x1C );
-		size_t nLength = ( pszSep && *pszSep == 0x1C ) ? pszSep - pszData : strlen( pszData );
+		int nLength = ( pszSep && *pszSep == 0x1C ) ? pszSep - pszData : static_cast<int>( strlen( pszData ) );
 		
 		if ( !IsCharacter( *pszData ) ) nLength = 0;
 		
@@ -732,7 +733,10 @@ BOOL CQuerySearch::ReadG1Packet(CPacket* pPacket)
 		}
 		else if ( nLength > 5 && strncmp( pszData, "<?xml", 5 ) == 0 )
 		{
-			CString xmlString(pszData, nLength);
+			CBuffer pConvertWork;
+			pConvertWork.Print( pszData );
+			CString xmlString = pConvertWork.ReadString( nLength, CP_UTF8 );
+
 			m_pXML = CXMLElement::FromString( xmlString, TRUE );
 			
 			if ( m_pXML == NULL ) continue;
