@@ -240,6 +240,8 @@ void CG1Packet::ToBuffer(CBuffer* pBuffer) const
 void CG1Packet::Debug(LPCTSTR pszReason) const
 {
 
+	UNUSED_ALWAYS(pszReason);
+
 // Only include these lines in the program if it is being compiled in debug mode
 #ifdef _DEBUG
 
@@ -248,8 +250,8 @@ void CG1Packet::Debug(LPCTSTR pszReason) const
 	// strOutput.Format( L"[G1]: '%s' %s [%i/%i] %s", pszReason, GetType(), m_nTTL, m_nHops, (LPCTSTR)ToASCII() );
 	// CPacket::Debug( strOutput );
 #else
-	pszReason;
-// Go back to including all the lines in the program
+
+	// Go back to including all the lines in the program
 #endif
 
 }

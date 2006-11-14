@@ -178,6 +178,7 @@ inline void CG2Packet::CG2PacketPool::FreePoolImpl(CPacket* pPacket)
 #define G2_PACKET_MODE_CHANGE_ACK	"MCA" //add
 #define G2_PACKET_PRIVATE_MESSAGE	"PM" //add
 #define G2_PACKET_CLOSE				"CLOSE" //add
+#define G2_PACKET_WEB_FW_CHECK		"JCT" //add
 
 //
 // G2 SS

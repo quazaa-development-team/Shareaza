@@ -382,6 +382,8 @@ BOOL CG1Neighbour::SendPing(DWORD dwNow, const Hashes::Guid& oGUID)
 	{
 		CGGEPBlock pBlock;
 		CGGEPItem* pItem = pBlock.Add( L"SCP" );
+		pItem->UnsetCOBS();
+		pItem->UnsetSmall();
 		if ( bNeedFreePeerSlot ) 
 			pItem->WriteByte( 1 );
 		else
@@ -498,12 +500,12 @@ BOOL CG1Neighbour::OnPing(CG1Packet* pPacket)
 	}
 
 	// TEST: send out Pong with GGEP "GUE" to test if raza start recieving GUESS packets
-	pGGEP.Add( L"GUE" );
+	//pGGEP.Add( L"GUE" );
 
 	//Give Vender code
-	CGGEPItem * pVC = pGGEP.Add( L"VC");
-	pVC->WriteUTF8( SHAREAZA_VENDOR_T );
-	pVC->WriteUTF8( L"A" );
+	//CGGEPItem * pVC = pGGEP.Add( L"VC");
+	//pVC->WriteUTF8( SHAREAZA_VENDOR_T );
+	//pVC->WriteUTF8( L"A" );
 
 	// Save information from this ping packet in the CG1Neighbour object
 	m_tLastInPing   = dwNow;                // Record that we last got a ping packet from this remote computer right now
@@ -624,6 +626,8 @@ BOOL CG1Neighbour::OnPing(CG1Packet* pPacket)
 int CG1Neighbour::WriteRandomCache(CGGEPItem* pItem)
 {
 	if ( !pItem ) return 0;
+	pItem->UnsetCOBS();
+	pItem->UnsetSmall();
 
 	DWORD nCount = min( DWORD(50), HostCache.Gnutella1.CountHosts() );
 	WORD nPos = 0;

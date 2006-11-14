@@ -1711,20 +1711,25 @@ BOOL CG2Neighbour::OnProfileDelivery(CG2Packet* pPacket)
 
 BOOL CG2Neighbour::OnModeChangeReq(CG2Packet* pPacket)
 {
+	UNUSED_ALWAYS(pPacket);
+
 	return TRUE;
 }
 
 BOOL CG2Neighbour::OnModeChangeAck(CG2Packet* pPacket)
 {
+	UNUSED_ALWAYS(pPacket);
 	return TRUE;
 }
 
 BOOL CG2Neighbour::OnPrivateMessage(CG2Packet* pPacket)
 {
+	UNUSED_ALWAYS(pPacket);
 	return TRUE;
 }
 
 BOOL CG2Neighbour::OnClose(CG2Packet* pPacket)
 {
+	UNUSED_ALWAYS(pPacket);
 	return TRUE;
 }

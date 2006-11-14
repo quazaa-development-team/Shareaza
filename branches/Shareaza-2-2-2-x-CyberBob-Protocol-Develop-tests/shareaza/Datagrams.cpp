@@ -1038,6 +1038,10 @@ BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	{
 		return OnKHLR( pHost, pPacket );
 	}
+	else if ( pPacket->IsType( G2_PACKET_WEB_FW_CHECK ) )
+	{
+		return OnJCT( pHost, pPacket );
+	}
 	return FALSE;
 }
 
@@ -1080,6 +1084,8 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 		CGGEPItem* pItem = pGGEP.Add( _T("IPP") );
 		DWORD nCount = min( DWORD(50), HostCache.Gnutella1.CountHosts() );
 		WORD nPos = 0;
+		pItem->UnsetCOBS();
+		pItem->UnsetSmall();
 
 		// Create 5 random positions from 0 to 50 in the descending order
 		std::vector< WORD > pList;
@@ -1115,12 +1121,12 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 	}
 
 	// TEST: Try indicate GUESS supported Node.  (GGEP "GUE")
-	if ( IsStable() ) pGGEP.Add( L"GUE" );
+	//if ( IsStable() ) pGGEP.Add( L"GUE" );
 
 	//Give Vender code
-	CGGEPItem * pVC = pGGEP.Add( L"VC");
-	pVC->WriteUTF8( SHAREAZA_VENDOR_T );
-	pVC->WriteUTF8( L"A" );
+	//CGGEPItem * pVC = pGGEP.Add( L"VC");
+	//pVC->WriteUTF8( SHAREAZA_VENDOR_T );
+	//pVC->WriteUTF8( L"A" );
 
 	// Make a new pong packet, the response to a ping
 	CG1Packet* pPong = CG1Packet::New(			// Gets it quickly from the Gnutella packet pool
@@ -1432,6 +1438,9 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	return TRUE;
 }
 
+//////////////////////////////////////////////////////////////////////
+// CDatagrams QUERY packet handler
+
 BOOL CDatagrams::OnQuery(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 {
 	//TODO
@@ -1439,9 +1448,6 @@ BOOL CDatagrams::OnQuery(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 	UNUSED_ALWAYS(pPacket);
 	return TRUE;
 }
-
-//////////////////////////////////////////////////////////////////////
-// CDatagrams QUERY packet handler
 
 BOOL CDatagrams::OnQuery(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
@@ -1550,6 +1556,9 @@ BOOL CDatagrams::OnQueryAck(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	return TRUE;
 }
 
+//////////////////////////////////////////////////////////////////////
+// CDatagrams HIT packet handler
+
 BOOL CDatagrams::OnHit(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 {
 	//TODO
@@ -1557,9 +1566,6 @@ BOOL CDatagrams::OnHit(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 	UNUSED_ALWAYS(pPacket);
 	return TRUE;
 }
-
-//////////////////////////////////////////////////////////////////////
-// CDatagrams HIT packet handler
 
 BOOL CDatagrams::OnHit(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
@@ -2527,3 +2533,10 @@ BOOL CDatagrams::OnKHLR(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	return TRUE;
 }
 
+BOOL CDatagrams::OnJCT(SOCKADDR_IN* pHost, CG2Packet* pPacket)
+{
+	theApp.Message( MSG_ERROR, _T("G2UDP: Web Based FireWall Check packet received from %s: %s"), 
+		(LPCTSTR)inet_ntoa( pHost->sin_addr ), 	(LPCTSTR)pPacket->ToHex() );
+	m_bStable	= TRUE;
+	return TRUE;
+}

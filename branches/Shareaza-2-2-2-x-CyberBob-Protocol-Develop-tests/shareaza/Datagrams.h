@@ -155,6 +155,8 @@ protected:
 	BOOL	OnPrivateMessage(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnBye(SOCKADDR_IN* pHost, CG1Packet* pPacket);
 	BOOL	OnClose(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnJCT(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+
 };
 
 extern CDatagrams Datagrams;
