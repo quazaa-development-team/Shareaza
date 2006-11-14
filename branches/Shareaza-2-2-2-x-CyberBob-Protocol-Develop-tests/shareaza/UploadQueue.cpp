@@ -26,6 +26,8 @@
 #include "UploadQueue.h"
 #include "UploadQueues.h"
 #include "UploadTransfer.h"
+#include "UploadTransferED2K.h"
+#include "EDClient.h"
 #include "QuerySearch.h"
 #include "Neighbours.h"
 
@@ -329,6 +331,11 @@ void CUploadQueue::StartImpl(CUploadTransfer* pUpload)
 	Dequeue( pUpload );
 	m_pActive.AddTail( pUpload );
 	pUpload->m_pQueue = this;
+	if ( pUpload->m_nProtocol == PROTOCOL_ED2K )
+	{
+		CUploadTransferED2K * pEdUpload = dynamic_cast<CUploadTransferED2K *>(pUpload);
+		if ( pEdUpload != NULL ) pEdUpload->m_pClient->Connect();
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
