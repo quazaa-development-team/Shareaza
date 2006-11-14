@@ -644,7 +644,7 @@ CList< CLibraryFile* >* CLibraryMaps::Search(CQuerySearch* pSearch, int nMaximum
 					if ( ! pHits ) pHits = new CList< CLibraryFile* >( 64 );
 					pHits->AddTail( pFile );
 					nHit++;
-					if ( ! bLocal && (pSearch->m_oSHA1 || pSearch->m_oTiger) )
+					if ( ! bLocal && ( pSearch->m_oSHA1 || pSearch->m_oTiger || pSearch->m_oMD5 ) )
 					{
 						pFile->m_nHitsToday++;
 						pFile->m_nHitsTotal++;
