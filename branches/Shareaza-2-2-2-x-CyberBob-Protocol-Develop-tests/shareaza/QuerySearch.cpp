@@ -140,17 +140,22 @@ CG1Packet* CQuerySearch::ToG1Packet()
 	if ( m_bWantXML ) nFlags |= G1_QF_XML;
 	pPacket->WriteShortLE( nFlags );
 	
-	CString strExtra;
-	
-	if ( !m_sKeywords.IsEmpty() && !m_sSearch.IsEmpty() )
+	CString strExtra, strKeywords;
+
+	for ( const_iterator pWord = begin(); pWord != end(); pWord++ )
+		strKeywords.AppendFormat( _T("%s "), LPCTSTR( pWord->first ) );
+
+	strKeywords.TrimRight();
+
+	if ( !strKeywords.IsEmpty() )
 	{
 		if ( Settings.Gnutella1.QuerySearchUTF8 ) //Support UTF-8 Query
 		{
-			pPacket->WriteStringUTF8( m_sKeywords );
+			pPacket->WriteStringUTF8( strKeywords );
 		}
 		else
 		{
-			pPacket->WriteString( m_sKeywords );
+			pPacket->WriteString( strKeywords );
 		}
 	}
 	else if ( m_pSchema != NULL && m_pXML != NULL )
