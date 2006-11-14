@@ -22,6 +22,7 @@
 #include "StdAfx.h"
 #include "Shareaza.h"
 #include "Settings.h"
+#include "Buffer.h"
 #include "QuerySearch.h"
 #include "QueryHit.h"
 #include "Network.h"
@@ -815,8 +816,6 @@ BOOL CQueryHit::ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat,
 
 void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 {
-	CString strData;
-
 	m_nIndex	= pPacket->ReadLongLE();
 	m_bSize		= TRUE;
 	m_nSize		= pPacket->ReadLongLE();
@@ -830,7 +829,10 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 		m_sName	= pPacket->ReadStringASCII();
 	}
 
-	strData		= pPacket->ReadStringASCII();
+	//strData		= pPacket->ReadStringASCII();
+	std::string	strData		= std::string((LPCSTR)pPacket->m_pBuffer + pPacket->m_nPosition);
+	int			nDataLength = static_cast<DWORD>( strData.size() );
+	pPacket->m_nPosition = pPacket->m_nPosition + nDataLength + 1;
 
 	if ( m_sName.GetLength() > 160 )
 	{
@@ -856,8 +858,8 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 		if ( nMaxWord > 30 ) m_bBogus = TRUE;
 	}
 	
-	LPCTSTR pszData	= strData;
-	LPCTSTR pszEnd	= pszData + _tcslen( pszData );
+	LPCSTR pszData	= (LPCSTR)&strData[0];
+	LPCSTR pszEnd	= pszData + strlen( pszData );
 	
 	while ( *pszData && pszData < pszEnd )
 	{
@@ -866,7 +868,7 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 			if ( ! Settings.Gnutella1.EnableGGEP ) break;
 			
 			CGGEPBlock pGGEP;
-			pGGEP.ReadFromString( pszData );
+			pGGEP.ReadFromBuffer( (LPVOID)pszData, pszEnd - pszData + 1);
 
 			CGGEPItem* pItemPos = pGGEP.m_pFirst;
 			if ( pItemPos != NULL && pGGEP.m_nItemCount != 0 )
@@ -895,15 +897,15 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 
 					if ( pItemPos->IsNamed( _T("u") ) )
 					{
-						strData = "urn:" + pItemPos->ToString();
+						CString strUrn = "urn:" + pItemPos->ToString();
 						theApp.Message( MSG_SYSTEM, _T("CQueryHit::ReadG1Packet GGEP u extension with content: %s"),
-							(LPCTSTR)strData );
+							(LPCTSTR)strUrn );
 
-						if ( !m_oSHA1 ) m_oSHA1.fromUrn( strData );
-						if ( !m_oTiger ) m_oTiger.fromUrn( strData );
-						if ( !m_oED2K ) m_oED2K.fromUrn( strData );
-						if ( !m_oMD5 ) m_oMD5.fromUrn( strData );
-						if ( !m_oBTH ) m_oBTH.fromUrn( strData );
+						if ( !m_oSHA1 ) m_oSHA1.fromUrn( strUrn );
+						if ( !m_oTiger ) m_oTiger.fromUrn( strUrn );
+						if ( !m_oED2K ) m_oED2K.fromUrn( strUrn );
+						if ( !m_oMD5 ) m_oMD5.fromUrn( strUrn );
+						if ( !m_oBTH ) m_oBTH.fromUrn( strUrn );
 					}
 
 					if ( pItemPos->IsNamed( _T("LF") ) )
@@ -942,20 +944,24 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 
 		}
 
-		LPCTSTR pszSep = _tcschr( pszData, 0x1C );
-		size_t nLength = pszSep ? pszSep - pszData : _tcslen( pszData );
+		LPCSTR pszSep = strchr( pszData, 0x1C );
+		size_t nLength = pszSep ? pszSep - pszData : strlen( pszData );
 		
-		if ( _tcsnicmp( pszData, _T("urn:"), 4 ) == 0 )
+		if ( strnicmp( pszData, "urn:", 4 ) == 0 )
 		{
-			if ( !m_oSHA1 ) m_oSHA1.fromUrn( pszData );
-			if ( !m_oTiger ) m_oTiger.fromUrn( pszData );
-			if ( !m_oED2K ) m_oED2K.fromUrn( pszData );
-			if ( !m_oMD5 ) m_oMD5.fromUrn( pszData );
-			if ( !m_oBTH ) m_oBTH.fromUrn( pszData );
+			CString strUrn(pszData);		
+			if ( !m_oSHA1 ) m_oSHA1.fromUrn( strUrn );
+			if ( !m_oTiger ) m_oTiger.fromUrn( strUrn );
+			if ( !m_oED2K ) m_oED2K.fromUrn( strUrn );
+			if ( !m_oMD5 ) m_oMD5.fromUrn( strUrn );
+			if ( !m_oBTH ) m_oBTH.fromUrn( strUrn );
 		}
 		else if ( nLength > 4 )
 		{
-			AutoDetectSchema( pszData );
+			CBuffer pConvertWork;
+			pConvertWork.Print( pszData );
+			CString strXML = pConvertWork.ReadString( nLength, CP_UTF8 );
+			AutoDetectSchema( strXML );
 		}
 		
 		if ( pszSep ) pszData = pszSep + 1;
