@@ -287,7 +287,7 @@ void CDiscoveryWnd::OnUpdateDiscoveryQuery(CCmdUI* pCmdUI)
 	if (  m_wndList.GetSelectedCount() == 1 )
 	{
 		CDiscoveryService* pService = GetItem( m_wndList.GetNextItem( -1, LVIS_SELECTED ) );
-		if ( pService && pService->m_nType != CDiscoveryService::dsBlocked )
+		if ( pService && pService->m_nType != CDiscoveryService::dsBlocked && !Settings.Discovery.DisableManualQuery )
 		{
 			pCmdUI->Enable( TRUE );
 			return;

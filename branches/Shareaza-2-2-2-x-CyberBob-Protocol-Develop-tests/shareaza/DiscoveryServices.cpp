@@ -1553,7 +1553,7 @@ BOOL CDiscoveryServices::SendWebCacheRequest(CString strURL, CString& strOutput)
 BOOL CDiscoveryServices::RunServerMet()
 {
 	//new option to disable Discovery for private/test use
-	if ( Settings.Discovery.DisableService) return TRUE;
+	if ( Settings.Discovery.DisableService ) return TRUE;
 
 	CSingleLock pLock( &Network.m_pSection, TRUE );
 	CString strURL;
