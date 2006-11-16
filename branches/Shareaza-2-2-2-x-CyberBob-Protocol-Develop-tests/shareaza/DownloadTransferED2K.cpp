@@ -233,6 +233,8 @@ BOOL CDownloadTransferED2K::OnConnected()
 	m_pSource->SetLastSeen();
 
 	m_pSource->m_nPushAttempted = 0;
+	m_pSource->m_nBusyCount = 0;
+	m_pSource->m_nFailures = 0;
 	
 	theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_CONNECTED, (LPCTSTR)m_sAddress );
 	
@@ -490,7 +492,7 @@ BOOL CDownloadTransferED2K::OnFinishUpload(CEDPacket* /*pPacket*/)
 
 BOOL CDownloadTransferED2K::OnSendingPart(CEDPacket* pPacket)
 {
-	if ( m_nState != dtsDownloading ) return TRUE;
+	//if ( m_nState != dtsDownloading ) return TRUE;
 	
     if ( pPacket->GetRemaining() <= Hashes::Ed2kHash::byteCount + 8 )
 	{
@@ -547,7 +549,7 @@ BOOL CDownloadTransferED2K::OnSendingPart(CEDPacket* pPacket)
 
 BOOL CDownloadTransferED2K::OnCompressedPart(CEDPacket* pPacket)
 {
-	if ( m_nState != dtsDownloading ) return TRUE;
+	//if ( m_nState != dtsDownloading ) return TRUE;
 	
     if ( pPacket->GetRemaining() <= Hashes::Ed2kHash::byteCount + 8 )
 	{
@@ -787,9 +789,11 @@ BOOL CDownloadTransferED2K::SendSecondaryRequest()
 
 BOOL CDownloadTransferED2K::SendFragmentRequests()
 {
-	ASSERT( m_nState == dtsDownloading );
+	//ASSERT( m_nState == dtsDownloading );
 	ASSERT( m_pClient != NULL );
 	
+	if ( m_nState != dtsDownloading ) return TRUE;
+
 	if ( m_oRequested.size() >= (int)Settings.eDonkey.RequestPipe ) return TRUE;
 	
 	Fragments::List oPossible( m_pDownload->GetEmptyFragmentList() );
@@ -803,6 +807,9 @@ BOOL CDownloadTransferED2K::SendFragmentRequests()
 		}
 	}
 	
+	typedef std::map<QWORD ,Fragments::Fragment> _TRequest;
+	typedef  _TRequest::iterator _TRequestIndex;
+	_TRequest	oRequesting;
 	while ( m_oRequested.size() < (int)Settings.eDonkey.RequestPipe )
 	{
 		QWORD nOffset, nLength;
@@ -816,27 +823,51 @@ BOOL CDownloadTransferED2K::SendFragmentRequests()
 			
 			m_oRequested.push_back( Selected );
 
-			CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_REQUESTPARTS );
-			pPacket->Write( m_pDownload->m_oED2K );
-			pPacket->WriteLongLE( (DWORD)nOffset );
-			pPacket->WriteLongLE( 0 );
-			pPacket->WriteLongLE( 0 );
-			pPacket->WriteLongLE( (DWORD)( nOffset + nLength ) );
-			pPacket->WriteLongLE( 0 );
-			pPacket->WriteLongLE( 0 );
-			Send( pPacket );
-			
-			int nType = ( m_nDownloaded == 0 || ( nOffset % ED2K_PART_SIZE ) == 0 )
-				? MSG_DEFAULT : MSG_DEBUG;
-			
-			theApp.Message( nType, IDS_DOWNLOAD_FRAGMENT_REQUEST,
-				nOffset, nOffset + nLength - 1,
-				(LPCTSTR)m_pDownload->GetDisplayName(), (LPCTSTR)m_sAddress );
+			oRequesting.insert( _TRequest::value_type(nOffset, Selected) );
+
 		}
 		else
 		{
 			break;
 		}
+	}
+
+	_TRequestIndex iIndex = oRequesting.begin();
+	_TRequestIndex iEnd = oRequesting.end();
+
+	while ( !oRequesting.empty() )
+	{
+		DWORD nCount=0, nOffsetBegin[3]={0,0,0}, nOffsetEnd[3]={0,0,0};
+
+		while ( nCount < 3 && !oRequesting.empty() )
+		{
+			iIndex = oRequesting.begin();
+			nOffsetBegin[nCount] = DWORD((*iIndex).second.begin());
+			nOffsetEnd[nCount] = DWORD((*iIndex).second.end());
+			nCount++;
+			oRequesting.erase(iIndex);
+		}
+
+		CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_REQUESTPARTS );
+		pPacket->Write( m_pDownload->m_oED2K );
+		pPacket->WriteLongLE( nOffsetBegin[0] );
+		pPacket->WriteLongLE( nOffsetBegin[1] );
+		pPacket->WriteLongLE( nOffsetBegin[2] );
+		pPacket->WriteLongLE( nOffsetEnd[0] );
+		pPacket->WriteLongLE( nOffsetEnd[1] );
+		pPacket->WriteLongLE( nOffsetEnd[2] );
+		Send( pPacket );
+
+		do
+		{
+			int nType = ( m_nDownloaded == 0 || ( nOffsetBegin[nCount] % ED2K_PART_SIZE ) == 0 )
+				? MSG_DEFAULT : MSG_DEBUG;
+
+			theApp.Message( nType, IDS_DOWNLOAD_FRAGMENT_REQUEST,
+				nOffsetBegin[nCount], nOffsetEnd[nCount],
+				(LPCTSTR)m_pDownload->GetDisplayName(), (LPCTSTR)m_sAddress );
+		} 
+		while ( nCount-- );
 	}
 
 	// If there are no more possible chunks to request, and endgame is available but not active
@@ -922,13 +953,13 @@ BOOL CDownloadTransferED2K::RunQueued(DWORD tNow)
 		Close( TS_UNKNOWN );
 		return FALSE;
 	}
-	else if ( Datagrams.IsStable() && m_pClient->m_nUDP > 0 && TRUE /* ! m_bUDP */ && tNow > m_tRequest && tNow - m_tRequest > Settings.eDonkey.ReAskTime * 1000 - 20000 )
+	else if ( Datagrams.IsStable() && m_pClient->m_nUDP > 0 && ! m_bUDP && tNow > m_tRequest && tNow - m_tRequest > Settings.eDonkey.ReAskTime * 1000 - 20000 )
 	{
 		CEDPacket* pPing = CEDPacket::New( ED2K_C2C_UDP_REASKFILEPING, ED2K_PROTOCOL_EMULE );
 		pPing->Write( m_pDownload->m_oED2K );
 		Datagrams.Send( &m_pClient->m_pHost.sin_addr, m_pClient->m_nUDP, pPing );
-		//m_bUDP = TRUE;
-		m_tRequest = GetTickCount();
+		m_bUDP = TRUE;
+		//m_tRequest = GetTickCount();
 	}
 	else if ( tNow > m_tRequest && tNow - m_tRequest > Settings.eDonkey.ReAskTime * 1000 )
 	{
