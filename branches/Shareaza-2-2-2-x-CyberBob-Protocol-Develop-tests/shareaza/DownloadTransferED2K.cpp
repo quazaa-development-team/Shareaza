@@ -798,6 +798,12 @@ BOOL CDownloadTransferED2K::SendFragmentRequests()
 	
 	Fragments::List oPossible( m_pDownload->GetEmptyFragmentList() );
 	
+	if ( m_pDownload->m_nSize & 0xffffffff00000000 )
+	{
+		Fragments::Fragment Selected( 0x100000000, m_pDownload->m_nSize - 1 );
+		oPossible.erase( Selected );
+	}
+
 	if ( ! m_pDownload->m_bTorrentEndgame )
 	{
 		for ( CDownloadTransfer* pTransfer = m_pDownload->GetFirstTransfer();
@@ -837,25 +843,26 @@ BOOL CDownloadTransferED2K::SendFragmentRequests()
 
 	while ( !oRequesting.empty() )
 	{
-		DWORD nCount=0, nOffsetBegin[3]={0,0,0}, nOffsetEnd[3]={0,0,0};
+		DWORD nCount=0;
+		QWORD nOffsetBegin[3]={0,0,0}, nOffsetEnd[3]={0,0,0};
 
 		while ( nCount < 3 && !oRequesting.empty() )
 		{
 			iIndex = oRequesting.begin();
-			nOffsetBegin[nCount] = DWORD((*iIndex).second.begin());
-			nOffsetEnd[nCount] = DWORD((*iIndex).second.end());
-			nCount++;
+			nOffsetBegin[nCount] = QWORD((*iIndex).second.begin());
+			nOffsetEnd[nCount] = QWORD((*iIndex).second.end());
 			oRequesting.erase(iIndex);
+			nCount++;
 		}
 
 		CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_REQUESTPARTS );
 		pPacket->Write( m_pDownload->m_oED2K );
-		pPacket->WriteLongLE( nOffsetBegin[0] );
-		pPacket->WriteLongLE( nOffsetBegin[1] );
-		pPacket->WriteLongLE( nOffsetBegin[2] );
-		pPacket->WriteLongLE( nOffsetEnd[0] );
-		pPacket->WriteLongLE( nOffsetEnd[1] );
-		pPacket->WriteLongLE( nOffsetEnd[2] );
+		pPacket->WriteLongLE( (DWORD)( nOffsetBegin[0] & 0x00000000ffffffff ) );
+		pPacket->WriteLongLE( (DWORD)( nOffsetBegin[1] & 0x00000000ffffffff ) );
+		pPacket->WriteLongLE( (DWORD)( nOffsetBegin[2] & 0x00000000ffffffff ) );
+		pPacket->WriteLongLE( (DWORD)( nOffsetEnd[0] & 0x00000000ffffffff ) );
+		pPacket->WriteLongLE( (DWORD)( nOffsetEnd[1] & 0x00000000ffffffff ) );
+		pPacket->WriteLongLE( (DWORD)( nOffsetEnd[2] & 0x00000000ffffffff ) );
 		Send( pPacket );
 
 		do
