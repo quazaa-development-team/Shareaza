@@ -920,7 +920,7 @@ void CShareazaApp::OnQueryHits(CQueryHit* pHits)
 	*/
 
 	if ( pHits != NULL ) 
-		Transfers.m_pMessageQueue.PushMessage( (CITMQueue::CITMItem*)CITMQueryHit::CreateMessage(pHits) );
+		theApp.m_pMessageQueue.PushMessage( (CITMQueue::CITMItem*)CITMQueryHit::CreateMessage(pHits) );
 
 }
 
