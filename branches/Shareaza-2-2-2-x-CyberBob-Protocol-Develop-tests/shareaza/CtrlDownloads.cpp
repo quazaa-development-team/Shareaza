@@ -1183,24 +1183,24 @@ void CDownloadsCtrl::PaintSource(CDC& dc, const CRect& rcRow, CDownload* pDownlo
 			{
 				if ( Settings.Search.ShowNames && pSource->m_sNick.GetLength() )
 				{
-					strText = pSource->m_sNick + _T(" (") + inet_ntoa( pSource->m_pAddress );
-					strText.AppendFormat( _T(":%u)"), pSource->m_nPort );
+					if ( ( pSource->m_nProtocol == PROTOCOL_ED2K ) && ( pSource->m_bPushOnly == TRUE ) )
+					{
+						strText = pSource->m_sNick;
+						strText.AppendFormat( _T(" (%lu@%s:%u)"), pSource->m_pAddress.S_un.S_addr, 
+							(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+					}
+					else
+					{
+						strText = pSource->m_sNick + _T(" (") + inet_ntoa( pSource->m_pAddress );
+						strText.AppendFormat( _T(":%u)"), pSource->m_nPort );
+					}
 				}
 				else
 				{
 					if ( ( pSource->m_nProtocol == PROTOCOL_ED2K ) && ( pSource->m_bPushOnly == TRUE ) )
 					{
-						if ( Settings.Search.ShowNames && pSource->m_sNick.GetLength() )
-						{
-							strText = pSource->m_sNick;
-							strText.AppendFormat( _T(" (%lu@%s:%u)"), pSource->m_pAddress.S_un.S_addr, 
-								(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
-						}
-						else
-						{
-							strText.Format( _T("%lu@%s:%u"), pSource->m_pAddress.S_un.S_addr, 
-								(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
-						}
+						strText.Format( _T("%lu@%s:%u"), pSource->m_pAddress.S_un.S_addr, 
+							(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
 					}
 					else
 					{
