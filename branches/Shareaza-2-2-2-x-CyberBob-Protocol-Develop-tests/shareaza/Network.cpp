@@ -1242,6 +1242,8 @@ void CNetwork::UDPHostCache( IN_ADDR* pAddress, WORD nPort )
 	CGGEPItem* pItem;
 	
 	pItem = pBlock.Add( L"SCP" );
+	pItem->UnsetCOBS();
+	pItem->UnsetSmall();
 	if ( bNeedFreePeerSlot ) 
 		pItem->WriteByte( 1 );
 	else
