@@ -704,6 +704,9 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 			pSFL->WriteByte(1);
 			pSFL->WriteByte(0);
 
+			// end compound
+			pSFL->WriteByte(0);
+
 			// adding SFL packet as conpound packet in PONG
 			pPong->WritePacket( pSFL );
 			pSFL->Release();
@@ -1079,7 +1082,7 @@ void CG2Neighbour::SendKHL()
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
 
 	pPacket->WritePacket( "TS", 4 );
-	pPacket->WriteLongBE( static_cast< DWORD >( time( NULL ) ) );
+	pPacket->WriteLongBE( tNow );
 
 	for ( CHostCacheHost* pHost = HostCache.Gnutella2.GetNewest() ; pHost && nCount > 0 ; pHost = pHost->m_pPrevTime )
 	{
@@ -1133,7 +1136,7 @@ BOOL CG2Neighbour::OnKHL(CG2Packet* pPacket)
 	if ( ! pPacket->m_bCompound ) return TRUE;
 
 	CHAR szType[9], szInner[9];
-	DWORD nLength, nInner;
+	DWORD nLength, nInner, nHubCount = 0;
 	BOOL bCompound;
 
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
@@ -1180,6 +1183,7 @@ BOOL CG2Neighbour::OnKHL(CG2Packet* pPacket)
 				}
 
 				nLength = nNext - pPacket->m_nPosition;
+				nHubCount++;
 			}
 
 			if ( nLength >= 6 )
@@ -1215,6 +1219,15 @@ BOOL CG2Neighbour::OnKHL(CG2Packet* pPacket)
 		}
 
 		pPacket->m_nPosition = nNext;
+	}
+
+	if ( m_nNodeType == ntLeaf && nHubCount > 3 )
+	{
+		CString strTemp( inet_ntoa( m_pHost.sin_addr ) );
+		theApp.Message(MSG_SYSTEM, _T( "Detected Leaf node is connected to ambiguous number of Hubs: %s:%u "),
+			strTemp, ntohs(m_pHost.sin_port) );
+		Security.Ban( &m_pHost.sin_addr, banSession );
+		return FALSE;
 	}
 
 	return TRUE;
