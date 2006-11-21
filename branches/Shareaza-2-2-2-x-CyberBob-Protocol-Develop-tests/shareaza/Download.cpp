@@ -117,7 +117,7 @@ void CDownload::Resume()
 	if ( m_bComplete ) return;
 	if ( ! m_bTempPaused ) 
 	{
-		if ( ( m_tBegan == 0 ) && ( GetSourceCount() < Settings.Downloads.MinSources ) ) FindMoreSources();
+		//if ( ( m_tBegan == 0 ) && ( GetSourceCount() < Settings.Downloads.MinSources ) ) FindMoreSources();
 		SetStartTimer();
 		return;
 	}
@@ -627,8 +627,8 @@ BOOL CDownload::Save(BOOL bFlush)
 	
 	if ( m_bComplete ) return TRUE;
 	
-	if ( m_sDiskName.GetLength() == 0 )  // <- Condition added (CyberBob); this is needed to solve the problem below...
-	GenerateDiskName();		//<- this is very very dangerous to cause Loss of Download by Over writing
+	if ( m_sDiskName.GetLength() == 0 )	// <- Condition added (CyberBob); this is needed to solve the problem below...
+		GenerateDiskName();				//<- this is very very dangerous to cause Loss of Download by Over writing
 							// existing SD file by different file.
 							// Example of Situation cause trouble.
 							// having same file, assume file A, and B

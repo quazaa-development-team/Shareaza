@@ -319,7 +319,7 @@ CDownload* CDownloads::Add(CMatchFile* pFile, BOOL bAddToHead)
 		if ( (pDownload->GetSourceCount( TRUE ) <= Settings.Downloads.MinSources ) &&
 			( pDownload->m_oED2K || pDownload->m_oSHA1 ) )
 		{
-			pDownload->FindMoreSources();
+			//pDownload->FindMoreSources();
 		}
 	}
 	
@@ -380,13 +380,13 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 	{
 		pDownload->m_oED2K			= pURL->m_oED2K;
         pDownload->m_oED2K.signalTrusted();
-		pDownload->Share( TRUE );
+		//pDownload->Share( TRUE );
 	}
 	if ( pURL->m_oBTH )
 	{
 		pDownload->m_oBTH			= pURL->m_oBTH;
 		pDownload->m_oBTH.signalTrusted();
-		pDownload->Share( TRUE );
+		//pDownload->Share( TRUE );
 	}
 	
 	if ( pURL->m_sName.GetLength() )
@@ -432,7 +432,7 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 		 ( !pDownload->m_oBTH && ( GetTryingCount(FALSE) < Settings.Downloads.MaxFiles ) ) )
 	{
 		pDownload->SetStartTimer();
-		if ( pDownload->GetSourceCount() <= Settings.Downloads.MinSources ) pDownload->FindMoreSources();
+		//if ( pDownload->GetSourceCount() <= Settings.Downloads.MinSources ) pDownload->FindMoreSources();
 	}
 	
 	DownloadGroups.Link( pDownload );
