@@ -271,7 +271,9 @@ BOOL CDownloadTransferHTTP::StartNextFragment()
 	}
 	else
 	{
-		if ( m_pSource != NULL ) m_pSource->SetAvailableRanges( NULL );
+		// Line Below cause Shareaza to forget Available range on Source, which might cause User to think the source have full range
+		// Available.
+        //if ( m_pSource != NULL ) m_pSource->SetAvailableRanges( NULL );
 		
 		theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_FRAGMENT_END, (LPCTSTR)m_sAddress );
 		Close( TS_TRUE );
