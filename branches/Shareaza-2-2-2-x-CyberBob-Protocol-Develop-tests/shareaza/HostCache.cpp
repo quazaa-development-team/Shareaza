@@ -1008,6 +1008,8 @@ CG1Packet* CHostCacheHost::ToG1Ping(int nTTL, const Hashes::Guid& oGUID)
 
 	CGGEPBlock pBlock;
 	CGGEPItem* pItem = pBlock.Add( L"SCP" );
+	pItem->UnsetCOBS();
+	pItem->UnsetSmall();
 	if ( bNeedFreePeerSlot )
 		pItem->WriteByte( 1 );
 	else

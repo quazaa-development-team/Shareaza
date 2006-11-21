@@ -377,10 +377,10 @@ BOOL CG1Neighbour::SendPing(DWORD dwNow, const Hashes::Guid& oGUID)
 	CG1Packet* pPacket = CG1Packet::New( G1_PACKET_PING, 
 		( bool( oGUID ) || bNeedPeers ) ? 0 : Settings.Gnutella1.DefaultTTL, oGUID );
 
+	CGGEPBlock pBlock;
 	// Send "Supports Cached Pongs" extension along with a packet, to receive G1 hosts for cache
 	if ( Settings.Gnutella1.EnableGGEP && bNeedHubs )
 	{
-		CGGEPBlock pBlock;
 		CGGEPItem* pItem = pBlock.Add( L"SCP" );
 		pItem->UnsetCOBS();
 		pItem->UnsetSmall();
@@ -388,8 +388,10 @@ BOOL CG1Neighbour::SendPing(DWORD dwNow, const Hashes::Guid& oGUID)
 			pItem->WriteByte( 1 );
 		else
 			pItem->WriteByte( 0 );
-		pBlock.Write( pPacket );
+
 	}
+
+	if ( !pBlock.IsEmpty() ) pBlock.Write( pPacket );
 	
 	Send( pPacket, TRUE, TRUE );
 	Statistics.Current.Gnutella1.PingsSent++;
