@@ -277,53 +277,45 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 		if ( pSource->m_pTransfer != NULL )
 		{
 			// Already has a transfer
-			if ( ( pSource->m_nProtocol == PROTOCOL_ED2K ) && pSource->m_bPushOnly && int( tNow - pSource->m_tAttempt ) >= 0 )
-			{
-				if ( pConnectHead == NULL && pSource->m_pTransfer->m_nState != dtsNull )
-				{
-					//pPushHead = pSource;
-				}
-				else if ( ! Settings.Downloads.NeverDrop && pSource->m_pTransfer->m_nState == dtsNull )
-				{
-					pSource->Remove( TRUE, FALSE );
-				}
-			}
 		}
 		else if ( ( pSource->m_nProtocol == PROTOCOL_ED2K ) && ( ( tNow - Downloads.m_tBandwidthAtMaxED2K ) < 5000 ) ) 
 		{
 			// ED2K use (Ratio) is maxed out, no point in starting new transfers
 		}
-		else if ( pSource->m_bPushOnly == FALSE )
+		else if ( pSource->m_bPushOnly == FALSE || pSource->m_nProtocol == PROTOCOL_ED2K )
 		{
 			if ( pSource->m_tAttempt == 0 )
 			{
 				if ( pSource->CanInitiate( bConnected, FALSE ) )
 				{
-					CDownloadTransfer* pTransfer = pSource->CreateTransfer();
-					return pTransfer != NULL && pTransfer->Initiate();
+					pConnectHead = pSource;
+					break;
 				}
 			}
 			else if ( pSource->m_tAttempt > 0 && pSource->m_tAttempt <= tNow )
 			{
-				if ( pConnectHead == NULL || ( pConnectHead->m_nProtocol != PROTOCOL_HTTP && pSource->m_nProtocol == PROTOCOL_HTTP ) )
-				{
-					if ( pSource->CanInitiate( bConnected, FALSE ) ) pConnectHead = pSource;
-				}
+				if ( pConnectHead == NULL && pSource->CanInitiate( bConnected, FALSE ) ) pConnectHead = pSource;
 			}
 		}
-		else
+		else if ( Network.GetStableTime() >= 15 )
 		{
 			if ( ! Settings.Downloads.NeverDrop && pSource->m_nPushAttempted > 10 )
 			{
 				pSource->Remove( TRUE, FALSE );
+			}
+			else if ( pSource->m_tAttempt == 0 )
+			{
+				if ( pSource->CanInitiate( bConnected, FALSE ) )
+				{
+					pConnectHead = pSource;
+					break;
+				}
 			}
 			else if ( pSource->m_tAttempt <= tNow )
 			{
 				if ( pConnectHead == NULL && pSource->CanInitiate( bConnected, FALSE ) ) pConnectHead = pSource;
 			}
 		}
-
-		if ( pConnectHead != NULL ) break;
 		pSource = pNext;
 	}
 	
@@ -331,19 +323,18 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 	{
 		if ( pConnectHead->m_bPushOnly && ! ( pConnectHead->m_nProtocol == PROTOCOL_ED2K ) )
 		{
-			if ( Network.GetStableTime() < 15 || pConnectHead->PushRequest() )
+			if ( pConnectHead->PushRequest() )
 			{
-				SortSource( pConnectHead, FALSE );
 				return TRUE;
+			}
+			else if ( ! Settings.Downloads.NeverDrop )
+			{
+				pConnectHead->Remove( TRUE, FALSE );
 			}
 			else
 			{
-				if ( ! Settings.Downloads.NeverDrop )
-					pConnectHead->Remove( TRUE, FALSE );
-				else
-					SortSource( pConnectHead, FALSE );
+				SortSource( pConnectHead, FALSE );
 			}
-			return TRUE;
 		}
 		else
 		{
