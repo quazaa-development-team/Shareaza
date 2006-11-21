@@ -1284,6 +1284,26 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 		// There is a GGEP block here, and checking and adjusting the TTL and hops counts worked
 		if ( pGGEP.ReadFromPacket( pPacket ) )
 		{
+
+			CGGEPItem* pUP = pGGEP.Find( L"UP" );
+			CGGEPItem* pVC = pGGEP.Find( L"VC", 4 );
+			CString sVendorCode;
+			if ( pVC != NULL )
+			{
+				CHAR szaVendor[ 4 ];
+				pVC->Read( szaVendor,4 );
+				TCHAR szVendor[5] = { szaVendor[0], szaVendor[1], szaVendor[2], szaVendor[3], 0 };
+
+				sVendorCode.Format( _T("%s"), (LPCTSTR)szVendor);
+			}
+
+			if ( pUP != NULL )
+			{
+				sVendorCode.Trim( _T(" ") );
+				HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, nPort, 0, (LPCTSTR)sVendorCode );
+			}
+
+
 			int nCount = 0;
 			CGGEPItem* pIPPs = pGGEP.Find( L"IPP", 6 );
 
@@ -2341,7 +2361,7 @@ BOOL CDatagrams::OnBye(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 // Better put cache as security to prevent attack, such as flooding cache with invalid host addresses.
 BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
-	if ( /* ! pPacket->m_bCompound */ TRUE ) return FALSE; // block execution of code for above reason
+	if ( ! pPacket->m_bCompound ) return FALSE; // block execution of code for above reason
 
 	CDiscoveryService * pService = DiscoveryServices.GetByAddress( &(pHost->sin_addr) , ntohs(pHost->sin_port), 4 );
 
@@ -2349,11 +2369,13 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		Network.IsReserved( &pHost->sin_addr ) ) ) return FALSE;
 
 	CHAR szType[9], szInner[9];
-	DWORD nLength, nInner;
+	DWORD nLength, nInner, tAdjust = 0;
 	BOOL bCompound;
 	int nCount = 0;
 
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
+
+	tAdjust = tNow;
 
 	while ( pPacket->ReadPacket( szType, nLength, &bCompound ) )
 	{
@@ -2362,7 +2384,7 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		if (	strcmp( szType, "NH" ) == 0 ||
 				strcmp( szType, "CH" ) == 0 )
 		{
-			DWORD nAddress = 0, tSeen = tNow, tAdjust = 0;
+			DWORD nAddress = 0, tSeen = tNow;
 			WORD nPort = 0;
 			CString strVendor;
 
@@ -2397,26 +2419,21 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 				}
 
 			}
-			else if ( strcmp( szType, "TS" ) == 0 && nLength >= 4 )
+
+			CHostCacheHost* pCached = HostCache.Gnutella2.Add(
+				(IN_ADDR*)&nAddress, nPort, tSeen, strVendor );
+
+
+			if ( pCached != NULL )
 			{
-				tAdjust = (LONG)tNow - (LONG)pPacket->ReadLongBE();
+				nCount++;
+				pCached->m_pVendor->m_sCode = strVendor;
 			}
 
-			if ( ! Security.IsDenied( (IN_ADDR*)&nAddress ) && ! Network.IsFirewalledAddress( &nAddress, TRUE, TRUE ) &&
-                ! Network.IsReserved((IN_ADDR*)&nAddress) && strVendor.GetLength() == 4 && nPort != 0 && 
-				nAddress != Network.m_pHost.sin_addr.S_un.S_addr)
-			{
-				CHostCacheHost* pCached = HostCache.Gnutella2.Add(
-					(IN_ADDR*)&nAddress, nPort, tSeen, strVendor );
-
-
-				if ( pCached != NULL )
-				{
-					nCount++;
-					pCached->m_pVendor->m_sCode = strVendor;
-				}
-				// HubHorizonPool.Add( (IN_ADDR*)&nAddress, nPort );
-			}
+		}
+		else if ( strcmp( szType, "TS" ) == 0 && nLength >= 4 )
+		{
+			tAdjust = (LONG)tNow - (LONG)pPacket->ReadLongBE();
 		}
 
 		pPacket->m_nPosition = nNext;
@@ -2482,32 +2499,10 @@ BOOL CDatagrams::OnKHLR(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	for ( CHostCacheHost* pCachedHost = HostCache.Gnutella2.GetNewest() ; pCachedHost && nCount > 0 ;
 			pCachedHost = pCachedHost->m_pPrevTime )
 	{
-		if (	pCachedHost->CanQuote( tNow ) &&
+		if ( pCachedHost->CanQuote( tNow ) &&
 			Neighbours.Get( &pCachedHost->m_pAddress ) == NULL &&
 			pCachedHost->m_pAddress.S_un.S_addr != Network.m_pHost.sin_addr.S_un.S_addr )
 		{
-			/*
-			int nLength = 10;
-
-			if ( pCachedHost->m_pVendor && pCachedHost->m_pVendor->m_sCode.GetLength() == 4 )
-				nLength += 8;
-			//if ( nLength > 10 )
-			//	nLength ++;
-
-			pKHLA->WritePacket( "CH", nLength, nLength > 10 );
-
-			if ( pCachedHost->m_pVendor && pCachedHost->m_pVendor->m_sCode.GetLength() == 4 )
-			{
-				pKHLA->WritePacket( "V", 5 );									// 3
-				pKHLA->WriteString( pCachedHost->m_pVendor->m_sCode, TRUE );	// 4
-			}
-
-			//if ( nLength > 10 ) pPacket->WriteByte( 0 );						// 1
-
-			pKHLA->WriteLongLE( pCachedHost->m_pAddress.S_un.S_addr );			// 4
-			pKHLA->WriteShortBE( pCachedHost->m_nPort );						// 2
-			pKHLA->WriteLongBE( pCachedHost->m_tSeen );							// 4
-			*/
 
 			BOOL bCompound = ( pCachedHost->m_pVendor && pCachedHost->m_pVendor->m_sCode.GetLength() > 0 );
 			CG2Packet* pCHPacket = CG2Packet::New( "CH", bCompound );
@@ -2517,6 +2512,7 @@ BOOL CDatagrams::OnKHLR(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 				pCHPacket->WritePacket( "V", pCachedHost->m_pVendor->m_sCode.GetLength() );
 				pCHPacket->WriteString( pCachedHost->m_pVendor->m_sCode );
 			}
+
 			pCHPacket->WriteLongLE( pCachedHost->m_pAddress.S_un.S_addr );					// 4
 			pCHPacket->WriteShortBE( pCachedHost->m_nPort );								// 2
 			pCHPacket->WriteLongBE( pCachedHost->m_tSeen );									// 4

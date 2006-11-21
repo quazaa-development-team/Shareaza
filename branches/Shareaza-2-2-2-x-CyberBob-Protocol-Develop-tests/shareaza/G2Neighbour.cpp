@@ -117,9 +117,9 @@ void CG2Neighbour::Close(UINT nError)  // Send the buffer then close the socket,
 {
 	if ( nError == IDS_CONNECTION_CLOSED )
 	{
-		CG2Packet * pClosePacket = CG2Packet::New( G2_PACKET_CLOSE, FALSE );
-		pClosePacket->WriteString( "Manually Closing Connection",TRUE );
-		Send( pClosePacket );
+		//CG2Packet * pClosePacket = CG2Packet::New( G2_PACKET_CLOSE, FALSE );
+		//pClosePacket->WriteString( "Manually Closing Connection",TRUE );
+		//Send( pClosePacket );
 	}
 	else if ( nError == IDS_CONNECTION_PEERPRUNE )
 	{
@@ -657,6 +657,9 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 			pSFL->WriteByte(1);
 			pSFL->WriteByte(0);
 
+			// end compound
+			pSFL->WriteByte(0);
+
 			// adding SFL packet as compound packet in PONG
 			pPong->WritePacket( pSFL );
 			pSFL->Release();
@@ -916,12 +919,13 @@ void CG2Neighbour::SendLNI()
 		pPacket->WritePacket( "QK", 0 );
 	}
 
-	if ( Settings.Gnutella2.ClientMode == MODE_AUTO ) //add
+	if ( Settings.Gnutella2.ClientMode != MODE_LEAF && !Network.IsFirewalled() && Datagrams.IsStable() &&
+		Neighbours.IsG2HubCapable() ) //add
 	{
 		pPacket->WritePacket( "HA", 0 );
 	}
 
-	if ( Network.IsFirewalled() ) //add
+	if ( Network.IsFirewalled() || !Datagrams.IsStable() ) //add
 	{
 		pPacket->WritePacket( "FW", 0 );
 	}
@@ -955,7 +959,8 @@ BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 	CHAR szType[9];
 	DWORD nLength;
 
-	m_nLeafCount = 0;
+	DWORD nLeafCount = 0;
+	
 
 	while ( pPacket->ReadPacket( szType, nLength ) )
 	{
@@ -983,7 +988,7 @@ BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 		}
 		else if ( strcmp( szType, "HS" ) == 0 && nLength >= 2 )
 		{
-			m_nLeafCount = pPacket->ReadShortBE();
+			nLeafCount = pPacket->ReadShortBE();
 			m_nLeafLimit = pPacket->ReadShortBE();
 		}
 		else if ( strcmp( szType, "QK" ) == 0 )
@@ -1026,11 +1031,11 @@ BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 		pPacket->m_nPosition = nNext;
 	}
 
-	if ( ! Network.IsFirewalledAddress( &m_pHost.sin_addr, TRUE ) &&
-		   m_pVendor != NULL && m_nNodeType != ntLeaf )
+	m_nLeafCount = nLeafCount;
+	if ( m_nNodeType != ntLeaf )
 	{
-		HostCache.Gnutella2.Add( &m_pHost.sin_addr, htons( m_pHost.sin_port ),
-			0, m_pVendor->m_sCode );
+		//HostCache.Gnutella2.Add( &m_pHost.sin_addr, htons( m_pHost.sin_port ),
+		//	0, m_pVendor->m_sCode );
 	}
 
 	m_tWaitLNI = 0;
@@ -1193,25 +1198,23 @@ BOOL CG2Neighbour::OnKHL(CG2Packet* pPacket)
 				if ( nLength >= 10 ) tSeen = pPacket->ReadLongBE() + m_tAdjust;
 			}
 
-			if ( FALSE == Network.IsFirewalledAddress( &nAddress, TRUE ) )
+			CHostCacheHost* pCached = HostCache.Gnutella2.Add(
+				(IN_ADDR*)&nAddress, nPort, tSeen, strVendor );
+
+			if ( pCached != NULL && m_nNodeType == ntHub )
 			{
-				CHostCacheHost* pCached = HostCache.Gnutella2.Add(
-					(IN_ADDR*)&nAddress, nPort, tSeen, strVendor );
-
-				if ( pCached != NULL && m_nNodeType == ntHub )
+				if ( pCached->m_nKeyValue == 0 ||
+					pCached->m_nKeyHost != Network.m_pHost.sin_addr.S_un.S_addr )
 				{
-					if ( pCached->m_nKeyValue == 0 ||
-						 pCached->m_nKeyHost != Network.m_pHost.sin_addr.S_un.S_addr )
-					{
-						pCached->SetKey( nKey, &m_pHost.sin_addr );
-					}
-				}
-
-				if ( strcmp( szType, "NH" ) == 0 )
-				{
-					m_pHubGroup->Add( (IN_ADDR*)&nAddress, nPort );
+					pCached->SetKey( nKey, &m_pHost.sin_addr );
 				}
 			}
+
+			if ( strcmp( szType, "NH" ) == 0 )
+			{
+				m_pHubGroup->Add( (IN_ADDR*)&nAddress, nPort );
+			}
+
 		}
 		else if ( strcmp( szType, "TS" ) == 0 && nLength >= 4 )
 		{
@@ -1224,8 +1227,8 @@ BOOL CG2Neighbour::OnKHL(CG2Packet* pPacket)
 	if ( m_nNodeType == ntLeaf && nHubCount > 3 )
 	{
 		CString strTemp( inet_ntoa( m_pHost.sin_addr ) );
-		theApp.Message(MSG_SYSTEM, _T( "Detected Leaf node is connected to ambiguous number of Hubs: %s:%u "),
-			strTemp, ntohs(m_pHost.sin_port) );
+		theApp.Message(MSG_SYSTEM, _T( "Detected Leaf node (%s:%u) is connected to ambiguous number of Hubs: Connected to %u Hubs"),
+			strTemp, ntohs(m_pHost.sin_port), nHubCount );
 		Security.Ban( &m_pHost.sin_addr, banSession );
 		return FALSE;
 	}
@@ -1328,7 +1331,7 @@ BOOL CG2Neighbour::OnHAW(CG2Packet* pPacket)
 
 	if ( pPacket->GetRemaining() < 2 + 16 ) return TRUE;
 	if ( nAddress == 0 || nPort == 0 ) return TRUE;
-	if ( Network.IsFirewalledAddress( &nAddress, TRUE ) ) return TRUE;
+	if ( Network.IsFirewalledAddress( &nAddress, TRUE, TRUE ) ) return TRUE;
 
 	BYTE* pPtr	= pPacket->m_pBuffer + pPacket->m_nPosition;
 	BYTE nTTL	= pPacket->ReadByte();
@@ -1337,7 +1340,7 @@ BOOL CG2Neighbour::OnHAW(CG2Packet* pPacket)
 	Hashes::Guid oGUID;
 	pPacket->Read( oGUID );
 
-	HostCache.Gnutella2.Add( (IN_ADDR*)&nAddress, nPort, 0, strVendor );
+	if ( strVendor.GetLength() != 0 ) HostCache.Gnutella2.Add( (IN_ADDR*)&nAddress, nPort, 0, strVendor );
 
 	if ( nTTL > 0 && nHops < 255 )
 	{
