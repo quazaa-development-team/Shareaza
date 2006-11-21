@@ -151,8 +151,7 @@ public:
 				bSameProtocol = TRUE;
 			}
 		}
-
-		if ( m_nProtocol == pSource->m_nProtocol )
+		else if ( m_nProtocol == pSource->m_nProtocol )
 		{
 			bSameProtocol = TRUE;
 		}
@@ -166,17 +165,17 @@ public:
 		}
 		else if ( m_bPushOnly && pSource->m_bPushOnly )
 		{
-			if ( m_nServerPort > 0 )
+			if ( m_nServerPort > 0 && pSource->m_nServerPort > 0)
 			{
-				if ( m_pAddress.S_un.S_addr == pSource->m_pAddress.S_un.S_addr )
-					if ( m_pServerAddress.S_un.S_addr == pSource->m_pServerAddress.S_un.S_addr ) return TRUE;
+				if ( m_pAddress.S_un.S_addr == pSource->m_pAddress.S_un.S_addr &&
+					m_pServerAddress.S_un.S_addr == pSource->m_pServerAddress.S_un.S_addr &&
+					m_nServerPort == pSource->m_nServerPort ) return TRUE;
 			}
 		}
 
-		if ( bSameProtocol && validAndEqual( m_oGUID, pSource->m_oGUID ) )
+		if ( validAndEqual( m_oGUID, pSource->m_oGUID ) )
 		{
-			if ( m_oGUID != NULL )
-				return TRUE;
+			return TRUE;
 		}
 
 		return FALSE;

@@ -58,10 +58,6 @@ CDownloadSource::CDownloadSource(CDownload* pDownload)
 : m_oAvailable( pDownload->m_nSize ), m_oPastFragments( pDownload->m_nSize )
 {
 	Construct( pDownload );
-	m_bCloseConn	= FALSE;
-	m_bReConnect	= FALSE;			// No Initial Reconnect setting
-	m_nPushAttempted	= 0;
-	m_nBusyCount	= 0;
 }
 
 void CDownloadSource::Construct(CDownload* pDownload)
@@ -151,15 +147,11 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, CQueryHit* pHit)
 	
 	ResolveURL();
 
-	if ( pHit->m_nProtocol == PROTOCOL_G1 || pHit->m_nProtocol == PROTOCOL_G2 )
+	if ( m_nProtocol == PROTOCOL_HTTP )
 	{
 		m_nProtocol = pHit->m_nProtocol;
 	}
 
-	m_bCloseConn	= FALSE;
-	m_bReConnect	= FALSE;			// No Initial Reconnect setting
-	m_nPushAttempted	= 0;
-	m_nBusyCount	= 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -196,10 +188,6 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, DWORD nClientID, WORD nCl
 	
 	ResolveURL();
 
-	m_bCloseConn	= FALSE;
-	m_bReConnect	= FALSE;			// No Initial Reconnect setting
-	m_nPushAttempted	= 0;
-	m_nBusyCount	= 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -229,10 +217,6 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, const Hashes::BtGuid& oGU
 	
 	ResolveURL();
 
-	m_bCloseConn	= FALSE;
-	m_bReConnect	= FALSE;			// No Initial Reconnect setting
-	m_nPushAttempted	= 0;
-	m_nBusyCount	= 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -260,14 +244,10 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, LPCTSTR pszURL, BOOL /*bS
 
 	m_nRedirectionCount = nRedirectionCount;
 
-	m_bCloseConn	= FALSE;
-	m_bReConnect	= FALSE;			// No Initial Reconnect setting
-	m_nPushAttempted	= 0;
 	if ( nProtocol == PROTOCOL_G1 || nProtocol == PROTOCOL_G2 )
 	{
 		m_nProtocol		= nProtocol;
 	}
-	m_nBusyCount	= 0;
 }
 
 //////////////////////////////////////////////////////////////////////
