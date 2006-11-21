@@ -1170,8 +1170,10 @@ void CNetwork::OnQuerySearch(CQuerySearch* pSearch, BOOL bOUT)
 	
 	if (bOUT) return;
 
+	CSingleLock pListLock( &theApp.m_mSearchMonitorList );
 	CSingleLock pLock( &theApp.m_pSection );
 	
+	/*
 	if ( pLock.Lock( 10 ) )
 	{
 		if ( CMainWnd* pMainWnd = theApp.SafeMainWnd() )
@@ -1188,6 +1190,20 @@ void CNetwork::OnQuerySearch(CQuerySearch* pSearch, BOOL bOUT)
 
 		pLock.Unlock();
 	}
+	*/
+
+	if ( pLock.Lock( 10 ) && pListLock.Lock( 10 ) && !theApp.m_oSearchMonitorList.empty() )
+	{
+		std::list<CSearchMonitorWnd*>::iterator iIndex = theApp.m_oSearchMonitorList.begin();
+		std::list<CSearchMonitorWnd*>::iterator iEnd = theApp.m_oSearchMonitorList.end();
+		while ( iIndex != iEnd )
+		{
+			(*iIndex)->OnQuerySearch( pSearch, bOUT );
+			iIndex++;
+		}
+	}
+	pLock.Unlock();
+	pListLock.Unlock();
 }
 
 void CNetwork::OnQueryHits(CQueryHit* pHits)

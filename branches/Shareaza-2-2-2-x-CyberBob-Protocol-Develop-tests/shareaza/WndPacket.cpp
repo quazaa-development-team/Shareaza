@@ -120,6 +120,9 @@ int CPacketWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	for ( int nType = 0 ; nType < 19 ; nType++ ) m_bTypeG2[ nType ] = TRUE;
 	m_bTypeED = TRUE;
 
+	CSingleLock pLock( &(theApp.m_mPacketWndList), TRUE );
+	theApp.m_oPacketWndList.push_front(this);
+
 	SetTimer( 2, 500, NULL );
 
 	return 0;
@@ -127,6 +130,10 @@ int CPacketWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 void CPacketWnd::OnDestroy() 
 {
+	CSingleLock pListLock( &(theApp.m_mPacketWndList), TRUE );
+	theApp.m_oPacketWndList.remove(this);
+	pListLock.Unlock();
+
 	KillTimer( 2 );
 
 	CSingleLock pLock( &m_pSection, TRUE );

@@ -28,7 +28,12 @@
 
 class CUPnPFinder;
 class CMainWnd;
+
 class CQueryHit;
+class CSearchWnd;
+class CPacketWnd;
+class CSearchMonitorWnd;
+class CHitMonitorWnd;
 
 class CShareazaApp : public CWinApp
 {
@@ -81,7 +86,16 @@ protected:
 	static TCHAR		szMessageBuffer[16384];
 
 public:
-	CITMQueue		m_pMessageQueue;
+	CMutex							m_mSearchWndList;
+	std::list<CSearchWnd*>			m_oSearchWndList;
+	CMutex							m_mPacketWndList;
+	std::list<CPacketWnd*>			m_oPacketWndList;
+	CMutex							m_mSearchMonitorList;
+	std::list<CSearchMonitorWnd*>	m_oSearchMonitorList;
+	CMutex							m_mHitMonitorList;
+	std::list<CHitMonitorWnd*>		m_oHitMonitorList;
+
+	CITMQueue						m_pMessageQueue;
 
 	class CITMQueryHit : CITMQueue::CITMItem
 	{

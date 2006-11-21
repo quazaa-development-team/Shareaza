@@ -164,12 +164,19 @@ int CSearchWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	OnSkinChange();
 	
 	PostMessage( WM_TIMER, 1 );
-	
+
+	CSingleLock pLock( &(theApp.m_mSearchWndList), TRUE );
+	theApp.m_oSearchWndList.push_front(this);
+
 	return 0;
 }
 
 void CSearchWnd::OnDestroy() 
 {
+	CSingleLock pListLock( &(theApp.m_mSearchWndList), TRUE );
+	theApp.m_oSearchWndList.remove(this);
+	pListLock.Unlock();
+
 	CQuerySearch* pSearch = GetLastSearch();
 	
 	if ( pSearch && pSearch->m_pSchema == NULL )

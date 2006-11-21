@@ -59,6 +59,7 @@
 
 #include "QueryHit.h"
 #include "XML.h"
+#include "WndSearch.h"
 #include "WndHitMonitor.h"
 
 #ifdef _DEBUG
@@ -146,8 +147,11 @@ BOOL CShareazaApp::CITMQueryHit::OnProcess()
 {
 	if ( m_pHits == NULL ) return TRUE;
 
-	CSingleLock pLock( &theApp.m_pSection );
+	CSingleLock pSearchWndListLock( &theApp.m_mSearchWndList );
+	CSingleLock pHitMonitorListLock( &theApp.m_mHitMonitorList );
+	//CSingleLock pLock( &theApp.m_pSection );
 
+	/*
 	if ( pLock.Lock( 250 ) )
 	{
 		if ( CMainWnd* pMainWnd = theApp.SafeMainWnd() )
@@ -186,6 +190,44 @@ BOOL CShareazaApp::CITMQueryHit::OnProcess()
 
 		pLock.Unlock();
 	}
+	*/
+
+	//if ( pLock.Lock( 10 )  )
+	//{
+		if ( pSearchWndListLock.Lock() && !theApp.m_oSearchWndList.empty() )
+		{
+			std::list<CSearchWnd*>::iterator iIndex = theApp.m_oSearchWndList.begin();
+			std::list<CSearchWnd*>::iterator iEnd = theApp.m_oSearchWndList.end();
+			while ( iIndex != iEnd )
+			{
+				if ( (*iIndex)->OnQueryHits( m_pHits ) )
+				{
+					m_pHits = NULL;
+					return TRUE;
+				}
+				iIndex++;
+			}
+		}
+		pSearchWndListLock.Unlock();
+
+		if ( pHitMonitorListLock.Lock() && !theApp.m_oHitMonitorList.empty() )
+		{
+			std::list<CHitMonitorWnd*>::iterator iIndex = theApp.m_oHitMonitorList.begin();
+			std::list<CHitMonitorWnd*>::iterator iEnd = theApp.m_oHitMonitorList.end();
+			while ( iIndex != iEnd )
+			{
+				if ( (*iIndex)->OnQueryHits( m_pHits ) )
+				{
+					m_pHits = NULL;
+					return TRUE;
+				}
+				iIndex++;
+			}
+		}
+		pHitMonitorListLock.Unlock();
+	//}
+	//pLock.Unlock();
+	
 
 	return TRUE;
 }
@@ -194,7 +236,12 @@ BOOL CShareazaApp::CITMQueryHit::OnProcess()
 /////////////////////////////////////////////////////////////////////////////
 // CShareazaApp construction
 
-CShareazaApp::CShareazaApp()
+CShareazaApp::CShareazaApp() : 
+m_pMessageQueue(),
+m_oSearchWndList(),
+m_oPacketWndList(),
+m_oSearchMonitorList(),
+m_oHitMonitorList()
 {
 	m_pMutex = NULL;
 	m_pSafeWnd	= NULL;

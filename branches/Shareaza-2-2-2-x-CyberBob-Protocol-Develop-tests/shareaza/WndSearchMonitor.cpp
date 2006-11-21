@@ -100,12 +100,19 @@ int CSearchMonitorWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	
 	m_bPaused = FALSE;
 	SetTimer( 2, 250, NULL );
+	
+	CSingleLock pLock( &theApp.m_mSearchMonitorList, TRUE );
+	theApp.m_oSearchMonitorList.push_front(this);
 
 	return 0;
 }
 
 void CSearchMonitorWnd::OnDestroy() 
 {
+	CSingleLock pListLock( &theApp.m_mSearchMonitorList, TRUE );
+	theApp.m_oSearchMonitorList.remove(this);
+	pListLock.Unlock();
+
 	KillTimer( 2 );
 
 	CSingleLock pLock( &m_pSection, TRUE );
@@ -248,6 +255,12 @@ void CSearchMonitorWnd::OnQuerySearch(CQuerySearch* pSearch, BOOL bOUT )
 		strURN += pSearch->m_oED2K.toUrn();
 	}
 	
+	if ( pSearch->m_oMD5 )
+	{
+		if ( !strURN.IsEmpty() ) strURN += " ";
+		strURN += pSearch->m_oMD5.toUrn();
+	}
+
 	if ( pSearch->m_oBTH )
 	{
 		if ( !strURN.IsEmpty() ) strURN += " ";
@@ -304,7 +317,7 @@ void CSearchMonitorWnd::OnTimer(UINT_PTR nIDEvent)
 			m_wndList.DeleteItem( 0 );
 		}
 
-		/*int nItem =*/ pItem->Add( &m_wndList, -1, 3 );
+		/*int nItem =*/ pItem->Add( &m_wndList, -1, 4 );
 
 		delete pItem;
 	}

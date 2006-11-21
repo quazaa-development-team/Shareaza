@@ -507,6 +507,7 @@ void CPacket::Debug(LPCTSTR pszReason) const
 // Gives this packet and related objects to each window in the tab bar for them to process it
 void CPacket::SmartDump(CNeighbour* pNeighbour, IN_ADDR* pUDP, BOOL bOutgoing) const
 {
+	/*
 	// Get exclusive access to the program's critical section while this method runs
 	CSingleLock pLock( &theApp.m_pSection ); // When the method exits, pLock will go out of scope, be destructed, and release the lock
 	if ( pLock.Lock( 50 ) ) // If we wait more than 1/20th of a second for access, Lock will return false so we can just give up
@@ -526,6 +527,23 @@ void CPacket::SmartDump(CNeighbour* pNeighbour, IN_ADDR* pUDP, BOOL bOutgoing) c
 			}
 		}
 	}
+	*/
+	CSingleLock pListLock( &theApp.m_mPacketWndList );
+	CSingleLock pLock( &theApp.m_pSection );
+
+	if ( pLock.Lock( 50 ) && pListLock.Lock( 10 ) && !theApp.m_oPacketWndList.empty() )
+	{
+		std::list<CPacketWnd*>::iterator iIndex = theApp.m_oPacketWndList.begin();
+		std::list<CPacketWnd*>::iterator iEnd = theApp.m_oPacketWndList.end();
+		while ( iIndex != iEnd )
+		{
+			(*iIndex)->Process( pNeighbour, pUDP, bOutgoing, this );
+			iIndex++;
+		}
+	}
+	pLock.Unlock();
+	pListLock.Unlock();
+
 }
 
 //////////////////////////////////////////////////////////////////////
