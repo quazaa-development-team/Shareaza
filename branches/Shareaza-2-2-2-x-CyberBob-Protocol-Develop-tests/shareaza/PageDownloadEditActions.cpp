@@ -285,8 +285,9 @@ void CDownloadEditActionsPage::OnMergeAndVerify()
 		NULL, this );
 	if ( dlgSelectFile.DoModal() == IDOK )
 	{
-		pParent->OnClose();
-
+		CDownload * pDownload = m_pDownload;
+		pParent->EndDialog(IDCANCEL);
+		
 		// Open selected file in very compatible sharing mode
 		HANDLE hSelectedFile = CreateFile( dlgSelectFile.GetPathName(), GENERIC_READ,
             FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
@@ -318,7 +319,8 @@ void CDownloadEditActionsPage::OnMergeAndVerify()
 								DispatchMessage( &msg );
 							}
 							Sleep( 0 );
-								m_pDownload->SubmitData( qwOffset, Buf, (QWORD) dwReaded );
+								pDownload->SubmitData( qwOffset, Buf, (QWORD) dwReaded );
+								pDownload->RunValidation(FALSE);
 								qwOffset += (QWORD) dwReaded;
 								qwLength -= (QWORD) dwReaded;
 						}
@@ -329,8 +331,15 @@ void CDownloadEditActionsPage::OnMergeAndVerify()
 				}
 			}
 			CloseHandle( hSelectedFile );
-//			m_pDownload->Resume();
-			m_pDownload->RunValidation(FALSE);
+//			pDownload->Resume();
+//			pDownload->RunValidation(FALSE);
+			while ( pDownload->FindNewValidationBlock( HASH_TORRENT ) ||
+					pDownload->FindNewValidationBlock( HASH_TIGERTREE ) ||
+					pDownload->FindNewValidationBlock( HASH_ED2K ) )
+			{
+				pDownload->ContinueValidation();
+			}
+
 		}
 		else
 		{
