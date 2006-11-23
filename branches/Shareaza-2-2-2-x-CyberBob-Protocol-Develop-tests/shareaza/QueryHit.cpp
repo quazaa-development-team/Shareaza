@@ -858,7 +858,7 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 		if ( nMaxWord > 30 ) m_bBogus = TRUE;
 	}
 	
-	LPCSTR pszData	= (LPCSTR)&strData[0];
+	LPCSTR pszData	= (LPCSTR)strData.c_str();
 	LPCSTR pszEnd	= pszData + strlen( pszData );
 	
 	while ( *pszData && pszData < pszEnd )
@@ -894,8 +894,7 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 							m_oMD5.validate();
 						}
 					}
-
-					if ( pItemPos->IsNamed( _T("u") ) )
+					else if ( pItemPos->IsNamed( _T("u") ) )
 					{
 						CString strUrn = "urn:" + pItemPos->ToString();
 						theApp.Message( MSG_SYSTEM, _T("CQueryHit::ReadG1Packet GGEP u extension with content: %s"),
@@ -907,8 +906,7 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 						if ( !m_oMD5 ) m_oMD5.fromUrn( strUrn );
 						if ( !m_oBTH ) m_oBTH.fromUrn( strUrn );
 					}
-
-					if ( pItemPos->IsNamed( _T("LF") ) )
+					else if ( pItemPos->IsNamed( _T("LF") ) )
 					{
 						if ( pItemPos->m_nLength <= 8 )
 						{
@@ -930,8 +928,7 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 								m_nSize = SIZE_UNKNOWN;
 						}
 					}
-
-					if ( pItemPos->IsNamed( _T("ALT") ) )
+					else if ( pItemPos->IsNamed( _T("ALT") ) )
 					{
 						// the ip-addresses need not be stored, as they are sent upon the download request in the ALT-loc header
 						m_nSources = pItemPos->m_nLength / 6;	// 6 bytes per source (see ALT GGEP extension specification)
@@ -949,7 +946,7 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 		
 		if ( strnicmp( pszData, "urn:", 4 ) == 0 )
 		{
-			CString strUrn(pszData);		
+			CString strUrn(pszData);
 			if ( !m_oSHA1 ) m_oSHA1.fromUrn( strUrn );
 			if ( !m_oTiger ) m_oTiger.fromUrn( strUrn );
 			if ( !m_oED2K ) m_oED2K.fromUrn( strUrn );
