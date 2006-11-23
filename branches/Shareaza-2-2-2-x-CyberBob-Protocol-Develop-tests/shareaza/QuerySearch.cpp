@@ -143,7 +143,10 @@ CG1Packet* CQuerySearch::ToG1Packet()
 	CString strExtra, strKeywords;
 
 	for ( const_iterator pWord = begin(); pWord != end(); pWord++ )
-		strKeywords.AppendFormat( _T("%s "), LPCTSTR( pWord->first ) );
+	{
+		CString strKeyTemp( pWord->first, int(pWord->second) );
+		strKeywords.AppendFormat( _T("%s "), LPCTSTR( strKeyTemp ) );
+	}
 
 	strKeywords.TrimRight();
 
@@ -700,8 +703,7 @@ BOOL CQuerySearch::ReadG1Packet(CPacket* pPacket)
 							m_oMD5.validate();
 						}
 					}
-
-					if ( pItemPos->IsNamed( _T("u") ) )
+					else if ( pItemPos->IsNamed( _T("u") ) )
 					{
 						strData = "urn:" + pItemPos->ToString();
 						theApp.Message( MSG_SYSTEM, _T("CQuerySearch::ReadG1Packet GGEP u extension with content: %s"),
