@@ -738,7 +738,7 @@ BOOL CG1Neighbour::OnPong(CG1Packet* pPacket)
 					if ( pCachedHost != NULL ) pCachedHost->Update( nPort, 0, ( sVendorCode.GetLength() ?
 																				(LPCTSTR)sVendorCode : NULL ) );
 				}
-				theApp.Message( MSG_SYSTEM, _T("Got %s host through pong marked with GGEP GUE and UP (%s:%i)"), 
+				theApp.Message( MSG_DEBUG, _T("Got %s host through pong marked with GGEP GUE and UP (%s:%i)"), 
 					(LPCTSTR)sVendorCode, (LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nAddress ) ), nPort ); 
 			}
 
