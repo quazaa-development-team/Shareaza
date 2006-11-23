@@ -29,6 +29,7 @@
 #include "UploadQueue.h"
 #include "UploadQueues.h"
 #include "UploadTransfer.h"
+#include "UploadTransferHTTP.h"
 #include "GraphLine.h"
 #include "GraphItem.h"
 #include "FragmentedFile.h"
@@ -127,7 +128,17 @@ void CUploadTipCtrl::OnCalcSize(CDC* pDC)
 
 	m_sz.cy += TIP_TEXTHEIGHT * 2;
 	m_sz.cy += TIP_RULE;
-	m_sz.cy += TIP_TEXTHEIGHT * 3;
+
+	CUploadTransferHTTP * pUploadHTTP = dynamic_cast<CUploadTransferHTTP*>(pUpload);
+	if (pUploadHTTP != NULL)
+	{
+		m_sz.cy += TIP_TEXTHEIGHT * 5;
+	}
+	else
+	{
+		m_sz.cy += TIP_TEXTHEIGHT * 3;
+	}
+
 	m_sz.cy += TIP_GAP;
 	m_sz.cy += TIP_TEXTHEIGHT;
 	m_sz.cy += TIP_GAP;
@@ -241,6 +252,38 @@ void CUploadTipCtrl::OnPaint(CDC* pDC)
 	DrawText( pDC, &pt, strText );
 	DrawText( pDC, &pt, pUpload->m_sUserAgent, 80 );
 	pt.y += TIP_TEXTHEIGHT;
+
+	CUploadTransferHTTP * pUploadHTTP = dynamic_cast<CUploadTransferHTTP*>(pUpload);
+	if (pUploadHTTP != NULL)
+	{
+		strText = "Initiated:";
+		DrawText( pDC, &pt, strText );
+		if ( pUpload && pUpload->m_bInitiated )
+			DrawText( pDC, &pt, _T("TRUE"), 80 );
+		else
+			DrawText( pDC, &pt, _T("FALSE"), 80 );
+		pt.y += TIP_TEXTHEIGHT;
+
+		strText = "GUID:";
+		DrawText( pDC, &pt, strText );
+		Hashes::Guid oID ( pUploadHTTP->m_oGUID );
+		if ( oID != NULL )
+		{
+			// MFC's CString::Format is like sprintf, "%.2X" formats a byte into 2 hexidecimal characters like "ff"
+			strText.Format(	_T("%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X"),
+				int( oID[0] ),  int( oID[1] ),  int( oID[2] ),  int( oID[3] ),		// Our GUID
+				int( oID[4] ),  int( oID[5] ),  int( oID[6] ),  int( oID[7] ),
+				int( oID[8] ),  int( oID[9] ),  int( oID[10] ), int( oID[11] ),
+				int( oID[12] ), int( oID[13] ), int( oID[14] ), int( oID[15] ) );
+		}
+		else
+		{
+			strText = "Invalid GUID";
+		}
+
+		DrawText( pDC, &pt, strText, 80 );
+		pt.y += TIP_TEXTHEIGHT;
+	}
 
 	pt.y += TIP_GAP;
 
