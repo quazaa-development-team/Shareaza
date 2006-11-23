@@ -73,6 +73,7 @@ CUploadTransferHTTP::CUploadTransferHTTP() : CUploadTransfer( PROTOCOL_HTTP )
 	m_nGnutella			= 0;
 	m_nReaskMultiplier	= 1;
 	m_bNotShareaza		= FALSE;
+	m_nTimeoutTraffic	= Settings.Connection.TimeoutTraffic;
 }
 
 CUploadTransferHTTP::~CUploadTransferHTTP()
@@ -93,6 +94,7 @@ void CUploadTransferHTTP::AttachTo(CConnection* pConnection)
 	
 	m_nState	= upsRequest;
 	m_tRequest	= m_tConnected;
+	m_nTimeoutTraffic	= Settings.Connection.TimeoutTraffic;
 	
 	OnRead();
 }
@@ -202,7 +204,8 @@ BOOL CUploadTransferHTTP::ReadRequest()
 	
 	m_nState	= upsHeaders;
 	m_tRequest	= GetTickCount();
-	
+	m_nTimeoutTraffic	= Settings.Connection.TimeoutTraffic;
+
 	return TRUE;
 }
 
@@ -855,7 +858,7 @@ BOOL CUploadTransferHTTP::QueueRequest()
 	}
 
 
-	if ( Uploads.CanUploadFileTo( &m_pHost.sin_addr, m_oSHA1 ) ) //if ( Uploads.AllowMoreTo( &m_pHost.sin_addr ) )
+	if ( Uploads.CanUploadFileTo( &m_pHost.sin_addr, m_oSHA1 ) )
 	{
 		if ( ( nPosition = UploadQueues.GetPosition( this, TRUE ) ) >= 0 )
 		{
@@ -953,6 +956,7 @@ BOOL CUploadTransferHTTP::QueueRequest()
 				(LPCTSTR)m_sAddress, nPosition, m_pQueue->GetQueuedCount(),
 				(LPCTSTR)strName );
 
+			m_nTimeoutTraffic	= DWORD( Settings.Uploads.QueuePollMax / nTimeScale );
 		}
 		
 		pLock.Unlock();
@@ -1133,10 +1137,14 @@ void CUploadTransferHTTP::SendFileHeaders()
 
 	if ( m_pQueue == NULL && !m_bHead )
 	{
-		m_pOutput->Print( "Retry-After: 3600\r\n" );
+		// Ask to retry after some delay in seconds
+		strHeader.Format( L"Retry-After: %lu", 
+			m_nGnutella == 1 ? Settings.Gnutella1.RequeryDelay * 60 
+							: Settings.Gnutella2.RequeryDelay * 3600 );
+		m_pOutput->Print( strHeader + _T("\r\n") );
 	}
 
-	if ( m_nGnutella < 2 )
+	if ( m_nGnutella & 1 )
 	{
 		LPCTSTR pszURN = (LPCTSTR)m_sRequest + 13;
 		CSingleLock oLock( &Library.m_pSection );
@@ -1349,7 +1357,8 @@ BOOL CUploadTransferHTTP::OnRun()
 		break;
 
 	case upsQueued:
-		if ( tNow - m_tRequest > ( Settings.Uploads.QueuePollMax * m_nReaskMultiplier ) )
+		//if ( tNow - m_tRequest > ( Settings.Uploads.QueuePollMax * m_nReaskMultiplier ) )
+		if ( tNow - m_tRequest > m_nTimeoutTraffic )
 		{
 			theApp.Message( MSG_ERROR, IDS_UPLOAD_REQUEST_TIMEOUT, (LPCTSTR)m_sAddress );
 			Close();
@@ -1366,9 +1375,12 @@ BOOL CUploadTransferHTTP::OnRun()
 	case upsPreQueue:
 		if ( tNow - m_mOutput.tLast > Settings.Connection.TimeoutTraffic )
 		{
-			theApp.Message( MSG_ERROR, IDS_UPLOAD_TRAFFIC_TIMEOUT, (LPCTSTR)m_sAddress );
-			Close();
-			return FALSE;
+			if ( tNow - m_tRequest > m_nTimeoutTraffic )
+			{
+				theApp.Message( MSG_SYSTEM, IDS_UPLOAD_TRAFFIC_TIMEOUT, (LPCTSTR)m_sAddress );
+				Close();
+				return FALSE;
+			}
 		}
 		break;
 		

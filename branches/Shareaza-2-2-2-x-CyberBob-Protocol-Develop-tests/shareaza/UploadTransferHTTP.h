@@ -65,6 +65,8 @@ protected:
 	BOOL		m_bHttp11;
 	CString		m_sLocations;
 	CString		m_sRanges;
+public:
+	DWORD		m_nTimeoutTraffic;
 	Hashes::Guid m_oGUID;
 	HubList		m_oHubList;
 
