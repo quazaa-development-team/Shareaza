@@ -569,6 +569,16 @@ void CLibraryMaps::CullDeletedFiles(CLibraryFile* pMatch)
 	if ( !oLock.Lock( 100 ) ) return;
 	CLibraryFile* pFile;
 	
+	if ( pMatch->m_oSHA1 || pMatch->m_oTiger || pMatch->m_oED2K || pMatch->m_oMD5 )
+	{
+		if ( ( pFile = LookupFileByHash( pMatch->m_oSHA1, pMatch->m_oTiger, pMatch->m_oED2K, pMatch->m_oMD5, 
+										pMatch->m_nSize, pMatch->m_nSize ) ) != NULL )
+		{
+			if ( ! pFile->IsAvailable() ) pFile->Delete();
+		}
+	}
+
+	/*
 	if ( pMatch->m_oSHA1 )
 	{
 		if ( ( pFile = LookupFileBySHA1( pMatch->m_oSHA1 ) ) != NULL )
@@ -600,6 +610,7 @@ void CLibraryMaps::CullDeletedFiles(CLibraryFile* pMatch)
 			if ( ! pFile->IsAvailable() ) pFile->Delete();
 		}
 	}
+	*/
 
 }
 
