@@ -1,7 +1,7 @@
 //
 // Plugins.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2005.
+// Copyright (c) Shareaza Development Team, 2002-2006.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -354,6 +354,17 @@ BOOL CPlugins::OnEnqueueFile(LPCTSTR pszFile)
 	return FALSE;
 }
 
+CPlugin* CPlugins::Find(REFCLSID pCLSID) const
+{
+	for ( POSITION pos = GetIterator() ; pos ; )
+	{
+		CPlugin* pPlugin = GetNext( pos );
+		if ( pPlugin->m_pCLSID == pCLSID )
+			return pPlugin;
+	}
+
+	return NULL;
+}
 
 //////////////////////////////////////////////////////////////////////
 // CPlugin construction

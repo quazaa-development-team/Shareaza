@@ -628,6 +628,8 @@ ED2K_PACKET_DESC CEDPacket::m_pszTypes[] =
 	{ ED2K_C2C_ASKSHAREDFILES,		_T("Browse") },
 	{ ED2K_C2C_ASKSHAREDFILESANSWER,_T("BrowseResp") },
 	{ ED2K_C2C_MESSAGE,				_T("Message") },
+	{ ED2K_C2C_REQUESTPREVIEW,		_T("RequestPreview") },
+	{ ED2K_C2C_PREVIEWANWSER,		_T("Preview") },
 	{ ED2K_C2C_COMPRESSEDPART,		_T("CompFragment") },
 	{ ED2K_C2C_COMPRESSEDPART_I64,	_T("CompFragment64") },
 	{ ED2K_C2C_REQUESTPARTS_I64,	_T("RequestFrag64") },

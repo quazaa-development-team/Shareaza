@@ -40,6 +40,8 @@
 #include "DownloadTransferED2K.h"
 #include "UploadTransferED2K.h"
 #include "SourceURL.h"
+#include "ImageServices.h"
+#include "ThumbCache.h"
 
 #include "ChatCore.h"
 #include "Security.h"
@@ -81,7 +83,7 @@ CEDClient::CEDClient()
 	m_bEmPeerCache	= FALSE;		// Not supported
 	m_bEmBrowse		= FALSE;		// Not over ed2k
 	m_bEmMultiPacket= FALSE;		// Not supported
-	m_bEmPreview	= FALSE;		// Not over ed2k
+	m_bEmPreview	= FALSE;
 	m_bEmLargeFile	= FALSE;		// LargeFile support
 	
 	// Misc stuff
@@ -95,6 +97,7 @@ CEDClient::CEDClient()
 
 	m_bOpenChat		= FALSE;
 	m_bCommentSent	= FALSE;
+	m_bPreviewRequestSent = FALSE;
 	
 	m_mInput.pLimit		= &Settings.Bandwidth.Request;
 	m_mOutput.pLimit	= &Settings.Bandwidth.Request;
@@ -634,7 +637,10 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 			return OnSourceRequest( pPacket );
 		case ED2K_C2C_ANSWERSOURCES:
 			return OnSourceAnswer( pPacket );
-	
+		case ED2K_C2C_REQUESTPREVIEW:
+			return OnRequestPreview( pPacket );
+		case ED2K_C2C_PREVIEWANWSER:
+			return OnPreviewAnswer( pPacket );
 
 
 		// Extented Upload (64Bit LargeFile support)
@@ -760,7 +766,7 @@ void CEDClient::SendHello(BYTE nType)
 				 ( FALSE << 3) |						// Peer Cache
 				 ( TRUE << 2) |							// No browse
 				 ( FALSE << 1) |						// Multipacket
-				 ( FALSE ) );							// Preview
+				 ( Settings.Uploads.SharePreviews ) );	// Preview
 
 	CEDTag( ED2K_CT_FEATUREVERSIONS, nVersion ).Write( pPacket );
 
@@ -1044,6 +1050,15 @@ BOOL CEDClient::OnEmuleInfo(CEDPacket* pPacket)
 	DeriveVersion();
 	
 	return TRUE;
+}
+
+void CEDClient::SendPreviewRequest(CDownload* pDownload)
+{
+	CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_REQUESTPREVIEW, ED2K_PROTOCOL_EMULE );
+	pPacket->Write( pDownload->m_oED2K );
+	
+	Send( pPacket );
+	m_bPreviewRequestSent = TRUE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1502,6 +1517,196 @@ BOOL CEDClient::OnMessage(CEDPacket* pPacket)
 		// Chat is disabled- don't open a chat window. Display in system window instead.
 		theApp.Message( MSG_DEFAULT, _T("Message from %s: %s"), (LPCTSTR)m_sAddress, sMessage );
 	}
+	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CEDClient file preview request
+
+BOOL CEDClient::OnRequestPreview(CEDPacket* pPacket)
+{
+	if ( pPacket->GetRemaining() < Hashes::Ed2kHash::byteCount )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		return TRUE;
+	}
+	else if ( Security.IsDenied( &m_pHost.sin_addr ) )  // Extra security check
+	{
+		theApp.Message( MSG_ERROR, _T("ED2K upload to %s blocked by security rules."), m_sAddress);
+		return TRUE;
+	}
+
+	Hashes::Ed2kHash oHash;
+	pPacket->Read( oHash );
+
+	CSingleLock oLock( &Library.m_pSection, TRUE );
+
+	CLibraryFile* pFile = LibraryMaps.LookupFileByED2K( oHash, TRUE, TRUE );
+
+	// We own this file and previews are enabled
+	if ( pFile && Settings.Uploads.SharePreviews )
+	{
+		if ( Settings.eDonkey.EnableToday || !Settings.Connection.RequireForTransfers )
+		{
+			CEDPacket* pReply = CEDPacket::New( ED2K_C2C_PREVIEWANWSER, ED2K_PROTOCOL_EMULE );
+			pReply->Write( oHash );
+
+			CImageServices pServices;
+			CImageFile pImage( &pServices );
+			CThumbCache pCache;
+			CSize szThumb( 0, 0 );
+			CString sFilePath = pFile->GetPath();
+			DWORD nIndex = pFile->m_nIndex;
+
+			if ( pCache.Load( sFilePath, &szThumb, nIndex, &pImage ) )
+			{
+				// Got a cached copy
+			}
+			else if ( Settings.Uploads.DynamicPreviews && pImage.LoadFromFile( sFilePath, FALSE, TRUE ) && pImage.EnsureRGB() )
+			{
+				theApp.Message( MSG_DEFAULT, IDS_UPLOAD_PREVIEW_DYNAMIC, (LPCTSTR)pFile->m_sName, (LPCTSTR)m_sAddress );
+
+				int nSize = szThumb.cy * pImage.m_nWidth / pImage.m_nHeight;
+
+				if ( nSize > szThumb.cx )
+				{
+					nSize = szThumb.cx * pImage.m_nHeight / pImage.m_nWidth;
+					pImage.Resample( szThumb.cx, nSize );
+				}
+				else
+				{
+					pImage.Resample( nSize, szThumb.cy );
+				}
+
+				pCache.Store( sFilePath, &szThumb, nIndex, &pImage );
+			}
+			else
+			{
+				theApp.Message( MSG_ERROR, IDS_UPLOAD_PREVIEW_EMPTY, (LPCTSTR)m_sAddress, (LPCTSTR)pFile->m_sName );
+				Send( pReply ); // Not an image packet
+				return TRUE;
+			}
+
+			if ( ! pFile->m_bCachedPreview )
+			{
+				CQuickLock oLock( Library.m_pSection );
+				if ( ( pFile = Library.LookupFile( nIndex ) ) != NULL )
+				{
+					pFile->m_bCachedPreview = TRUE;
+					Library.Update();
+				}
+			}
+
+			BYTE* pBuffer = NULL;
+			DWORD nImageSize = 0;
+			const int nFrames = 1;
+
+			if ( ! pImage.SaveToMemory( _T(".png"), Settings.Uploads.PreviewQuality, 
+				 &pBuffer, &nImageSize ) )
+			{
+				theApp.Message( MSG_ERROR, IDS_UPLOAD_PREVIEW_EMPTY, (LPCTSTR)m_sAddress, (LPCTSTR)pFile->m_sName );
+				Send( pReply );
+				return TRUE; // Not an image packet
+			}
+
+			pServices.Cleanup();
+
+			pReply->Write( (LPCVOID)&nFrames, 1 );	// We send only 1 frame
+			pReply->WriteLongLE( nImageSize );
+			pReply->Write( (LPCVOID)pBuffer, nImageSize );
+			delete [] pBuffer;
+
+			// Send reply
+			Send( pReply );
+			theApp.Message( MSG_DEFAULT, IDS_UPLOAD_PREVIEW_SEND, (LPCTSTR)pFile->m_sName,
+				(LPCTSTR)m_sAddress );
+		}
+		else
+			return TRUE;
+	}
+	oLock.Unlock();
+
+	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CEDClient file preview answer
+
+BOOL CEDClient::OnPreviewAnswer(CEDPacket* pPacket)
+{
+	if ( pPacket->GetRemaining() < Hashes::Ed2kHash::byteCount )
+	{
+		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
+		// We don't do if that was the answer to our request; just leave.
+		return TRUE;
+	}
+
+	Hashes::Ed2kHash oHash;
+	pPacket->Read( oHash );
+	CDownload* pDownload = NULL;
+
+	if ( pPacket->GetRemaining() > 1 + 4 ) // The file has preview
+	{
+		// Check only downloads. Previews become unneeded when the download is completed.
+		if ( ( pDownload = Downloads.FindByED2K( oHash ) ) != NULL )
+		{
+			int nFrames = 0;
+			pPacket->Read( (void*)&nFrames, 1 );
+			if ( nFrames > 0 )
+			{
+				for ( int nFrame = 0 ; nFrame < nFrames ; nFrame++ )
+				{
+					DWORD nFrameSize = pPacket->ReadLongLE(); 
+					if ( pPacket->GetRemaining() < static_cast<int>( nFrameSize ) )
+					{
+						theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, 
+							(LPCTSTR)m_sAddress, pPacket->m_nType );
+
+						pDownload->m_tPreviewRequest = 0;		// The sign to try the next source
+						return TRUE;
+					}
+					else
+					{
+						CFile pFile;
+						CString strPath = pDownload->m_sDiskName + L".png";
+						if ( pFile.Open( strPath, CFile::modeCreate|CFile::modeWrite ) )
+						{
+							BYTE szByte = 0;
+
+							// Write only the first frame
+							for ( DWORD nByte = 0 ; nByte < nFrameSize ; nByte++ )
+							{
+								szByte = pPacket->ReadByte();
+								pFile.Write( &szByte, 1 );
+							}
+							pFile.Close();
+
+							// Make it hidden, so the files won't be shared
+							SetFileAttributes( (LPCTSTR)strPath, FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM );
+							pDownload->m_bGotPreview = TRUE;
+							break;
+						}
+					}
+				}
+			}
+
+			pDownload->m_tPreviewRequest = 0; // The sign to try the next source
+		}
+		else
+		{
+			CSingleLock oLock( &Library.m_pSection, TRUE );
+
+			CLibraryFile* pFile = LibraryMaps.LookupFileByED2K( oHash );
+			if ( pFile == NULL )
+			{
+				// Someone tried to spam us with ads
+				Security.Ban( &m_pHost.sin_addr, banWeek, FALSE );
+			}
+			oLock.Unlock();
+			return TRUE;
+		}
+	}
+
 	return TRUE;
 }
 

@@ -1,7 +1,7 @@
 //
 // Plugins.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2005.
+// Copyright (c) Shareaza Development Team, 2002-2006.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -45,7 +45,8 @@ public:
 	void		Enumerate();
 	void		Clear();
 	BOOL		LookupCLSID(LPCTSTR pszGroup, LPCTSTR pszKey, CLSID& pCLSID, BOOL bEnableDefault = TRUE);
-	BOOL		LookupEnable(REFCLSID pCLSID, BOOL bDefault, LPCTSTR pszExt = NULL );
+	BOOL		LookupEnable(REFCLSID pCLSID, BOOL bDefault, LPCTSTR pszExt = NULL);
+	CPlugin*	Find(REFCLSID pCLSID) const;
 public:
 	void		OnSkinChanged();
 	void		RegisterCommands();
