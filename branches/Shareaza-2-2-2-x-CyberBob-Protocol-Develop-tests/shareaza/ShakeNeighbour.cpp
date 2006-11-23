@@ -1357,13 +1357,13 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 		if ((
 				// If the remote computer is a leaf and we don't need any more
 				m_nNodeType == ntLeaf                        // This connection is to a leaf below us
-				&& ! Neighbours.NeedMoreHubs( PROTOCOL_G2 )  // And the neighbours object says we don't need more Gnutella2 hubs or leaves
+				&& ! Neighbours.NeedMoreHubs( PROTOCOL_G2, TRUE )  // And the neighbours object says we don't need more Gnutella2 hubs or leaves
 				&& ! Neighbours.NeedMoreLeafs( PROTOCOL_G2 )
 			) || (
 
 				// Or, if the remote computer is a hub and we don't need any more
 				m_nNodeType != ntLeaf                        // This connection isn't to a leaf below us
-				&& ! Neighbours.NeedMoreHubs( PROTOCOL_G2 )  // And the neighbours object says we don't need any more Gnutella2 hubs
+				&& ! Neighbours.NeedMoreHubs( PROTOCOL_G2, TRUE )  // And the neighbours object says we don't need any more Gnutella2 hubs
 			))
 		{
 			// Tell the remote computer that we can't connect because we have too many connections already, and close the connection
@@ -1604,9 +1604,9 @@ BOOL CShakeNeighbour::OnHeadersCompleteG1()
 		}
 
 		// If we don't need this connection
-		if ( ( m_nNodeType == ntLeaf && ! Neighbours.NeedMoreHubs( PROTOCOL_G1 ) &&		// This connection is to a leaf below us, and we don't need more hubs/leaves
+		if ( ( m_nNodeType == ntLeaf && ! Neighbours.NeedMoreHubs( PROTOCOL_G1, TRUE ) &&		// This connection is to a leaf below us, and we don't need more hubs/leaves
 			 ! Neighbours.NeedMoreLeafs( PROTOCOL_G1 ) ) ||
-			 ( m_nNodeType != ntLeaf && ! Neighbours.NeedMoreHubs( PROTOCOL_G1 ) ) ||	// This connection is to a hub and we don't need more hubs
+			 ( m_nNodeType != ntLeaf && ! Neighbours.NeedMoreHubs( PROTOCOL_G1, TRUE ) ) ||	// This connection is to a hub and we don't need more hubs
 			 ( ( m_nNodeType != ntHub ) && ( m_bObsoleteClient || m_bBadClient ) ) )	// This is an obsolete version of Shareaza
 		{
 			// Tell the remote computer we can't connect because we already have too many connections
