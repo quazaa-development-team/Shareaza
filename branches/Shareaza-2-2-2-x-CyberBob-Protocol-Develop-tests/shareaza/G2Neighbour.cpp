@@ -1226,13 +1226,13 @@ BOOL CG2Neighbour::OnKHL(CG2Packet* pPacket)
 		pPacket->m_nPosition = nNext;
 	}
 
-	if ( m_nNodeType == ntLeaf && nHubCount > 3 )
+	if ( m_nNodeType == ntLeaf && nHubCount > 3 && Settings.Gnutella2.BadLeafHandler > 0 )
 	{
 		CString strTemp( inet_ntoa( m_pHost.sin_addr ) );
 		theApp.Message(MSG_SYSTEM, _T( "Detected Leaf node (%s:%u) is connected to ambiguous number of Hubs: Connected to %u Hubs"),
 			strTemp, ntohs(m_pHost.sin_port), nHubCount );
-		Security.Ban( &m_pHost.sin_addr, banSession );
-		return FALSE;
+		if ( Settings.Gnutella2.BadLeafHandler == 3 ) Security.Ban( &m_pHost.sin_addr, banSession );
+		if ( Settings.Gnutella2.BadLeafHandler > 1 ) return FALSE;
 	}
 
 	return TRUE;

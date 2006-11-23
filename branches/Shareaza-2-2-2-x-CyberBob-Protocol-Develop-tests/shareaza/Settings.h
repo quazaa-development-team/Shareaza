@@ -329,6 +329,8 @@ public:
 		DWORD		HubHorizonSize;
 		DWORD		QueryLimit;
 		DWORD		HostCacheSize;
+		DWORD		MaxHubsOnRemoteLeaf;
+		DWORD		BadLeafHandler;
 	} Gnutella2;
 	
 	struct seDonkey

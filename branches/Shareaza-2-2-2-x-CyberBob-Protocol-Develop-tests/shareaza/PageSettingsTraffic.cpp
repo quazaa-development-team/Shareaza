@@ -167,6 +167,8 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Gnutella2.HubHorizonSize, 1, 32, 512 );
 	AddSetting( &Settings.Gnutella2.QueryLimit, 1, 0, 10000 );
 	AddSetting( &Settings.Gnutella2.HostCacheSize, 1, 32, 16384 );
+	AddSetting( &Settings.Gnutella2.BadLeafHandler, 1, 0, 3 );
+	AddSetting( &Settings.Gnutella2.MaxHubsOnRemoteLeaf, 1, 0, 10 );
 
 	AddSetting( &Settings.eDonkey.FastConnect, 1, 0, 1 );
 	AddSetting( &Settings.eDonkey.ForceHighID, 1, 0, 1 );

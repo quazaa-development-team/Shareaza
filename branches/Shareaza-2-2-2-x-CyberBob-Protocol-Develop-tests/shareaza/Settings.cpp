@@ -295,6 +295,8 @@ void CSettings::Setup()
 	Add( _T("Gnutella2.HubHorizonSize"), &Gnutella2.HubHorizonSize, 128 );
 	Add( _T("Gnutella2.QueryLimit"), &Gnutella2.QueryLimit, 2400 );
 	Add( _T("Gnutella2.HostCacheCount"), &Gnutella2.HostCacheSize, 1024 );
+	Add( _T("Gnutella2.MaxHubsOnRemoteLeaf"), &Gnutella2.MaxHubsOnRemoteLeaf, 3 );
+	Add( _T("Gnutella2.BadLeafHandler"), &Gnutella2.BadLeafHandler, 1 );
 
 	Add( _T("eDonkey.EnableAlways"), &eDonkey.EnableAlways, FALSE );
 	Add( _T("eDonkey.FastConnect"), &eDonkey.FastConnect, TRUE );
