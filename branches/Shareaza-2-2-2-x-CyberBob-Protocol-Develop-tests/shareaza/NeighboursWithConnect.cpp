@@ -783,7 +783,7 @@ DWORD CNeighboursWithConnect::IsG1UltrapeerCapable(BOOL bDebug)
 // Takes a protocol name, like PROTOCOL_G1, PROTOCOL_G2, or PROTOCOL_NULL for both
 // Counts how many connections to hubs we have for that protocol, and compares that number to settings
 // Returns true if we need more hub connections, false if we have enough
-BOOL CNeighboursWithConnect::NeedMoreHubs(PROTOCOLID nProtocol)
+BOOL CNeighboursWithConnect::NeedMoreHubs( PROTOCOLID nProtocol, BOOL bWithMaxPeerSlot )
 {
 	// Only continue if the network is connected (do)
 	if ( ! Network.IsConnected() ) return FALSE;
@@ -817,9 +817,16 @@ BOOL CNeighboursWithConnect::NeedMoreHubs(PROTOCOLID nProtocol)
 		// If we need more Gnutella ultrapeers or Gnutella2 hubs, return true, only return false if we don't need more hubs from either network
 		//return ( ( Settings.Gnutella1.EnableToday ) && ( ( nConnected[1] ) < ( IsG1Leaf() ? Settings.Gnutella1.NumHubs : Settings.Gnutella1.NumPeers ) ) ||
 		//		   ( Settings.Gnutella2.EnableToday ) && ( ( nConnected[2] ) < ( IsG2Leaf() ? Settings.Gnutella2.NumHubs : Settings.Gnutella2.NumPeers ) ) );
-
-		return ( ( ( Settings.Gnutella1.EnableToday ) && ( m_nCount[PROTOCOL_G1][ntHub] < m_nLimit[PROTOCOL_G1][ntHub] ) ) ||
-				 ( ( Settings.Gnutella2.EnableToday ) && ( m_nCount[PROTOCOL_G2][ntHub] < m_nLimit[PROTOCOL_G2][ntHub] ) ) );
+		if ( bWithMaxPeerSlot )
+		{
+			return ( ( ( Settings.Gnutella1.EnableToday ) && ( m_nCount[PROTOCOL_G1][ntHub] < m_nLimit[PROTOCOL_G1][ntHub] ) ) ||
+					 ( ( Settings.Gnutella2.EnableToday ) && ( m_nCount[PROTOCOL_G2][ntHub] < m_nLimit[PROTOCOL_G2][ntHub] ) ) );
+		}
+		else
+		{
+			return ( ( ( Settings.Gnutella1.EnableToday ) && ( m_nCount[PROTOCOL_G1][ntHub] < m_nLimit[PROTOCOL_G1][ntNode] ) ) ||
+					 ( ( Settings.Gnutella2.EnableToday ) && ( m_nCount[PROTOCOL_G2][ntHub] < m_nLimit[PROTOCOL_G2][ntNode] ) ) );
+		}
 
 	// Return true if we need more Gnutella ultrapeer connections
 	case PROTOCOL_G1:
@@ -830,7 +837,14 @@ BOOL CNeighboursWithConnect::NeedMoreHubs(PROTOCOLID nProtocol)
 		// If we're a leaf, compare our hub count to NumHubs from settings, return true if we don't have enough
 		//return ( nConnected[1] ) < ( IsG1Leaf() ? Settings.Gnutella1.NumHubs : Settings.Gnutella1.NumPeers ); // 2 and 0 defaults
 
-		return ( m_nCount[PROTOCOL_G1][ntHub] < m_nLimit[PROTOCOL_G1][ntHub] ); // 2
+		if ( bWithMaxPeerSlot )
+		{
+			return ( m_nCount[PROTOCOL_G1][ntHub] < m_nLimit[PROTOCOL_G1][ntHub] ); // 2
+		}
+		else
+		{
+			return ( m_nCount[PROTOCOL_G1][ntHub] < m_nLimit[PROTOCOL_G1][ntNode] ); // 2
+		}
 
 	// Return true if we need more Gnutella2 hub connections
 	case PROTOCOL_G2:
@@ -843,7 +857,14 @@ BOOL CNeighboursWithConnect::NeedMoreHubs(PROTOCOLID nProtocol)
 
 		// new setting, use NumHubs for Required Min Hub connection, and NumPeer is only for Max Allowed Hub connection in Hub when
 		// in Hub mode.
-		return ( m_nCount[PROTOCOL_G2][ntHub] < m_nLimit[PROTOCOL_G2][ntHub] ); // 2
+		if ( bWithMaxPeerSlot )
+		{
+			return ( m_nCount[PROTOCOL_G2][ntHub] < m_nLimit[PROTOCOL_G2][ntHub] ); // 2
+		}
+		else
+		{
+			return ( m_nCount[PROTOCOL_G2][ntHub] < m_nLimit[PROTOCOL_G2][ntNode] ); // 2
+		}
 
 	// The caller specified some other network
 	default:
