@@ -765,8 +765,8 @@ void CEDClient::SendHello(BYTE nType)
 	CEDTag( ED2K_CT_FEATUREVERSIONS, nVersion ).Write( pPacket );
 
 	// ED2K_CT_MOREFEATUREVERSIONS - basically for Kad and Large File support
-	nVersion = ( ( FALSE << 5 ) |						// Multipacket
-				 ( TRUE << 4 ) );						// LargeFile support
+	nVersion = ( ( FALSE << 5 ) |								// Multipacket
+				 ( Settings.eDonkey.LargeFileSupport << 4 ) );	// LargeFile support
 	CEDTag( ED2K_CT_MOREFEATUREVERSIONS, nVersion ).Write( pPacket );
 
 	// 5 - UDP Port
