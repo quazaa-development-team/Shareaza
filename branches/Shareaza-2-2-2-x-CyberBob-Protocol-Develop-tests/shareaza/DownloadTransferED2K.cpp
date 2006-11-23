@@ -773,7 +773,8 @@ BOOL CDownloadTransferED2K::SendSecondaryRequest()
 	else
 	{
 		m_pSource->m_tAttempt = GetTickCount() + Settings.eDonkey.ReAskTime * 500;
-		m_pSource->SetAvailableRanges( NULL );
+		// forgetting state can cause Users to think malfunctioning when there are no sources available
+		// m_pSource->SetAvailableRanges( NULL );
 		theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_FRAGMENT_END, (LPCTSTR)m_sAddress );
 		Close( TS_TRUE );
 		return FALSE;
