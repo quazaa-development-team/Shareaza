@@ -610,7 +610,7 @@ BOOL CUploadTransferED2K::DispatchNextChunk()
 	if (bI64Offset)
 	{
 		CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_SENDINGPART_I64, ED2K_PROTOCOL_EMULE );
-		pPacket->Write( &m_pED2K, sizeof(MD4) );
+		pPacket->Write( m_oED2K );
 		pPacket->WriteLongLE( ( m_nOffset + m_nPosition ) & 0x00000000ffffffff );
 		pPacket->WriteLongLE( ( ( m_nOffset + m_nPosition ) & 0xffffffff00000000 ) >> 32);
 		pPacket->WriteLongLE( ( m_nOffset + m_nPosition + nChunk ) & 0x00000000ffffffff );
@@ -633,7 +633,7 @@ BOOL CUploadTransferED2K::DispatchNextChunk()
 	else
 	{
 		CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_SENDINGPART );
-		pPacket->Write( &m_pED2K, sizeof(MD4) );
+		pPacket->Write( m_oED2K );
 		pPacket->WriteLongLE( m_nOffset + m_nPosition );
 		pPacket->WriteLongLE( m_nOffset + m_nPosition + nChunk );
 
