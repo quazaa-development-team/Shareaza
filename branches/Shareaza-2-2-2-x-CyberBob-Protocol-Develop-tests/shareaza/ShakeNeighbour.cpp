@@ -73,6 +73,8 @@ CShakeNeighbour::CShakeNeighbour() : CNeighbour( PROTOCOL_NULL ) // Call the CNe
 CShakeNeighbour::~CShakeNeighbour()
 {
 	// This virtual method will be redefined by a class that inherits from CShakeNeighbour
+	Neighbours.m_nCount[PROTOCOL_G1][ntNull]--;
+	Neighbours.m_nCount[PROTOCOL_G2][ntNull]--;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -115,7 +117,8 @@ BOOL CShakeNeighbour::ConnectTo(IN_ADDR* pAddress, WORD nPort, BOOL bAutomatic, 
 
 	// Add this CShakeNeighbour object to the list of them
 	Neighbours.Add( this );
-
+	Neighbours.m_nCount[PROTOCOL_G1][ntNull]++;
+	Neighbours.m_nCount[PROTOCOL_G2][ntNull]++;
 	// The connection was made without error
 	return TRUE;
 }
@@ -141,6 +144,8 @@ void CShakeNeighbour::AttachTo(CConnection* pConnection)
 
 	// Add this CShakeNeighbour object to the list of them
 	Neighbours.Add( this );
+	Neighbours.m_nCount[PROTOCOL_G1][ntNull]++;
+	Neighbours.m_nCount[PROTOCOL_G2][ntNull]++;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -228,7 +233,7 @@ void CShakeNeighbour::OnDropped(BOOL /*bError*/)
 	} // We are somewhere else in the chain of connecting and doing the handshake
 	else
 	{
-		// Close the connection, citing dropped as the explination of what happened
+		// Close the connection, citing dropped as the explanation of what happened
 		Close( IDS_CONNECTION_DROPPED );
 	}
 }
@@ -292,7 +297,7 @@ BOOL CShakeNeighbour::OnRun()
 		break;
 
 	// We are exchanging handshake headers with the remote computer, and the most recent thing that's happened is
-	case nrsHandshake1: // We've sent a complete group of headers
+	case nrsHandshake1: // Either We've sent a complete group of headers, or remote computer has just connected to us
 	case nrsHandshake2: // The remote computer sent the first line of its initial group of headers to us
 	case nrsHandshake3: // The remote computer sent the first line of its final group of headers to us
 	case nrsRejected:   // The remote computer sent us a line with a 503 error code
@@ -352,6 +357,10 @@ void CShakeNeighbour::SendMinimalHeaders()
 			else if (Settings.Gnutella2.EnableToday)
 			{
 				m_pOutput->Print( "Accept: application/x-gnutella2\r\n" );
+			}
+			else if (Settings.Gnutella1.EnableToday)
+			{
+				m_pOutput->Print( "Accept: application/x-gnutella-packets\r\n" );
 			}
 		}
 		else if ( m_bG2Accept ) // The remote computer contacted us, and accepts Gnutella2 packets
@@ -413,7 +422,7 @@ void CShakeNeighbour::SendPublicHeaders()
 		{
 			// Tell the remote computer we accept Gnutella and Gnutella2 packets
 			if ( Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday )
-				m_pOutput->Print( "Accept: application/x-gnutella2,application/x-gnutella-packets\r\n" );
+				m_pOutput->Print( "Accept: application/x-gnutella2, application/x-gnutella-packets\r\n" );
 			else if ( Settings.Gnutella2.EnableToday )
 				m_pOutput->Print( "Accept: application/x-gnutella2\r\n" );
 			else if ( Settings.Gnutella1.EnableToday )
@@ -429,7 +438,7 @@ void CShakeNeighbour::SendPublicHeaders()
 			m_pOutput->Print( "Accept: application/x-gnutella2\r\n" );			// We can read Gnutella2 packets
 			m_pOutput->Print( "Content-Type: application/x-gnutella2\r\n" );	// You will be getting them from us
 		}
-		else if ( ( Settings.Gnutella1.EnableToday ) && ( m_nProtocol != PROTOCOL_G2 ) )
+		else if ( m_bG1Accept && ( Settings.Gnutella1.EnableToday ) && ( m_nProtocol != PROTOCOL_G2 ) )
 		{
 			m_pOutput->Print( "Accept: application/x-gnutella-packets\r\n" );		// We can read Gnutella1 packets
 			m_pOutput->Print( "Content-Type: application/x-gnutella-packets\r\n" );	// You will be getting them from us
@@ -460,7 +469,7 @@ void CShakeNeighbour::SendPublicHeaders()
 		m_pOutput->Print( "X-Query-Routing: 0.1\r\n" );										// We support the query routing protocol
 	}
 
-	if ( m_nProtocol == PROTOCOL_G1 )
+	if ( m_nProtocol == PROTOCOL_G1 ) // This protocol ID this method got passed is Gnutella2
 	{
 		// Find out if we are an ultrapeer or at least eligible to become one soon
 		if ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER || Neighbours.IsG1Ultrapeer() || 
@@ -476,7 +485,7 @@ void CShakeNeighbour::SendPublicHeaders()
 			m_pOutput->Print( "X-Ultrapeer: False\r\n" );
 		}
 	}
-	else // This protocol ID this method got passed is unknown or for something other than Gnutella
+	else if ( m_nProtocol == PROTOCOL_G2 ) // This protocol ID this method got passed is Gnutella2
 	{
 		// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
 		if ( Settings.Gnutella2.ClientMode == MODE_HUB || Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() )
@@ -490,10 +499,146 @@ void CShakeNeighbour::SendPublicHeaders()
 			// Tell the remote computer that we are a leaf
 			m_pOutput->Print( "X-Ultrapeer: False\r\n" );
 		}
-		if ( Neighbours.NeedMoreHubs( PROTOCOL_G2 ) )
+		if ( Neighbours.NeedMoreHubs( PROTOCOL_G2, TRUE ) )
 			m_pOutput->Print( "X-Ultrapeer-Needed: True\r\n" );
 		else
 			m_pOutput->Print( "X-Ultrapeer-Needed: False\r\n" );
+	}
+	else if ( m_nProtocol == PROTOCOL_NULL ) // This protocol ID this method got passed is Gnutella2
+	{
+		if ( m_bInitiated )
+		{
+			if ( Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday )
+			{
+				// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
+				if ( ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER || Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() ) &&
+					( Settings.Gnutella2.ClientMode == MODE_HUB || Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() ) )
+				{
+					// Tell the remote computer that we are a hub
+					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
+
+				} // We are not a hub nor are we eligible, and the settings say so too
+				else
+				{
+					// Tell the remote computer that we are a leaf
+					m_pOutput->Print( "X-Ultrapeer: False\r\n" );
+				}
+				if ( Neighbours.NeedMoreHubs( PROTOCOL_G1, TRUE  ) && Neighbours.NeedMoreHubs( PROTOCOL_G2, TRUE  ) )
+					m_pOutput->Print( "X-Ultrapeer-Needed: True\r\n" );
+				else
+					m_pOutput->Print( "X-Ultrapeer-Needed: False\r\n" );
+			}
+			else if ( Settings.Gnutella1.EnableToday )
+			{
+				// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
+				if ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER || Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() )
+				{
+					// Tell the remote computer that we are a hub
+					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
+
+				} // We are not a hub nor are we eligible, and the settings say so too
+				else
+				{
+					// Tell the remote computer that we are a leaf
+					m_pOutput->Print( "X-Ultrapeer: False\r\n" );
+				}
+				if ( Neighbours.NeedMoreHubs( PROTOCOL_G1, TRUE  ) )
+					m_pOutput->Print( "X-Ultrapeer-Needed: True\r\n" );
+				else
+					m_pOutput->Print( "X-Ultrapeer-Needed: False\r\n" );
+			}
+			else if ( Settings.Gnutella2.EnableToday )
+			{
+				// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
+				if ( Settings.Gnutella2.ClientMode == MODE_HUB || Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() )
+				{
+					// Tell the remote computer that we are a hub
+					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
+
+				} // We are not a hub nor are we eligible, and the settings say so too
+				else
+				{
+					// Tell the remote computer that we are a leaf
+					m_pOutput->Print( "X-Ultrapeer: False\r\n" );
+				}
+				if ( Neighbours.NeedMoreHubs( PROTOCOL_G2, TRUE  ) )
+					m_pOutput->Print( "X-Ultrapeer-Needed: True\r\n" );
+				else
+					m_pOutput->Print( "X-Ultrapeer-Needed: False\r\n" );
+			}
+			else
+			{
+				// Don't know what the hell is going on, it should not get here
+			}
+
+		}
+		else
+		{
+			if ( Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday && 
+				( m_bG2Send || m_bG2Accept) && ( m_bG1Send || m_bG1Accept) )
+			{
+				// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
+				if ( ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER || Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() ) &&
+					( Settings.Gnutella2.ClientMode == MODE_HUB || Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() ) )
+				{
+					// Tell the remote computer that we are a hub
+					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
+
+				} // We are not a hub nor are we eligible, and the settings say so too
+				else
+				{
+					// Tell the remote computer that we are a leaf
+					m_pOutput->Print( "X-Ultrapeer: False\r\n" );
+				}
+				if ( Neighbours.NeedMoreHubs( PROTOCOL_G1, TRUE  ) && Neighbours.NeedMoreHubs( PROTOCOL_G2, TRUE  ) )
+					m_pOutput->Print( "X-Ultrapeer-Needed: True\r\n" );
+				else
+					m_pOutput->Print( "X-Ultrapeer-Needed: False\r\n" );
+			}
+			else if ( Settings.Gnutella1.EnableToday && ( m_bG1Send || m_bG1Accept) )
+			{
+				// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
+				if ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER || Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() )
+				{
+					// Tell the remote computer that we are a hub
+					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
+
+				} // We are not a hub nor are we eligible, and the settings say so too
+				else
+				{
+					// Tell the remote computer that we are a leaf
+					m_pOutput->Print( "X-Ultrapeer: False\r\n" );
+				}
+				if ( Neighbours.NeedMoreHubs( PROTOCOL_G1, TRUE  ) )
+					m_pOutput->Print( "X-Ultrapeer-Needed: True\r\n" );
+				else
+					m_pOutput->Print( "X-Ultrapeer-Needed: False\r\n" );
+			}
+			else if ( Settings.Gnutella2.EnableToday && ( m_bG2Send || m_bG2Accept) )
+			{
+				// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
+				if ( Settings.Gnutella2.ClientMode == MODE_HUB || Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() )
+				{
+					// Tell the remote computer that we are a hub
+					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
+
+				} // We are not a hub nor are we eligible, and the settings say so too
+				else
+				{
+					// Tell the remote computer that we are a leaf
+					m_pOutput->Print( "X-Ultrapeer: False\r\n" );
+				}
+				if ( Neighbours.NeedMoreHubs( PROTOCOL_G2, TRUE  ) )
+					m_pOutput->Print( "X-Ultrapeer-Needed: True\r\n" );
+				else
+					m_pOutput->Print( "X-Ultrapeer-Needed: False\r\n" );
+			}
+			else
+			{
+				// Don't know what the hell is going on, it should not get here
+			}
+		}
+
 	}
 }
 
@@ -885,7 +1030,7 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			// Add the host to the Gnutella2 host cache, noting it's a DNA hub
 			// adding host with "GDNA" will not help a lot, if the name is blank, raza might get the name through
 			// KHL over linked Neighbours.
-			if ( HostCache.Gnutella2.Add( strHost, 0, NULL ) ) nCount++;
+			//if ( HostCache.Gnutella2.Add( strHost, 0, _T("GDNA") ) ) nCount++;
 		}
 		// Tell discovery services the remote computer's IP address, and how many hosts it just told us about
 		DiscoveryServices.OnGnutellaAdded( &m_pHost.sin_addr, nCount );
@@ -970,19 +1115,29 @@ BOOL CShakeNeighbour::OnHeadersComplete()
 		if ( ! m_bG1Send && ! m_bG2Send ) m_bG1Send = TRUE;
 	}
 
-	// If the remote computer doesn't accept Gnutella2 packets, or it does but we contacted it and it's not going to send them
-	if (  ( ! m_bInitiated && ! m_bG2Accept ) || ( m_bInitiated && ! m_bG2Send ) )
+
+	if ( !m_bInitiated )
 	{
-		// This is a Gnutella connection
-		m_nProtocol = PROTOCOL_G1;
-		return OnHeadersCompleteG1();
+		if ( m_nState == nrsHandshake2 && ! m_bG1Accept && ! m_bG2Accept ) m_bG1Accept = TRUE;
+		if (  m_nState == nrsHandshake3 && ! m_bG1Send && ! m_bG2Send ) m_bG1Send = TRUE;
 	}
-	else
+
+	if ( ( ( ! m_bInitiated && m_bG2Accept ) || ( m_bInitiated && m_bG2Send ) ) &&
+			Settings.Gnutella2.EnableToday && m_nProtocol != PROTOCOL_G1 )
 	{
 		// This is a G2 connection
 		m_nProtocol = PROTOCOL_G2;
 		return OnHeadersCompleteG2();
 	}
+	else if ( ( ( ! m_bInitiated && m_bG1Accept ) || ( m_bInitiated && m_bG1Send ) ) &&
+			Settings.Gnutella1.EnableToday && m_nProtocol != PROTOCOL_G2 )
+	{	// If the remote computer doesn't accept Gnutella2 packets, or it does but we contacted it and it's not going to send them
+		// This is a Gnutella connection
+		m_nProtocol = PROTOCOL_G1;
+		return OnHeadersCompleteG1();
+	}
+
+	return FALSE;
 }
 
 // Called when CConnection::ReadHeaders calls ReadLine and gets a blank line, meaning a group of headers from the remote computer is done
@@ -1681,25 +1836,9 @@ BOOL CShakeNeighbour::IsClientBad()
 	// No user agent- assume OK
 	if ( m_sUserAgent.IsEmpty() ) return FALSE;
 
-	// Known good clients
-	if ( _tcsistr( m_sUserAgent, _T("gnucdna") ) )		return FALSE;
-
-	if ( _tcsistr( m_sUserAgent, _T("adagio") ) )		return FALSE;
-	
-	if ( _tcsistr( m_sUserAgent, _T("trustyfiles") ) )	return FALSE;
-	
-	// Really obsolete versions of Shareaza should be blocked. (they may have bad settings)
-	if ( _tcsistr( m_sUserAgent, _T("shareaza") ) )	
-	{
-		if ( _tcsistr( m_sUserAgent, _T("shareaza 1.") ) )	return TRUE;
-		if ( _tcsistr( m_sUserAgent, _T("shareaza 6.") ) )	return TRUE;
-		if ( _tcsistr( m_sUserAgent, _T("shareaza 7.") ) )	return TRUE;
-		// Current versions okay
-		return FALSE;
-	}
-
 	// GPL breakers- Clients violating the GPL
 	// See http://www.gnu.org/copyleft/gpl.html
+	// note: Blocked list should be checked first
 	if ( _tcsistr( m_sUserAgent, _T("K-Lite") ) )		return TRUE;
 
 	if ( _tcsistr( m_sUserAgent, _T("SlingerX") ) )		return TRUE;
@@ -1711,6 +1850,30 @@ BOOL CShakeNeighbour::IsClientBad()
 	if ( _tcsistr( m_sUserAgent, _T("mxie") ) )			return TRUE;
 
 	if ( _tcsistr( m_sUserAgent, _T("BearShare MP3") ) ) return TRUE;
+
+	if ( _tcsistr( m_sUserAgent, _T("WinMX") ) )		return TRUE;
+
+	if ( _tcsistr( m_sUserAgent, _T("eTomi") ) )		return TRUE;
+
+
+	// Known good clients
+	if ( _tcsistr( m_sUserAgent, _T("gnucdna") ) )		return FALSE;
+
+	if ( _tcsistr( m_sUserAgent, _T("adagio") ) )		return FALSE;
+	
+	if ( _tcsistr( m_sUserAgent, _T("trustyfiles") ) )	return FALSE;
+	
+
+	// Really obsolete versions of Shareaza should be blocked. (they may have bad settings)
+	if ( _tcsistr( m_sUserAgent, _T("shareaza") ) )	
+	{
+		if ( _tcsistr( m_sUserAgent, _T("shareaza 1.") ) )	return TRUE;
+		if ( _tcsistr( m_sUserAgent, _T("shareaza 3.") ) )	return TRUE;
+		if ( _tcsistr( m_sUserAgent, _T("shareaza 6.") ) )	return TRUE;
+		if ( _tcsistr( m_sUserAgent, _T("shareaza 7.") ) )	return TRUE;
+		// Current versions okay
+		return FALSE;
+	}
 
 	// Clients that over-query or otherwise cause problems
 	//if ( _tcsistr( m_sUserAgent, _T("") ) )			return TRUE;

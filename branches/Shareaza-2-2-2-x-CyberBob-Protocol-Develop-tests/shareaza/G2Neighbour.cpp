@@ -99,10 +99,12 @@ CG2Neighbour::CG2Neighbour(CNeighbour* pBase) : CNeighbour( PROTOCOL_G2, pBase )
 	m_bFWCheckSent	= FALSE; // add
 
 	SendStartups();
+	Neighbours.m_nCount[PROTOCOL_G2][( (m_nNodeType != ntLeaf )? ntHub : ntLeaf )]++;
 }
 
 CG2Neighbour::~CG2Neighbour()
 {
+	Neighbours.m_nCount[PROTOCOL_G2][( (m_nNodeType != ntLeaf )? ntHub : ntLeaf )]--;
 	delete m_pHubGroup;
 	delete m_pGUIDCache;
 

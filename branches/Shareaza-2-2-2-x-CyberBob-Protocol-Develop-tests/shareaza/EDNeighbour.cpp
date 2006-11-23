@@ -68,6 +68,7 @@ CEDNeighbour::CEDNeighbour() : CNeighbour( PROTOCOL_ED2K )
 
 CEDNeighbour::~CEDNeighbour()
 {
+	Neighbours.m_nCount[PROTOCOL_ED2K][ntHub]--;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -93,7 +94,7 @@ BOOL CEDNeighbour::ConnectTo(IN_ADDR* pAddress, WORD nPort, BOOL bAutomatic)
 	m_bAutomatic	= bAutomatic;
 	
 	Neighbours.Add( this );
-	
+	Neighbours.m_nCount[PROTOCOL_ED2K][ntHub]++;
 	return TRUE;
 }
 

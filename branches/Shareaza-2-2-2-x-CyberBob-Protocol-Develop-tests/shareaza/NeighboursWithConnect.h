@@ -71,12 +71,17 @@ public:
 protected:
 
 	// Member variables that tell our current role on the Gnutella and Gnutella2 networks
-	BOOL m_bG2Leaf;      // True if we are a leaf to at least one computer on the Gnutella2 network
-	BOOL m_bG2Hub;       // True if we are a hub to at least one computer on the Gnutella2 network
-	BOOL m_bG1Leaf;      // True if we are a leaf to at least one computer on the Gnutella network
-	BOOL m_bG1Ultrapeer; // True if we are an ultrapeer to at least one computer on the Gnutella network
-
+	BOOL	m_bG2Leaf;			// True if we are a leaf to at least one computer on the Gnutella2 network
+	BOOL	m_bG2Hub;			// True if we are a hub to at least one computer on the Gnutella2 network
+	BOOL	m_bG1Leaf;			// True if we are a leaf to at least one computer on the Gnutella network
+	BOOL	m_bG1Ultrapeer;		// True if we are an ultrapeer to at least one computer on the Gnutella network
 	DWORD	m_tHubG2Promotion;	// Time we were promoted to a G2 hub
+
+public:
+	int		m_nCount[4][5];		// Number of Neighbours we currently connected with
+	int		m_nLimit[4][5];		// max number of neighbor connections we can connect.
+
+
 public:
 
 	// Methods implimented by several classes in the CNeighbours inheritance column
