@@ -1027,7 +1027,7 @@ void CShareazaApp::OnQueryHits(CQueryHit* pHits)
 	}	
 	*/
 
-	if ( pHits != NULL ) 
+	if ( pHits != NULL )
 		theApp.m_pMessageQueue.PushMessage( (CITMQueue::CITMItem*)CITMQueryHit::CreateMessage(pHits) );
 
 }
