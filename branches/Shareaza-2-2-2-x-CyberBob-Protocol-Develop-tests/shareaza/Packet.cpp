@@ -33,6 +33,7 @@
 #include "Buffer.h"
 #include "WndMain.h"
 #include "WndPacket.h"
+#include "Neighbour.h"
 
 // If we are compiling in debug mode, replace the text "THIS_FILE" in the code with the name of this file
 #ifdef _DEBUG
@@ -505,7 +506,7 @@ void CPacket::Debug(LPCTSTR pszReason) const
 
 // Takes a CNeighbour object, an IP address without a port number, and true if we are sending the packet, false if we received it
 // Gives this packet and related objects to each window in the tab bar for them to process it
-void CPacket::SmartDump(CNeighbour* pNeighbour, IN_ADDR* pUDP, BOOL bOutgoing) const
+void CPacket::SmartDump(CNeighbour* pNeighbour, IN_ADDR* pUDP, BOOL bOutgoing)
 {
 	/*
 	// Get exclusive access to the program's critical section while this method runs
@@ -528,22 +529,42 @@ void CPacket::SmartDump(CNeighbour* pNeighbour, IN_ADDR* pUDP, BOOL bOutgoing) c
 		}
 	}
 	*/
+	/*
 	CSingleLock pListLock( &theApp.m_mPacketWndList );
 	CSingleLock pLock( &theApp.m_pSection );
 
-	if ( pLock.Lock( 50 ) && pListLock.Lock( 10 ) && !theApp.m_oPacketWndList.empty() )
+	if ( !theApp.m_oPacketWndList.empty() && pLock.Lock( 50 ) )
 	{
-		std::list<CPacketWnd*>::iterator iIndex = theApp.m_oPacketWndList.begin();
-		std::list<CPacketWnd*>::iterator iEnd = theApp.m_oPacketWndList.end();
-		while ( iIndex != iEnd )
+		if ( pListLock.Lock( 10 ) )
 		{
-			(*iIndex)->Process( pNeighbour, pUDP, bOutgoing, this );
-			iIndex++;
+			std::list<CPacketWnd*>::iterator iIndex = theApp.m_oPacketWndList.begin();
+			std::list<CPacketWnd*>::iterator iEnd = theApp.m_oPacketWndList.end();
+			while ( iIndex != iEnd )
+			{
+				(*iIndex)->Process( pNeighbour, pUDP, bOutgoing, this );
+				iIndex++;
+			}
+			pLock.Unlock();
 		}
+		pListLock.Unlock();
 	}
-	pLock.Unlock();
-	pListLock.Unlock();
+	*/
 
+	// static CITMPacketDump* CreateMessage( const IN_ADDR* pAddr, WORD nPort, BOOL bUDP, BOOL bOutgoing, DWORD nUnique, CPacket * pPacket );
+
+
+	if ( pNeighbour != NULL )
+	{
+		theApp.m_pMessageQueue.PushMessage( 
+			(CITMQueue::CITMItem*)CShareazaApp::CITMPacketDump::CreateMessage( &( pNeighbour->m_pHost.sin_addr ),
+																				ntohs(pNeighbour->m_pHost.sin_port), FALSE,
+																				bOutgoing, pNeighbour->m_nUnique, this ) );
+	}
+	else if ( pUDP != NULL )
+	{
+		theApp.m_pMessageQueue.PushMessage( 
+			(CITMQueue::CITMItem*)CShareazaApp::CITMPacketDump::CreateMessage( pUDP, NULL, TRUE, bOutgoing, 0, this) );
+	}
 }
 
 //////////////////////////////////////////////////////////////////////

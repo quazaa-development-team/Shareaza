@@ -34,6 +34,7 @@ class CSearchWnd;
 class CPacketWnd;
 class CSearchMonitorWnd;
 class CHitMonitorWnd;
+class CPacket;
 
 class CShareazaApp : public CWinApp
 {
@@ -112,6 +113,29 @@ public:
 		// function members
 	public:
 		static CITMQueryHit* CreateMessage( CQueryHit * pHits );
+		virtual BOOL OnProcess();
+	};
+
+	class CITMPacketDump : CITMQueue::CITMItem
+	{
+		// Constructor
+	public:
+		CITMPacketDump();
+		~CITMPacketDump();
+
+		// Data Members
+	public:
+		CPacket*	m_pPacket;
+		IN_ADDR		m_pAddr;
+		WORD		m_nPort;
+		BOOL		m_bUDP;
+		BOOL		m_bOutgoing;
+		DWORD		m_nUnique;
+
+		// function members
+	public:
+		static CITMPacketDump* CreateMessage( const IN_ADDR* pAddr, WORD nPort, BOOL bUDP, BOOL bOutgoing, DWORD nUnique,
+											CPacket * pPacket );
 		virtual BOOL OnProcess();
 	};
 

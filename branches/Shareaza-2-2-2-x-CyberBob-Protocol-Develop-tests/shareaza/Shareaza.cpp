@@ -57,10 +57,12 @@
 #include "DlgSplash.h"
 #include "DlgHelp.h"
 
+#include "Packet.h"
 #include "QueryHit.h"
 #include "XML.h"
 #include "WndSearch.h"
 #include "WndHitMonitor.h"
+#include "WndPacket.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -229,6 +231,65 @@ BOOL CShareazaApp::CITMQueryHit::OnProcess()
 	//pLock.Unlock();
 	
 
+	return TRUE;
+}
+
+
+CShareazaApp::CITMPacketDump::CITMPacketDump() :
+m_pPacket(NULL),
+m_pAddr(),
+m_nPort(NULL),
+m_bUDP(FALSE),
+m_bOutgoing(FALSE),
+m_nUnique(NULL)
+{
+}
+
+CShareazaApp::CITMPacketDump::~CITMPacketDump()
+{
+	m_pPacket->Release();
+}
+
+//////////////////////////////////////////////////////////////////////
+// CITMPacketDump Function member implementations
+
+CShareazaApp::CITMPacketDump* CShareazaApp::CITMPacketDump::CreateMessage( const IN_ADDR* pAddr, WORD nPort, BOOL bUDP,
+																		  BOOL bOutgoing, DWORD nUnique,
+																		  CPacket* pPacket )
+{
+	pPacket->AddRef();
+	CITMPacketDump * pMessageObject = new CITMPacketDump();
+
+	pMessageObject->m_pPacket = pPacket;
+	pMessageObject->m_pAddr = *pAddr;
+	pMessageObject->m_nPort = nPort;
+	pMessageObject->m_bUDP = bUDP;
+	pMessageObject->m_bOutgoing = bOutgoing;
+	pMessageObject->m_nUnique = nUnique;
+	return pMessageObject;
+
+}
+
+BOOL CShareazaApp::CITMPacketDump::OnProcess()
+{
+	CSingleLock pListLock( &theApp.m_mPacketWndList );
+	CSingleLock pLock( &theApp.m_pSection );
+
+	if ( !theApp.m_oPacketWndList.empty() && pLock.Lock( 50 ) )
+	{
+		if ( pListLock.Lock( 10 ) )
+		{
+			std::list<CPacketWnd*>::iterator iIndex = theApp.m_oPacketWndList.begin();
+			std::list<CPacketWnd*>::iterator iEnd = theApp.m_oPacketWndList.end();
+			while ( iIndex != iEnd )
+			{
+				(*iIndex)->Process( &m_pAddr, m_nPort, m_bUDP, m_bOutgoing, m_nUnique, m_pPacket );
+				iIndex++;
+			}
+			pLock.Unlock();
+		}
+		pListLock.Unlock();
+	}
 	return TRUE;
 }
 
