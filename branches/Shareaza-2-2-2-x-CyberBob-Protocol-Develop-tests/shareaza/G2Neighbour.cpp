@@ -1190,7 +1190,6 @@ BOOL CG2Neighbour::OnKHL(CG2Packet* pPacket)
 				}
 
 				nLength = nNext - pPacket->m_nPosition;
-				nHubCount++;
 			}
 
 			if ( nLength >= 6 )
@@ -1215,6 +1214,7 @@ BOOL CG2Neighbour::OnKHL(CG2Packet* pPacket)
 			if ( strcmp( szType, "NH" ) == 0 )
 			{
 				m_pHubGroup->Add( (IN_ADDR*)&nAddress, nPort );
+				nHubCount++;
 			}
 
 		}
