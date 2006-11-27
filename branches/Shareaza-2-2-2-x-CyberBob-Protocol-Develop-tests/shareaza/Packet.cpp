@@ -555,14 +555,14 @@ void CPacket::SmartDump(CNeighbour* pNeighbour, IN_ADDR* pUDP, BOOL bOutgoing)
 
 	if ( pNeighbour != NULL )
 	{
-		theApp.m_pMessageQueue.PushMessage( 
+		theApp.m_pMessageQueue.PushMessage(
 			(CITMQueue::CITMItem*)CShareazaApp::CITMPacketDump::CreateMessage( &( pNeighbour->m_pHost.sin_addr ),
 																				ntohs(pNeighbour->m_pHost.sin_port), FALSE,
 																				bOutgoing, pNeighbour->m_nUnique, this ) );
 	}
 	else if ( pUDP != NULL )
 	{
-		theApp.m_pMessageQueue.PushMessage( 
+		theApp.m_pMessageQueue.PushMessage(
 			(CITMQueue::CITMItem*)CShareazaApp::CITMPacketDump::CreateMessage( pUDP, NULL, TRUE, bOutgoing, 0, this) );
 	}
 }

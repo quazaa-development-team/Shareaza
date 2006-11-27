@@ -318,23 +318,18 @@ CShareazaApp::CITMPacketDump* CShareazaApp::CITMPacketDump::CreateMessage( const
 
 BOOL CShareazaApp::CITMPacketDump::OnProcess()
 {
-	CSingleLock pListLock( &theApp.m_mPacketWndList );
-	CSingleLock pLock( &theApp.m_pSection );
+	CSingleLock pLock( &theApp.m_mPacketWndList );
 
 	if ( !theApp.m_oPacketWndList.empty() && pLock.Lock( 50 ) )
 	{
-		if ( pListLock.Lock( 10 ) )
+		std::list<CPacketWnd*>::iterator iIndex = theApp.m_oPacketWndList.begin();
+		std::list<CPacketWnd*>::iterator iEnd = theApp.m_oPacketWndList.end();
+		while ( iIndex != iEnd )
 		{
-			std::list<CPacketWnd*>::iterator iIndex = theApp.m_oPacketWndList.begin();
-			std::list<CPacketWnd*>::iterator iEnd = theApp.m_oPacketWndList.end();
-			while ( iIndex != iEnd )
-			{
-				(*iIndex)->Process( &m_pAddr, m_nPort, m_bUDP, m_bOutgoing, m_nUnique, m_pPacket );
-				iIndex++;
-			}
-			pLock.Unlock();
+			(*iIndex)->Process( &m_pAddr, m_nPort, m_bUDP, m_bOutgoing, m_nUnique, m_pPacket );
+			iIndex++;
 		}
-		pListLock.Unlock();
+		pLock.Unlock();
 	}
 	return TRUE;
 }
