@@ -1002,12 +1002,19 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 		};
 		static const size_t commonWords = sizeof common / sizeof common[ 0 ];
 
+		bool bExtendChar = false;	// flag used for extended char
+
 		// Check we aren't just searching for broad terms - set counters, etc
 		for ( const_iterator pWord = begin(); pWord != end(); pWord++ )
 		{
 			nValidCharacters = 0;
 			TCHAR szChar = *(pWord->first);
 			int nLength = int(pWord->second);
+			
+			bExtendChar = false;	//  clear the flag used for extended char
+			// NOTE: because of how oWord act, each keywords in oWords gets sorted in ascending order with HEX code of char,
+			//		thus Extended chars are always located at end of oWords. Which means it is not necessary to Clear the flag
+			//		inside the loop.
 
 			if ( !IsCharacter( szChar ) ) // check if the char is valid
 			{
@@ -1021,7 +1028,7 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 			{
 				nValidCharacters = nLength;
 			}
-			else if ( 0x00 <= szChar && 0x7f >= szChar) // check if the char is 1 byte length in UTF8 (non-char will not reach here)
+			else if ( 0x00 <= szChar && 0x7f >= szChar ) // check if the char is 1 byte length in UTF8 (non-char will not reach here)
 			{
 				nValidCharacters = nLength;
 			}
@@ -1029,33 +1036,50 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 			{
 				nValidCharacters = nLength * 2;
 			}
-			else if ( 0x3041 <= szChar && 0x30fe >= szChar )
-			{
+			else if ( 0x3041 <= szChar && 0x30fe >= szChar )	// these region is for Japanese Hiragana/Katakana chars(3Bytes).
+			{													// because of number of chars exist in that region, they
+																// are counted as 2byte chars to make only 2 or longer chars
+																// are accepted on Query.
 				nValidCharacters = nLength * 2;
+				bExtendChar = true;	// set Extended char flag
 			}
 			else if ( 0x800 <= szChar && 0xffff >= szChar)  // check if the char is 3 byte length in UTF8 (non-char will not reach here)
 			{
 				nValidCharacters = nLength * 3;
+				bExtendChar = true;	// set Extended char flag
 			}
 
 			if ( std::find_if( common, common + commonWords, FindStr( *pWord ) ) != common + commonWords )
+				// if the keyword is matched to one of the common keyword set in common[] array.
 			{
-				// Common term. Don't count it.
-				if (nValidCharacters >= 3) nCommonWords++;
+				// Common term. Don't count it as valid keywords, instead count it as common keywords
+				nCommonWords++;
 				DWORD nHash = CQueryHashTable::HashWord( pWord->first, 0, pWord->second, 32 );
 				m_oKeywordHashList.push_back( nHash );
 			}
-			else if (nValidCharacters >= 3)
+			else if ( nValidCharacters >= 3 ) // if char is longer than 3byte in utf8 (Gnutella standard)
 			{
-				// Valid search term.
-				nValidWords++;
+				// check if it is valid search term.
+				// NOTE: code below will filter and narrowing down more. it has to be in one of the condition
+				//			1. It is 4byte or longer in UTF8 string(Japanese Hiragana/Katakana are both 3 byte char too 
+				//				however they are counted as 2byte char)
+				//			2. Query has Schema with it(File type specified)
+				//			3. the string contains extended char(3byte length char used in Asia region )
+				if ( nValidCharacters >= 4 || m_pSchema != NULL || bExtendChar ) nValidWords++;
 				DWORD nHash = CQueryHashTable::HashWord( pWord->first, 0, pWord->second, 32 );
 				m_oKeywordHashList.push_back( nHash );
 			}
 
 		}
 
-		nValidWords += nCommonWords / 3; // make it accept query, if there are more than 3 different common words.
+		if ( m_pSchema != NULL ) // if schema has been selected
+		{
+			nValidWords += nCommonWords / 3; // make it accept query, if there are more than 3 different common words.
+		}
+		else // no schema
+		{
+			nValidWords += nCommonWords / 4; // make it accept query, if there are more than 4 different common words.
+		}
 
 		if ( BOOL(nValidWords) ) return TRUE;
 	}
