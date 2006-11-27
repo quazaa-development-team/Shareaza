@@ -50,6 +50,7 @@ public:
 public:
 	CString			m_sSearch;		// search string, transformed by lowercase table
 	CString			m_sKeywords;	// valid search keywords (stems, minus words, split asian phrase etc.)
+	CString			m_sPosKeywords;	// valid Positive search keywords ( no minus, no quotes basically for Gnutella1 Query)
 	CSchema*		m_pSchema;
 	CXMLElement*	m_pXML;
 	QWORD			m_nMinSize;

@@ -89,6 +89,7 @@ CQuerySearch::CQuerySearch(const CQuerySearch* pOrigin)
 : m_oGUID( pOrigin->m_oGUID ),
   m_sSearch( pOrigin->m_sSearch ),
   m_sKeywords( pOrigin->m_sKeywords ),
+  m_sPosKeywords( pOrigin->m_sPosKeywords ),
   m_pSchema( pOrigin->m_pSchema ),
   m_pXML( pOrigin->m_pXML ? pOrigin->m_pXML->Clone() : NULL ),
   m_nMinSize( pOrigin->m_nMinSize ),
@@ -140,25 +141,17 @@ CG1Packet* CQuerySearch::ToG1Packet()
 	if ( m_bWantXML ) nFlags |= G1_QF_XML;
 	pPacket->WriteShortLE( nFlags );
 	
-	CString strExtra, strKeywords;
+	CString strExtra;
 
-	for ( const_iterator pWord = begin(); pWord != end(); pWord++ )
-	{
-		CString strKeyTemp( pWord->first, int(pWord->second) );
-		strKeywords.AppendFormat( _T("%s "), LPCTSTR( strKeyTemp ) );
-	}
-
-	strKeywords.TrimRight();
-
-	if ( !strKeywords.IsEmpty() )
+	if ( !m_sPosKeywords.IsEmpty() )
 	{
 		if ( Settings.Gnutella1.QuerySearchUTF8 ) //Support UTF-8 Query
 		{
-			pPacket->WriteStringUTF8( strKeywords );
+			pPacket->WriteStringUTF8( m_sPosKeywords );
 		}
 		else
 		{
-			pPacket->WriteString( strKeywords );
+			pPacket->WriteString( m_sPosKeywords );
 		}
 	}
 	else if ( m_pSchema != NULL && m_pXML != NULL )
@@ -1376,7 +1369,7 @@ void CQuerySearch::BuildWordList(bool bExpression, bool /* bLocal */ )
 	if ( m_sKeywords.IsEmpty() )
 		m_sKeywords = m_sSearch;
 
-	BOOL bHash = ( m_oSHA1 || m_oTiger || m_oED2K ) && m_sSearch.IsEmpty();
+	BOOL bHash = ( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 ) && m_sSearch.IsEmpty();
 	
 	if ( 0 == _tcsncmp( m_sSearch, _T("magnet:?"), 8 ) )
 	{
@@ -1437,6 +1430,11 @@ void CQuerySearch::BuildWordList(bool bExpression, bool /* bLocal */ )
 	{
 		MakeKeywords( m_sKeywords, bExpression );
 		AddStringToWordList( m_sKeywords );
+		for ( const_iterator pWord = begin(); pWord != end(); pWord++ )
+		{
+			m_sPosKeywords.AppendFormat( _T("%s "), LPCTSTR( CString( pWord->first, int(pWord->second) ) ) );
+		}
+		m_sPosKeywords.TrimRight();
 	}
 
 	if ( m_pXML == NULL ) return;
