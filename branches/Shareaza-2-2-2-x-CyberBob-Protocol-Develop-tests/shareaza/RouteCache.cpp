@@ -271,15 +271,31 @@ void CRouteCacheTable::RCT_Remove(CNeighbour* pNeighbour)
 
 void CRouteCacheTable::RCT_Resize(DWORD nSize)
 {
+	DWORD nPrevSize = m_nBuffer;
+
 	nSize = min( max( nSize, MIN_BUFFER_SIZE ), MAX_BUFFER_SIZE );
 	nSize = ( ( nSize + BUFFER_BLOCK_SIZE - 1 ) / BUFFER_BLOCK_SIZE * BUFFER_BLOCK_SIZE );
 
 	if ( nSize != m_nBuffer )
 	{
 		if ( m_pBuffer && m_nBuffer ) delete [] m_pBuffer;
+		m_pBuffer = NULL;
 
 		m_nBuffer = nSize;
 		m_pBuffer = nSize ? ( new CRouteCacheItem[ m_nBuffer ] ) : NULL;
+		ASSERT ( m_pBuffer != NULL );
+		if ( m_pBuffer == NULL )
+		{
+			m_nBuffer = nPrevSize;
+			m_pBuffer = new CRouteCacheItem[ m_nBuffer ];
+			ASSERT ( m_pBuffer != NULL );
+			if ( m_pBuffer == NULL )
+			{
+				m_nBuffer = ( ( MIN_BUFFER_SIZE + BUFFER_BLOCK_SIZE - 1 ) / BUFFER_BLOCK_SIZE * BUFFER_BLOCK_SIZE );
+				m_pBuffer = new CRouteCacheItem[ m_nBuffer ];
+				ASSERT ( m_pBuffer != NULL ); // Buffer memory Allocation error (serious problem should abort running and restart)
+			}
+		}
 	}
 
 	ZeroMemory( m_pHash, sizeof(CRouteCacheItem*) * HASH_SIZE );
