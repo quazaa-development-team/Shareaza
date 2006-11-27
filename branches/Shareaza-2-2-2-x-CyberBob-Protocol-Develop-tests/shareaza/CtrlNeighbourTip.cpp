@@ -33,6 +33,7 @@
 
 #include "EDPacket.h"
 #include "EDNeighbour.h"
+#include "VendorCache.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -144,6 +145,12 @@ void CNeighbourTipCtrl::OnCalcSize(CDC* pDC)
 	m_sz.cy += TIP_TEXTHEIGHT;
 
 	if ( pNeighbour->m_sUserAgent.GetLength() )
+	{
+		AddSize( pDC, pNeighbour->m_sUserAgent );
+		m_sz.cy += TIP_TEXTHEIGHT;
+	}
+
+	if ( pNeighbour->m_pVendor && pNeighbour->m_pVendor->m_sCode.GetLength() != 0 )
 	{
 		AddSize( pDC, pNeighbour->m_sUserAgent );
 		m_sz.cy += TIP_TEXTHEIGHT;
@@ -280,6 +287,12 @@ void CNeighbourTipCtrl::OnPaint(CDC* pDC)
 	if ( pNeighbour->m_sUserAgent.GetLength() )
 	{
 		DrawText( pDC, &pt, pNeighbour->m_sUserAgent );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+
+	if ( pNeighbour->m_pVendor && pNeighbour->m_pVendor->m_sCode.GetLength() != 0 )
+	{
+		DrawText( pDC, &pt, pNeighbour->m_pVendor->m_sCode );
 		pt.y += TIP_TEXTHEIGHT;
 	}
 
