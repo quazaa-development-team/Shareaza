@@ -335,8 +335,6 @@ void CLibraryDictionary::ProcessWord(CLibraryFile* pFile, const CString& strWord
 {
 	CLibraryWord* pWord;
 
-//	theApp.Message( MSG_SYSTEM, L"Adding keyword to table for \"%s\": %s", pFile->m_sName , strWord );
-
 	if ( m_pWords.Lookup( strWord, pWord ) )
 	{
 		if ( bAdd )

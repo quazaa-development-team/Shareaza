@@ -76,6 +76,7 @@ void CLibraryBuilderInternals::LoadSettings()
 	m_bEnableASF	= theApp.GetProfileInt( _T("Library"), _T("ScanASF"), TRUE );
 	m_bEnableOGG	= theApp.GetProfileInt( _T("Library"), _T("ScanOGG"), TRUE );
 	m_bEnableAPE	= theApp.GetProfileInt( _T("Library"), _T("ScanAPE"), TRUE );
+	m_bEnableMPC	= theApp.GetProfileInt( _T("Library"), _T("ScanMPC"), TRUE );
 	m_bEnableAVI	= theApp.GetProfileInt( _T("Library"), _T("ScanAVI"), TRUE );
 	m_bEnablePDF	= theApp.GetProfileInt( _T("Library"), _T("ScanPDF"), TRUE );
 	m_bEnableCHM	= theApp.GetProfileInt( _T("Library"), _T("ScanCHM"), TRUE );
@@ -98,6 +99,7 @@ BOOL CLibraryBuilderInternals::ExtractMetadata(CString& strPath, HANDLE hFile, H
 	{
 		if ( ! m_bEnableMP3 ) return FALSE;
 		if ( ReadID3v2( hFile ) ) return TRUE;
+		if ( ReadAPE( hFile, true ) ) return TRUE;
 		if ( ReadID3v1( hFile ) ) return TRUE;
 		if ( ReadMP3Frames( hFile ) ) return TRUE;
 		return SubmitCorrupted();
@@ -136,6 +138,13 @@ BOOL CLibraryBuilderInternals::ExtractMetadata(CString& strPath, HANDLE hFile, H
 	{
 		if ( ! m_bEnableAPE ) return FALSE;
 		return ReadAPE( hFile );
+	}
+	else if ( strType == _T(".mpc") || strType == _T(".mpp") || strType == _T(".mp+") )
+	{
+		if ( ! m_bEnableMPC ) return FALSE;
+		if ( ReadID3v2( hFile ) ) return TRUE;
+		if ( ReadMPC( hFile ) ) return TRUE;
+		return ReadID3v1( hFile );
 	}
 	else if ( strType == _T(".jpg") || strType == _T(".jpeg") )
 	{
@@ -531,7 +540,7 @@ BOOL CLibraryBuilderInternals::ReadID3v2(HANDLE hFile)
 
 BOOL CLibraryBuilderInternals::CopyID3v2Field(CXMLElement* pXML, LPCTSTR pszAttribute, BYTE* pBuffer, DWORD nLength, BOOL bSkipLanguage)
 {
-	CString strValue;
+	CString strResult, strValue;
 	
 	BYTE nEncoding = *pBuffer++;
 	nLength--;
@@ -548,83 +557,126 @@ BOOL CLibraryBuilderInternals::CopyID3v2Field(CXMLElement* pXML, LPCTSTR pszAttr
 		}
 	}
 	
-	if ( nEncoding == 0 )
+	DWORD nOffset = 0;
+
+	while ( nOffset < nLength )
 	{
-		LPTSTR pszOutput = strValue.GetBuffer( nLength + 1 );
-		
-        DWORD nOut = 0;
-		for ( DWORD nChar = 0 ; nChar < nLength ; nChar++, nOut++ )
+		if ( nEncoding == 0 )
 		{
-			pszOutput[ nOut ] = (TCHAR)pBuffer[ nChar ];
-			if ( pszOutput[ nOut ] == 0 ) break;
-		}
-		strValue.ReleaseBuffer( nOut );
-		
-	}
-	else if ( nEncoding == 1 && ( nLength & 1 ) == 0 && nLength >= 2 )
-	{
-		nLength = ( nLength - 2 ) / 2;
-		LPTSTR pszOutput = strValue.GetBuffer( nLength + 1 );
-		
-		if ( pBuffer[0] == 0xFF && pBuffer[1] == 0xFE )
-		{
-			pBuffer += 2;
-            DWORD nOut = 0;
-			for ( DWORD nChar = 0 ; nChar < nLength ; nChar++, nOut++ )
+			LPTSTR pszOutput = strValue.GetBuffer( nLength - nOffset + 1 );
+
+			DWORD nOut = 0, nChar = 0;
+			for ( ; nChar < nLength - nOffset ; nChar++, nOut++ )
 			{
-				pszOutput[ nOut ] = (TCHAR)pBuffer[ nChar*2+0 ] | ( (TCHAR)pBuffer[ nChar*2+1 ] << 8 );
-				if ( pszOutput[ nOut ] == 0 ) break;
+				pszOutput[ nOut ] = (TCHAR)pBuffer[ nOffset + nChar ];
+				if ( pszOutput[ nOut ] == 0 )
+				{
+					nOffset += nOut + 1;
+					break;
+				}
 			}
 			strValue.ReleaseBuffer( nOut );
+			if ( nChar == nLength - nOffset )
+				nOffset += nLength - nOffset;
 		}
-		else if ( pBuffer[0] == 0xFE && pBuffer[1] == 0xFF )
+		else if ( nEncoding == 1 && ( ( nLength - nOffset ) & 1 ) == 0 && nLength - nOffset >= 2 )
 		{
-			pBuffer += 2;
-            DWORD nOut = 0;
-			for ( DWORD nChar = 0 ; nChar < nLength ; nChar++, nOut++ )
+			DWORD nNewLength = ( nLength - nOffset - 2 ) / 2;
+			LPTSTR pszOutput = strValue.GetBuffer( nNewLength + 1 );
+
+			if ( pBuffer[0] == 0xFF && pBuffer[1] == 0xFE )
 			{
-				pszOutput[ nOut ] = (TCHAR)pBuffer[ nChar*2+1 ] | ( (TCHAR)pBuffer[ nChar*2+0 ] << 8 );
-				if ( pszOutput[ nOut ] == 0 ) break;
+				pBuffer += 2;
+				DWORD nOut = 0, nChar = 0;
+				for ( ; nChar < nNewLength ; nChar++, nOut++ )
+				{
+					pszOutput[ nOut ] = (TCHAR)pBuffer[ nOffset + nChar*2+0 ] | ( (TCHAR)pBuffer[ nOffset + nChar*2+1 ] << 8 );
+					if ( pszOutput[ nOut ] == 0 ) 
+					{
+						nOffset += ( nOut + 1 ) * 2;
+						break;
+					}
+				}
+				strValue.ReleaseBuffer( nOut );
+				pBuffer -= 2;
+				if ( nChar == nNewLength )
+					nOffset += nLength - nOffset;
 			}
+			else if ( pBuffer[0] == 0xFE && pBuffer[1] == 0xFF )
+			{
+				pBuffer += 2;
+				DWORD nOut = 0, nChar = 0;
+				for ( ; nChar < nLength - nOffset ; nChar++, nOut++ )
+				{
+					pszOutput[ nOut ] = (TCHAR)pBuffer[ nOffset + nChar*2+1 ] | ( (TCHAR)pBuffer[ nOffset + nChar*2+0 ] << 8 );
+					if ( pszOutput[ nOut ] == 0 )
+					{
+						nOffset += ( nOut + 1 ) * 2;
+						break;
+					}
+				}
+				strValue.ReleaseBuffer( nOut );
+				pBuffer -= 2;
+				if ( nChar == nLength - nOffset )
+					nOffset += nLength - nOffset;
+			}
+			else
+			{
+				strValue.ReleaseBuffer( 0 );
+				return FALSE;
+			}
+		}
+		else if ( nEncoding == 2 && ( ( nLength - nOffset ) & 1 ) == 0 )
+		{
+			DWORD nNewLength = ( nLength - nOffset ) / 2;
+			LPTSTR pszOutput = strValue.GetBuffer( nNewLength + 1 );
+
+			DWORD nOut = 0, nChar = 0;
+			for ( ; nChar < nNewLength ; nChar++, nOut++ )
+			{
+				pszOutput[ nOut ] = (TCHAR)pBuffer[ nOffset + nChar*2+1 ] | ( (TCHAR)pBuffer[ nOffset + nChar*2+0 ] << 8 );
+				if ( pszOutput[ nOut ] == 0 ) 
+				{
+					nOffset += ( nOut + 1 ) * 2;
+					break;
+				}
+			}
+			if ( nChar == nNewLength )
+				nOffset += nLength - nOffset;
+
 			strValue.ReleaseBuffer( nOut );
+		}
+		else if ( nEncoding == 3 )
+		{
+			int nWide = MultiByteToWideChar( CP_UTF8, 0, (LPCSTR)pBuffer + nOffset, nLength - nOffset, NULL, 0 );
+			LPTSTR pszOutput = strValue.GetBuffer( nWide + 1 );
+			MultiByteToWideChar( CP_UTF8, 0, (LPCSTR)pBuffer + nOffset, nLength - nOffset, pszOutput, nWide );
+			pszOutput[ nWide ] = 0;
+			strValue.ReleaseBuffer();
+			nOffset += (DWORD)strlen( (LPCSTR)pBuffer + nOffset ) + 1;
+		}
+
+		strValue.Trim();
+		strValue.Replace( L"\r\n", L"; " ); // Windows style replacement
+		strValue.Replace( L"\n", L"; " ); // Unix style replacement
+		strValue.Replace( L"\r", L"; " ); // Mac style replacement
+
+		if ( strResult.GetLength() == 0 && ( strValue.GetLength() == 0 || _tcslen( strValue ) == 0 ) ) 
+			return FALSE;
+		else if ( strResult.GetLength() && strValue.GetLength() )
+		{
+			strResult += '/';
+			strResult.Append( strValue );
+		}
+		else if ( strValue.GetLength() )
+		{
+			strResult = strValue;
 		}
 		else
-		{
-			strValue.ReleaseBuffer( 0 );
-			return FALSE;
-		}
-	}
-	else if ( nEncoding == 2 && ( nLength & 1 ) == 0 )
-	{
-		nLength = nLength / 2;
-		LPTSTR pszOutput = strValue.GetBuffer( nLength + 1 );
-		
-        DWORD nOut = 0;
-		for ( DWORD nChar = 0 ; nChar < nLength ; nChar++, nOut++ )
-		{
-			pszOutput[ nOut ] = (TCHAR)pBuffer[ nChar*2+1 ] | ( (TCHAR)pBuffer[ nChar*2+0 ] << 8 );
-			if ( pszOutput[ nOut ] == 0 ) break;
-		}
-		
-		strValue.ReleaseBuffer( nOut );
-	}
-	else if ( nEncoding == 3 )
-	{
-		int nWide = MultiByteToWideChar( CP_UTF8, 0, (LPCSTR)pBuffer, nLength, NULL, 0 );
-		LPTSTR pszOutput = strValue.GetBuffer( nWide + 1 );
-		MultiByteToWideChar( CP_UTF8, 0, (LPCSTR)pBuffer, nLength, pszOutput, nWide );
-		pszOutput[ nWide ] = 0;
-		strValue.ReleaseBuffer();
+			break;
 	}
 	
-	strValue.Trim();
-	strValue.Replace( L"\r\n", L"; " ); // Windows style replacement
-	strValue.Replace( L"\n", L"; " ); // Unix style replacement
-	strValue.Replace( L"\r", L"; " ); // Mac style replacement
-	
-	if ( strValue.GetLength() == 0 || _tcslen( strValue ) == 0 ) return FALSE;
-	
-	pXML->AddAttribute( pszAttribute, strValue );
+	pXML->AddAttribute( pszAttribute, strResult );
 	
 	return TRUE;
 }
@@ -649,20 +701,37 @@ BOOL CLibraryBuilderInternals::ReadMP3Frames(HANDLE hFile)
 	}
 }
 
+//
+// Refer to this doc: http://www.mp3-tech.org/programmer/frame_header.html
+//
 BOOL CLibraryBuilderInternals::ScanMP3Frame(CXMLElement* pXML, HANDLE hFile, DWORD nIgnore)
 {
+	// Bitrate index
 	static DWORD nBitrateTable[16][5] =
 	{
-		{ 0, 0, 0, 0 },					{ 32, 32, 32, 32, 8 },		{ 64, 48, 40, 48, 16 },
+		// L1 - Layer I
+		// L2 - Layer II
+		// L3 - Layer III
+		// V1 - MPEG Version 1
+		// V2 - MPEG Version 2 and Version 2.5
+
+		// Row data:
+		// V1,L1	V1,L2	V1,L3  	V2,L1	V2, L2 & L3
+		// The first row with zeros is for "free" bitrate (the constant bitrate not higher than value)
+		{ 0, 0, 0, 0, 0 },				{ 32, 32, 32, 32, 8 },		{ 64, 48, 40, 48, 16 },
 		{ 96, 56, 48, 56, 24 },			{ 128, 64, 56, 64, 32 },	{ 160, 80, 64, 80, 40 },
 		{ 192, 96, 80, 96, 48 },		{ 224, 112, 96, 112, 56 },	{ 256, 128, 112, 128, 64 },
 		{ 288, 160, 128, 144, 80 },		{ 320, 192, 160, 160, 96 },	{ 352, 224, 192, 176, 112 },
 		{ 384, 256, 224, 192, 128 },	{ 416, 320, 256, 224, 144 },{ 448, 384, 320, 256, 160 },
-		{ 0, 0, 0, 0 }
+		{ 0, 0, 0, 0, 0 }
+		// The last row with zeros is for "bad" bitrate (no value)
 	};
 
+	// Sampling rate frequency index
 	static DWORD nFrequencyTable[4][4] =
 	{
+		// Row data:
+		// MPEG1	?	MPEG2  	MPEG2.5
 		{ 11025, 0, 22050, 44100 },
 		{ 12000, 0,  24000, 48000 },
 		{ 8000, 0, 16000, 32000 },
@@ -688,18 +757,37 @@ BOOL CLibraryBuilderInternals::ScanMP3Frame(CXMLElement* pXML, HANDLE hFile, DWO
 	if ( nRead != 4 ) return FALSE;
 	nHeader = SWAP_LONG( nHeader );
 
-	for ( DWORD nSeek = 0 ; bVariable || ( nFrameCount < 16 && nSeek < 4096 ) ; nSeek++ )
+	for ( DWORD nSeek = 0 ; bVariable || ( nFrameCount < 16 && nSeek < 4096 * 2  ) ; nSeek++ )
 	{
 		DWORD nTime = GetTickCount();
 		
+		// "frame sync"
+		// First 11 bits must have bit 1 for MPEG 2.5 extension
+		// For other versions--first 12 bits
+
 		if ( ( nHeader & 0xFFE00000 ) == 0xFFE00000 )
 		{
+			// Version: MPEG Audio version ID
+			// 0: MPEG Version 2.5 (later extension of MPEG 2)
+			// 1: reserved
+			// 2: MPEG Version 2 (ISO/IEC 13818-3)
+			// 3: MPEG Version 1 (ISO/IEC 11172-3)
+
+			// We are taking 2 bits at position 20-21 (or 19-20 counting from 0)
+			// hex 0x00180000 = binary 110000000000000000000
 			BYTE nVersion	= (BYTE)( ( nHeader & 0x00180000 ) >> 19 );
-			nLayer			= (BYTE)( ( nHeader & 0x00060000 ) >> 17 );
-			BYTE nBitIndex	= (BYTE)( ( nHeader & 0x0000F000 ) >> 12 );
-			BYTE nFreqIndex	= (BYTE)( ( nHeader & 0x00000C00 ) >> 10 );
-			BYTE nChannels	= (BYTE)( ( nHeader & 0x000000C0 ) >> 6 );
-			BOOL bPadding	= (BOOL)( nHeader & 0x0200 ) ? TRUE : FALSE;
+			// Layer description:
+			// 0: reserved
+			// 1: L3
+			// 2: L2
+			// 3: L1
+			nLayer			= (BYTE)( ( nHeader & 0x00060000 ) >> 17 ); // 1100000000000000000
+			BYTE nBitIndex	= (BYTE)( ( nHeader & 0x0000F000 ) >> 12 ); // 1111000000000000
+			BYTE nFreqIndex	= (BYTE)( ( nHeader & 0x00000C00 ) >> 10 ); // 110000000000
+			BYTE nChannels	= (BYTE)( ( nHeader & 0x000000C0 ) >> 6 );  // 11000000
+			BOOL bPadding	= (BOOL)( nHeader & 0x0200 ) ? TRUE : FALSE;// 1000000000
+			// Is audio copyrighted?
+			BOOL bCopyRight = (BOOL)( ( nHeader & 0x8 ) >> 3 ) ? TRUE: FALSE; // 1000
 			
 			int nBitColumn = 0;
 			
@@ -738,8 +826,16 @@ BOOL CLibraryBuilderInternals::ScanMP3Frame(CXMLElement* pXML, HANDLE hFile, DWO
 			
 			if ( ! nFrameSize ) return FALSE;
 			
-			nTotalBitrate += nBitrate / 1000;
-			nFrameCount++;
+			// Skip frame when it has reserved layer
+			if ( nLayer )
+			{
+				nTotalBitrate += nBitrate / 1000;
+				nFrameCount++;
+			}
+			else if ( nFrameCount == 0 ) // reset base values if it was the first frame
+			{
+				nBaseBitrate = nBaseFrequency = 0;
+			}
 			
 			SetFilePointer( hFile, nFrameSize - 4, NULL, FILE_CURRENT );
 			ReadFile( hFile, &nHeader, 4, &nRead, NULL );
@@ -814,34 +910,29 @@ BOOL CLibraryBuilderInternals::ReadVersion(LPCTSTR pszPath)
 		return FALSE;
 	}
 	
-	WCHAR* pLanguage = (WCHAR*)pBuffer + 20 + 26 + 18 + 3;
-	
-	if ( wcslen( pLanguage ) != 8 )
-	{
-		delete [] pBuffer;
-		return FALSE;
-	}
+	DWORD nLangId = GetBestLanguageId( pBuffer );
 	
 	CXMLElement* pXML = new CXMLElement( NULL, _T("application") );
 	
 	pXML->AddAttribute( _T("os"), _T("Windows") );
-	CopyVersionField( pXML, _T("title"), pBuffer, _T("ProductName") );
-	CopyVersionField( pXML, _T("version"), pBuffer, _T("ProductVersion"), TRUE );
-	CopyVersionField( pXML, _T("fileDescription"), pBuffer, _T("FileDescription") );
-	CopyVersionField( pXML, _T("fileVersion"), pBuffer, _T("FileVersion"), TRUE );
-	CopyVersionField( pXML, _T("originalFileName"), pBuffer, _T("OriginalFilename") );
-	CopyVersionField( pXML, _T("company"), pBuffer, _T("CompanyName") );
-	CopyVersionField( pXML, _T("copyright"), pBuffer, _T("LegalCopyright") );
-	CopyVersionField( pXML, _T("comments"), pBuffer, _T("comments") );
+	CopyVersionField( pXML, _T("title"), pBuffer, _T("ProductName"), nLangId );
+	CopyVersionField( pXML, _T("version"), pBuffer, _T("ProductVersion"), nLangId, TRUE );
+	CopyVersionField( pXML, _T("fileDescription"), pBuffer, _T("FileDescription"), nLangId );
+	CopyVersionField( pXML, _T("fileVersion"), pBuffer, _T("FileVersion"), nLangId, TRUE );
+	CopyVersionField( pXML, _T("originalFileName"), pBuffer, _T("OriginalFilename"), nLangId );
+	CopyVersionField( pXML, _T("company"), pBuffer, _T("CompanyName"), nLangId );
+	CopyVersionField( pXML, _T("copyright"), pBuffer, _T("LegalCopyright"), nLangId );
+	CopyVersionField( pXML, _T("comments"), pBuffer, _T("comments"), nLangId );
 	
 	delete [] pBuffer;
 
 	return SubmitMetadata( CSchema::uriApplication, pXML );
 }
 
-BOOL CLibraryBuilderInternals::CopyVersionField(CXMLElement* pXML, LPCTSTR pszAttribute, BYTE* pBuffer, LPCTSTR pszKey, BOOL bCommaToDot)
+BOOL CLibraryBuilderInternals::CopyVersionField(CXMLElement* pXML, LPCTSTR pszAttribute, BYTE* pBuffer, 
+												LPCTSTR pszKey, DWORD nLangId, BOOL bCommaToDot)
 {
-	CString strValue = GetVersionKey( pBuffer, pszKey );
+	CString strValue = GetVersionKey( pBuffer, pszKey, nLangId );
 
 	if ( strValue.IsEmpty() ) return FALSE;
 	
@@ -858,15 +949,11 @@ BOOL CLibraryBuilderInternals::CopyVersionField(CXMLElement* pXML, LPCTSTR pszAt
 	return TRUE;
 }
 
-CString CLibraryBuilderInternals::GetVersionKey(BYTE* pBuffer, LPCTSTR pszKey)
+CString CLibraryBuilderInternals::GetVersionKey(BYTE* pBuffer, LPCTSTR pszKey, DWORD nLangId)
 {
 	CString strKey, strValue;
 
-	WCHAR* pLanguage = (WCHAR*)pBuffer + 20 + 26 + 18 + 3;
-
-	strKey = _T("\\StringFileInfo\\");
-	strKey += pLanguage;
-	strKey += _T("\\");
+	strKey.Format( L"\\StringFileInfo\\%04x%04x\\", nLangId & 0x0000FFFF, ( nLangId & 0xFFFF0000 ) >> 16 );
 	strKey += pszKey;
 
 	BYTE* pValue = NULL;
@@ -880,7 +967,77 @@ CString CLibraryBuilderInternals::GetVersionKey(BYTE* pBuffer, LPCTSTR pszKey)
 	else
 		strValue = (LPCTSTR)pValue;
 
-	return strValue;
+	return strValue.Trim();
+}
+
+DWORD CLibraryBuilderInternals::GetBestLanguageId(LPVOID pBuffer)
+{
+	DWORD nLangCode = 0;
+	UINT nLength = 0;
+	LPVOID	pTranslation = NULL;
+
+	VerQueryValue( pBuffer, L"\\VarFileInfo\\Translation", &pTranslation, &nLength );
+
+	if ( pTranslation == NULL ) // No Translation block is available
+	{
+		VerQueryValue( pBuffer, L"\\StringFileInfo\\", &pTranslation, &nLength );
+		if ( pTranslation != NULL )
+		{
+			WCHAR* pLanguage = (WCHAR*)pTranslation + 3;
+			if ( wcslen( pLanguage ) != 8 )
+				return 0;
+			else
+			{
+				DWORD nSublang = 0;
+				// Read the langid just after StringFileInfo block
+				swscanf( pLanguage, L"%4x%4x", &nLangCode, &nSublang );
+				nLangCode += ( nSublang << 16 );
+				return nLangCode;
+			}
+		}
+		else
+			return 0;
+	}
+	// ToDo: get LANGID of the Shareaza user interface
+	if ( !GetLanguageId( pTranslation, nLength, GetUserDefaultLangID(), nLangCode, false ) )
+	{
+		if ( !GetLanguageId( pTranslation, nLength, GetSystemDefaultLangID(), nLangCode, true ) )
+		{
+			if ( !GetLanguageId( pTranslation, nLength, MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL), nLangCode, true ) )
+			{
+				if ( !GetLanguageId( pTranslation, nLength, MAKELANGID(LANG_ENGLISH, SUBLANG_NEUTRAL), nLangCode, true ) )
+					nLangCode = *(DWORD*)pTranslation; // Use the first one
+			}
+		}
+	}
+	return nLangCode;
+}
+
+BOOL CLibraryBuilderInternals::GetLanguageId(LPVOID pBuffer, UINT nSize, WORD nLangId, DWORD &nId, bool bOnlyPrimary)
+{
+	LPWORD pData = NULL;
+	for ( pData = (LPWORD)pBuffer ; (LPBYTE)pData < ( (LPBYTE)pBuffer ) + nSize ; pData += 2 )
+	{
+		if ( *pData == nLangId )
+		{
+			nId = *(DWORD*)pData;
+			return TRUE;
+		}
+	}
+
+	if ( !bOnlyPrimary )
+		return FALSE;
+
+	for ( pData = (LPWORD)pBuffer ; (LPBYTE)pData < ( (LPBYTE)pBuffer ) + nSize ; pData += 2 )
+	{
+		if ( ( *pData & 0x00FF ) == ( nLangId & 0x00FF ) )
+		{
+			nId = *(DWORD*)pData;
+			return TRUE;
+		}
+	}
+
+	return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1811,23 +1968,165 @@ BOOL CLibraryBuilderInternals::ReadOGGString(BYTE*& pOGG, DWORD& nOGG, CString& 
 	return TRUE;
 }
 
+BOOL CLibraryBuilderInternals::ReadMPC(HANDLE hFile)
+{
+	return ReadAPE( hFile, true );
+}
+
 //////////////////////////////////////////////////////////////////////
 // CLibraryBuilderInternals APE Monkey's Audio (threaded)
 
-BOOL CLibraryBuilderInternals::ReadAPE(HANDLE hFile)
+BOOL CLibraryBuilderInternals::ReadAPE(HANDLE hFile, bool bIgnoreHeader)
 {
-	if ( GetFileSize( hFile, NULL ) < sizeof(APE_HEADER) ) return SubmitCorrupted();
-	SetFilePointer( hFile, 0, NULL, FILE_BEGIN );
-	
-	APE_HEADER pAPE;
+	if ( GetFileSize( hFile, NULL ) < sizeof(APE_TAG_FOOTER) ) return SubmitCorrupted();
+
 	DWORD nRead;
+	APE_TAG_FOOTER pFooter;
+
+	CXMLElement* pXML = new CXMLElement( NULL, L"audio" );
+
+	SetFilePointer( hFile, -(LONG)sizeof(pFooter), NULL, FILE_END );
+	ReadFile( hFile, &pFooter, sizeof(pFooter), &nRead, NULL );
+
+	if ( nRead != sizeof(pFooter) || strncmp( pFooter.cID, "APETAGEX", 8 ) ||
+		( pFooter.nVersion != 1000 && pFooter.nVersion != 2000 ) )
+	{
+		if ( bIgnoreHeader )
+			// Invalid footer, try to validate header only
+			pFooter.nFields = -1;
+		else
+			return SubmitMetadata( CSchema::uriAudio, pXML );
+	}
+
+	SetFilePointer( hFile, -(LONG)pFooter.nSize, NULL, FILE_END );
+
+	for ( int nTag = 0 ; nTag < pFooter.nFields ; nTag++ )
+	{
+		DWORD nLength, nFlags;
+
+		ReadFile( hFile, &nLength, 4, &nRead, NULL );
+		if ( nRead != 4 || nLength > 1024 * 4 ) break;
+		ReadFile( hFile, &nFlags, 4, &nRead, NULL );
+		if ( nRead != 4 ) break;
+
+		CString strKey, strValue;
+
+		while ( strKey.GetLength() < 255 )
+		{
+			BYTE nChar;
+			ReadFile( hFile, &nChar, 1, &nRead, NULL );
+			if ( nRead != 1 || nChar == 0 ) break;
+			strKey += (TCHAR)nChar;
+		}
+
+		if ( nRead != 1 || strKey.GetLength() >= 255 ) break;
+
+		LPSTR pszInput = new CHAR[ nLength ];
+		ReadFile( hFile, pszInput, nLength, &nRead, NULL );
+		if ( nLength != nRead ) break;
+
+		int nWide = MultiByteToWideChar( CP_UTF8, 0, pszInput, nLength, NULL, 0 );
+		LPWSTR pszWide = new WCHAR[ nWide + 1 ];
+		MultiByteToWideChar( CP_UTF8, 0, pszInput, nLength, pszWide, nWide );
+		pszWide[ nWide ] = 0;
+		strValue = pszWide;
+
+		delete [] pszWide;
+		delete [] pszInput;
+
+		strKey.TrimLeft(); strKey.TrimRight();
+		strValue.TrimLeft(); strValue.TrimRight();
+
+		if ( strKey.GetLength() && strValue.GetLength() )
+		{
+			CharLower( strKey.GetBuffer() );
+			strKey.ReleaseBuffer();
+
+			if ( strKey == L"title" )
+			{
+				pXML->AddAttribute( L"title", strValue );
+			}
+			else if ( strKey == L"artist" )
+			{
+				pXML->AddAttribute( L"artist", strValue );
+			}
+			else if ( strKey == L"album" )
+			{
+				pXML->AddAttribute( L"album", strValue );
+			}
+			else if ( strKey == L"comment" )
+			{
+				pXML->AddAttribute( L"description", strValue );
+			}
+			else if ( strKey == L"year" )
+			{
+				pXML->AddAttribute( L"year", strValue );
+			}
+			else if ( strKey == L"track" )
+			{
+				pXML->AddAttribute( L"track", strValue );
+			}
+			else if ( strKey == L"genre" )
+			{
+				pXML->AddAttribute( L"genre", strValue );
+			}
+			else if ( strKey.Find( L" url" ) > 0 )
+			{
+				pXML->AddAttribute( L"link", strValue );
+			}
+			else if ( strKey == L"composer" )
+			{
+				pXML->AddAttribute( L"composer", strValue );
+			}
+			else if ( strKey == L"publisher" )
+			{
+				pXML->AddAttribute( L"copyright", strValue );
+			}
+			else if ( strKey == L"language" )
+			{
+				pXML->AddAttribute( L"language", strValue );
+			}
+			else if ( strKey == L"disc" )
+			{
+				pXML->AddAttribute( L"disc", strValue );
+			}
+		}
+	}
+
+	if ( GetFileSize( hFile, NULL ) < sizeof(APE_HEADER) )
+	{
+		delete pXML;
+		return SubmitCorrupted();
+	}
+
+	SetFilePointer( hFile, 0, NULL, FILE_BEGIN );
+	APE_HEADER pAPE;
 	
 	ReadFile( hFile, &pAPE, sizeof(pAPE), &nRead, NULL );
-	if ( nRead != sizeof(pAPE) ) return SubmitCorrupted();
-	if ( pAPE.cID[0] != 'M' || pAPE.cID[1] != 'A' || pAPE.cID[2] != 'C' ) return SubmitCorrupted();
-	if ( pAPE.nSampleRate == 0 ) return SubmitCorrupted();
-	if ( pAPE.nChannels == 0 ) return SubmitCorrupted();
-	
+
+	// Signatures we handle although the headers may be invalid.
+	// APE tags usually are placed in footer (it's recommended).
+	bool bMAC = pAPE.cID[0] == 'M' && pAPE.cID[1] == 'A' && pAPE.cID[2] == 'C';
+	bool bMPC = pAPE.cID[0] == 'M' && pAPE.cID[1] == 'P' && pAPE.cID[2] == '+';
+
+	bool bValidSignature = bMAC || bMPC;
+
+	if ( nRead != sizeof(pAPE) || !bValidSignature || pAPE.nSampleRate == 0 || pAPE.nChannels == 0 ||
+		 bIgnoreHeader )
+	{
+		// APE tags in MP3 or MPC footer
+		if ( pFooter.nFields > 0 && bIgnoreHeader )
+		{
+			if ( !bValidSignature ) ScanMP3Frame( pXML, hFile, 0 );
+			return SubmitMetadata( CSchema::uriAudio, pXML );
+		}
+		else // No APE footer and no header in MP3 or invalid APE file
+		{
+			delete pXML;
+			return bIgnoreHeader ? FALSE : SubmitCorrupted();;
+		}
+	}
+
 	DWORD nBlocksPerFrame = ( pAPE.nVersion >= 3900 || ( pAPE.nVersion >= 3800 &&
 		pAPE.nCompressionLevel == 4000 ) ) ? 73728 : 9216;
 	
@@ -1841,117 +2140,20 @@ BOOL CLibraryBuilderInternals::ReadAPE(HANDLE hFile)
 	
 	DWORD nDuration	= nSamples / pAPE.nSampleRate;
 	
-	CXMLElement* pXML = new CXMLElement( NULL, _T("audio") );
 	CString strItem;
 	
-	strItem.Format( _T("%lu"), nDuration );
-	pXML->AddAttribute( _T("seconds"), strItem );
+	strItem.Format( L"%lu", nDuration );
+	pXML->AddAttribute( L"seconds", strItem );
 	
-	strItem.Format( _T("%lu"), pAPE.nSampleRate );
-	pXML->AddAttribute( _T("sampleRate"), strItem );
+	strItem.Format( L"%lu", pAPE.nSampleRate );
+	pXML->AddAttribute( L"sampleRate", strItem );
 	
-	strItem.Format( _T("%lu"), pAPE.nChannels );
-	pXML->AddAttribute( _T("channels"), strItem );
+	strItem.Format( L"%lu", pAPE.nChannels );
+	pXML->AddAttribute( L"channels", strItem );
 	
 	if ( ReadID3v1( hFile, pXML ) )
 	{
 		return SubmitMetadata( CSchema::uriAudio, pXML );
-	}
-	
-	if ( GetFileSize( hFile, NULL ) < sizeof(APE_HEADER) + sizeof(APE_TAG_FOOTER) )
-	{
-		return SubmitMetadata( CSchema::uriAudio, pXML );
-	}
-	
-	APE_TAG_FOOTER pFooter;
-	
-	SetFilePointer( hFile, -(LONG)sizeof(pFooter), NULL, FILE_END );
-	ReadFile( hFile, &pFooter, sizeof(pFooter), &nRead, NULL );
-	
-	if ( nRead != sizeof(pFooter) || strncmp( pFooter.cID, "APETAGEX", 8 ) ||
-		 (DWORD)pFooter.nFields > 16 ||
-		 ( pFooter.nVersion != 1000 && pFooter.nVersion != 2000 ) )
-	{
-		return SubmitMetadata( CSchema::uriAudio, pXML );
-	}
-	
-	SetFilePointer( hFile, -(LONG)pFooter.nSize, NULL, FILE_END );
-	
-	for ( int nTag = 0 ; nTag < pFooter.nFields ; nTag++ )
-	{
-		DWORD nLength, nFlags;
-		
-		ReadFile( hFile, &nLength, 4, &nRead, NULL );
-		if ( nRead != 4 || nLength > 1024 ) break;
-		ReadFile( hFile, &nFlags, 4, &nRead, NULL );
-		if ( nRead != 4 ) break;
-		
-		CString strKey, strValue;
-		
-		while ( strKey.GetLength() < 64 )
-		{
-			BYTE nChar;
-			ReadFile( hFile, &nChar, 1, &nRead, NULL );
-			if ( nRead != 1 || nChar == 0 ) break;
-			strKey += (TCHAR)nChar;
-		}
-		
-		if ( nRead != 1 || strKey.GetLength() >= 64 ) break;
-		
-		LPSTR pszInput = new CHAR[ nLength ];
-		ReadFile( hFile, pszInput, nLength, &nRead, NULL );
-		if ( nLength != nRead ) break;
-		
-		int nWide = MultiByteToWideChar( CP_UTF8, 0, pszInput, nLength, NULL, 0 );
-		LPWSTR pszWide = new WCHAR[ nWide + 1 ];
-		MultiByteToWideChar( CP_UTF8, 0, pszInput, nLength, pszWide, nWide );
-		pszWide[ nWide ] = 0;
-		strValue = pszWide;
-		
-		delete [] pszWide;
-		delete [] pszInput;
-		
-		strKey.TrimLeft(); strKey.TrimRight();
-		strValue.TrimLeft(); strValue.TrimRight();
-		
-		if ( strKey.GetLength() && strValue.GetLength() )
-		{
-			CharLower( strKey.GetBuffer() );
-			strKey.ReleaseBuffer();
-			
-			if ( strKey == _T("title") )
-			{
-				pXML->AddAttribute( _T("title"), strValue );
-			}
-			else if ( strKey == _T("artist") )
-			{
-				pXML->AddAttribute( _T("artist"), strValue );
-			}
-			else if ( strKey == _T("album") )
-			{
-				pXML->AddAttribute( _T("album"), strValue );
-			}
-			else if ( strKey == _T("comment") )
-			{
-				pXML->AddAttribute( _T("description"), strValue );
-			}
-			else if ( strKey == _T("year") )
-			{
-				pXML->AddAttribute( _T("year"), strValue );
-			}
-			else if ( strKey == _T("track") )
-			{
-				pXML->AddAttribute( _T("track"), strValue );
-			}
-			else if ( strKey == _T("genre") )
-			{
-				pXML->AddAttribute( _T("genre"), strValue );
-			}
-			else if ( strKey.Find( _T(" url") ) > 0 )
-			{
-				pXML->AddAttribute( _T("link"), strValue );
-			}
-		}
 	}
 	
 	return SubmitMetadata( CSchema::uriAudio, pXML );
@@ -2038,7 +2240,7 @@ BOOL CLibraryBuilderInternals::ReadAVI(HANDLE hFile)
 
 	if ( ! bMoviFound ) return SubmitCorrupted();
 	
-	CXMLElement* pXML = new CXMLElement( NULL, _T("video") );
+	CXMLElement* pXML = new CXMLElement( NULL, L"video" );
 	CString strItem;
 	
 	double nTime = (double)pHeader.dwMicroSecPerFrame / 1000000.0f;
@@ -2047,15 +2249,15 @@ BOOL CLibraryBuilderInternals::ReadAVI(HANDLE hFile)
 	
 	double nRate = 1000000.0f / (double)pHeader.dwMicroSecPerFrame;
 	
-	strItem.Format( _T("%lu"), pHeader.dwWidth );
-	pXML->AddAttribute( _T("width"), strItem );
-	strItem.Format( _T("%lu"), pHeader.dwHeight );
-	pXML->AddAttribute( _T("height"), strItem );
-	strItem.Format( _T("%.3f"), nTime );
-	pXML->AddAttribute( _T("minutes"), strItem );
-	strItem.Format( _T("%.2f"), nRate );
-	pXML->AddAttribute( _T("frameRate"), strItem );
-	pXML->AddAttribute( _T("codec"), strCodec );
+	strItem.Format( L"%lu", pHeader.dwWidth );
+	pXML->AddAttribute( L"width", strItem );
+	strItem.Format( L"%lu", pHeader.dwHeight );
+	pXML->AddAttribute( L"height", strItem );
+	strItem.Format( L"%.3f", nTime );
+	pXML->AddAttribute( L"minutes", strItem );
+	strItem.Format( L"%.2f", nRate );
+	pXML->AddAttribute( L"frameRate", strItem );
+	pXML->AddAttribute( L"codec", strCodec );
 	
 	return SubmitMetadata( CSchema::uriVideo, pXML );
 }

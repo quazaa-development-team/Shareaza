@@ -30,7 +30,7 @@
 				DefaultCharIsUnsigned="TRUE"
 				TreatWChar_tAsBuiltInType="TRUE"
 				ForceConformanceInForLoopScope="TRUE"
-				RuntimeTypeInfo="TRUE"
+				RuntimeTypeInfo="FALSE"
 				UsePrecompiledHeader="3"
 				ProgramDataBaseFileName="$(IntDir)/"
 				WarningLevel="4"
@@ -100,7 +100,7 @@
 				DefaultCharIsUnsigned="TRUE"
 				TreatWChar_tAsBuiltInType="TRUE"
 				ForceConformanceInForLoopScope="TRUE"
-				RuntimeTypeInfo="TRUE"
+				RuntimeTypeInfo="FALSE"
 				UsePrecompiledHeader="3"
 				ProgramDataBaseFileName="$(IntDir)/"
 				WarningLevel="4"
@@ -565,6 +565,9 @@
 				RelativePath="..\shareaza\Shareaza.rc">
 			</File>
 			<File
+				RelativePath="..\shareaza\ShareazaDataSource.cpp">
+			</File>
+			<File
 				RelativePath="..\shareaza\ShareazaURL.cpp">
 			</File>
 			<File
@@ -1024,9 +1027,6 @@
 					RelativePath="..\shareaza\CtrlLibraryHistoryPanel.cpp">
 				</File>
 				<File
-					RelativePath="..\shareaza\CtrlLibraryHomeView.cpp">
-				</File>
-				<File
 					RelativePath="..\shareaza\CtrlLibraryMetaPanel.cpp">
 				</File>
 				<File
@@ -1040,9 +1040,6 @@
 				</File>
 				<File
 					RelativePath="..\shareaza\CtrlLibraryTip.cpp">
-				</File>
-				<File
-					RelativePath="..\shareaza\CtrlLibraryTree.cpp">
 				</File>
 				<File
 					RelativePath="..\shareaza\CtrlLibraryTreeView.cpp">
@@ -1855,6 +1852,9 @@
 				RelativePath="..\shareaza\HashDatabase.h">
 			</File>
 			<File
+				RelativePath="..\shareaza\HGlobal.h">
+			</File>
+			<File
 				RelativePath="..\shareaza\HostBrowser.h">
 			</File>
 			<File
@@ -2056,6 +2056,9 @@
 				RelativePath="..\shareaza\Shareaza.h">
 			</File>
 			<File
+				RelativePath="..\shareaza\ShareazaDataSource.h">
+			</File>
+			<File
 				RelativePath="..\shareaza\ShareazaURL.h">
 			</File>
 			<File
@@ -2081,6 +2084,9 @@
 			</File>
 			<File
 				RelativePath="..\shareaza\StdAfx.h">
+			</File>
+			<File
+				RelativePath="..\shareaza\StreamArchive.h">
 			</File>
 			<File
 				RelativePath="..\shareaza\ThumbCache.h">
@@ -2261,9 +2267,6 @@
 					RelativePath="..\shareaza\CtrlLibraryHistoryPanel.h">
 				</File>
 				<File
-					RelativePath="..\shareaza\CtrlLibraryHomeView.h">
-				</File>
-				<File
 					RelativePath="..\shareaza\CtrlLibraryMetaPanel.h">
 				</File>
 				<File
@@ -2277,9 +2280,6 @@
 				</File>
 				<File
 					RelativePath="..\shareaza\CtrlLibraryTip.h">
-				</File>
-				<File
-					RelativePath="..\shareaza\CtrlLibraryTree.h">
 				</File>
 				<File
 					RelativePath="..\shareaza\CtrlLibraryTreeView.h">

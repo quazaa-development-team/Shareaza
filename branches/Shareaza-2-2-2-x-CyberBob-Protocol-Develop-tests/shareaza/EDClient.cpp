@@ -1,7 +1,7 @@
 //
 // EDClient.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2005.
+// Copyright (c) Shareaza Development Team, 2002-2006.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -97,7 +97,6 @@ CEDClient::CEDClient()
 
 	m_bOpenChat		= FALSE;
 	m_bCommentSent	= FALSE;
-	m_bPreviewRequestSent = FALSE;
 	
 	m_mInput.pLimit		= &Settings.Bandwidth.Request;
 	m_mOutput.pLimit	= &Settings.Bandwidth.Request;
@@ -1058,7 +1057,6 @@ void CEDClient::SendPreviewRequest(CDownload* pDownload)
 	pPacket->Write( pDownload->m_oED2K );
 	
 	Send( pPacket );
-	m_bPreviewRequestSent = TRUE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1662,7 +1660,6 @@ BOOL CEDClient::OnPreviewAnswer(CEDPacket* pPacket)
 						theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, 
 							(LPCTSTR)m_sAddress, pPacket->m_nType );
 
-						pDownload->m_tPreviewRequest = 0;		// The sign to try the next source
 						return TRUE;
 					}
 					else
@@ -1689,8 +1686,6 @@ BOOL CEDClient::OnPreviewAnswer(CEDPacket* pPacket)
 					}
 				}
 			}
-
-			pDownload->m_tPreviewRequest = 0; // The sign to try the next source
 		}
 		else
 		{

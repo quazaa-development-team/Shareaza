@@ -45,6 +45,7 @@ protected:
 	BOOL		m_bEnableASF;
 	BOOL		m_bEnableOGG;
 	BOOL		m_bEnableAPE;
+	BOOL		m_bEnableMPC;
 	BOOL		m_bEnableAVI;
 	BOOL		m_bEnablePDF;
 	BOOL		m_bEnableCHM;
@@ -69,8 +70,10 @@ protected:		// ID3v1 and ID3v2 and MP3
 	BOOL		ScanMP3Frame(CXMLElement* pXML, HANDLE hFile, DWORD nIgnore);
 protected:		// Module Version
 	BOOL		ReadVersion(LPCTSTR pszPath);
-	BOOL		CopyVersionField(CXMLElement* pXML, LPCTSTR pszAttribute, BYTE* pBuffer, LPCTSTR pszKey, BOOL bCommaToDot = FALSE);
-	CString		GetVersionKey(BYTE* pBuffer, LPCTSTR pszKey);
+	BOOL		CopyVersionField(CXMLElement* pXML, LPCTSTR pszAttribute, BYTE* pBuffer, LPCTSTR pszKey, DWORD nLangId, BOOL bCommaToDot = FALSE);
+	CString		GetVersionKey(BYTE* pBuffer, LPCTSTR pszKey, DWORD nLangId);
+	DWORD		GetBestLanguageId(LPVOID pBuffer);
+	BOOL		GetLanguageId(LPVOID pBuffer, UINT nSize, WORD nLangId, DWORD &nId, bool bOnlyPrimary = false);
 protected:		// Windows Installer
 	BOOL		ReadMSI(LPCTSTR pszPath);
 	CString		GetSummaryField(MSIHANDLE hSummaryInfo, UINT nProperty);
@@ -86,7 +89,8 @@ protected:		// General Media
 	BOOL		ReadOGG(HANDLE hFile);
 	BYTE*		ReadOGGPage(HANDLE hFile, DWORD& nBuffer, BYTE nFlags, DWORD nSequence, DWORD nMinSize = 0);
 	BOOL		ReadOGGString(BYTE*& pOGG, DWORD& nOGG, CString& str);
-	BOOL		ReadAPE(HANDLE hFile);
+	BOOL		ReadAPE(HANDLE hFile, bool bIgnoreHeader = false);
+	BOOL		ReadMPC(HANDLE hFile);
 	BOOL		ReadPDF(HANDLE hFile, LPCTSTR pszPath);
 	CString		ReadLine(HANDLE hFile, LPCTSTR pszSeparators = NULL);
 	CString		ReadLineReverse(HANDLE hFile, LPCTSTR pszSeparators = NULL);

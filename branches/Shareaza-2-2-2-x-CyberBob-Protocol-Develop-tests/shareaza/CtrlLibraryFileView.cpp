@@ -39,7 +39,6 @@
 #include "ED2K.h"
 #include "CtrlLibraryFrame.h"
 #include "CtrlLibraryFileView.h"
-#include "CtrlLibraryTree.h"
 #include "CtrlLibraryTip.h"
 
 #include "DlgFilePropertiesSheet.h"
@@ -466,7 +465,7 @@ void CLibraryFileView::OnLibraryDelete()
 	{
 		if ( CLibraryFile* pFile = Library.LookupFile( m_pSelection.GetNext( m_posSel ), 
 				FALSE, ! m_bGhostFolder ) )
-			pList.AddTail( pFile->m_nIndex );
+			pList.AddTail( pFile );
 	}
 	
 	while ( !pList.IsEmpty() )
@@ -616,7 +615,9 @@ void CLibraryFileView::OnUpdateLibraryRebuildAnsi(CCmdUI* pCmdUI)
 					CloseHandle( hFile );
 				}
 			}
-			if ( ( strExtension != _T("mp3") && strExtension != _T("pdf") ) 
+			if ( ( strExtension != _T("mp3") && strExtension != _T("pdf") &&
+				   strExtension != _T("mpc") && strExtension != _T("mpp") &&
+				   strExtension != _T("mp+") ) 
 				 || bXmlPossiblyModified )
 				nSelected--;
 		}
@@ -639,7 +640,9 @@ void CLibraryFileView::OnLibraryRebuildAnsi()
 		CharLower( strExtension.GetBuffer() );
 		strExtension.ReleaseBuffer();
 
-		if ( strExtension == _T("mp3") || strExtension == _T("pdf") )
+		if ( strExtension == _T("mp3") || strExtension == _T("pdf") ||
+			 strExtension == _T("mpc") || strExtension == _T("mpp") ||
+			 strExtension == _T("mp+") )
 			dlg.AddFile( pFile );
 	}
 
@@ -697,7 +700,7 @@ void CLibraryFileView::OnLibraryProperties()
 	while ( m_posSel )
 	{
 		if ( CLibraryFile* pFile = Library.LookupFile( m_pSelection.GetNext( m_posSel ) ) )
-			dlg.Add( pFile->m_nIndex );
+			dlg.Add( pFile );
 	}
 
 	pLock.Unlock();

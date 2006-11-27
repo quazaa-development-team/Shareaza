@@ -54,18 +54,21 @@ public:
 	class CEventHandler
 	{
 		public:
-			virtual void	OnConnected( CHTTPClient* pObj ) = 0;
-			virtual void	OnRun( CHTTPClient* pObj ) = 0;
-			virtual BOOL	OnWriteContent( CHTTPClient* pObj, CBuffer* pBuffer ) = 0;
+			virtual void	OnConnected( CHTTPClient* pObj );
+			virtual void	OnRun( CHTTPClient* pObj );
+			virtual BOOL	OnWriteContent( CHTTPClient* pObj, CBuffer* pBuffer );
 			virtual	BOOL	OnResponceLine( CHTTPClient* pObj, CString & pRawString, 
-							CString & pProtocol, CString & pCode, CString & pMessage ) = 0;
-			virtual BOOL	OnHeaderLine(CHTTPClient* pObj, CString& strHeader, CString& strValue) = 0;
-			virtual	BOOL	OnHeadersComplete( CHTTPClient* pObj ) = 0;
-			virtual BOOL	OnReadContent( CHTTPClient* pObj, LPBYTE pDATA, QWORD nLength) = 0;
-			virtual	BOOL	OnTransactionComplete( CHTTPClient* pObj )= 0;
-			virtual void	OnDropped( CHTTPClient* pObj, BOOL bError ) = 0;
-			virtual void	OnClose( CHTTPClient* pObj ) = 0;
-			virtual void	OnClosed( CHTTPClient* pObj ) = 0;
+							CString & pProtocol, CString & pCode, CString & pMessage );
+			virtual BOOL	OnHeaderLine(CHTTPClient* pObj, CString& strHeader, CString& strValue);
+			virtual	BOOL	OnHeadersComplete( CHTTPClient* pObj );
+			virtual BOOL	OnReadContent( CHTTPClient* pObj, LPBYTE pDATA, QWORD nLength);
+			virtual	BOOL	OnTransactionComplete( CHTTPClient* pObj );
+			virtual void	OnDropped( CHTTPClient* pObj, BOOL bError );
+			virtual void	OnClose( CHTTPClient* pObj );
+			virtual void	OnClosed( CHTTPClient* pObj );
+
+		// friend definition
+		friend class CHTTPClient;
 	};
 	
 // Construction
@@ -145,6 +148,7 @@ private:
 	
 protected:
 
+// friend definition	
 	friend class CEventHandler;
 };
 

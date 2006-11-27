@@ -830,6 +830,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="ShareazaDataSource.cpp">
+			</File>
+			<File
 				RelativePath="ShareazaURL.cpp">
 			</File>
 			<File
@@ -1555,9 +1558,6 @@
 					RelativePath="CtrlLibraryHistoryPanel.cpp">
 				</File>
 				<File
-					RelativePath="CtrlLibraryHomeView.cpp">
-				</File>
-				<File
 					RelativePath="CtrlLibraryMetaPanel.cpp">
 				</File>
 				<File
@@ -1571,9 +1571,6 @@
 				</File>
 				<File
 					RelativePath="CtrlLibraryTip.cpp">
-				</File>
-				<File
-					RelativePath="CtrlLibraryTree.cpp">
 				</File>
 				<File
 					RelativePath="CtrlLibraryTreeView.cpp">
@@ -2410,6 +2407,9 @@
 				RelativePath="HashDatabase.h">
 			</File>
 			<File
+				RelativePath="HGlobal.h">
+			</File>
+			<File
 				RelativePath="HostBrowser.h">
 			</File>
 			<File
@@ -2611,6 +2611,12 @@
 				RelativePath="Shareaza.h">
 			</File>
 			<File
+				RelativePath="ShareazaDataSource.h">
+			</File>
+			<File
+				RelativePath="ShareazaOM.h">
+			</File>
+			<File
 				RelativePath="ShareazaURL.h">
 			</File>
 			<File
@@ -2636,6 +2642,9 @@
 			</File>
 			<File
 				RelativePath="StdAfx.h">
+			</File>
+			<File
+				RelativePath="StreamArchive.h">
 			</File>
 			<File
 				RelativePath="ThumbCache.h">
@@ -2816,9 +2825,6 @@
 					RelativePath="CtrlLibraryHistoryPanel.h">
 				</File>
 				<File
-					RelativePath="CtrlLibraryHomeView.h">
-				</File>
-				<File
 					RelativePath="CtrlLibraryMetaPanel.h">
 				</File>
 				<File
@@ -2832,9 +2838,6 @@
 				</File>
 				<File
 					RelativePath="CtrlLibraryTip.h">
-				</File>
-				<File
-					RelativePath="CtrlLibraryTree.h">
 				</File>
 				<File
 					RelativePath="CtrlLibraryTreeView.h">

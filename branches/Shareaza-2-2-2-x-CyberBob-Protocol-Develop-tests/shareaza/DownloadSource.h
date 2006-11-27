@@ -1,10 +1,6 @@
 //
 // DownloadSource.h
 //
-//	Date:			"$Date: 2006/01/11 20:32:05 $"
-//	Revision:		"$Revision: 1.10 $"
-//  Last change by:	"$Author: spooky23 $"
-//
 // Copyright (c) Shareaza Development Team, 2002-2006.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
@@ -32,6 +28,7 @@
 #include "Network.h"
 #include "Download.h"
 #include "Downloads.h"
+#include "DownloadTransfer.h"
 
 class CDownload;
 class CDownloads;
@@ -92,6 +89,7 @@ public:
 	BOOL				m_bClientExtended;		// Does the user support extended (G2) functions? (In practice, this means can we use G2 chat, browse, etc...)
 	BOOL				m_bPreview;				// Does the user allow previews?
 	CString				m_sPreview;				// if empty it has the default /gnutella/preview/v1?urn:xyz format
+	BOOL				m_bPreviewRequestSent;
 public:
 	DWORD				m_nSortOrder;			// How should this source be sorted in the list?
 	int					m_nColour;
@@ -101,6 +99,7 @@ public:
 	int					m_nRedirectionCount;
 	Fragments::List		m_oAvailable;
 	Fragments::List		m_oPastFragments;
+public:
 	BOOL				m_bReConnect;			// Reconnect Flag for HTTP close connection
 	HubList				m_oPushProxyList;		// Local PUSH Proxy List Storage for RouteCache backup (G1)
 	HubList				m_oHubList;				// Local PUSH HubList Storage for RouteCache backup (G2)
@@ -181,6 +180,11 @@ public:
 		}
 
 		return FALSE;
+	}
+
+	inline bool IsOnline() const
+	{
+		return m_nBusyCount || ( m_pTransfer && m_pTransfer->m_nState > dtsNull );
 	}
 
 	inline BOOL	CanInitiate(BOOL bNetwork, BOOL bEstablished) const

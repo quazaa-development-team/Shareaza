@@ -88,6 +88,26 @@ BOOL CAboutDlg::OnInitDialog()
 	m_crWhite = CCoolInterface::GetDialogBkColor();
 	m_brWhite.CreateSolidBrush( m_crWhite );
 
+	TCHAR szPath[MAX_PATH];
+	GetModuleFileName( NULL, szPath, MAX_PATH );
+	LPCTSTR pszPath = szPath;
+
+	DWORD dwSize = GetFileVersionInfoSize( (LPTSTR)pszPath, &dwSize );
+	BYTE* pBuffer = new BYTE[ dwSize ];
+	GetFileVersionInfo( (LPTSTR)pszPath, NULL, dwSize, pBuffer );
+
+	BYTE* pValue = NULL;
+	CString strCopyRight;
+
+	if ( VerQueryValue( pBuffer, L"\\StringFileInfo\\000004b0\\LegalCopyright", 
+		 (void**)&pValue, (UINT*)&dwSize ) )
+		strCopyRight = (LPCTSTR)pValue;
+
+	delete [] pBuffer;
+
+	CWnd* pWnd = GetDlgItem( IDC_COPYRIGHT );
+	pWnd->SetWindowText( (LPCTSTR)strCopyRight );
+
 	return TRUE;
 }
 

@@ -129,8 +129,7 @@ void CUploadTipCtrl::OnCalcSize(CDC* pDC)
 	m_sz.cy += TIP_TEXTHEIGHT * 2;
 	m_sz.cy += TIP_RULE;
 
-	CUploadTransferHTTP * pUploadHTTP = dynamic_cast<CUploadTransferHTTP*>(pUpload);
-	if (pUploadHTTP != NULL)
+	if ( pUpload->m_nProtocol == PROTOCOL_HTTP )
 	{
 		m_sz.cy += TIP_TEXTHEIGHT * 5;
 	}
@@ -253,9 +252,9 @@ void CUploadTipCtrl::OnPaint(CDC* pDC)
 	DrawText( pDC, &pt, pUpload->m_sUserAgent, 80 );
 	pt.y += TIP_TEXTHEIGHT;
 
-	CUploadTransferHTTP * pUploadHTTP = dynamic_cast<CUploadTransferHTTP*>(pUpload);
-	if (pUploadHTTP != NULL)
+	if ( pUpload->m_nProtocol == PROTOCOL_HTTP )
 	{
+		CUploadTransferHTTP * pUploadHTTP = static_cast<CUploadTransferHTTP*>(pUpload);
 		strText = "Initiated:";
 		DrawText( pDC, &pt, strText );
 		if ( pUpload && pUpload->m_bInitiated )

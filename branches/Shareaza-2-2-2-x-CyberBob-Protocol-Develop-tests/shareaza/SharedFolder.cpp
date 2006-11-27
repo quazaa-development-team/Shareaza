@@ -170,7 +170,7 @@ int CLibraryFolder::GetFileList(CLibraryList* pList, BOOL bRecursive) const
 	
 	for ( POSITION pos = GetFileIterator() ; pos ; )
 	{
-		pList->CheckAndAdd( GetNextFile( pos )->m_nIndex );
+		pList->CheckAndAdd( GetNextFile( pos ) );
 		nCount++;
 	}
 	
@@ -567,7 +567,7 @@ BOOL CLibraryFolder::IsShared()
 //////////////////////////////////////////////////////////////////////
 // CLibraryFolder callbacks
 
-void CLibraryFolder::OnDelete()
+void CLibraryFolder::OnDelete(TRISTATE bCreateGhost)
 {
 	for ( POSITION pos = GetFolderIterator() ; pos ; )
 	{
@@ -576,7 +576,7 @@ void CLibraryFolder::OnDelete()
 	
 	for ( POSITION pos = GetFileIterator() ; pos ; )
 	{
-		GetNextFile( pos )->OnDelete();
+		GetNextFile( pos )->OnDelete( FALSE, bCreateGhost );
 	}
 	
 	m_pFolders.RemoveAll();

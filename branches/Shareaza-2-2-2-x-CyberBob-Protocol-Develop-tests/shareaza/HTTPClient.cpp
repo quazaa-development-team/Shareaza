@@ -712,3 +712,77 @@ void CHTTPClient::OnDropped(BOOL bError)
 	return;
 }
 
+//////////////////////////////////////////////////////////////////////
+// default event handlers for CEventHandler
+
+void CHTTPClient::CEventHandler::OnConnected( CHTTPClient* pObj )
+{
+	UNUSED_ALWAYS(pObj);
+}
+
+void CHTTPClient::CEventHandler::OnRun( CHTTPClient* pObj )
+{
+	UNUSED_ALWAYS(pObj);
+}
+
+BOOL CHTTPClient::CEventHandler::OnWriteContent( CHTTPClient* pObj, CBuffer* pBuffer )
+{
+	UNUSED_ALWAYS(pObj);
+	UNUSED_ALWAYS(pBuffer);
+	return TRUE;
+}
+
+BOOL CHTTPClient::CEventHandler::OnResponceLine( CHTTPClient* pObj, CString & pRawString, 
+												CString & pProtocol, CString & pCode, CString & pMessage )
+{
+	UNUSED_ALWAYS(pObj);
+	UNUSED_ALWAYS(pRawString);
+	UNUSED_ALWAYS(pProtocol);
+	UNUSED_ALWAYS(pCode);
+	UNUSED_ALWAYS(pMessage);
+	return TRUE;
+}
+
+BOOL CHTTPClient::CEventHandler::OnHeaderLine( CHTTPClient* pObj, CString& strHeader, CString& strValue )
+{
+	UNUSED_ALWAYS(pObj);
+	UNUSED_ALWAYS(strHeader);
+	UNUSED_ALWAYS(strValue);
+	return TRUE;
+}
+
+BOOL CHTTPClient::CEventHandler::OnHeadersComplete( CHTTPClient* pObj )
+{
+	UNUSED_ALWAYS(pObj);
+	return TRUE;
+}
+
+BOOL CHTTPClient::CEventHandler::OnReadContent( CHTTPClient* pObj, LPBYTE pDATA, QWORD nLength)
+{
+	UNUSED_ALWAYS(pObj);
+	UNUSED_ALWAYS(pDATA);
+	UNUSED_ALWAYS(nLength);
+	return TRUE;
+}
+
+BOOL CHTTPClient::CEventHandler::OnTransactionComplete( CHTTPClient* pObj )
+{
+	UNUSED_ALWAYS(pObj);
+	return TRUE;
+}
+
+void CHTTPClient::CEventHandler::OnDropped( CHTTPClient* pObj, BOOL bError )
+{
+	UNUSED_ALWAYS(pObj);
+	UNUSED_ALWAYS(bError);
+}
+
+void CHTTPClient::CEventHandler::OnClose( CHTTPClient* pObj )
+{
+	UNUSED_ALWAYS(pObj);
+}
+
+void CHTTPClient::CEventHandler::OnClosed( CHTTPClient* pObj )
+{
+	UNUSED_ALWAYS(pObj);
+}
