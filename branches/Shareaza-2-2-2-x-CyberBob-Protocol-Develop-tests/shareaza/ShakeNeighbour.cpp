@@ -227,12 +227,18 @@ void CShakeNeighbour::OnDropped(BOOL /*bError*/)
 	// We tried to connect the socket, but are still waiting for the socket connection to be made
 	if ( m_nState == nrsConnecting )
 	{
+		Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
 		// Close the connection, citing refused as the reason it didn't work out
 		Close( IDS_CONNECTION_REFUSED );
 
 	} // We are somewhere else in the chain of connecting and doing the handshake
 	else
 	{
+		// connection to node has succeed but has been dropped.
+		// the node is seems like having too many connections thus bun it just for 5minute only 
+		// (prevent the node IP gets added to HostCache again)
+		Security.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
+		HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
 		// Close the connection, citing dropped as the explanation of what happened
 		Close( IDS_CONNECTION_DROPPED );
 	}
@@ -285,7 +291,11 @@ BOOL CShakeNeighbour::OnRun()
 			// Tell discovery services that we're giving up on this one, and close the connection
 			DiscoveryServices.OnGnutellaFailed( &m_pHost.sin_addr );
 			if (!m_bFirewallTest)
+			{
+				// connection to remote node never made success. more like The node is not online
+				Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
 				Close( IDS_CONNECTION_TIMEOUT_CONNECT );
+			}
 			else
 			{
 				theApp.Message (MSG_DEBUG, _T("TCP Firewall test failed for %s."), (LPCTSTR)m_sAddress);
@@ -306,6 +316,8 @@ BOOL CShakeNeighbour::OnRun()
 		if ( nTimeNow - m_tConnected > Settings.Connection.TimeoutHandshake )
 		{
 			// Close the connection
+			Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+			HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
 			Close( IDS_HANDSHAKE_TIMEOUT );
 			return FALSE;
 		}
@@ -732,7 +744,7 @@ void CShakeNeighbour::SendHostHeaders(LPCTSTR pszMessage)
 			m_pOutput->Print( "\r\n" );
 		}
 	}
-	else if ( ( m_bG1Accept || m_bG1Send ) && m_nProtocol != PROTOCOL_G1 )
+	else if ( ( m_bG1Accept || m_bG1Send ) && m_nProtocol != PROTOCOL_G2 )
 	{
 		// This computer is running Gnutella
 
@@ -887,7 +899,8 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			m_nState = nrsRejected;
 			// Ban them and ignore anything else in the headers
 			theApp.Message( MSG_ERROR, _T("Banning hostile client %s"), (LPCTSTR)m_sUserAgent );
-			Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+			Security.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
+			HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
 			m_bBadClient = TRUE;
 			return TRUE;
 		}
@@ -898,6 +911,9 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			// Record that we're rejecting this handshake, and set the state to rejected
 			theApp.Message( MSG_ERROR, IDS_HANDSHAKE_REJECTED, (LPCTSTR)m_sAddress, (LPCTSTR)m_sUserAgent );
 			m_nState = nrsRejected;
+			Security.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
+			HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
+			m_bBadClient = TRUE;
 			return TRUE;
 		}
 
