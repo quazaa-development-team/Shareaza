@@ -704,6 +704,14 @@ BOOL CDiscoveryServices::Execute(BOOL bSecondary)
 	if ( ! pLock.Lock( 250 ) ) return FALSE;
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
 
+	// TCP bootstraps
+	if ( Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday )
+		ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_NULL );
+	else if ( Settings.Gnutella2.EnableToday )
+		ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G2 );
+	else if ( Settings.Gnutella1.EnableToday )
+		ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G1 );
+
 	if ( bSecondary )
 	{
 		if ( m_hInternet ) return FALSE;
@@ -723,13 +731,6 @@ BOOL CDiscoveryServices::Execute(BOOL bSecondary)
 
 	if ( ! bSecondary ) // If this is a user-initiated manual query (Or the 'on-startup' query)
 	{
-		// TCP bootstraps
-		if ( Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday )
-			ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_NULL );
-		else if ( Settings.Gnutella2.EnableToday )
-			ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G2 );
-		else if ( Settings.Gnutella1.EnableToday )
-			ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G1 );
 
 		// UDP services
 		if ( bG1Required && bG2Required )
