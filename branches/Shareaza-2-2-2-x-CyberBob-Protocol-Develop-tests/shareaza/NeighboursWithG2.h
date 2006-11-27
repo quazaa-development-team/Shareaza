@@ -48,6 +48,13 @@ public:
 
 public:
 
+	DWORD						m_nG2FileCount;		// Total File Count on Leafs
+	DWORD						m_nG2FileVolume;	// Total File Volume of Leafs
+	std::list<CG2Neighbour*>	m_oHub;				// list of Hub-to-Hub connections
+	std::list<CG2Neighbour*>	m_oLeaf;
+
+public:
+
 	// Methods implimented by several classes in the CNeighbours inheritance column
 	virtual void Connect(); // Set the ping route duration and setup the hub horizon pool
 

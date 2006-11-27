@@ -980,9 +980,12 @@ void CHostCacheHost::Update(WORD nPort, DWORD tSeen, LPCTSTR pszVendor)
 	
 	if ( pszVendor != NULL )
 	{
-		if ( m_pVendor == NULL || m_pVendor->m_sCode != pszVendor )
+		CString sVendorCode(pszVendor);
+		sVendorCode.Trim();
+
+		if ( ( m_pVendor == NULL || m_pVendor->m_sCode != sVendorCode ) && sVendorCode.GetLength() != 0 )
 		{
-			m_pVendor = VendorCache.Lookup( pszVendor );
+			m_pVendor = VendorCache.Lookup( (LPCTSTR)sVendorCode );
 		}
 	}
 }

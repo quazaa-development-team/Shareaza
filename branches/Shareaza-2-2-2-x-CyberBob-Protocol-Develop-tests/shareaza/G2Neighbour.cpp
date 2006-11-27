@@ -100,10 +100,19 @@ CG2Neighbour::CG2Neighbour(CNeighbour* pBase) : CNeighbour( PROTOCOL_G2, pBase )
 
 	SendStartups();
 	Neighbours.m_nCount[PROTOCOL_G2][( (m_nNodeType != ntLeaf )? ntHub : ntLeaf )]++;
+	if ( m_nNodeType == ntHub || m_nNodeType == ntNode )
+		Neighbours.m_oHub.push_back(this);
+	else if ( m_nNodeType == ntLeaf )
+		Neighbours.m_oLeaf.push_back(this);
 }
 
 CG2Neighbour::~CG2Neighbour()
 {
+	if ( m_nNodeType == ntHub || m_nNodeType == ntNode )
+		Neighbours.m_oHub.remove(this);
+	else if ( m_nNodeType == ntLeaf )
+		Neighbours.m_oLeaf.remove(this);
+
 	Neighbours.m_nCount[PROTOCOL_G2][( (m_nNodeType != ntLeaf )? ntHub : ntLeaf )]--;
 	delete m_pHubGroup;
 	delete m_pGUIDCache;
@@ -882,8 +891,9 @@ void CG2Neighbour::SendLNI()
 	DWORD nMyFiles = 0;
 	LibraryMaps.GetStatistics( &nMyFiles, &nMyVolume );
 
-	WORD nLeafs = 0;
+	WORD nLeafs = (WORD)Neighbours.m_nCount[PROTOCOL_G2][ntLeaf];
 
+	/*
 	for ( POSITION pos = Neighbours.GetIterator() ; pos ; )
 	{
 		CNeighbour* pNeighbour = Neighbours.GetNext( pos );
@@ -897,6 +907,7 @@ void CG2Neighbour::SendLNI()
 			nLeafs++;
 		}
 	}
+	*/
 
 	pPacket->WritePacket( "NA", 6 );
 	pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
@@ -961,7 +972,7 @@ BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 	CHAR szType[9];
 	DWORD nLength;
 
-	DWORD nLeafCount = 0;
+	DWORD nLeafCount = 0, nFileCount = 0, nFileVolume = 0;
 	
 
 	while ( pPacket->ReadPacket( szType, nLength ) )
@@ -985,8 +996,8 @@ BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 		}
 		else if ( strcmp( szType, "LS" ) == 0 && nLength >= 8 )
 		{
-			m_nFileCount	= pPacket->ReadLongBE();
-			m_nFileVolume	= pPacket->ReadLongBE();
+			nFileCount	= pPacket->ReadLongBE();
+			nFileVolume	= pPacket->ReadLongBE();
 		}
 		else if ( strcmp( szType, "HS" ) == 0 && nLength >= 2 )
 		{
@@ -1036,8 +1047,29 @@ BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 	m_nLeafCount = nLeafCount;
 	if ( m_nNodeType != ntLeaf )
 	{
-		//HostCache.Gnutella2.Add( &m_pHost.sin_addr, htons( m_pHost.sin_port ),
-		//	0, m_pVendor->m_sCode );
+		CHostCacheHost* pHostCache = HostCache.Gnutella2.Add( &m_pHost.sin_addr, htons( m_pHost.sin_port ), 0, 
+																m_pVendor->m_sCode );
+		if ( pHostCache != NULL )
+		{
+			pHostCache->m_nUserCount = m_nLeafCount;
+			pHostCache->m_nUserLimit = m_nLeafLimit;
+		}
+	}
+	else
+	{
+		if ( m_nFileCount != nFileCount )
+		{
+			Neighbours.m_nG2FileCount -= m_nFileCount;
+			Neighbours.m_nG2FileCount += nFileCount;
+			m_nFileCount	= nFileCount;
+		}
+
+		if ( m_nFileVolume != nFileVolume )
+		{
+			Neighbours.m_nG2FileVolume -= m_nFileVolume;
+			Neighbours.m_nG2FileVolume += nFileVolume;
+			m_nFileVolume	= nFileVolume;
+		}
 	}
 
 	m_tWaitLNI = 0;
@@ -1054,6 +1086,7 @@ void CG2Neighbour::SendKHL()
 
 //	DWORD nBase = pPacket->m_nPosition;
 
+	/*
 	for ( POSITION pos = Neighbours.GetIterator() ; pos ; )
 	{
 		CG2Neighbour* pNeighbour = (CG2Neighbour*)Neighbours.GetNext( pos );
@@ -1084,6 +1117,43 @@ void CG2Neighbour::SendKHL()
 			pPacket->WriteShortBE( htons( pNeighbour->m_pHost.sin_port ) );		// 2
 		}
 	}
+	*/
+
+
+	if ( Neighbours.m_nCount[PROTOCOL_G2][ntHub] != 0 )
+	{
+		std::list<CG2Neighbour*>::iterator iIndex = Neighbours.m_oHub.begin();
+		std::list<CG2Neighbour*>::iterator iEnd = Neighbours.m_oHub.end();
+		for ( ; iIndex != iEnd ; iIndex++ )
+		{
+			CG2Neighbour* pNeighbour = *iIndex;
+
+			if (pNeighbour != this &&
+				pNeighbour->m_nState == nrsConnected &&
+				pNeighbour->m_pHost.sin_addr.S_un.S_addr != Network.m_pHost.sin_addr.S_un.S_addr )
+			{
+				if ( pNeighbour->m_pVendor && pNeighbour->m_pVendor->m_sCode.GetLength() == 4 )
+				{
+					pPacket->WritePacket( "NH", 14 + 6, TRUE );					// 4
+					pPacket->WritePacket( "HS", 2 );							// 4
+					pPacket->WriteShortBE( (WORD)pNeighbour->m_nLeafCount );	// 2
+					pPacket->WritePacket( "V", 4 );								// 3
+					pPacket->WriteString( pNeighbour->m_pVendor->m_sCode );		// 5
+				}
+				else
+				{
+					pPacket->WritePacket( "NH", 7 + 6, TRUE );					// 4
+					pPacket->WritePacket( "HS", 2 );							// 4
+					pPacket->WriteShortBE( (WORD)pNeighbour->m_nLeafCount );	// 2
+					pPacket->WriteByte( 0 );									// 1
+				}
+
+				pPacket->WriteLongLE( pNeighbour->m_pHost.sin_addr.S_un.S_addr );	// 4
+				pPacket->WriteShortBE( htons( pNeighbour->m_pHost.sin_port ) );		// 2
+			}
+		}
+	}
+
 
 	int nCount = Settings.Gnutella2.KHLHubCount;
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
@@ -1231,8 +1301,12 @@ BOOL CG2Neighbour::OnKHL(CG2Packet* pPacket)
 		CString strTemp( inet_ntoa( m_pHost.sin_addr ) );
 		theApp.Message(MSG_SYSTEM, _T( "Detected Leaf node (%s:%u) is connected to ambiguous number of Hubs: Connected to %u Hubs"),
 			strTemp, ntohs(m_pHost.sin_port), nHubCount );
-		if ( Settings.Gnutella2.BadLeafHandler == 3 ) Security.Ban( &m_pHost.sin_addr, banSession );
-		if ( Settings.Gnutella2.BadLeafHandler > 1 ) return FALSE;
+		if ( Settings.Gnutella2.BadLeafHandler > 1 )
+		{
+			if ( Settings.Gnutella2.BadLeafHandler == 3 ) Security.Ban( &m_pHost.sin_addr, ban2Hours );
+			Close();
+			return FALSE;
+		}
 	}
 
 	return TRUE;
@@ -1249,17 +1323,11 @@ void CG2Neighbour::SendHAW()
 
 	CG2Packet* pPacket = CG2Packet::New( G2_PACKET_HAW, TRUE );
 
-	WORD nLeafs = 0;
+	Hashes::Guid oGUID;
+	Network.CreateID( oGUID );
 
-	// This GUID will gets added to RouteCache of Receivers so this should not be any Random GUID as it is
-	// thus it is better to use Profile's GUID instead of Randomly generated GUID in CreateID() function.
-	// Otherwize will cause Mess of RouteCache.
-	// Note: because it is notsame as Main RouteCache used on Normal Packet Handling, it is not sever problem right now.
-	//		However this can cause problem if in future this GUID gets used for getting GUID for normal routing too...
-	//		P.S. I do not know what other G2 Nodes(GnucDNA) use this GUID as main RouteCache or separate cache, so better
-	//			check up with them.
-	// Hashes::Guid oGUID;
-	// Network.CreateID( oGUID );
+	/*
+	WORD nLeaf = 0;
 
 	for ( POSITION pos = Neighbours.GetIterator() ; pos ; )
 	{
@@ -1269,35 +1337,29 @@ void CG2Neighbour::SendHAW()
 				pNeighbour->m_nState == nrsConnected &&
 				pNeighbour->m_nNodeType == ntLeaf )
 		{
-			nLeafs++;
+			nLeaf++;
 		}
 	}
+	*/
 
 	pPacket->WritePacket( "NA", 6 );
 	pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
 	pPacket->WriteShortBE( htons( Network.m_pHost.sin_port ) );
 
-	pPacket->WritePacket( "HS", 2 );
-	pPacket->WriteShortBE( nLeafs );
+	pPacket->WritePacket( "HS", 4 );
+	pPacket->WriteShortBE( (WORD)Neighbours.m_nCount[PROTOCOL_G2][ntLeaf] );
+	pPacket->WriteShortBE( (WORD)Neighbours.m_nLimit[PROTOCOL_G2][ntLeaf] );
 
 	pPacket->WritePacket( "V", 4 );
 	pPacket->WriteString( SHAREAZA_VENDOR_A );	// 5 bytes
 
-	pPacket->WriteByte( 100 );
-	pPacket->WriteByte( 0 );
-	// This GUID will gets added to RouteCache of Receivers so this should not be any Random GUID as it is
-	// thus it is better to use Profile's GUID instead of Randomly generated GUID in CreateID() function.
-	// otherwise will cause Mess of RouteCache.
-	// Note: because it is not same as Main RouteCache used on Normal Packet Handling, it is not big problem right now.
-	//		However this can cause problem if in future this GUID gets used for getting GUID for normal routing too...
-	//		P.S. I do not know what other G2 Nodes(GnucDNA) use this GUID as main RouteCache or separate cache, so better
-	//			check up with them.
-	pPacket->Write( Hashes::Guid( MyProfile.oGUID ) );
+	pPacket->WriteByte( 100 );	// TTL = 100
+	pPacket->WriteByte( 0 );	// HOP = 0
+	pPacket->Write( Hashes::Guid( oGUID ) );
 	
 	Send( pPacket, TRUE, TRUE );
 	
-	//m_pGUIDCache->Add( oGUID, this );
-	m_pGUIDCache->Add( Hashes::Guid( MyProfile.oGUID ), this );
+	m_pGUIDCache->Add( oGUID, this );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1310,6 +1372,8 @@ BOOL CG2Neighbour::OnHAW(CG2Packet* pPacket)
 	CString strVendor;
 	CHAR szType[9];
 	DWORD nLength;
+	WORD nLeaf = 0;
+	WORD nMaxLeaf = 0;
 
 	DWORD nAddress	= 0;
 	WORD nPort		= 0;
@@ -1327,6 +1391,11 @@ BOOL CG2Neighbour::OnHAW(CG2Packet* pPacket)
 			nAddress	= pPacket->ReadLongLE();
 			nPort		= pPacket->ReadShortBE();
 		}
+		else if ( strcmp( szType, "HS" ) == 0 && nLength >= 2 )
+		{
+			nLeaf = pPacket->ReadShortBE();
+			if ( nLength >= 4 ) nMaxLeaf = pPacket->ReadShortBE();
+		}
 
 		pPacket->m_nPosition = nNext;
 	}
@@ -1342,19 +1411,19 @@ BOOL CG2Neighbour::OnHAW(CG2Packet* pPacket)
 	Hashes::Guid oGUID;
 	pPacket->Read( oGUID );
 
-	if ( strVendor.GetLength() != 0 ) HostCache.Gnutella2.Add( (IN_ADDR*)&nAddress, nPort, 0, strVendor );
-
+	if ( strVendor.GetLength() != 0 )
+	{
+		CHostCacheHost* pHost = HostCache.Gnutella2.Add( (IN_ADDR*)&nAddress, nPort, 0, strVendor );
+		if (pHost != NULL)
+		{
+			pHost->m_nUserCount = nLeaf;
+			pHost->m_nUserLimit = nMaxLeaf;
+		}
+	}
+	
 	if ( nTTL > 0 && nHops < 255 )
 	{
-		m_pGUIDCache->Add( oGUID, this );	// adding GUID to RouteCache of this Neighboring connection
-											// thus the GUID should not be the one created randomly
-											// Currently all the existing Hubs( up to Shareaza 2.2.2.20 )
-											// Are sending HAW with randomly created GUIDs, which can cause big mess
-											// in RouteCache.
-		// Note: because it is not same as Main RouteCache used on Normal Packet Handling, it is not big problem right now.
-		//		However this can cause problem if in future this GUID gets used for getting GUID for normal routing too...
-		//		P.S. I do not know what other G2 Nodes(such as GnucDNA) use this GUID as main RouteCache or separate cache,
-		//			so better check up with them.
+		m_pGUIDCache->Add( oGUID, this );
 
 		pPtr[0] = nTTL  - 1;
 		pPtr[1] = nHops + 1;

@@ -45,7 +45,11 @@ static char THIS_FILE[]=__FILE__;
 // CNeighboursWithG2 construction
 
 // Nothing that CNeighboursWithG2 adds to CNeighbours needs to be setup
-CNeighboursWithG2::CNeighboursWithG2()
+CNeighboursWithG2::CNeighboursWithG2() :
+m_nG2FileCount(0),
+m_nG2FileVolume(0),
+m_oHub(),
+m_oLeaf()
 {
 }
 
