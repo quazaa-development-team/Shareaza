@@ -579,6 +579,7 @@ void CNetwork::Disconnect()
 	pLock.Unlock();
 	
 	DiscoveryServices.Stop();
+	BlockedHostAddr.Clear();
 	
 	theApp.Message( MSG_SYSTEM, IDS_NETWORK_DISCONNECTED ); 
 	theApp.Message( MSG_DEFAULT, _T("") );

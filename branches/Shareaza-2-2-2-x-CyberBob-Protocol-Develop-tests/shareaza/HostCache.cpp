@@ -278,7 +278,7 @@ CHostCacheHost* CHostCacheList::Add(IN_ADDR* pAddress, WORD nPort, DWORD tSeen, 
 		return NULL;
 
 	// Check security settings, don't add blocked IPs
-	if ( Security.IsDenied( pAddress ) )
+	if ( BlockedHostAddr.IsDenied( pAddress ) || Security.IsDenied( pAddress ) )
 		return NULL;
 
 	// check against IANA Reserved address.
@@ -332,7 +332,7 @@ BOOL CHostCacheList::Add(LPCTSTR pszHost, DWORD tSeen, LPCTSTR pszVendor)
 		 return TRUE;
 
 	// Check security settings, don't add blocked IPs
-	if ( Security.IsDenied( (IN_ADDR*)&nAddress ) )
+	if ( BlockedHostAddr.IsDenied( (IN_ADDR*)&nAddress ) || Security.IsDenied( (IN_ADDR*)&nAddress ) )
 		 return TRUE;
 
 	// check against IANA Reserved address.

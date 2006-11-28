@@ -101,7 +101,7 @@ CNeighbour* CNeighboursWithConnect::ConnectTo(
 		return NULL;
 
 	// Don't connect to blocked addresses
-	if ( Security.IsDenied( pAddress ) )
+	if ( BlockedHostAddr.IsDenied( pAddress ) || Security.IsDenied( pAddress ) )
 	{
 		// If automatic (do) leave without making a note of the error
 		if ( bAutomatic ) return NULL;
@@ -1406,5 +1406,12 @@ void CNeighboursWithConnect::Maintain()
 			// Disconnect from one leaf
 			if ( pNewest != NULL ) pNewest->Close(); // Close the connection
 		}
+	}
+
+	// If connected to Enough Ultrappeers and Hubs, then clear HandshakeBan list.
+	if (	( !Settings.Gnutella1.EnableToday || m_nCount[PROTOCOL_G1][ntHub] >= m_nLimit[PROTOCOL_G1][ntNode] ) &&
+			( !Settings.Gnutella2.EnableToday || m_nCount[PROTOCOL_G2][ntHub] >= m_nLimit[PROTOCOL_G2][ntNode] ) )
+	{
+		BlockedHostAddr.Clear();
 	}
 }

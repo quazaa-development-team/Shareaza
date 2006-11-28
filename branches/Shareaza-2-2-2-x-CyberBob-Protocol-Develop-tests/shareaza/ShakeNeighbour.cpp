@@ -227,7 +227,7 @@ void CShakeNeighbour::OnDropped(BOOL /*bError*/)
 	// We tried to connect the socket, but are still waiting for the socket connection to be made
 	if ( m_nState == nrsConnecting )
 	{
-		Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+		if ( m_bInitiated ) BlockedHostAddr.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
 		// Close the connection, citing refused as the reason it didn't work out
 		Close( IDS_CONNECTION_REFUSED );
 
@@ -237,8 +237,11 @@ void CShakeNeighbour::OnDropped(BOOL /*bError*/)
 		// connection to node has succeed but has been dropped.
 		// the node is seems like having too many connections thus bun it just for 5minute only 
 		// (prevent the node IP gets added to HostCache again)
-		Security.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
-		HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
+		if ( m_bInitiated ) 
+		{
+			BlockedHostAddr.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
+			HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
+		}
 		// Close the connection, citing dropped as the explanation of what happened
 		Close( IDS_CONNECTION_DROPPED );
 	}
@@ -288,12 +291,12 @@ BOOL CShakeNeighbour::OnRun()
 		// If we've been waiting for the connection to be made longer than the connection timeout in settings
 		if ( nTimeNow - m_tConnected > Settings.Connection.TimeoutConnect )
 		{
-			// Tell discovery services that we're giving up on this one, and close the connection
-			DiscoveryServices.OnGnutellaFailed( &m_pHost.sin_addr );
-			if (!m_bFirewallTest)
+			if ( !m_bFirewallTest && m_bInitiated )
 			{
+				// Tell discovery services that we're giving up on this one, and close the connection
+				DiscoveryServices.OnGnutellaFailed( &m_pHost.sin_addr );
 				// connection to remote node never made success. more like The node is not online
-				Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+				BlockedHostAddr.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
 				Close( IDS_CONNECTION_TIMEOUT_CONNECT );
 			}
 			else
@@ -315,9 +318,12 @@ BOOL CShakeNeighbour::OnRun()
 		// If the handshake has been going on for longer than the handshake timeout in settings
 		if ( nTimeNow - m_tConnected > Settings.Connection.TimeoutHandshake )
 		{
+			if ( m_bInitiated )
+			{
+				BlockedHostAddr.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
+				HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
+			}
 			// Close the connection
-			Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
-			HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
 			Close( IDS_HANDSHAKE_TIMEOUT );
 			return FALSE;
 		}
@@ -844,6 +850,8 @@ BOOL CShakeNeighbour::ReadResponse()
 	} // The remote computer said something else that we aren't expecting here
 	else
 	{
+		BlockedHostAddr.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+		HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
 		// Close the connection, citing the reason as we can't understand the handshake
 		Close( IDS_HANDSHAKE_FAIL );
 		return FALSE; // Tell the calling method to stop calling us
@@ -899,7 +907,7 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			m_nState = nrsRejected;
 			// Ban them and ignore anything else in the headers
 			theApp.Message( MSG_ERROR, _T("Banning hostile client %s"), (LPCTSTR)m_sUserAgent );
-			Security.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
+			Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
 			HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
 			m_bBadClient = TRUE;
 			return TRUE;
@@ -911,7 +919,7 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			// Record that we're rejecting this handshake, and set the state to rejected
 			theApp.Message( MSG_ERROR, IDS_HANDSHAKE_REJECTED, (LPCTSTR)m_sAddress, (LPCTSTR)m_sUserAgent );
 			m_nState = nrsRejected;
-			Security.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
+			Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
 			HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
 			m_bBadClient = TRUE;
 			return TRUE;
@@ -1167,6 +1175,8 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 	// The remote computer replied to our headers with something other than "200 OK"
 	if ( m_nState == nrsRejected )
 	{
+		BlockedHostAddr.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
+		HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
 		// Close the connection
 		Close( 0 );   // Don't specify an error
 		return FALSE; // Return false all the way back to CHandshakes::RunHandshakes, which will delete this object
@@ -1762,7 +1772,7 @@ void CShakeNeighbour::OnHandshakeComplete()
 	}
 	else if (  m_bG1Send && m_bG1Accept && m_nProtocol != PROTOCOL_G2 )
 	{
-			// The remote computer is just Gnutella, not Gnutella2
+		// The remote computer is just Gnutella, not Gnutella2
 		// Make a new Gnutella neighbour object by copying values from this ShakeNeighbour one
 		pNeighbour = new CG1Neighbour( this );
 	}
@@ -1877,13 +1887,13 @@ BOOL CShakeNeighbour::IsClientBad()
 
 	if ( _tcsistr( m_sUserAgent, _T("adagio") ) )		return FALSE;
 	
-	if ( _tcsistr( m_sUserAgent, _T("trustyfiles") ) )	return FALSE;
-	
 
 	// Really obsolete versions of Shareaza should be blocked. (they may have bad settings)
 	if ( _tcsistr( m_sUserAgent, _T("shareaza") ) )	
 	{
 		if ( _tcsistr( m_sUserAgent, _T("shareaza 1.") ) )	return TRUE;
+		if ( _tcsistr( m_sUserAgent, _T("shareaza 2.0") ) )	return TRUE;
+		if ( _tcsistr( m_sUserAgent, _T("shareaza 2.1") ) )	return TRUE;	// Blocked for ZeroLeaf Hub mode
 		if ( _tcsistr( m_sUserAgent, _T("shareaza 3.") ) )	return TRUE;
 		if ( _tcsistr( m_sUserAgent, _T("shareaza 6.") ) )	return TRUE;
 		if ( _tcsistr( m_sUserAgent, _T("shareaza 7.") ) )	return TRUE;

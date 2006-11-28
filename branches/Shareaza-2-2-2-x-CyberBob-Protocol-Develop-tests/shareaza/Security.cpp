@@ -34,6 +34,7 @@ static char THIS_FILE[]=__FILE__;
 #endif
 
 CSecurity Security;
+CSecurity BlockedHostAddr;
 CAdultFilter AdultFilter;
 CMessageFilter MessageFilter;
 
