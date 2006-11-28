@@ -90,7 +90,8 @@ BOOL CTransfers::StartThread()
 
 	m_hThread	= NULL;
 	m_bThread	= TRUE;
-
+	
+	CITMQueue::EnableITM( &( m_pMessageQueue ) );
 	CWinThread* pThread = AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_NORMAL );
 	SetThreadName( pThread->m_nThreadID, "Transfers" );
 	m_hThread = pThread->m_hThread;
@@ -101,6 +102,7 @@ BOOL CTransfers::StartThread()
 void CTransfers::StopThread()
 {
 	if ( m_hThread == NULL ) return;
+	CITMQueue::DisableITM( &( m_pMessageQueue ) );
 
 	m_bThread = FALSE;
 	m_pWakeup.SetEvent();

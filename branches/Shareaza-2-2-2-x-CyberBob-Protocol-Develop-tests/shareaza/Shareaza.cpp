@@ -553,6 +553,8 @@ BOOL CShareazaApp::InitInstance()
 
 	ProcessShellCommand( m_ocmdInfo );
 
+	CITMQueue::EnableITM( &( m_pMessageQueue ) );
+
 	return TRUE;
 }
 
@@ -562,7 +564,11 @@ BOOL CShareazaApp::InitInstance()
 int CShareazaApp::ExitInstance() 
 {
 	CWaitCursor pCursor;
-	
+
+	CITMQueue::DisableITM( &theApp.m_pMessageQueue );
+	CITMQueue::DisableITM( &Transfers.m_pMessageQueue );
+	CITMQueue::DisableITM( &Network.m_pMessageQueue );
+
 	DDEServer.Close();
 	IEProtocol.Close();
 	VersionChecker.Stop();

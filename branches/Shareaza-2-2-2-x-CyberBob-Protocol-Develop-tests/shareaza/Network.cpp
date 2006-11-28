@@ -494,6 +494,7 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 	
 	m_bEnabled				= TRUE;
 	m_tStartedConnecting	= GetTickCount();
+	CITMQueue::EnableITM( &(Network.m_pMessageQueue) );
 	CWinThread* pThread = AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_NORMAL );
 	m_hThread				= pThread->m_hThread;
 	SetThreadName( pThread->m_nThreadID, "Network" );
@@ -510,6 +511,7 @@ void CNetwork::Disconnect()
 {
 	CSingleLock pLock( &m_pSection, TRUE );
 	
+	CITMQueue::DisableITM( &(Network.m_pMessageQueue) );
 	if ( ! m_bEnabled ) return;
 	
 	Settings.Gnutella1.EnableToday = FALSE;

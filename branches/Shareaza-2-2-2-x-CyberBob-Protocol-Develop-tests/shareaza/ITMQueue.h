@@ -41,9 +41,9 @@ class CITMQueue
 
 // Typedefs
 	public:
-		typedef std::list<CITMItem *>	_TITMList;
+		typedef std::list<CITMItem*>	_TITMList;
 		//typedef std::queue<CITMList>	_TITMQueue;
-		typedef std::list<CITMItem *>	_TITMQueue;
+		typedef std::list<CITMItem*>	_TITMQueue;
 
 // Constructors
 	public:
@@ -55,11 +55,18 @@ class CITMQueue
         CMutex		m_oLock;
 		_TITMQueue	m_oMessages;
 
+	private:
+		BOOL		m_bActive;
+
 // Function members
 	public:
-		void PushMessage(CITMItem * pItem);
+		void PushMessage(CITMItem* pItem);
 		void ProcessMessages();
 
+// static Functions
+	public:
+		static void EnableITM( CITMQueue* oQueue );
+		static void DisableITM( CITMQueue* oQueue );
 };
 
 #endif // _ITMQUEUE_H_

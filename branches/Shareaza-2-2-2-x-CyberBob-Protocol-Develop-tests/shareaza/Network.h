@@ -84,6 +84,7 @@ protected:
 		};
 	};
 	CMap< HANDLE, HANDLE, ResolveStruct*, ResolveStruct* > m_pLookups;
+public:
 	CITMQueue		m_pMessageQueue;
 
 public:

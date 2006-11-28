@@ -42,7 +42,10 @@ BOOL CITMQueue::CITMItem::DoProcess()
 	return TRUE;
 }
 
-CITMQueue::CITMQueue() : m_oMessages(), m_oLock()
+CITMQueue::CITMQueue() : 
+m_oMessages(), 
+m_oLock(),
+m_bActive( FALSE )
 {
 
 }
@@ -50,13 +53,21 @@ CITMQueue::CITMQueue() : m_oMessages(), m_oLock()
 CITMQueue::~CITMQueue()
 {
 	CSingleLock pLock( &m_oLock, TRUE );
+	m_bActive = FALSE;
 	ProcessMessages();
 }
 
-void CITMQueue::PushMessage(CITMItem * pItem)
+void CITMQueue::PushMessage(CITMItem* pItem)
 {
 	CSingleLock pLock( &m_oLock, TRUE );
-	m_oMessages.push_back(pItem);
+	if ( m_bActive )
+	{
+		m_oMessages.push_back(pItem);
+	}
+	else
+	{
+		delete pItem;
+	}
 }
 
 void CITMQueue::ProcessMessages()
@@ -71,5 +82,22 @@ void CITMQueue::ProcessMessages()
 	{
 		(*(tempList.begin()))->DoProcess();
 		tempList.pop_front();
+	}
+}
+
+void CITMQueue::EnableITM( CITMQueue* oQueue )
+{
+	CSingleLock pLock( &(oQueue->m_oLock), TRUE );
+	oQueue->m_bActive = TRUE;
+}
+
+void CITMQueue::DisableITM( CITMQueue* oQueue )
+{
+	CSingleLock pLock( &(oQueue->m_oLock), TRUE );
+	oQueue->m_bActive = FALSE;
+	for (; !oQueue->m_oMessages.empty() ;)
+	{
+		delete (*(oQueue->m_oMessages.begin()));
+		oQueue->m_oMessages.pop_front();
 	}
 }
