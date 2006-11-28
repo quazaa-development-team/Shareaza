@@ -126,9 +126,9 @@ int CHostCacheWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndList.InsertColumn( 5, _T("Description"), LVCFMT_LEFT, 130, 4 );
 	m_wndList.InsertColumn( 6, _T("CurUsers"), LVCFMT_CENTER, 60, 5 );
 	m_wndList.InsertColumn( 7, _T("MaxUsers"), LVCFMT_CENTER, 60, 6 );
-//	m_wndList.InsertColumn( 8, _T("Key"), LVCFMT_RIGHT, 60, 7 );
-//	m_wndList.InsertColumn( 9, _T("Query"), LVCFMT_RIGHT, 60, 8 );
-//	m_wndList.InsertColumn( 10, _T("Ack"), LVCFMT_RIGHT, 60, 9 );
+	m_wndList.InsertColumn( 8, _T("Key"), LVCFMT_RIGHT, 60, 7 );
+	m_wndList.InsertColumn( 9, _T("Query"), LVCFMT_RIGHT, 60, 8 );
+	m_wndList.InsertColumn( 10, _T("Ack"), LVCFMT_RIGHT, 60, 9 );
 
 	m_wndList.SetFont( &theApp.m_gdiFont );
 
@@ -167,7 +167,7 @@ void CHostCacheWnd::Update(BOOL bForce)
 	
 	m_wndList.ModifyStyle( WS_VISIBLE, 0 );
 	
-	CLiveList pLiveList( 8 );
+	CLiveList pLiveList( 11 );
 	
 	PROTOCOLID nEffective = m_nMode ? m_nMode : PROTOCOL_G2;
 
@@ -210,9 +210,9 @@ void CHostCacheWnd::Update(BOOL bForce)
 		if ( pHost->m_nUserCount ) pItem->Format( 6, _T("%u"), pHost->m_nUserCount );
 		if ( pHost->m_nUserLimit ) pItem->Format( 7, _T("%u"), pHost->m_nUserLimit );
 
-//		if ( pHost->m_nKeyValue ) pItem->Format( 8, _T("%u"), pHost->m_nKeyValue);
-//		if ( pHost->m_tQuery ) pItem->Format( 9, _T("%u"), pHost->m_tQuery );
-//		if ( pHost->m_tAck ) pItem->Format( 10, _T("%u"), pHost->m_tAck);
+		if ( pHost->m_nKeyValue ) pItem->Format( 8, _T("%u"), pHost->m_nKeyValue);
+		if ( pHost->m_tQuery ) pItem->Format( 9, _T("%u"), pHost->m_tQuery );
+		if ( pHost->m_tAck ) pItem->Format( 10, _T("%u"), pHost->m_tAck);
 
 	}
 	
