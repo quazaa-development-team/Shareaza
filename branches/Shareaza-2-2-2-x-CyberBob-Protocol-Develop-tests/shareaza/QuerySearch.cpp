@@ -1454,6 +1454,7 @@ void CQuerySearch::BuildWordList(bool bExpression, bool /* bLocal */ )
 	{
 		MakeKeywords( m_sKeywords, bExpression );
 		AddStringToWordList( m_sKeywords );
+		m_sPosKeywords.Empty();
 		for ( const_iterator pWord = begin(); pWord != end(); pWord++ )
 		{
 			m_sPosKeywords.AppendFormat( _T("%s "), LPCTSTR( CString( pWord->first, int(pWord->second) ) ) );
