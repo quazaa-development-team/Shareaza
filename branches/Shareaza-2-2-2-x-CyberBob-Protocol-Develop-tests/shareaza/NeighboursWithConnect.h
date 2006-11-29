@@ -51,6 +51,9 @@ public:
 	CNeighbour* ConnectTo(IN_ADDR* pAddress, WORD nPort, PROTOCOLID nProtocol, BOOL bAutomatic = FALSE, BOOL bNoUltraPeer = FALSE, BOOL bFirewallTest = FALSE );
 	CNeighbour* OnAccept(CConnection* pConnection);
 
+protected:
+	virtual void Connect();
+
 public:
 
 	// Determine our role on the Gnutella2 network
@@ -64,7 +67,7 @@ public:
 	DWORD IsG1UltrapeerCapable(BOOL bDebug = FALSE); // Returns true if we have a computer and Internet connection powerful enough to become a Gnutella ultrapeer
 
 	// Determine our needs on the given network, Gnutella or Gnutella2
-	BOOL NeedMoreHubs(PROTOCOLID nProtocol, BOOL bMaxPeerSlot = FALSE );	// Returns true if we need more hub connections on 
+	BOOL NeedMoreHubs( PROTOCOLID nProtocol, BOOL bMaxPeerSlot = FALSE );	// Returns true if we need more hub connections on 
 																			// the given network
 	BOOL NeedMoreLeafs(PROTOCOLID nProtocol); // Returns true if we need more leaf connections on the given network
 	BOOL IsHubLoaded(PROTOCOLID nProtocol);   // Returns true if we have more than 75% of the number of hub connections settings says is our limit
@@ -77,6 +80,7 @@ protected:
 	BOOL	m_bG1Leaf;			// True if we are a leaf to at least one computer on the Gnutella network
 	BOOL	m_bG1Ultrapeer;		// True if we are an ultrapeer to at least one computer on the Gnutella network
 	DWORD	m_tHubG2Promotion;	// Time we were promoted to a G2 hub
+	DWORD	m_tModeCheck;		// Time we checked and decided network mode.
 
 public:
 	int		m_nCount[4][5];		// Number of Neighbours we currently connected with
@@ -95,9 +99,12 @@ protected:
 	void PeerPrune(PROTOCOLID nProtocol); // Close hub to hub connections when we get demoted to the leaf role (do)
 
 protected:
-
 	// The tick count when we last connected to a hub for each network
 	DWORD m_tPresent[8]; // The index is a protocol identifier, like 3 eDonkey2000, 2 Gnutella2, and 1 Gnutella
+
+public:
+	int GetCount(PROTOCOLID nProtocol, int nState, int nNodeType) const;
+
 };
 
 // End the group of lines to only include once, pragma once doesn't require an endif at the bottom

@@ -907,10 +907,10 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			m_nState = nrsRejected;
 			// Ban them and ignore anything else in the headers
 			theApp.Message( MSG_ERROR, _T("Banning hostile client %s"), (LPCTSTR)m_sUserAgent );
-			Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+			BlockedHostAddr.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
 			HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
 			m_bBadClient = TRUE;
-			return TRUE;
+			return FALSE;
 		}
 		
 		// If the remote computer is running a client the user has blocked
@@ -920,9 +920,9 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			theApp.Message( MSG_ERROR, IDS_HANDSHAKE_REJECTED, (LPCTSTR)m_sAddress, (LPCTSTR)m_sUserAgent );
 			m_nState = nrsRejected;
 			Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
-			HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
+			BlockedHostAddr.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
 			m_bBadClient = TRUE;
-			return TRUE;
+			return FALSE;
 		}
 
 	} // The remote computer is telling us our IP address
@@ -1763,6 +1763,14 @@ void CShakeNeighbour::OnHandshakeComplete()
 	// If the remote computer is G2, or can send and understand Gnutella2 packets and isn't G1
 	if ( m_bG2Send && m_bG2Accept && m_nProtocol != PROTOCOL_G1 )
 	{
+		// check if this connection is still needed at this point
+		if ( ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !Neighbours.NeedMoreHubs( PROTOCOL_G2, TRUE ) ) ||
+			( m_nNodeType == ntLeaf && !Neighbours.NeedMoreLeafs( PROTOCOL_G2 ) ) )
+		{
+			delete this;
+			return;
+		}
+
 		// Record that the remote computer supports query routing
 		m_bQueryRouting = TRUE;
 
@@ -1772,13 +1780,24 @@ void CShakeNeighbour::OnHandshakeComplete()
 	}
 	else if (  m_bG1Send && m_bG1Accept && m_nProtocol != PROTOCOL_G2 )
 	{
+		// check if this connection is still needed at this point
+		if ( ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !Neighbours.NeedMoreHubs( PROTOCOL_G1, TRUE ) ) ||
+			( m_nNodeType == ntLeaf && !Neighbours.NeedMoreLeafs( PROTOCOL_G1 ) ) )
+		{
+			delete this;
+			return;
+		}
+
 		// The remote computer is just Gnutella, not Gnutella2
 		// Make a new Gnutella neighbour object by copying values from this ShakeNeighbour one
 		pNeighbour = new CG1Neighbour( this );
 	}
 
-	// This connection is to a hub above us
-	if ( m_nNodeType == ntHub )
+	if ( pNeighbour == NULL )
+	{
+		theApp.Message( MSG_ERROR, _T("memory allocation error making new connection from CShakeNeighbour.") );
+	}// This connection is to a hub above us
+	else if ( m_nNodeType == ntHub )
 	{
 		// Report that we got a ultrapeer connection
 		theApp.Message( MSG_DEFAULT, IDS_HANDSHAKE_GOTPEER );

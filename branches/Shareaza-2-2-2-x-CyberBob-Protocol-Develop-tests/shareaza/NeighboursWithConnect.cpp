@@ -48,7 +48,8 @@ static char THIS_FILE[]=__FILE__;
 // CNeighboursWithConnect construction
 
 // CNeighboursWithConnect adds an array that needs to be filled with 0s when the program creates its CNeighbours object
-CNeighboursWithConnect::CNeighboursWithConnect()
+CNeighboursWithConnect::CNeighboursWithConnect() :
+m_tModeCheck(0)
 {
 	// Zero the tick counts in m_tPresent, we haven't connected to a hub for any network yet
 	ZeroMemory( m_tPresent, sizeof(m_tPresent) );
@@ -58,8 +59,8 @@ CNeighboursWithConnect::CNeighboursWithConnect()
 	m_bG2Hub			= FALSE;
 	m_bG1Leaf			= FALSE;
 	m_bG1Ultrapeer		= FALSE;
-	ZeroMemory( m_nCount, sizeof(m_nCount) );
-	ZeroMemory( m_nLimit, sizeof(m_nLimit) );
+	ZeroMemory( m_nCount, sizeof( m_nCount ) );
+	ZeroMemory( m_nLimit, sizeof( m_nLimit ) );
 	m_tHubG2Promotion	= 0;
 }
 
@@ -206,7 +207,14 @@ CNeighbour* CNeighboursWithConnect::OnAccept(CConnection* pConnection)
 
 	// Make a new CShakeNeighbour object, have it pickup this incoming connection, and return a pointer to it
 	CShakeNeighbour* pNeighbour = new CShakeNeighbour();
-	pNeighbour->AttachTo( pConnection );
+	if ( pNeighbour != NULL )
+	{
+		pNeighbour->AttachTo( pConnection );
+	}
+	else
+	{
+		theApp.Message( MSG_ERROR, _T("memory allocation error making new CNeighbour from CHandshake.") );
+	}
 	return pNeighbour;
 }
 
@@ -319,7 +327,7 @@ DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bDebug)
 	{
 		// We can never be a hub because we are a leaf (do)
 		if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: leaf") );
-		return FALSE;
+		//return FALSE;
 
 	} // We are not running as a Gnutella2 leaf right now (do)
 	else
@@ -1061,11 +1069,8 @@ void CNeighboursWithConnect::Maintain()
 	//ZeroMemory( nCount, sizeof nCount );
 	//ZeroMemory( nLimit, sizeof nLimit  );
 
+	/*
 	// Determine our node status
-	m_bG2Leaf      = FALSE;
-	m_bG2Hub       = FALSE;
-	m_bG1Leaf      = FALSE;
-	m_bG1Ultrapeer = FALSE;
 	for ( POSITION pos = GetIterator() ; pos ; ) // Loop down the list of neighbours
 	{
 		// Get the neighbour at the position, and move the position forward
@@ -1091,6 +1096,34 @@ void CNeighboursWithConnect::Maintain()
 				else if ( pNeighbour->m_nNodeType == ntNode ) m_bG1Ultrapeer = TRUE;
 			}
 		}
+	}
+	*/
+
+	if ( m_tModeCheck == 0 || ( tTimer - m_tModeCheck ) > ( 20 * 1000 ) )
+	{
+		if ( m_nCount[PROTOCOL_G2][ntLeaf] || IsG2HubCapable() )
+		{
+			m_bG2Leaf	= FALSE;
+			m_bG2Hub	= TRUE;
+		}
+		else
+		{
+			m_bG2Leaf	= TRUE;
+			m_bG2Hub	= FALSE;
+		}
+
+		if ( m_nCount[PROTOCOL_G1][ntLeaf] || IsG1UltrapeerCapable() )
+		{
+			m_bG1Leaf      = FALSE;
+			m_bG1Ultrapeer = TRUE;
+		}
+		else
+		{
+			m_bG1Leaf      = TRUE;
+			m_bG1Ultrapeer = FALSE;
+		}
+
+		m_tModeCheck = tTimer;
 	}
 
 	// getting rid of this LOOP over head
@@ -1414,4 +1447,33 @@ void CNeighboursWithConnect::Maintain()
 	{
 		BlockedHostAddr.Clear();
 	}
+}
+
+int CNeighboursWithConnect::GetCount(PROTOCOLID nProtocol, int nState, int nNodeType) const
+{
+
+	if ( nProtocol == PROTOCOL_ED2K && nNodeType == ntHub )
+	{
+		if ( nState == nrsConnected )
+		{
+			return m_nCount[PROTOCOL_ED2K][ntHub];
+		}
+	}
+	else if ( nProtocol == PROTOCOL_G1 || nProtocol == PROTOCOL_G2 )
+	{
+		if ( nState == nrsConnected )
+		{
+			if ( nNodeType == ntLeaf || nNodeType == ntHub || nNodeType == ntNode )
+			{
+				return m_nCount[nProtocol][nNodeType];
+			}
+		}
+	}
+	return CNeighboursWithRouting::GetCount( nProtocol, nState, nNodeType );
+}
+
+void CNeighboursWithConnect::Connect()
+{
+	m_tModeCheck = 0;
+	CNeighboursWithRouting::Connect();
 }
