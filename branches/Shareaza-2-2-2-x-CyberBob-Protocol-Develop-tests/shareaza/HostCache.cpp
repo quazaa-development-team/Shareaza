@@ -115,7 +115,7 @@ BOOL CHostCache::Save()
 
 void CHostCache::Serialize(CArchive& ar)
 {
-	int nVersion = 10;
+	int nVersion = 11;
 	
 	if ( ar.IsStoring() )
 	{
@@ -184,15 +184,25 @@ void CHostCache::Remove(CHostCacheHost* pHost)
 	}
 }
 
-void CHostCache::OnFailure(IN_ADDR* pAddress, WORD nPort)
+void CHostCache::OnFailure(IN_ADDR* pAddress, WORD nPort, bool bRemove, PROTOCOLID nProtocol )
 {
 	for ( POSITION pos = m_pList.GetHeadPosition() ; pos ; )
 	{
 		CHostCacheList* pCache = m_pList.GetNext( pos );
-		pCache->OnFailure( pAddress, nPort );
+		if ( nProtocol == PROTOCOL_NULL || nProtocol == pCache->m_nProtocol )
+			pCache->OnFailure( pAddress, nPort, bRemove );
 	}
 }
 
+void CHostCache::OnSuccess(IN_ADDR* pAddress, WORD nPort, bool bUpdate, PROTOCOLID nProtocol )
+{
+	for ( POSITION pos = m_pList.GetHeadPosition() ; pos ; )
+	{
+		CHostCacheList* pCache = m_pList.GetNext( pos );
+		if ( nProtocol == PROTOCOL_NULL || nProtocol == pCache->m_nProtocol )
+			pCache->OnSuccess( pAddress, nPort, bUpdate );
+	}
+}
 
 //////////////////////////////////////////////////////////////////////
 // CHostCacheList construction
@@ -274,7 +284,7 @@ CHostCacheHost* CHostCacheList::Add(IN_ADDR* pAddress, WORD nPort, DWORD tSeen, 
 		return NULL;
 
 	// Check security settings, don't add blocked IPs
-	if ( FailedNeighbours.IsDenied( pAddress ) || Security.IsDenied( pAddress ) )
+	if ( /* FailedNeighbours.IsDenied( pAddress ) || */ Security.IsDenied( pAddress ) )
 		return NULL;
 
 	// check against IANA Reserved address.
@@ -301,8 +311,13 @@ BOOL CHostCacheList::Add(LPCTSTR pszHost, DWORD tSeen, LPCTSTR pszVendor)
 		strHost.TrimRight();
 		
 		tSeen = TimeFromString( strTime );
+
+		time_t tNow;
+		time( &tNow );
+		if ( tNow < (time_t)tSeen ) 
+			tSeen = tNow;
 	}
-	
+
 	nPos = strHost.Find( ':' );
 	if ( nPos < 0 ) return FALSE;
 	
@@ -328,7 +343,7 @@ BOOL CHostCacheList::Add(LPCTSTR pszHost, DWORD tSeen, LPCTSTR pszVendor)
 		 return TRUE;
 
 	// Check security settings, don't add blocked IPs
-	if ( FailedNeighbours.IsDenied( (IN_ADDR*)&nAddress ) || Security.IsDenied( (IN_ADDR*)&nAddress ) )
+	if ( /* FailedNeighbours.IsDenied( (IN_ADDR*)&nAddress ) || */ Security.IsDenied( (IN_ADDR*)&nAddress ) )
 		 return TRUE;
 
 	// check against IANA Reserved address.
@@ -505,7 +520,7 @@ void CHostCacheList::RemoveOldest()
 //////////////////////////////////////////////////////////////////////
 // CHostCacheList failure processor
 
-void CHostCacheList::OnFailure(IN_ADDR* pAddress, WORD nPort)
+void CHostCacheList::OnFailure(IN_ADDR* pAddress, WORD nPort, bool bRemove)
 {
 	BYTE nHash	= pAddress->S_un.S_un_b.s_b1
 				+ pAddress->S_un.S_un_b.s_b2
@@ -544,13 +559,46 @@ void CHostCacheList::OnFailure(IN_ADDR* pAddress, WORD nPort)
 			
 			pHost->m_tFailure = time( NULL );
 			*/
-			
-			Remove( pHost );
-			
+			if ( bRemove )
+				Remove( pHost );
+			else
+			{
+				pHost->m_tFailure = time( NULL );
+				pHost->m_nFailures++;
+			}
+	
 			break;
 		}
 	}
 }
+
+//////////////////////////////////////////////////////////////////////
+// CHostCacheList failure processor
+
+void CHostCacheList::OnSuccess(IN_ADDR* pAddress, WORD nPort, bool bUpdate)
+{
+	BYTE nHash	= pAddress->S_un.S_un_b.s_b1
+		+ pAddress->S_un.S_un_b.s_b2
+		+ pAddress->S_un.S_un_b.s_b3
+		+ pAddress->S_un.S_un_b.s_b4;
+
+	CHostCacheHost** pHash = m_pHash + nHash;
+
+	for ( CHostCacheHost* pHost = *pHash ; pHost ; pHost = pHost->m_pNextHash )
+	{
+		if ( pHost->m_pAddress.S_un.S_addr == pAddress->S_un.S_addr &&
+			( ! nPort || pHost->m_nPort == nPort ) )
+		{
+			pHost->m_tFailure = 0;
+			pHost->m_nFailures = 0;
+			if ( bUpdate )
+				pHost->Update( nPort );
+
+			break;
+		}
+	}
+}
+
 
 //////////////////////////////////////////////////////////////////////
 // CHostCacheList count
@@ -609,7 +657,7 @@ void CHostCacheList::PruneOldHosts()
 		else // ed2k
 			nExpire = 0;
 
-		if ( ( nExpire ) && ( tNow - pHost->m_tSeen > nExpire ) )
+		if ( ( nExpire ) && ( tNow - pHost->m_tSeen > nExpire ) || pHost->m_nFailures == 3 )
 		{
 			Remove( pHost );
 		}
@@ -872,6 +920,9 @@ void CHostCacheHost::Serialize(CArchive& ar, int nVersion)
 			ar << m_tKeyTime;
 			ar << m_nKeyHost;
 		}
+
+		ar << m_tFailure;
+		ar << m_nFailures;
 	}
 	else
 	{
@@ -930,6 +981,13 @@ void CHostCacheHost::Serialize(CArchive& ar, int nVersion)
 			ar >> m_tKeyTime;
 			ar >> m_nKeyHost;
 		}
+
+		if ( nVersion >= 11 )
+		{
+			ar >> m_tFailure;
+			ar >> m_nFailures;
+		}
+
 	}
 }
 
@@ -1044,7 +1102,19 @@ BOOL CHostCacheHost::CanConnect(DWORD tNow) const
 	if ( ! m_tConnect ) return TRUE;
 	if ( m_pAddress.S_un.S_addr == Network.m_pHost.sin_addr.S_un.S_addr ) return FALSE;
 	if ( ! tNow ) tNow = static_cast< DWORD >( time( NULL ) );
-	return tNow - m_tConnect >= Settings.Gnutella.ConnectThrottle;
+	if ( tNow - m_tFailure < 60 * 60 ) return FALSE;
+
+	// Check is host expired
+	bool bShouldTry = tNow - m_tSeen < Settings.Gnutella1.HostExpire;
+	// Check if it failed today
+	CTime pFailureTime( (time_t)m_tFailure );
+	CTime pTimeToday( (time_t)tNow );
+	bShouldTry &= ( pTimeToday.GetYear() != pFailureTime.GetYear() ) || 
+				  ( pTimeToday.GetMonth() != pFailureTime.GetMonth() ) ||
+				  ( pTimeToday.GetDay() != pFailureTime.GetDay() );
+	bShouldTry &= m_nFailures != 3;
+
+	return bShouldTry && tNow - m_tConnect >= Settings.Gnutella.ConnectThrottle;
 }
 
 //////////////////////////////////////////////////////////////////////

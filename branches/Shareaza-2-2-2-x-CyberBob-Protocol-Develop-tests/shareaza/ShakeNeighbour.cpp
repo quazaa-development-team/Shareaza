@@ -167,12 +167,24 @@ void CShakeNeighbour::Close(UINT nError)
 		if ( m_nState < nrsHandshake2 )
 		{
 			// Tell the host cache that we didn't get any data from this remote computer at all
-			HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
+			//HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
 		}
 	}
 
 	// Have CNeighbour remove this object from the list, and put away the socket
 	CNeighbour::Close( nError );
+}
+
+//////////////////////////////////////////////////////////////////////
+// CShakeNeighbour DelayClose
+
+void CShakeNeighbour::DelayClose(UINT nError)
+{
+	if ( m_bInitiated )
+	{
+	}
+
+	CNeighbour::DelayClose( nError );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -231,8 +243,11 @@ void CShakeNeighbour::OnDropped(BOOL /*bError*/)
 	// We tried to connect the socket, but are still waiting for the socket connection to be made
 	if ( m_nState == nrsConnecting )
 	{
-		if ( m_bInitiated ) 
-			FailedNeighbours.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+		if ( m_bInitiated )
+		{
+			//FailedNeighbours.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+			HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ), false, m_nProtocol );
+		}
 		// Close the connection, citing refused as the reason it didn't work out
 		Close( IDS_CONNECTION_REFUSED );
 
@@ -244,8 +259,8 @@ void CShakeNeighbour::OnDropped(BOOL /*bError*/)
 		// (to prevent the node IP being added to HostCache again)
 		if ( m_bInitiated ) 
 		{
-			FailedNeighbours.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
-			HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
+			//FailedNeighbours.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
+			HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ), false, m_nProtocol );
 		}
 		// Close the connection, citing dropped as the explanation of what happened
 		Close( IDS_CONNECTION_DROPPED );
@@ -301,7 +316,8 @@ BOOL CShakeNeighbour::OnRun()
 				// Tell discovery services that we're giving up on this one, and close the connection
 				DiscoveryServices.OnGnutellaFailed( &m_pHost.sin_addr );
 				// Connection to remote node never succeeded. The node is likely not online.
-				FailedNeighbours.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+				//FailedNeighbours.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+				HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ), true, m_nProtocol );
 				Close( IDS_CONNECTION_TIMEOUT_CONNECT );
 			}
 			else
@@ -325,8 +341,8 @@ BOOL CShakeNeighbour::OnRun()
 		{
 			if ( m_bInitiated )
 			{
-				FailedNeighbours.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
-				HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
+				//FailedNeighbours.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
+				HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ), true, m_nProtocol );
 			}
 			// Close the connection
 			Close( IDS_HANDSHAKE_TIMEOUT );
@@ -818,8 +834,13 @@ BOOL CShakeNeighbour::ReadResponse()
 			// Clip out just the part that says why we were rejected, document it, and set the state to rejected
 			strLine = strLine.Mid( 13 );
 			theApp.Message( MSG_ERROR, IDS_HANDSHAKE_REJECTED, (LPCTSTR)m_sAddress, (LPCTSTR)strLine );
-			m_nState = nrsRejected; // Set the neigbour state in this CShakeNeighbour object to rejected
-
+			m_nState = nrsRejected; // Set the neighbour state in this CShakeNeighbour object to rejected
+			if ( strLine == _T("503 Not Good Leaf") || strLine == _T("503 We're Leaves") ||
+				 strLine == _T("503 Service unavailable") )
+			{
+				//FailedNeighbours.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+				HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ), false, m_nProtocol );
+			}
 		} // It does say "200 OK", and the remote computer contacted us
 		else if ( ! m_bInitiated )
 		{
@@ -855,8 +876,8 @@ BOOL CShakeNeighbour::ReadResponse()
 	} // The remote computer said something else that we aren't expecting here
 	else
 	{
-		FailedNeighbours.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
-		HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
+		//FailedNeighbours.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+		HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ), true, m_nProtocol );
 		// Close the connection, citing the reason as we can't understand the handshake
 		Close( IDS_HANDSHAKE_FAIL );
 		return FALSE; // Tell the calling method to stop calling us
@@ -912,8 +933,8 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			m_nState = nrsRejected;
 			// Ban them and ignore anything else in the headers
 			theApp.Message( MSG_ERROR, _T("Banning hostile client %s"), (LPCTSTR)m_sUserAgent );
-			FailedNeighbours.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
-			HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
+			//FailedNeighbours.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+			HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ), true, m_nProtocol );
 			m_bBadClient = TRUE;
 			return FALSE;
 		}
@@ -925,7 +946,7 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			theApp.Message( MSG_ERROR, IDS_HANDSHAKE_REJECTED, (LPCTSTR)m_sAddress, (LPCTSTR)m_sUserAgent );
 			m_nState = nrsRejected;
 			Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
-			FailedNeighbours.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+			//FailedNeighbours.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
 			m_bBadClient = TRUE;
 			return FALSE;
 		}
@@ -1181,8 +1202,8 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 	// The remote computer replied to our headers with something other than "200 OK"
 	if ( m_nState == nrsRejected )
 	{
-		FailedNeighbours.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
-		HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
+		//FailedNeighbours.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
+		HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ), true, m_nProtocol );
 		// Close the connection
 		Close( 0 );   // Don't specify an error
 		return FALSE; // Return false all the way back to CHandshakes::RunHandshakes, which will delete this object
@@ -1480,7 +1501,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG1()
 		m_pOutput->Print( "\r\n" ); // End the group of headers with a blank line
 
 		// Tell the host cache that this didn't work out
-		HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
+		HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ), true, m_nProtocol );
 
 		// Close the connection citing not Gnutella2 as the reason, but send the departing buffer first
 		DelayClose( IDS_HANDSHAKE_NOTG2 );
@@ -1518,7 +1539,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG1()
 		// We'll set this flag to true if we need to tell the remote computer we're a leaf so we can connect
 		BOOL bFallback = FALSE;
 
-		// We are an ultrapeer or at least we are capable of becomming one
+		// We are an ultrapeer or at least we are capable of becoming one
 		if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() )
 		{
 			// The remote computer told us "X-Ultrapeer: False"
@@ -1612,7 +1633,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG1()
 			DelayClose( IDS_HANDSHAKE_IAMLEAF ); // Send the buffer and then close the socket citing our being a leaf as the reason
 			return FALSE; // Return false all the way back to CHandshakes::RunHandshakes, which will delete this object
 
-		} // We are an ultrapeer, or at least we are capable of becomming one
+		} // We are an ultrapeer, or at least we are capable of becoming one
 		else if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() )
 		{
 			// The remote computer told us it is a leaf
@@ -1769,6 +1790,8 @@ void CShakeNeighbour::OnHandshakeComplete()
 	// If the remote computer is G2, or can send and understand Gnutella2 packets and isn't G1
 	if ( m_bG2Send && m_bG2Accept && m_nProtocol != PROTOCOL_G1 )
 	{
+		HostCache.OnSuccess( &m_pHost.sin_addr, htons( m_pHost.sin_port ), true, PROTOCOL_G2 );
+
 		// check if this connection is still needed at this point
 		if ( ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !Neighbours.NeedMoreHubs( PROTOCOL_G2, TRUE ) ) ||
 			( m_nNodeType == ntLeaf && !Neighbours.NeedMoreLeafs( PROTOCOL_G2 ) ) )
@@ -1786,6 +1809,7 @@ void CShakeNeighbour::OnHandshakeComplete()
 	}
 	else if (  m_bG1Send && m_bG1Accept && m_nProtocol != PROTOCOL_G2 )
 	{
+		HostCache.OnSuccess( &m_pHost.sin_addr, htons( m_pHost.sin_port ), true, PROTOCOL_G2 );
 		// check if this connection is still needed at this point
 		if ( ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !Neighbours.NeedMoreHubs( PROTOCOL_G1, TRUE ) ) ||
 			( m_nNodeType == ntLeaf && !Neighbours.NeedMoreLeafs( PROTOCOL_G1 ) ) )

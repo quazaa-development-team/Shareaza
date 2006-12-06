@@ -465,7 +465,7 @@ BOOL CG1Neighbour::OnPing(CG1Packet* pPacket)
 			{
 				// Broadcast the packet to the computers we are connected to
 				int nCount = Neighbours.Broadcast( pPacket, this, TRUE );
-				if ( nCount ) 
+				if ( nCount )
 				{
 					Statistics.Current.Gnutella1.Routed++; // Record we routed one more packet
 					Statistics.Current.Gnutella1.PingsSent += nCount;
@@ -487,7 +487,7 @@ BOOL CG1Neighbour::OnPing(CG1Packet* pPacket)
 	}
 
 	CGGEPBlock pGGEP;
-	if ( bSCP )
+	if ( bSCP && !Neighbours.NeedMoreHubs( PROTOCOL_G1, FALSE ) )
 	{
 		WriteRandomCache( pGGEP.Add( L"IPP" ) );
 	}
@@ -646,8 +646,8 @@ int CG1Neighbour::WriteRandomCache(CGGEPItem* pItem)
 		for ( ; pHost && nPos-- ; pHost = pHost->m_pPrevTime );
 
 		// We won't provide Shareaza hosts for G1 cache, since users may disable
-		// G1 and it will pollute the host caches ( ??? )
-		if ( pHost )
+		// G1 and it will polute the host caches ( ??? )
+		if ( pHost && pHost->m_nFailures == 0 )
 		{
 			pItem->Write( (void*)&pHost->m_pAddress, 4 );
 			pItem->Write( (void*)&pHost->m_nPort, 2 );

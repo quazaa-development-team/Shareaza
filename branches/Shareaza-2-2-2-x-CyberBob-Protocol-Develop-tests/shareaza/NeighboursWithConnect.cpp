@@ -102,7 +102,7 @@ CNeighbour* CNeighboursWithConnect::ConnectTo(
 		return NULL;
 
 	// Don't connect to blocked addresses
-	if ( FailedNeighbours.IsDenied( pAddress ) || Security.IsDenied( pAddress ) )
+	if ( /* FailedNeighbours.IsDenied( pAddress ) || */ Security.IsDenied( pAddress ) )
 	{
 		// If automatic (do) leave without making a note of the error
 		if ( bAutomatic ) return NULL;
@@ -1452,7 +1452,7 @@ void CNeighboursWithConnect::Maintain()
 	if (	( !Settings.Gnutella1.EnableToday || m_nCount[PROTOCOL_G1][ntHub] >= m_nLimit[PROTOCOL_G1][ntNode] ) &&
 			( !Settings.Gnutella2.EnableToday || m_nCount[PROTOCOL_G2][ntHub] >= m_nLimit[PROTOCOL_G2][ntNode] ) )
 	{
-		FailedNeighbours.Clear();
+		//FailedNeighbours.Clear();
 	}
 }
 

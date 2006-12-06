@@ -1297,7 +1297,7 @@ BOOL CG2Neighbour::OnKHL(CG2Packet* pPacket)
 	{
 		CString strTemp( inet_ntoa( m_pHost.sin_addr ) );
 		theApp.Message(MSG_SYSTEM, _T( "Detected Leaf node (%s:%u) is connected to ambiguous number of Hubs: Connected to %u Hubs"),
-			strTemp, ntohs(m_pHost.sin_port), nHubCount );
+			strTemp, ntohs(m_pHost.sin_port), nHubCount + 1 );
 		if ( Settings.Gnutella2.BadLeafHandler > 1 )
 		{
 			if ( Settings.Gnutella2.BadLeafHandler == 3 ) Security.Ban( &m_pHost.sin_addr, ban2Hours );
