@@ -277,7 +277,7 @@ void CNeighboursWnd::Update()
 				}
 				pItem->Set( 8, str );
 				
-				if ( pG2->m_nLeafCount > 0 )
+				if ( pG2->m_nNodeType != ntLeaf )
 				{
 					if ( pG2->m_nLeafLimit > 0 )
 					{

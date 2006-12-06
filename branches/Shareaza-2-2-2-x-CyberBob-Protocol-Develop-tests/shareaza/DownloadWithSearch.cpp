@@ -102,22 +102,24 @@ void CDownloadWithSearch::RunSearch(DWORD tNow)
 	else if ( tNow > m_tSearchCheck && tNow - m_tSearchCheck >= 1000 )
 	{
 		// BOOL bFewSources = GetSourceCount( FALSE, TRUE ) < Settings.Downloads.MinSources;
-		int nHTTP = 0, nG1 = 0, nG2 = 0, nED2K = 0, nBT = 0;
-		BOOL bFewSources;
-
-		GetMultiSourceCount( TRUE, &nHTTP, &nG1, &nG2, &nED2K, &nBT );
+		//int nHTTP = 0, nG1 = 0, nG2 = 0, nED2K = 0, nBT = 0;
+		BOOL bFewSources = GetEffectiveSourceCount() < Settings.Downloads.MinSources;
+		BOOL bG1 = FALSE, bG2 = FALSE, bED2K = FALSE;
+		
+		//GetMultiSourceCount( TRUE, &nHTTP, &nG1, &nG2, &nED2K, &nBT );
 		BOOL bDataStarve = ( tNow > m_tReceived ? tNow - m_tReceived : 0 ) > Settings.Downloads.StarveTimeout * 1000;
 
-		bFewSources = ( ( ( nG1 < Settings.Downloads.MinSources ) || ( nG2 < Settings.Downloads.MinSources ) || 
-						( nED2K < Settings.Downloads.MinSources ) || ( nHTTP < Settings.Downloads.MinSources ) ) && 
-						!( m_oBTH && nBT >= Settings.Downloads.MinSources && Settings.BitTorrent.PreferenceBTSources ) );
+		bG1 = ( m_nG1SourceCount < Settings.Downloads.MinSources ) && Settings.Gnutella1.EnableToday && m_oSHA1;
+		bG2 = ( m_nG2SourceCount < Settings.Downloads.MinSources ) && Settings.Gnutella2.EnableToday;
+		bED2K = ( m_nEdSourceCount < Settings.Downloads.MinSources ) && Settings.eDonkey.EnableToday && m_oED2K;
+
+		bFewSources = bFewSources || bG1 || bG2 || bED2K;
 
 		m_tSearchCheck = tNow;
 
 		if ( IsPaused() == FALSE && ( bFewSources || bDataStarve ) )
 		{
-			StartAutomaticSearch( nG1 < Settings.Downloads.MinSources, nG2 < Settings.Downloads.MinSources,
-								nED2K < Settings.Downloads.MinSources );
+			StartAutomaticSearch( bG1, bG2, bED2K );
 		}
 		else
 		{
@@ -141,7 +143,7 @@ void CDownloadWithSearch::StartManualSearch()
 }
 
 //////////////////////////////////////////////////////////////////////
-// CDownloadWithSearch start (or continue) an autoamtic search
+// CDownloadWithSearch start (or continue) an automatic search
 
 void CDownloadWithSearch::StartAutomaticSearch( BOOL bG1, BOOL bG2, BOOL bED2K )
 {
@@ -159,7 +161,10 @@ void CDownloadWithSearch::StartAutomaticSearch( BOOL bG1, BOOL bG2, BOOL bED2K )
 
 BOOL CDownloadWithSearch::CanSearch() const
 {
-	return m_pFile != NULL && ( m_oSHA1 || m_oTiger || m_oED2K || m_oBTH );
+	return m_pFile != NULL && 
+		( m_oSHA1  && ( Settings.Gnutella1.EnableToday || Settings.Gnutella2.EnableToday ) ||
+		  ( m_oED2K && ( Settings.Gnutella2.EnableToday || Settings.eDonkey.EnableToday ) ) || 
+		  m_oBTH || ( ( m_oMD5 || m_oTiger ) && Settings.Gnutella2.EnableToday ) );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -203,10 +208,16 @@ void CDownloadWithSearch::PrepareSearch( BOOL bG1, BOOL bG2, BOOL bED2K )
 	{
 		pSearch->m_oSHA1 = m_oSHA1;
 	}
+	else
+	{
+		pSearch->m_bAndG1 = FALSE;
+	}
+
 	if ( m_oTiger )
 	{
 		pSearch->m_oTiger = m_oTiger;
 	}
+
 	if ( m_oED2K )
 	{
 		pSearch->m_oED2K = m_oED2K;
@@ -216,6 +227,12 @@ void CDownloadWithSearch::PrepareSearch( BOOL bG1, BOOL bG2, BOOL bED2K )
 	{
 		m_pSearch->m_bAllowED2K = FALSE;
 	}
+
+	if ( m_oMD5 )
+	{
+		pSearch->m_oMD5 = m_oMD5;
+	}
+
 	if ( m_oBTH )
 	{
 		pSearch->m_oBTH = m_oBTH;

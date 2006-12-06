@@ -1,7 +1,7 @@
 //
 // Network.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2005.
+// Copyright (c) Shareaza Development Team, 2002-2006.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -370,6 +370,7 @@ BOOL CNetwork::IsStable() const
 {
 	return IsListening() && ( Handshakes.m_nStableCount > 0 );
 }
+
 BOOL CNetwork::IsFirewalled()
 {
 	//return !( Datagrams.IsStable() && IsStable() );
@@ -435,12 +436,30 @@ BOOL CNetwork::ReadyToTransfer(DWORD tNow) const
 
 BOOL CNetwork::Connect(BOOL bAutoConnect)
 {
+	if ( bAutoConnect && !m_bEnabled )
+	{
+		Settings.Gnutella1.EnableToday = ( Settings.Gnutella1.EnableAlways ? TRUE : Settings.Gnutella1.EnableToday );
+		Settings.Gnutella2.EnableToday = ( Settings.Gnutella2.EnableAlways ? TRUE : Settings.Gnutella2.EnableToday );
+		Settings.eDonkey.EnableToday = ( Settings.eDonkey.EnableAlways ? TRUE : Settings.eDonkey.EnableToday );
+		DiscoveryServices.Execute( FALSE, PROTOCOL_NULL );
+	}
+
 	CSingleLock pLock( &m_pSection, TRUE );
 	
 	Settings.Live.AutoClose = FALSE;
 	if ( bAutoConnect ) 
 	{
 		m_bAutoConnect = TRUE;
+
+		if ( bAutoConnect && !Settings.Discovery.DisableAutoQuery )
+		{
+			if ( Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday )
+				DiscoveryServices.Execute( FALSE, PROTOCOL_NULL );
+			else if ( Settings.Gnutella2.EnableToday )
+				DiscoveryServices.Execute( FALSE, PROTOCOL_G2 );
+			else if ( Settings.Gnutella1.EnableToday )
+				DiscoveryServices.Execute( FALSE, PROTOCOL_G1 );
+		}
 		// Remove really old G1 hosts before trying to connect to G1
 		// if ( Settings.Gnutella1.EnableToday ) HostCache.Gnutella1.PruneOldHosts();
 	}
@@ -448,7 +467,7 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 	// If we are already connected, see if we need to query discovery services and exit.
 	if ( m_bEnabled )
 	{
-		if ( bAutoConnect && !Settings.Discovery.DisableAutoQuery ) DiscoveryServices.Execute();
+		//if ( bAutoConnect && !Settings.Discovery.DisableAutoQuery ) DiscoveryServices.Execute( TRUE );
 		return TRUE;
 	}
 	
@@ -579,7 +598,7 @@ void CNetwork::Disconnect()
 	pLock.Unlock();
 	
 	DiscoveryServices.Stop();
-	BlockedHostAddr.Clear();
+	FailedNeighbours.Clear();
 	
 	theApp.Message( MSG_SYSTEM, IDS_NETWORK_DISCONNECTED ); 
 	theApp.Message( MSG_DEFAULT, _T("") );
@@ -620,7 +639,7 @@ void CNetwork::AcquireLocalAddress(LPCTSTR pszHeader)
 	pAddress.S_un.S_un_b.s_b3 = (BYTE)nIP[2];
 	pAddress.S_un.S_un_b.s_b4 = (BYTE)nIP[3];
 	
-	if ( IsFirewalledAddress( &pAddress ) ) return;
+	if ( IsFirewalledAddress( &pAddress ), TRUE, TRUE ) return;
 	
 	m_pHost.sin_addr = pAddress;
 

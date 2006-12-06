@@ -40,6 +40,7 @@ public:
 public:
 	CString	m_sCaption;
 	BOOL	m_bGroup;
+	CToolTipCtrl m_wndToolTip;
 
 // Operations
 public:
@@ -79,6 +80,7 @@ public:
 protected:
 	//{{AFX_MSG(CSettingsPage)
 	virtual BOOL OnInitDialog();
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 

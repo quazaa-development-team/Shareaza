@@ -249,11 +249,15 @@ void CFragmentBar::DrawSource(CDC* pDC, CRect* prcBar, CDownloadSource* pSource,
 				pFragment->begin(), pFragment->size(), crNatural, FALSE );
 		}
 		
-		pDC->FillSolidRect( prcBar, GetSysColor( COLOR_BTNFACE ) );
+		pDC->FillSolidRect( prcBar, CoolInterface.m_crWindow );
+	}
+	else if ( pSource->IsOnline() && pSource->HasUsefulRanges() || !pSource->m_oPastFragments.empty() )
+	{
+		pDC->FillSolidRect( prcBar, crNatural );
 	}
 	else
 	{
-		pDC->FillSolidRect( prcBar, crNatural );
+		pDC->FillSolidRect( prcBar, CoolInterface.m_crWindow );
 	}
 }
 

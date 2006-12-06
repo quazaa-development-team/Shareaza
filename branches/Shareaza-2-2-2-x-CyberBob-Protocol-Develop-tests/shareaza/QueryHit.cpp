@@ -958,7 +958,7 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 			CBuffer pConvertWork;
 			pConvertWork.Print( pszData );
 			CString strXML = pConvertWork.ReadString( nLength, CP_UTF8 );
-			AutoDetectSchema( strXML );
+			m_pXML = CXMLElement::FromString( strXML );
 		}
 		
 		if ( pszSep ) pszData = pszSep + 1;

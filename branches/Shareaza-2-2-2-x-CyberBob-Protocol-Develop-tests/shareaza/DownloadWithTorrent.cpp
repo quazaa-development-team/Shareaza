@@ -714,7 +714,7 @@ BOOL CDownloadWithTorrent::SeedTorrent(LPCTSTR pszTarget)
 	m_nTorrentUploaded		= 0;
 	m_nTorrentDownloaded	= 0;
 
-	if ( Settings.Connection.FirewallStatus == CONNECTION_FIREWALLED && GetSourceCount() < 40 )
+	if ( Network.IsFirewalled() && GetSourceCount() < 40 )
 		CBTTrackerRequest::SendStarted( this );
 	else
 		CBTTrackerRequest::SendStarted( this, 0 );	

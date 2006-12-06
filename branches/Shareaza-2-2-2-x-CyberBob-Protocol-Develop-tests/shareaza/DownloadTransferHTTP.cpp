@@ -1257,13 +1257,13 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 	switch ( m_pSource->m_nGnutella )
 	{
 		case 1:
-			m_pSource->m_nProtocol = PROTOCOL_G1;
+			m_pSource->ChangeProtocolID( PROTOCOL_G1 );
 			break;
 		case 2:
-			m_pSource->m_nProtocol = PROTOCOL_G2;
+			m_pSource->ChangeProtocolID( PROTOCOL_G2 );
 			break;
 		case 3:
-			m_pSource->m_nProtocol = PROTOCOL_G2;
+			m_pSource->ChangeProtocolID( PROTOCOL_G2 );
 			break;
 		default:
 			break;

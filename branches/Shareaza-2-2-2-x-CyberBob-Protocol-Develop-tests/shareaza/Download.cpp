@@ -36,6 +36,7 @@
 #include "FragmentedFile.h"
 #include "BTTrackerRequest.h"
 #include "XML.h"
+#include "Network.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -65,7 +66,6 @@ CDownload::CDownload()
 , m_bDownloading(FALSE)
 , m_bTempPaused(FALSE)
 {
-	m_bTempPaused	= FALSE;
 	DownloadGroups.Link( this );
 }
 
@@ -112,9 +112,11 @@ void CDownload::Pause( BOOL bRealPause )
 void CDownload::Resume()
 {
 	if ( m_bComplete ) return;
+	if ( !Network.IsConnected() && !Network.Connect( TRUE ) ) return;
 	if ( ! m_bTempPaused ) 
 	{
-		//if ( ( m_tBegan == 0 ) && ( GetSourceCount() < Settings.Downloads.MinSources ) ) FindMoreSources();
+		//if ( ( m_tBegan == 0 ) && ( GetEffectiveSourceCount() < Settings.Downloads.MinSources ) ) 
+		//	FindMoreSources();
 		SetStartTimer();
 		return;
 	}
@@ -232,6 +234,7 @@ void CDownload::StopTrying()
 {
 	if ( m_bComplete ) return;
 	m_tBegan = 0;
+
 	m_bDownloading	= FALSE;
 
 	// if m_bTorrentRequested = TRUE, raza sends Stop
@@ -321,7 +324,7 @@ void CDownload::OnRun()
 
 	if ( ! m_bTempPaused )
 	{
-		if ( m_bDiskFull  ) Pause( False );
+		if ( m_bDiskFull  ) Pause( FALSE );
 		else if ( IsTrying() || IsSeeding() )
 		{	//This download is trying to download
 
@@ -329,7 +332,7 @@ void CDownload::OnRun()
 			if ( ( ! m_bComplete ) && ( tNow - GetStartTimer() ) > ( 3 * 60 * 60 * 1000 )  )	
 			{	//If it's not complete, and we've been trying for at least 3 hours
 
-				DWORD tHoursToTry = min ( ( GetSourceCount() + 49 ) / 50 , 9 ) + Settings.Downloads.StarveGiveUp;
+				DWORD tHoursToTry = min ( ( GetEffectiveSourceCount() + 49 ) / 50 , 9 ) + Settings.Downloads.StarveGiveUp;
 
 				if (  ( tNow - m_tReceived ) > ( tHoursToTry * 60 * 60 * 1000 ) )
 				{	//And have had no new data for 5-14 hours	
@@ -361,6 +364,8 @@ void CDownload::OnRun()
 				if ( m_bSeeding )
 				{
 					RunValidation( TRUE );
+					// in order to upload from firewalled node, something below like should be here.
+					StartTransfersIfNeeded( tNow, TRUE );
 				}
 				else if ( m_pFile != NULL )
 				{
@@ -370,9 +375,12 @@ void CDownload::OnRun()
 					{
 						if ( ValidationCanFinish() ) OnDownloaded();
 					}
-					else
+					else if ( CheckTorrentRatio() )
 					{
-						if ( CheckTorrentRatio() ) StartTransfersIfNeeded( tNow );
+						if ( Network.IsConnected() )
+							StartTransfersIfNeeded( tNow );
+						else
+							m_tBegan = 0;
 					}
 				}
 				else if ( m_pFile == NULL && ! m_bComplete && m_pTask == NULL )
@@ -385,27 +393,32 @@ void CDownload::OnRun()
 			if( GetTransferCount() > 0 ) bDownloading = TRUE;
 
 		}
-		else if ( ! m_bComplete )
+		else if ( ! m_bComplete && m_bVerify != TRUE )
 		{	//If this download isn't trying to download, see if it can try
 			if ( IsDownloading() )
 			{	// This download was probably started by a push/etc
 				SetStartTimer();
 			}
-			if ( m_oBTH )
-			{	//Torrents only try when 'ready to go'. (Reduce tracker load)
-				if ( Downloads.GetTryingCount( TRUE ) < Settings.BitTorrent.DownloadTorrents )
-					SetStartTimer();
+			if ( Network.IsConnected() )
+			{
+				if ( m_oBTH )
+				{	//Torrents only try when 'ready to go'. (Reduce tracker load)
+					if ( Downloads.GetTryingCount( TRUE ) < Settings.BitTorrent.DownloadTorrents )
+						SetStartTimer();
+				}
+				else
+				{	//We have extra regular downloads 'trying' so when a new slot is ready, a download
+					//has sources and is ready to go.	
+					if ( Downloads.GetTryingCount( FALSE ) < ( Settings.Downloads.MaxFiles + Settings.Downloads.MaxFileSearches ) )
+						SetStartTimer();
+				}
 			}
 			else
-			{	//We have extra regular downloads 'trying' so when a new slot is ready, a download
-				//has sources and is ready to go.	
-				if ( Downloads.GetTryingCount( FALSE ) < ( Settings.Downloads.MaxFiles + Settings.Downloads.MaxFileSearches ) )
-					SetStartTimer();
-			}
+				m_tBegan = 0;
 		}
 	}
 	
-	// Set the currently downloading state (Used to optimise display in Ctrl/Wnd functions)
+	// Set the currently downloading state (Used to optimize display in Ctrl/Wnd functions)
 	m_bDownloading = bDownloading;
 	
 	// Don't save Downloads with many sources too often, since it's slow
@@ -681,7 +694,7 @@ BOOL CDownload::Save(BOOL bFlush)
 //////////////////////////////////////////////////////////////////////
 // CDownload serialize
 
-#define DOWNLOAD_SER_VERSION	32
+#define DOWNLOAD_SER_VERSION	33
 
 void CDownload::Serialize(CArchive& ar, int nVersion)
 {
@@ -732,20 +745,16 @@ void CDownload::Serialize(CArchive& ar, int nVersion)
 		if ( nVersion >= 26 ) ar >> m_nSerID;
 		
 		DownloadGroups.Link( this );
-	}
 
-	if ( ar.IsStoring() )
-	{
-		if ( !m_sSearchKeyword.IsEmpty() )
-			ar << m_sSearchKeyword;
-	}
-	else
-	{
-		if ( ! ar.IsBufferEmpty() )
-		{
-			ar >> m_sSearchKeyword;
+		if ( nVersion == 32 )
+		{ // Compatibility for CB Branch.
+			if ( ! ar.IsBufferEmpty() )
+			{
+				ar >> m_sSearchKeyword;
+			}
 		}
 	}
+
 /*	//SD Extended Block based on G2Packet Format, not finished.
 	CG2Packet * pG2SDPacket;
 	if ( ar.IsStoring() )

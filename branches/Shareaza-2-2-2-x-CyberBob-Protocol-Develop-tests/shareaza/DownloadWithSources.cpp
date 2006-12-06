@@ -1,10 +1,6 @@
 //
 // DownloadWithSources.cpp
 //
-//	Date:			"$Date: 2006/04/04 23:48:54 $"
-//	Revision:		"$Revision: 1.31 $"
-//  Last change by:	"$Author: rolandas $"
-//
 // Copyright (c) Shareaza Development Team, 2002-2006.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
@@ -56,11 +52,17 @@ static char THIS_FILE[]=__FILE__;
 // CDownloadWithSources construction
 
 CDownloadWithSources::CDownloadWithSources()
+: m_pSourceFirst(NULL)
+, m_pSourceLast(NULL)
+, m_nSourceCount(0)
+, m_pXML(NULL)
+, m_nBTSourceCount(0)
+, m_nG1SourceCount(0)
+, m_nG2SourceCount(0)
+, m_nEdSourceCount(0)
+, m_nHTTPSourceCount(0)
+, m_nFTPSourceCount(0)
 {
-	m_pSourceFirst	= NULL;
-	m_pSourceLast	= NULL;
-	m_nSourceCount	= 0;
-	m_pXML			= NULL;
 }
 
 CDownloadWithSources::~CDownloadWithSources()
@@ -89,8 +91,11 @@ int CDownloadWithSources::GetSourceCount(BOOL bNoPush, BOOL bSane) const
 		if ( ! bNoPush || ! pSource->m_bPushOnly )
 		{
 			if ( ! bSane ||
-				 pSource->m_tAttempt < tNow ||
-				 pSource->m_tAttempt - tNow <= 900000 )
+				pSource->m_tAttempt == 0 ||
+				pSource->m_tAttempt - tNow <= 900000 ||
+				( pSource->m_pTransfer != NULL &&
+				( pSource->m_pTransfer->m_nState == dtsDownloading ||
+				pSource->m_pTransfer->m_nState == dtsQueued ) ) )
 			{
 				nCount++;
 			}
@@ -100,6 +105,19 @@ int CDownloadWithSources::GetSourceCount(BOOL bNoPush, BOOL bSane) const
 	return nCount;
 }
 
+int	CDownloadWithSources::GetEffectiveSourceCount() const
+{
+	int nResult = 0;
+	if ( Settings.IsG1Allowed() )
+		nResult += m_nG1SourceCount;
+	if ( Settings.IsG2Allowed() )
+		nResult += m_nG2SourceCount;
+	if ( Settings.IsEdAllowed() )
+		nResult += m_nEdSourceCount;
+	if ( Settings.IsG1Allowed() || Settings.IsG2Allowed() )
+		nResult += m_nHTTPSourceCount;
+	return nResult + m_nBTSourceCount + m_nFTPSourceCount;
+}
 void CDownloadWithSources::GetMultiSourceCount(BOOL bSane, int * nHTTPSources, int * nG1Sources, int * nG2Sources, int * nED2KSources, int * nBTSources)
 {
 	DWORD tNow = GetTickCount();
@@ -107,8 +125,11 @@ void CDownloadWithSources::GetMultiSourceCount(BOOL bSane, int * nHTTPSources, i
 	for ( CDownloadSource* pSource = m_pSourceFirst ; pSource ; pSource = pSource->m_pNext )
 	{
 		if ( ! bSane ||
-			pSource->m_tAttempt < tNow ||
-			pSource->m_tAttempt - tNow <= 900000 )
+			pSource->m_tAttempt == 0 ||
+			pSource->m_tAttempt - tNow <= 900000 ||
+			( pSource->m_pTransfer != NULL &&
+			( pSource->m_pTransfer->m_nState == dtsDownloading ||
+			pSource->m_pTransfer->m_nState == dtsQueued ) ) )
 		{
 			switch( pSource->m_nProtocol )
 			{
@@ -146,8 +167,11 @@ int CDownloadWithSources::GetG2SourceCount(BOOL bNoPush, BOOL bSane) const
 			( ! pSource->m_bPushOnly || ! bNoPush ) )		// Push sources might not be counted
 		{
 			if ( ! bSane ||
-				pSource->m_tAttempt < tNow ||
-				pSource->m_tAttempt - tNow <= 900000 )
+				pSource->m_tAttempt == 0 ||
+				pSource->m_tAttempt - tNow <= 900000 ||
+				( pSource->m_pTransfer != NULL &&
+				( pSource->m_pTransfer->m_nState == dtsDownloading ||
+				pSource->m_pTransfer->m_nState == dtsQueued ) ) )
 			{
 				nCount++;
 			}
@@ -191,7 +215,7 @@ int CDownloadWithSources::GetED2KCompleteSourceCount() const
 		if ( ( ! pSource->m_bPushOnly ) &&						// Push sources shouldn't be counted since you often cannot reach them
 			 ( pSource->m_tAttempt < tNow || pSource->m_tAttempt - tNow <= 900000 ) &&	// Only count sources that are probably active
 			 ( pSource->m_nProtocol == PROTOCOL_ED2K ) &&		// Only count ed2k sources
-             ( pSource->m_oAvailable.empty() ) )				// Only count complete sources
+             ( pSource->m_oAvailable.empty() && pSource->IsOnline() ) )	// Only count complete sources
 		{
 			nCount++;
 		}
@@ -228,7 +252,8 @@ void CDownloadWithSources::ClearSources()
 	}
 
 	m_pSourceFirst = m_pSourceLast = NULL;
-	m_nSourceCount = 0;
+	m_nSourceCount = m_nEdSourceCount = m_nG1SourceCount = m_nFTPSourceCount = 0;
+	m_nG2SourceCount = m_nHTTPSourceCount = m_nBTSourceCount = 0;
 	
 	SetModified();
 }
@@ -633,18 +658,9 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 					pSource->m_nProtocol == PROTOCOL_G1 ||
 					pSource->m_nProtocol == PROTOCOL_G2 ) )
 				{
-					if ( !pSource->m_oHubList.empty() )
+					if ( pExisting->m_pTransfer == NULL ) // Not Downloading.
 					{
-						pExisting->m_oHubList = pSource->m_oHubList;
-						pExisting->m_nPushAttempted = 0;
-					}
-					if ( !pSource->m_oPushProxyList.empty() )
-					{
-						pExisting->m_oPushProxyList = pSource->m_oPushProxyList;
-						pExisting->m_nPushAttempted = 0;
-					}
-					if ( pExisting->m_pTransfer != NULL ) // We already downloading
-					{
+						pExisting->ChangeProtocolID( pSource->m_nProtocol );
 						if ( pSource->m_oGUID != NULL ) pExisting->m_oGUID = pSource->m_oGUID;
 						pExisting->m_pAddress.S_un.S_addr = pSource->m_pAddress.S_un.S_addr;
 						pExisting->m_nPort = pSource->m_nPort;
@@ -652,7 +668,18 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 						pExisting->m_bClientExtended = pSource->m_bClientExtended;
 						pExisting->m_bPushOnly = pSource->m_bPushOnly;
 						pExisting->m_sURL = pSource->m_sURL;
-					}
+
+						if ( !pSource->m_oHubList.empty() )
+						{
+							pExisting->m_oHubList = pSource->m_oHubList;
+							pExisting->m_nPushAttempted = 0;
+						}
+						if ( !pSource->m_oPushProxyList.empty() )
+						{
+							pExisting->m_oPushProxyList = pSource->m_oPushProxyList;
+							pExisting->m_nPushAttempted = 0;
+						}
+					}				
 				}
 					delete pSource;
 					return FALSE;
@@ -661,6 +688,20 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 	}
 
 	m_nSourceCount ++;
+
+
+	if ( pSource->m_nProtocol == PROTOCOL_G1 )
+		m_nG1SourceCount++;
+	else if ( pSource->m_nProtocol == PROTOCOL_G2 )
+		m_nG2SourceCount++;
+	else if ( pSource->m_nProtocol == PROTOCOL_ED2K )
+		m_nEdSourceCount++;
+	else if ( pSource->m_nProtocol == PROTOCOL_HTTP )
+		m_nHTTPSourceCount++;
+	else if ( pSource->m_nProtocol == PROTOCOL_BT )
+		m_nBTSourceCount++;
+	else if ( pSource->m_nProtocol == PROTOCOL_FTP )
+		m_nFTPSourceCount++;
 
 	pSource->m_pPrev = m_pSourceLast;
 	pSource->m_pNext = NULL;
@@ -806,7 +847,7 @@ void CDownloadWithSources::RemoveOverlappingSources(QWORD nOffset, QWORD nLength
 				(LPCTSTR)CString( inet_ntoa( pSource->m_pAddress ) ),
 				(LPCTSTR)pSource->m_sServer, (LPCTSTR)m_sDisplayName,
 				nOffset, nOffset + nLength - 1 );
-			pSource->Remove( TRUE, TRUE );
+			pSource->Remove( TRUE, FALSE );
 		}
 		
 		pSource = pNext;
@@ -937,7 +978,20 @@ void CDownloadWithSources::RemoveSource(CDownloadSource* pSource, BOOL bBan)
 	
 	ASSERT( m_nSourceCount > 0 );
 	m_nSourceCount --;
-	
+
+	if ( pSource->m_nProtocol == PROTOCOL_G1 )
+		m_nG1SourceCount--;
+	else if ( pSource->m_nProtocol == PROTOCOL_G2 )
+		m_nG2SourceCount--;
+	else if ( pSource->m_nProtocol == PROTOCOL_ED2K )
+		m_nEdSourceCount--;
+	else if ( pSource->m_nProtocol == PROTOCOL_HTTP )
+		m_nHTTPSourceCount--;
+	else if ( pSource->m_nProtocol == PROTOCOL_BT )
+		m_nBTSourceCount--;
+	else if ( pSource->m_nProtocol == PROTOCOL_FTP )
+		m_nFTPSourceCount--;
+
 	if ( pSource->m_pPrev != NULL )
 		pSource->m_pPrev->m_pNext = pSource->m_pNext;
 	else
@@ -1138,7 +1192,8 @@ void CDownloadWithSources::Serialize(CArchive& ar, int nVersion)
 			CDownloadSource* pSource = new CDownloadSource( (CDownload*)this );
 			
 			// Add to the list
-			m_nSourceCount ++;
+			m_nSourceCount++;
+
 			pSource->m_pPrev = m_pSourceLast;
 			pSource->m_pNext = NULL;
 			
@@ -1154,6 +1209,19 @@ void CDownloadWithSources::Serialize(CArchive& ar, int nVersion)
 
 			// Load details from disk
 			pSource->Serialize( ar, nVersion );
+
+			if ( pSource->m_nProtocol == PROTOCOL_G1 )
+				m_nG1SourceCount++;
+			else if ( pSource->m_nProtocol == PROTOCOL_G2 )
+				m_nG2SourceCount++;
+			else if ( pSource->m_nProtocol == PROTOCOL_ED2K )
+				m_nEdSourceCount++;
+			else if ( pSource->m_nProtocol == PROTOCOL_HTTP )
+				m_nHTTPSourceCount++;
+			else if ( pSource->m_nProtocol == PROTOCOL_BT )
+				m_nBTSourceCount++;
+			else if ( pSource->m_nProtocol == PROTOCOL_FTP )
+				m_nFTPSourceCount++;
 
 			// it is really a waste if it is PUSH source for either ED2K or BT.
 			if ( ( pSource->m_nProtocol == PROTOCOL_ED2K || pSource->m_nProtocol == PROTOCOL_BT ) && pSource->m_bPushOnly )

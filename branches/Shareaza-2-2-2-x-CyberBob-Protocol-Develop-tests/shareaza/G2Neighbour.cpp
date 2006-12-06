@@ -99,7 +99,7 @@ CG2Neighbour::CG2Neighbour(CNeighbour* pBase) : CNeighbour( PROTOCOL_G2, pBase )
 	m_bFWCheckSent	= FALSE; // add
 
 	SendStartups();
-	Neighbours.m_nCount[PROTOCOL_G2][( (m_nNodeType != ntLeaf )? ntHub : ntLeaf )]++;
+	InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][( (m_nNodeType != ntLeaf )? ntHub : ntLeaf )]) );
 	if ( m_nNodeType == ntHub || m_nNodeType == ntNode )
 		Neighbours.m_oHub.push_back(this);
 	else if ( m_nNodeType == ntLeaf )
@@ -113,7 +113,7 @@ CG2Neighbour::~CG2Neighbour()
 	else if ( m_nNodeType == ntLeaf )
 		Neighbours.m_oLeaf.remove(this);
 
-	Neighbours.m_nCount[PROTOCOL_G2][( (m_nNodeType != ntLeaf )? ntHub : ntLeaf )]--;
+	InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][( (m_nNodeType != ntLeaf )? ntHub : ntLeaf )]) );
 	delete m_pHubGroup;
 	delete m_pGUIDCache;
 
@@ -370,11 +370,12 @@ void CG2Neighbour::SendStartups()
 
 	pPing->WritePacket( "VER", 0);
 	pPing->WritePacket( "SFL", 0);
-	pPing->WritePacket( "UDP", 6 );
-	pPing->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
-	pPing->WriteShortBE( htons( Network.m_pHost.sin_port ) );
-	if ( Network.IsFirewalled() )
+
+	if ( !Datagrams.IsStable() || Network.IsFirewalled() )
 	{
+		pPing->WritePacket( "UDP", 6 );
+		pPing->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
+		pPing->WriteShortBE( htons( Network.m_pHost.sin_port ) );
 		theApp.Message( MSG_DEBUG, _T("Sending a Firewall test request to %s."), m_sAddress );
 		pPing->WritePacket( "TFW", 0 );
 	}
@@ -449,7 +450,6 @@ BOOL CG2Neighbour::ProcessPackets()
 		catch ( CException* pException )
 		{
 			pException->Delete();
-			// bSuccess = FALSE;		// SHOULD THIS BE LIKE THIS?
 			bSuccess = TRUE;
 		}
 
@@ -582,10 +582,10 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 	CHAR szType[9];
 	DWORD nLength;
 
+	Statistics.Current.Gnutella2.PingsReceived++;
 
 	if ( ! pPacket->m_bCompound )
 	{
-		Statistics.Current.Gnutella2.PingsReceived++;
 		CG2Packet* pPong = CG2Packet::New( G2_PACKET_PONG, FALSE );
 		Send( pPong );
 		Statistics.Current.Gnutella2.PongsSent++;
@@ -676,19 +676,20 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 			pSFL->Release();
 		}
 
-		Statistics.Current.Gnutella2.PingsReceived++;
 		Send( pPong );
 		Statistics.Current.Gnutella2.PongsSent++;
 	}
 
-	if ( ! nPort || Network.IsFirewalledAddress( &nAddress ) ) return TRUE;
+	if ( nAddress == 0 || nPort == 0 || Network.IsFirewalledAddress( &nAddress ) ) return TRUE;
 
-	if ( bRelay && nAddress != 0 && nPort != 0 )
+	if ( bTestFirewall ) Network.TestRemoteFirewall ( nAddress, nPort );
+
+	if ( bRelay )
 	{
 		pPong = CG2Packet::New( G2_PACKET_PONG, TRUE );
 		pPong->WritePacket( "RELAY", 0 );
 		
-		if (bVersion){
+		if ( bVersion ){
 			pPong->WritePacket( "VC", pPong->GetStringLenUTF8( sVendorCode ) );
 			pPong->WriteStringUTF8( sVendorCode, TRUE );
 			pPong->WritePacket( "AN", pPong->GetStringLenUTF8( sName ) );
@@ -726,14 +727,11 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 			pSFL->Release();
 		}
 
-		Statistics.Current.Gnutella2.PingsReceived++;
 		Datagrams.Send( (IN_ADDR*)&nAddress, nPort, pPong, TRUE, NULL, FALSE );
 		Statistics.Current.Gnutella2.PongsSent++;
-		if ( bTestFirewall ) Network.TestRemoteFirewall ( nAddress, nPort );
 	}
 	else
 	{
-		Statistics.Current.Gnutella2.PingsReceived++;
 
 		DWORD tNow = GetTickCount();
 		if ( tNow - m_tLastPingIn < Settings.Gnutella1.PingFlood ) return TRUE;
@@ -809,15 +807,15 @@ BOOL CG2Neighbour::OnPong( CG2Packet* pPacket )
 
 			if ( strcmp( szType, "VC" ) == 0 && nLength != 0 )	// Vendor Code of Remote Node  (e.g. "RAZA")
 			{
-				sVendorCode = pPacket->ReadStringUTF8(nLength);
+				sVendorCode = pPacket->ReadStringUTF8( nLength );
 			}
 			else if ( strcmp( szType, "AN" ) == 0 && nLength != 0 )	// Agent name of Remote Node (e.g. "Shareaza")
 			{
-				sName = pPacket->ReadStringUTF8(nLength);
+				sName = pPacket->ReadStringUTF8( nLength );
 			}
 			else if ( strcmp( szType, "AV" ) == 0 && nLength != 0 )	// Agent version of Remote Node (e.g. 2.2.2.20)
 			{
-				sVersion = pPacket->ReadStringUTF8(nLength);
+				sVersion = pPacket->ReadStringUTF8( nLength );
 			}
 			else if ( strcmp( szType, "SFL" ) == 0 && bCompound == TRUE )	// Agent version of Remote Node (e.g. 2.2.2.20)
 			{
@@ -870,11 +868,11 @@ BOOL CG2Neighbour::OnPong( CG2Packet* pPacket )
 			m_bBusy = FALSE;
 		theApp.Message( MSG_DEBUG, _T("Received PONG from %s. RTT: %d."), m_sAddress, m_tRTT );
 	}
-	if ( sVendorCode.GetLength() >= 1 )
+	if ( sVendorCode.GetLength() > 0 )
 		theApp.Message( MSG_SYSTEM, _T("Received PONG contained VenderCode: %s"), (LPCTSTR)sVendorCode);
-	if ( sName.GetLength() >= 1 )
+	if ( sName.GetLength() > 0 )
 		theApp.Message( MSG_SYSTEM, _T("Received PONG contained AgentName: %s"), (LPCTSTR)sName);
-	if ( sVersion.GetLength() >= 1 )
+	if ( sVersion.GetLength() > 0 )
 		theApp.Message( MSG_SYSTEM, _T("Received PONG contained AgentVersion: %s"), (LPCTSTR)sVersion);
 
 	return TRUE;
@@ -932,15 +930,13 @@ void CG2Neighbour::SendLNI()
 		pPacket->WritePacket( "QK", 0 );
 	}
 
-	if ( Settings.Gnutella2.ClientMode != MODE_LEAF && !Network.IsFirewalled() && Datagrams.IsStable() &&
-		Neighbours.IsG2HubCapable() ) //add
-	{
-		pPacket->WritePacket( "HA", 0 );
-	}
-
 	if ( Network.IsFirewalled() || !Datagrams.IsStable() ) //add
 	{
 		pPacket->WritePacket( "FW", 0 );
+	}
+	else if ( Settings.Gnutella2.ClientMode != MODE_LEAF && Neighbours.IsG2HubCapable() ) //add
+	{
+		pPacket->WritePacket( "HA", 0 );
 	}
 
 	pPacket->WritePacket( "NBW", 8 ); //add
@@ -1272,7 +1268,7 @@ BOOL CG2Neighbour::OnKHL(CG2Packet* pPacket)
 			CHostCacheHost* pCached = HostCache.Gnutella2.Add(
 				(IN_ADDR*)&nAddress, nPort, tSeen, strVendor );
 
-			if ( pCached != NULL && m_nNodeType == ntHub )
+			if ( pCached != NULL && ( m_nNodeType == ntHub || m_nNodeType == ntNode ) )
 			{
 				if ( pCached->m_nKeyValue == 0 ||
 					pCached->m_nKeyHost != Network.m_pHost.sin_addr.S_un.S_addr )
@@ -1283,8 +1279,9 @@ BOOL CG2Neighbour::OnKHL(CG2Packet* pPacket)
 
 			if ( strcmp( szType, "NH" ) == 0 )
 			{
-				m_pHubGroup->Add( (IN_ADDR*)&nAddress, nPort );
 				nHubCount++;
+				if ( m_nNodeType == ntHub || m_nNodeType == ntNode )
+					m_pHubGroup->Add( (IN_ADDR*)&nAddress, nPort );
 			}
 
 		}
@@ -1296,7 +1293,7 @@ BOOL CG2Neighbour::OnKHL(CG2Packet* pPacket)
 		pPacket->m_nPosition = nNext;
 	}
 
-	if ( m_nNodeType == ntLeaf && nHubCount > Settings.Gnutella2.MaxHubsOnRemoteLeaf && Settings.Gnutella2.BadLeafHandler > 0 )
+	if ( m_nNodeType == ntLeaf && nHubCount >= Settings.Gnutella2.MaxHubsOnRemoteLeaf && Settings.Gnutella2.BadLeafHandler > 0 )
 	{
 		CString strTemp( inet_ntoa( m_pHost.sin_addr ) );
 		theApp.Message(MSG_SYSTEM, _T( "Detected Leaf node (%s:%u) is connected to ambiguous number of Hubs: Connected to %u Hubs"),
@@ -1304,7 +1301,6 @@ BOOL CG2Neighbour::OnKHL(CG2Packet* pPacket)
 		if ( Settings.Gnutella2.BadLeafHandler > 1 )
 		{
 			if ( Settings.Gnutella2.BadLeafHandler == 3 ) Security.Ban( &m_pHost.sin_addr, ban2Hours );
-			Close();
 			return FALSE;
 		}
 	}

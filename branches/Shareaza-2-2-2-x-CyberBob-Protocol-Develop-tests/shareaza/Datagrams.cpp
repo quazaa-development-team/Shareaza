@@ -223,6 +223,8 @@ void CDatagrams::Disconnect()
 
 	m_nInBandwidth	= m_nInFrags	= m_nInPackets	= 0;
 	m_nOutBandwidth	= m_nOutFrags	= m_nOutPackets	= 0;
+	m_bStable = FALSE;
+
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -938,7 +940,7 @@ void CDatagrams::Remove(CDatagramIn* pDG, BOOL bReclaimOnly)
 
 BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 {
-	theApp.Message( MSG_SYSTEM, _T("G1UDP: Received Type(0x%x) TTL(%i) Hops(%i) size(%i) from %s:%i"),
+	theApp.Message( MSG_DEBUG, _T("G1UDP: Received Type(0x%x) TTL(%i) Hops(%i) size(%i) from %s:%i"),
 		pPacket->m_nType, pPacket->m_nTTL, pPacket->m_nHops, pPacket->m_nLength,
 		(LPCTSTR)CString( inet_ntoa( pHost->sin_addr ) ),pHost->sin_port );
 
@@ -1045,17 +1047,6 @@ BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	return FALSE;
 }
 
-namespace
-{
-	struct CompareNums
-	{
-		bool operator()(WORD lhs, WORD rhs) const
-		{
-			return lhs > rhs;
-		}
-	};
-}
-
 //////////////////////////////////////////////////////////////////////
 // CDatagrams PING packet handler for G1UDP
 
@@ -1151,7 +1142,7 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 
 	// Send the pong packet to the remote computer we are currently looping on
 	Send( pHost, pPong );
-	theApp.Message( MSG_SYSTEM, _T("G1UDP: Sent Pong to %s"), (LPCTSTR)CString( inet_ntoa( pHost->sin_addr ) ) );
+	theApp.Message( MSG_DEBUG, _T("G1UDP: Sent Pong to %s"), (LPCTSTR)CString( inet_ntoa( pHost->sin_addr ) ) );
 
 	return TRUE;
 }
@@ -1450,10 +1441,11 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		return TRUE;
 	}
 
-	if ( ! Network.IsConnectedTo( &pHost->sin_addr ) ) m_bStable = TRUE;
-
 	CString str = inet_ntoa( pHost->sin_addr );
 	theApp.Message( MSG_SYSTEM, _T("Relayed Pong from %s:%u"), str, ntohs(pHost->sin_port) );
+
+	if ( ( !Network.IsConnectedTo( &pHost->sin_addr ) &&
+		Network.IsFirewalledAddress( &pHost->sin_addr, TRUE, TRUE ) ) ) m_bStable = TRUE;
 
 	return TRUE;
 }

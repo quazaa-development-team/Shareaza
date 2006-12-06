@@ -132,6 +132,7 @@ public:
 	BOOL		HasUsefulRanges() const;
 	BOOL		TouchedRange(QWORD nOffset, QWORD nLength) const;
 	int			GetColour();
+	void		ChangeProtocolID(PROTOCOLID nProtocol);
 
 	CDownloadTransfer*	CreateTransfer();
 
@@ -184,7 +185,7 @@ public:
 
 	inline bool IsOnline() const
 	{
-		return m_nBusyCount || ( m_pTransfer && m_pTransfer->m_nState > dtsNull );
+		return m_nBusyCount || ( m_pTransfer && m_pTransfer->m_nState > dtsConnecting );
 	}
 
 	inline BOOL	CanInitiate(BOOL bNetwork, BOOL bEstablished) const

@@ -28,6 +28,7 @@ U uhc:tribaldance.ibiza.bishopston.net:3558
 U uhc:uhc.udp-host-cache.com:9999
 U uhc:uhc2.limewire.com:20181
 U uhc:zomfg.gtkg.org:40000
+M http://omega359.info/skulls/skulls.php
 M http://gwc.wodi.org/skulls.php
 1 http://gwcrab.sarcastro.com:8001/
 1 http://gwc.ak-electron.org:8080/
@@ -48,10 +49,9 @@ M http://gwc.wodi.org/skulls.php
 D http://www.gruk.org/server.met
 D http://www.de-site.de/ed2k/koeln.met
 D http://www.emule-server.de/server.met/min/server.met
-
 #
 # Keep these comments at the end
-# Last updated 9th - August, 2006
+# Last updated 2nd - November, 2006
 #
 # Be sure to have at least one link to a .met file and four gwebcache
 # links or else they'll keep getting added every time they're removed
@@ -59,7 +59,7 @@ D http://www.emule-server.de/server.met/min/server.met
 # A letter and space must precede each link to indicate the type of service
 # D = eDonkey server.met file, M = multinetwork gwebcache,
 # 2 = Gnutella 2 gwebcache, 1 = Gnutella gwebcache
-# X = banned
+# X = banned, U = BootStrap(uhc, ukhl, gnutella1 host, gnutella2 host)
 #
 # If you make changes to this file that cause problems for you
 # Then just delete the file and Shareaza will use internal defaults

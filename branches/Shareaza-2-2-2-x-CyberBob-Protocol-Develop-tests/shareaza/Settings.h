@@ -197,6 +197,7 @@ public:
 		BOOL		DetectConnectionReset;		// Detect regaining of internet connection
 		BOOL		ForceConnectedState;		// Force WinINet into a connected state on startup. (Put IE into online mode)
 		BOOL		SlowConnect;				// Connect to one network at a time. Don't download while connecting. (XPsp2)
+		BOOL		DeleteFirewallException;	// Allow to keep Firewall exception on shutdown
 		BOOL		EnableUPnP;
 		BOOL		DeleteUPnPPorts;			// Delete forwarded ports on shutdown (UPnP)
 		BOOL		SkipWANPPPSetup;			// Skip WANPPPConn1 device setup (UPnP)
@@ -560,6 +561,19 @@ protected:
 	void	Add(LPCTSTR pszName, DOUBLE* pFloat, DOUBLE nDefault);
 	void	Add(LPCTSTR pszName, CString* pString, LPCTSTR pszDefault);
 	void	SmartUpgrade();
+public:
+	inline bool	IsG1Allowed()
+	{
+		return Gnutella1.EnableToday || !Connection.RequireForTransfers;
+	}
+	inline bool	IsG2Allowed()
+	{
+		return Gnutella2.EnableToday || !Connection.RequireForTransfers;
+	}
+	inline bool	IsEdAllowed()
+	{
+		return eDonkey.EnableToday || !Connection.RequireForTransfers;
+	}
 };
 
 extern CSettings Settings;

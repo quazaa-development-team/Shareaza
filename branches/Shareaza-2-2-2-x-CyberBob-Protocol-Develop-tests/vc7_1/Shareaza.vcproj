@@ -1568,6 +1568,9 @@
 					RelativePath="..\shareaza\PageProfileProfile.cpp">
 				</File>
 				<File
+					RelativePath="..\shareaza\PagePropertyAdv.cpp">
+				</File>
+				<File
 					RelativePath="..\shareaza\PageSettingsBandwidth.cpp">
 				</File>
 				<File
@@ -1590,9 +1593,6 @@
 				</File>
 				<File
 					RelativePath="..\shareaza\PageSettingsGnutella.cpp">
-				</File>
-				<File
-					RelativePath="..\shareaza\PageSettingsInterface.cpp">
 				</File>
 				<File
 					RelativePath="..\shareaza\PageSettingsLibrary.cpp">
@@ -2732,6 +2732,9 @@
 					RelativePath="..\shareaza\PageProfileProfile.h">
 				</File>
 				<File
+					RelativePath="..\shareaza\PagePropertyAdv.h">
+				</File>
+				<File
 					RelativePath="..\shareaza\PageSettingsBandwidth.h">
 				</File>
 				<File
@@ -2754,9 +2757,6 @@
 				</File>
 				<File
 					RelativePath="..\shareaza\PageSettingsGnutella.h">
-				</File>
-				<File
-					RelativePath="..\shareaza\PageSettingsInterface.h">
 				</File>
 				<File
 					RelativePath="..\shareaza\PageSettingsLibrary.h">
@@ -2948,6 +2948,9 @@
 				RelativePath="..\shareaza\Res\Default.xml">
 			</File>
 			<File
+				RelativePath="..\shareaza\Res\DefaultServices.dat">
+			</File>
+			<File
 				RelativePath="..\shareaza\Res\Definitions.xml">
 			</File>
 			<File
@@ -2973,6 +2976,9 @@
 			</File>
 			<File
 				RelativePath="..\shareaza\Res\File.ico">
+			</File>
+			<File
+				RelativePath="..\shareaza\Res\file1.bin">
 			</File>
 			<File
 				RelativePath="..\shareaza\Res\FileNotFound.htm">
@@ -3168,22 +3174,6 @@
 			Name="Generated Files"
 			Filter="">
 			<File
-				RelativePath=".\debug\shareaza\Shareaza_i.c">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-						DisableSpecificWarnings="4255;4668;4820"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					ExcludedFromBuild="TRUE">
-					<Tool
-						Name="VCCLCompilerTool"/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\release\shareaza\Shareaza_i.c">
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -3201,11 +3191,27 @@
 						DisableSpecificWarnings="4255;4668;4820"/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath=".\debug\shareaza\Shareaza_i.c">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+						DisableSpecificWarnings="4255;4668;4820"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="TRUE">
+					<Tool
+						Name="VCCLCompilerTool"/>
+				</FileConfiguration>
+			</File>
 		</Filter>
 	</Files>
 	<Globals>
 		<Global
 			Name="RESOURCE_FILE"
-			Value="Shareaza.rc"/>
+			Value="..\shareaza\Shareaza.rc"/>
 	</Globals>
 </VisualStudioProject>

@@ -451,6 +451,7 @@ BOOL CLibraryDictionary::BuildHashTable()
 
 void CLibraryDictionary::RebuildHashTable()	//Force table to re-build. (If queues changed, etc)
 {
+	if ( m_pTable->m_nBits != Settings.Library.QueryRouteSize ) m_pTable->Create();
 	m_bTable = FALSE;
 	BuildHashTable();
 }
@@ -488,11 +489,8 @@ void CLibraryDictionary::Clear()
 	{
 		// Dynamic QHT Size Change
 		if ( m_pTable->m_nBits != Settings.Library.QueryRouteSize ) m_pTable->Create();
-		else
-		{
-			m_pTable->Clear();
-			m_bTable = TRUE;
-		}
+		m_pTable->Clear();
+		m_bTable = TRUE;
 	}
 }
 

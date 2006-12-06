@@ -23,12 +23,12 @@
 #define AFX_DLGFILEPROPERTIESPAGE_H__A39F7917_D5EC_493E_AE35_7B2543BE9650__INCLUDED_
 
 #pragma once
+#include "PagePropertyAdv.h"
 
 class CLibraryFile;
 class CLibraryList;
 
-
-class CFilePropertiesPage : public CPropertyPage
+class CFilePropertiesPage : public CPropertyPageAdv
 {
 // Construction
 public:
@@ -49,8 +49,6 @@ public:
 	//{{AFX_DATA(CFilePropertiesPage)
 	//}}AFX_DATA
 
-	int	m_nIcon;
-
 // Overrides
 public:
 	//{{AFX_VIRTUAL(CFilePropertiesPage)
@@ -62,8 +60,6 @@ public:
 protected:
 	//{{AFX_MSG(CFilePropertiesPage)
 	virtual BOOL OnInitDialog();
-	afx_msg void OnPaint();
-	afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 

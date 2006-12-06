@@ -1,10 +1,6 @@
 //
 // Network.h
 //
-//	Date:			"$Date: 2006/03/22 14:15:39 $"
-//	Revision:		"$Revision: 1.14 $"
-//  Last change by:	"$Author: rolandas $"
-//
 // Copyright (c) Shareaza Development Team, 2002-2006.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
@@ -157,8 +153,8 @@ protected:
 	void		OnRun();
 	BOOL		CanTestFirewall();
 public:
-	void		UDPHostCache( IN_ADDR* pAddress, WORD nPort );
-	void		UDPKnownHubCache( IN_ADDR* pAddress, WORD nPort );
+	void		UDPHostCache(IN_ADDR* pAddress, WORD nPort);
+	void		UDPKnownHubCache(IN_ADDR* pAddress, WORD nPort);
 
 	friend class CHandshakes;
 	friend class CNeighbours;

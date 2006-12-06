@@ -1,7 +1,7 @@
 //
 // NeighboursWithConnect.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2005.
+// Copyright (c) Shareaza Development Team, 2002-2006.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -102,7 +102,7 @@ CNeighbour* CNeighboursWithConnect::ConnectTo(
 		return NULL;
 
 	// Don't connect to blocked addresses
-	if ( BlockedHostAddr.IsDenied( pAddress ) || Security.IsDenied( pAddress ) )
+	if ( FailedNeighbours.IsDenied( pAddress ) || Security.IsDenied( pAddress ) )
 	{
 		// If automatic (do) leave without making a note of the error
 		if ( bAutomatic ) return NULL;
@@ -176,8 +176,10 @@ CNeighbour* CNeighboursWithConnect::ConnectTo(
 			// Started connecting to a G1/G2 neighbour
 
 			// If we only want G1 connections now, specify that to begin with.
-			if ( ( Settings.Gnutella.SpecifyProtocol ) && ( nProtocol == PROTOCOL_G1 ) && ( ! Neighbours.NeedMoreHubs( PROTOCOL_G2 ) ) )
-				pNeighbour->m_nProtocol = PROTOCOL_G1;
+			if ( Settings.Gnutella.SpecifyProtocol )
+			{
+				pNeighbour->m_nProtocol = nProtocol;
+			}
 			else
 				pNeighbour->m_nProtocol = nProtocol;
 
@@ -1301,34 +1303,41 @@ void CNeighboursWithConnect::Maintain()
 			// In the loop for eDonkey2000, handle priority eDonkey2000 servers
 			if ( nProtocol == PROTOCOL_ED2K )
 			{
-				// Loop into the host cache until we have as many handshaking connections as we need hub connections
-				for ( CHostCacheHost* pHost = pCache->GetNewest(); // Get the newest host from the eDonkey2000 host cacheis network's host cache
-					  pHost && m_nCount[ nProtocol ][ntHub] < nAttempt;  // Loop if we need more eDonkey2000 hubs than we have handshaking connections
-					  pHost = pHost->m_pPrevTime )                 // At the end of the loop, move to the next youngest host cache entry
+				CHostCacheHost* pHost = pCache->GetNewest(); // Get the newest host from the eDonkey2000 host cache is network's host cache
+				if ( pHost != NULL ) // if there are any cache 
 				{
-					// If we can connect to this host, try it, if it works, move into this if block
-					if ( pHost->m_bPriority       && // This host in the host cache is marked as priority (do)
-						pHost->CanConnect( tNow ) && // We can connect to this host now (do)
-						pHost->ConnectTo( TRUE ) )   // Try to connect to this host now (do), if it works
+					// Loop into the host cache until we have as many handshaking connections as we need hub connections
+					for ( ;pHost && m_nCount[ nProtocol ][ntHub] < nAttempt;  // Loop if we need more eDonkey2000 hubs than we have handshaking connections
+						pHost = pHost->m_pPrevTime )                 // At the end of the loop, move to the next youngest host cache entry
 					{
-						// Make sure it's an eDonkey2000 compuer we just connected to
-						ASSERT( pHost->m_nProtocol == nProtocol );
-
-						// Count that we now have one more eDonkey2000 connection, and we don't know if about its network role yet
-						// nCount[ nProtocol ][0]++;
-
-						// Prevent queries while we connect with this computer (do)
-						pHost->m_tQuery = tNow;
-
-						// If settings wants to limit how frequently this method can run
-						if ( Settings.Connection.ConnectThrottle != 0 )
+						// If we can connect to this host, try it, if it works, move into this if block
+						if ( pHost->m_bPriority       && // This host in the host cache is marked as priority (do)
+							pHost->CanConnect( tNow ) && // We can connect to this host now (do)
+							pHost->ConnectTo( TRUE ) )   // Try to connect to this host now (do), if it works
 						{
-							// Save the time we last made a connection as now, and leave
-							Network.m_tLastConnect = tTimer;
-							Downloads.m_tLastConnect = tTimer;
-							return;
+							// Make sure it's an eDonkey2000 computer we just connected to
+							ASSERT( pHost->m_nProtocol == nProtocol );
+
+							// Count that we now have one more eDonkey2000 connection, and we don't know if about its network role yet
+							// nCount[ nProtocol ][0]++;
+
+							// Prevent queries while we connect with this computer (do)
+							pHost->m_tQuery = tNow;
+
+							// If settings wants to limit how frequently this method can run
+							if ( Settings.Connection.ConnectThrottle != 0 )
+							{
+								// Save the time we last made a connection as now, and leave
+								Network.m_tLastConnect = tTimer;
+								Downloads.m_tLastConnect = tTimer;
+								return;
+							}
 						}
 					}
+				}
+				else if ( pCache->GetOldest() == NULL && !Settings.Discovery.DisableAutoQuery )
+				{
+					DiscoveryServices.Execute( TRUE, PROTOCOL_ED2K );
 				}
 			}
 
@@ -1372,17 +1381,17 @@ void CNeighboursWithConnect::Maintain()
 					 tNow - m_tPresent[ nProtocol ] >= 30 )    // We've been connected to a hub for more than 30 seconds
 				{
 					// We're looping for Gnutella2 right now
-					if ( nProtocol == PROTOCOL_G2 )
+					if ( nProtocol == PROTOCOL_G2 && Settings.Gnutella2.EnableToday )
 					{
 						// If the Gnutella host cache is empty and Auto is not Disabled, execute discovery services (do)
 						if ( pCache->GetOldest() == NULL && !Settings.Discovery.DisableAutoQuery )
-							DiscoveryServices.Execute( TRUE );
+							DiscoveryServices.Execute( TRUE, PROTOCOL_G2 );
 					} // We're looping for Gnutella right now
-					else if ( nProtocol == PROTOCOL_G1 )
+					else if ( nProtocol == PROTOCOL_G1 && Settings.Gnutella1.EnableToday )
 					{
 						// If the Gnutella host cache is empty and Auto is not Disabled, execute discovery services (do)
 						if ( pCache->GetOldest() == NULL && !Settings.Discovery.DisableAutoQuery )
-							DiscoveryServices.Execute( TRUE );
+							DiscoveryServices.Execute( TRUE, PROTOCOL_G1 );
 					}
 				}
 			}
@@ -1445,7 +1454,7 @@ void CNeighboursWithConnect::Maintain()
 	if (	( !Settings.Gnutella1.EnableToday || m_nCount[PROTOCOL_G1][ntHub] >= m_nLimit[PROTOCOL_G1][ntNode] ) &&
 			( !Settings.Gnutella2.EnableToday || m_nCount[PROTOCOL_G2][ntHub] >= m_nLimit[PROTOCOL_G2][ntNode] ) )
 	{
-		BlockedHostAddr.Clear();
+		FailedNeighbours.Clear();
 	}
 }
 

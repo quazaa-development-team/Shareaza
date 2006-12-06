@@ -195,7 +195,7 @@ BOOL CDownloadWithTransfers::CanStartTransfers(DWORD tNow)
 }
 
 // This functions starts a new download transfer if needed and allowed.
-BOOL CDownloadWithTransfers::StartTransfersIfNeeded(DWORD tNow)
+BOOL CDownloadWithTransfers::StartTransfersIfNeeded(DWORD tNow, BOOL bSeeding)
 {
 	if ( tNow == 0 ) tNow = GetTickCount();
 
@@ -205,6 +205,12 @@ BOOL CDownloadWithTransfers::StartTransfersIfNeeded(DWORD tNow)
 	//BitTorrent limiting
 	if ( m_oBTH )
 	{
+		if ( bSeeding && StartNewTransfer( tNow, bSeeding ) )
+		{
+			Downloads.UpdateAllows( TRUE );
+			return TRUE;
+		}
+
 		// Max connections
 		if ( ( GetTransferCount( dtsCountTorrentAndActive ) ) > Settings.BitTorrent.DownloadConnections ) return FALSE;	
 	}
@@ -218,14 +224,14 @@ BOOL CDownloadWithTransfers::StartTransfersIfNeeded(DWORD tNow)
 		// If we can start new downloads, or this download is already running
 		if ( Downloads.m_bAllowMoreDownloads || m_pTransferFirst != NULL )
 		{
-			// If we can start new trasnfers
+			// If we can start new transfers
 			if ( Downloads.m_bAllowMoreTransfers )
 			{
 				// If download bandwidth isn't at max
 				if ( ( ( tNow - Downloads.m_tBandwidthAtMax ) > 5000 ) ) 
 				{
 					// Start a new download
-					if ( StartNewTransfer( tNow ) )
+					if ( StartNewTransfer( tNow, bSeeding ) )
 					{
 						Downloads.UpdateAllows( TRUE );
 						return TRUE;
@@ -241,7 +247,7 @@ BOOL CDownloadWithTransfers::StartTransfersIfNeeded(DWORD tNow)
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithTransfers start a new transfer
 
-BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
+BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow, BOOL bSeeding)
 {
 	if ( tNow == 0 ) tNow = GetTickCount();
 	
@@ -249,16 +255,17 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 	CDownloadSource* pConnectHead = NULL;
 
 	// If BT preferencing is on, check them first
-	if ( ( m_oBTH ) && ( Settings.BitTorrent.PreferenceBTSources ) )
+	if ( ( m_oBTH ) && ( Settings.BitTorrent.PreferenceBTSources || bSeeding ) )
 	{
 		for ( CDownloadSource* pSource = m_pSourceFirst ; pSource ; )
 		{
 			CDownloadSource* pNext = pSource->m_pNext;
 			
-			if ( ( pSource->m_pTransfer == NULL ) &&		// does not have a transfer
-				 ( pSource->m_bPushOnly == FALSE ) &&		// Not push
-				 ( pSource->m_nProtocol == PROTOCOL_BT ) &&	// Is a BT source
-				 ( pSource->m_tAttempt == 0 ) )				// Is a "fresh" source from the tracker
+			if ( ( pSource->m_pTransfer == NULL ) &&						// does not have a transfer
+				 ( pSource->m_bPushOnly == FALSE ) &&						// Not push
+				 ( pSource->m_nProtocol == PROTOCOL_BT ) &&					// Is a BT source
+				 ( pSource->m_tAttempt == 0 ||								// Is a "fresh" source from the tracker
+				 ( ( tNow - pSource->m_tAttempt ) >= 0 && bSeeding ) ) )	// or Seeding.
 			{
 				if ( pSource->CanInitiate( bConnected, FALSE ) )
 				{
@@ -269,7 +276,11 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 			pSource = pNext;
 		}
 	}
+
+	if ( bSeeding ) return FALSE;
 	
+	BOOL bStable = ( Network.GetStableTime() >= 15 );
+
 	for ( CDownloadSource* pSource = m_pSourceFirst ; pSource ; )
 	{
 		CDownloadSource* pNext = pSource->m_pNext;
@@ -292,12 +303,12 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 					break;
 				}
 			}
-			else if ( pSource->m_tAttempt > 0 && pSource->m_tAttempt <= tNow )
+			else if ( pSource->m_tAttempt > 0 && int( tNow - pSource->m_tAttempt ) > 0 )
 			{
 				if ( pConnectHead == NULL && pSource->CanInitiate( bConnected, FALSE ) ) pConnectHead = pSource;
 			}
 		}
-		else if ( Network.GetStableTime() >= 15 )
+		else if ( bStable )
 		{
 			if ( ! Settings.Downloads.NeverDrop && pSource->m_nPushAttempted > 10 )
 			{
@@ -311,9 +322,10 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 					break;
 				}
 			}
-			else if ( pSource->m_tAttempt <= tNow )
+			else if ( tNow - pSource->m_tAttempt > 0 )
 			{
-				if ( pConnectHead == NULL && pSource->CanInitiate( bConnected, FALSE ) ) pConnectHead = pSource;
+				if ( pConnectHead == NULL && !pSource->m_oHubList.empty() && pSource->CanInitiate( bConnected, FALSE ) ) pConnectHead = pSource;
+				else pSource->Remove( TRUE, FALSE );
 			}
 		}
 		pSource = pNext;

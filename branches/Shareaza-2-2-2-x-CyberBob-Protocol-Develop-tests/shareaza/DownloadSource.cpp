@@ -798,3 +798,59 @@ int CDownloadSource::GetColour()
 	m_nColour = m_pDownload->GetSourceColour();
 	return m_nColour;
 }
+
+void CDownloadSource::ChangeProtocolID(PROTOCOLID nProtocol)
+{
+	if ( m_nProtocol != nProtocol )
+	{
+		switch ( m_nProtocol )
+		{
+		case PROTOCOL_G1:
+			m_pDownload->m_nG1SourceCount--;
+			break;
+		case PROTOCOL_G2:
+			m_pDownload->m_nG2SourceCount--;
+			break;
+		case PROTOCOL_ED2K:
+			m_pDownload->m_nEdSourceCount--;
+			break;
+		case PROTOCOL_HTTP:
+			m_pDownload->m_nHTTPSourceCount--;
+			break;
+		case PROTOCOL_FTP:
+			m_pDownload->m_nFTPSourceCount--;
+			break;
+		case PROTOCOL_BT:
+			m_pDownload->m_nBTSourceCount--;
+			break;
+		default:
+			break;
+		}
+
+		switch ( nProtocol )
+		{
+		case PROTOCOL_G1:
+			m_pDownload->m_nG1SourceCount++;
+			break;
+		case PROTOCOL_G2:
+			m_pDownload->m_nG2SourceCount++;
+			break;
+		case PROTOCOL_ED2K:
+			m_pDownload->m_nEdSourceCount++;
+			break;
+		case PROTOCOL_HTTP:
+			m_pDownload->m_nHTTPSourceCount++;
+			break;
+		case PROTOCOL_FTP:
+			m_pDownload->m_nFTPSourceCount++;
+			break;
+		case PROTOCOL_BT:
+			m_pDownload->m_nBTSourceCount++;
+			break;
+		default:
+			break;
+		}
+
+		m_nProtocol = nProtocol;
+	}
+}

@@ -348,7 +348,7 @@
 		<button id="ID_HITMONITOR_SEARCH" text="Requery"/>
 		<separator/>
 		<button id="ID_HITMONITOR_PAUSE" text="Pause"/>
-		<button id="ID_SEARCH_CLEAR" text="Clear"/>
+		<button id="ID_HITMONITOR_CLEAR" text="Clear"/>
 		<rightAlign/>
 		<label text="Filter:" tip="Type some words to filter the results with"/>
 		<control id="107" width="160"/>
@@ -434,7 +434,10 @@
 			</menu>
 			<separator/>
 			<item id="ID_VIEW_BASIC" text="_Normal Mode"/>
-			<item id="ID_VIEW_TABBED" text="_Power Mode"/>
+			<menu text="_Power Mode">
+				<item id="ID_VIEW_TABBED" text="T_abbed Mode"/>
+				<item id="ID_VIEW_WINDOWED" text="_Windowed Mode"/>
+			</menu>
 		</menu>
 		<menu text="_Tools">
 			<item id="ID_LIBRARY_FOLDERS" text="Share _Files..."/>
@@ -517,8 +520,10 @@
 			</menu>
 			<separator/>
 			<item id="ID_VIEW_BASIC" text="N_ormal Mode"/>
-			<item id="ID_VIEW_TABBED" text="T_abbed Mode"/>
-			<item id="ID_VIEW_WINDOWED" text="_Windowed Mode"/>
+			<menu text="_Power Mode">
+				<item id="ID_VIEW_TABBED" text="T_abbed Mode"/>
+				<item id="ID_VIEW_WINDOWED" text="_Windowed Mode"/>
+			</menu>
 		</menu>
 		<menu text="_Tools">
 			<item id="ID_LIBRARY_FOLDERS" text="Share _Files..."/>
@@ -598,8 +603,10 @@
 			<item id="ID_VIEW_RESULTS_MONITOR" text="H_it Monitor" shortcut="Ctrl+F3"/>
 			<separator/>
 			<item id="ID_VIEW_BASIC" text="Normal Mode"/>
-			<item id="ID_VIEW_TABBED" text="Tabbed Mode"/>
-			<item id="ID_VIEW_WINDOWED" text="Windowed Mode"/>
+			<menu text="_Power Mode">
+				<item id="ID_VIEW_TABBED" text="T_abbed Mode"/>
+				<item id="ID_VIEW_WINDOWED" text="_Windowed Mode"/>
+			</menu>
 		</menu>
 		<menu text="_Tools">
 			<item id="ID_LIBRARY_FOLDERS" text="Share _Files..."/>
@@ -1474,10 +1481,22 @@
 		
 		<group id="4">
 			<icon res="252" width="32" height="32"/><gap size="8"/>
-			<heading align="middle">W A R N I N G &#160; - &#160; Y O U &#160; A R E &#160; F I R E W A L L E D</heading>
+			<heading align="middle">W A R N I N G &#160; - &#160; Y O U R &#160; U D P &#160; P O R T &#160; I S &#160; F I R E W A L L E D</heading>
 			<newline gap="8" indent="42"/>
 			<text colour="FF0000">Shareaza has detected that you are behind a NAT router or firewall,
-			and are unable to receive connections from the Internet. &#160;</text>
+			and are unable to receive UDP messages from the Internet. &#160;</text>
+			<text colour="FF0000" format="b">This may cause poor search performance.</text>
+			<newline gap="6"/>
+			<link target="raza:command:ID_HELP_ROUTER">Click here to learn how to configure your router or firewall</link>
+			<newline gap="18" indent="0"/>
+		</group>
+		
+		<group id="6">
+			<icon res="252" width="32" height="32"/><gap size="8"/>
+			<heading align="middle">W A R N I N G &#160; - &#160; Y O U R &#160; T C P &#160; P O R T &#160; I S &#160; F I R E W A L L E D</heading>
+			<newline gap="8" indent="42"/>
+			<text colour="FF0000">Shareaza has detected that you are behind a NAT router or firewall,
+			and are unable to receive TCP connections from the Internet. &#160;</text>
 			<text colour="FF0000" format="b">This may cause poor download performance.</text>
 			<newline gap="6"/>
 			<link target="raza:command:ID_HELP_ROUTER">Click here to learn how to configure your router or firewall</link>
@@ -2487,5 +2506,10 @@
 	<icon res="203" id="ID_DOWNLOADS_MONITOR"/>
 	<icon res="261" id="ID_HELP_HOMEPAGE"/>
 </commandImages>
+
+<!-- Tips displayed when mouse is moved over controls in the dialogs -->
+<controlTips>
+	<tip id="IDC_THROTTLE_MODE" message="In the maximum mode the bandwidth won't exceed the specified value. In the average mode it will fluctuate around the value to both sides."/>
+</controlTips>
 
 </skin>

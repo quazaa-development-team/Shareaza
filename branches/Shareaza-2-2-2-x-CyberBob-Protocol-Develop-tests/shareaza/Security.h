@@ -1,7 +1,7 @@
 //
 // Security.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2005.
+// Copyright (c) Shareaza Development Team, 2002-2006.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -169,6 +169,6 @@ public:
 extern CMessageFilter MessageFilter;
 extern CAdultFilter AdultFilter;
 extern CSecurity Security;
-extern CSecurity BlockedHostAddr;
+extern CSecurity FailedNeighbours;
 
 #endif // !defined(AFX_SECURITY_H__85BE0E66_93D0_44B1_BEE1_E2C3C81CB8AF__INCLUDED_)

@@ -47,6 +47,7 @@
 #include "Scheduler.h"
 #include "DlgHelp.h"
 #include "LibraryHistory.h"
+#include "DiscoveryServices.h"
 
 #include "WndMain.h"
 #include "WndChild.h"
@@ -1400,7 +1401,7 @@ void CMainWnd::LocalSystemChecks()
 						else
 							PostMessage( WM_COMMAND, ID_HELP_CONNECTIONFAIL );
 
-						Network.Disconnect();
+						PostMessage( WM_COMMAND, ID_NETWORK_DISCONNECT );
 					}
 				}
 			}
@@ -1413,7 +1414,7 @@ void CMainWnd::LocalSystemChecks()
 					if ( Network.IsAvailable() )
 					{
 						nConnectionFailCount = 0;
-						Network.Connect();
+						PostMessage( WM_COMMAND, ID_NETWORK_CONNECT );
 						theApp.Message( MSG_ERROR, _T("Internet reconnect detected- restarting network") );
 					}
 				}
@@ -1561,8 +1562,18 @@ void CMainWnd::OnNetworkG2()
 	}
 	else
 	{
-		Settings.Gnutella2.EnableToday = TRUE;
-		Network.Connect( TRUE );
+		if ( Network.IsConnected() )
+		{
+			Settings.Gnutella2.EnableToday = TRUE;
+			DiscoveryServices.Execute( FALSE, PROTOCOL_G2 );
+		}
+		else
+		{
+			Settings.Gnutella1.EnableToday = FALSE;
+			Settings.Gnutella2.EnableToday = TRUE;
+			Settings.eDonkey.EnableToday = FALSE;
+			Network.Connect( TRUE );
+		}
 	}
 }
 
@@ -1583,8 +1594,18 @@ void CMainWnd::OnNetworkG1()
 	}
 	else
 	{
-		Settings.Gnutella1.EnableToday = TRUE;
-		Network.Connect( TRUE );
+		if ( Network.IsConnected() )
+		{
+			Settings.Gnutella1.EnableToday = TRUE;
+			DiscoveryServices.Execute( FALSE, PROTOCOL_G1 );
+		}
+		else
+		{
+			Settings.Gnutella1.EnableToday = TRUE;
+			Settings.Gnutella2.EnableToday = FALSE;
+			Settings.eDonkey.EnableToday = FALSE;
+			Network.Connect( TRUE );
+		}
 	}
 }
 
@@ -1605,8 +1626,18 @@ void CMainWnd::OnNetworkED2K()
 	}
 	else
 	{
-		Settings.eDonkey.EnableToday = TRUE;
-		Network.Connect( TRUE );
+		if ( Network.IsConnected() )
+		{
+			Settings.eDonkey.EnableToday = TRUE;
+			DiscoveryServices.Execute( FALSE, PROTOCOL_ED2K );
+		}
+		else
+		{
+			Settings.Gnutella1.EnableToday = FALSE;
+			Settings.Gnutella2.EnableToday = FALSE;
+			Settings.eDonkey.EnableToday = TRUE;
+			Network.Connect( TRUE );
+		}
 	}
 }
 

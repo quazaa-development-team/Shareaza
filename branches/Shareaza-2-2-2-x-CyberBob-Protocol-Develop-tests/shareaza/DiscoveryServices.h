@@ -75,7 +75,7 @@ public:
 	BOOL				Load();
 	BOOL				Save();
 	BOOL				Update();
-	BOOL				Execute(BOOL bSecondary = FALSE);
+	BOOL				Execute(BOOL bDiscovery /* = FALSE */, PROTOCOLID nProtocol);
 	int					ExecuteBootstraps( int nCount, BOOL bUDP = FALSE, PROTOCOLID nProtocol = PROTOCOL_NULL );
 	void				Stop();
 	void				OnGnutellaAdded(IN_ADDR* pAddress, int nCount);

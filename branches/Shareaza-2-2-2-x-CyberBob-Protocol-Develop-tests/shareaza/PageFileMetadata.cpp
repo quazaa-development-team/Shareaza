@@ -50,7 +50,6 @@ END_MESSAGE_MAP()
 
 CFileMetadataPage::CFileMetadataPage() : CFilePropertiesPage(CFileMetadataPage::IDD)
 {
-	m_psp.dwFlags |= PSP_USETITLE;
 }
 
 CFileMetadataPage::~CFileMetadataPage()
@@ -179,7 +178,7 @@ BOOL CFileMetadataPage::PreTranslateMessage(MSG* pMsg)
 		if ( m_wndData.OnTab() ) return TRUE;
 	}
 
-	return CPropertyPage::PreTranslateMessage( pMsg );
+	return CFilePropertiesPage::PreTranslateMessage( pMsg );
 }
 
 void CFileMetadataPage::OnOK()

@@ -55,10 +55,10 @@ public:
 	DWORD		GetMeasuredSpeed() const;
 	BOOL		OnAcceptPush(const Hashes::Guid& oClientID, CConnection* pConnection, DWORD nFileIndex = 0);
 	BOOL		OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept = NULL);
-	BOOL		StartNewTransfer(DWORD tNow = 0);
+	BOOL		StartNewTransfer(DWORD tNow = 0, BOOL bSeeding = FALSE);
 	BOOL		CanStartTransfers(DWORD tNow);
 protected:
-	BOOL		StartTransfersIfNeeded(DWORD tNow = 0);
+	BOOL		StartTransfersIfNeeded(DWORD tNow = 0, BOOL bSeeding = FALSE);
 private:
 	void		AddTransfer(CDownloadTransfer* pTransfer);
 	void		RemoveTransfer(CDownloadTransfer* pTransfer);

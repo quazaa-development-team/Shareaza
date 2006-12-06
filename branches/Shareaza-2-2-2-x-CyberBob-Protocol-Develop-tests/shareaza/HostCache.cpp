@@ -1,11 +1,7 @@
 //
 // HostCache.cpp
 //
-//	Date:			"$Date: 2005/11/17 21:34:55 $"
-//	Revision:		"$Revision: 1.18 $"
-//  Last change by:	"$Author: thetruecamper $"
-//
-// Copyright (c) Shareaza Development Team, 2002-2005.
+// Copyright (c) Shareaza Development Team, 2002-2006.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -278,7 +274,7 @@ CHostCacheHost* CHostCacheList::Add(IN_ADDR* pAddress, WORD nPort, DWORD tSeen, 
 		return NULL;
 
 	// Check security settings, don't add blocked IPs
-	if ( BlockedHostAddr.IsDenied( pAddress ) || Security.IsDenied( pAddress ) )
+	if ( FailedNeighbours.IsDenied( pAddress ) || Security.IsDenied( pAddress ) )
 		return NULL;
 
 	// check against IANA Reserved address.
@@ -332,7 +328,7 @@ BOOL CHostCacheList::Add(LPCTSTR pszHost, DWORD tSeen, LPCTSTR pszVendor)
 		 return TRUE;
 
 	// Check security settings, don't add blocked IPs
-	if ( BlockedHostAddr.IsDenied( (IN_ADDR*)&nAddress ) || Security.IsDenied( (IN_ADDR*)&nAddress ) )
+	if ( FailedNeighbours.IsDenied( (IN_ADDR*)&nAddress ) || Security.IsDenied( (IN_ADDR*)&nAddress ) )
 		 return TRUE;
 
 	// check against IANA Reserved address.
@@ -980,12 +976,12 @@ void CHostCacheHost::Update(WORD nPort, DWORD tSeen, LPCTSTR pszVendor)
 	
 	if ( pszVendor != NULL )
 	{
-		CString sVendorCode(pszVendor);
-		sVendorCode.Trim();
+		CString strVendorCode(pszVendor);
+		strVendorCode.Trim();
 
-		if ( ( m_pVendor == NULL || m_pVendor->m_sCode != sVendorCode ) && sVendorCode.GetLength() != 0 )
+		if ( ( m_pVendor == NULL || m_pVendor->m_sCode != strVendorCode ) && strVendorCode.GetLength() != 0 )
 		{
-			m_pVendor = VendorCache.Lookup( (LPCTSTR)sVendorCode );
+			m_pVendor = VendorCache.Lookup( (LPCTSTR)strVendorCode );
 		}
 	}
 }

@@ -121,7 +121,8 @@ BOOL CDownloadTransferED2K::Initiate()
 	
 	m_pHost			= m_pClient->m_pHost;
 	m_sAddress		= m_pClient->m_sAddress;
-	
+	if( m_sAddress.IsEmpty() )
+		m_sAddress	= inet_ntoa( m_pHost.sin_addr );
 	m_pClient->m_mInput.pLimit = &m_nBandwidth;
 	
 	return TRUE;
@@ -186,7 +187,7 @@ BOOL CDownloadTransferED2K::OnRunEx(DWORD tNow)
 		if ( tNow > m_tConnected && tNow - m_tConnected > Settings.Connection.TimeoutConnect * 2 )
 		{
 			theApp.Message( MSG_ERROR, IDS_CONNECTION_TIMEOUT_CONNECT, (LPCTSTR)m_sAddress );
-			Close( TS_TRUE );
+			Close( TS_UNKNOWN );
 			return FALSE;
 		}
 		break;
@@ -492,8 +493,6 @@ BOOL CDownloadTransferED2K::OnFinishUpload(CEDPacket* /*pPacket*/)
 
 BOOL CDownloadTransferED2K::OnSendingPart(CEDPacket* pPacket)
 {
-	//if ( m_nState != dtsDownloading ) return TRUE;
-	
     if ( pPacket->GetRemaining() <= Hashes::Ed2kHash::byteCount + 8 )
 	{
 		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
@@ -549,8 +548,6 @@ BOOL CDownloadTransferED2K::OnSendingPart(CEDPacket* pPacket)
 
 BOOL CDownloadTransferED2K::OnCompressedPart(CEDPacket* pPacket)
 {
-	//if ( m_nState != dtsDownloading ) return TRUE;
-	
     if ( pPacket->GetRemaining() <= Hashes::Ed2kHash::byteCount + 8 )
 	{
 		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
@@ -985,7 +982,9 @@ BOOL CDownloadTransferED2K::RunQueued(DWORD tNow)
 		Close( TS_UNKNOWN );
 		return FALSE;
 	}
-	else if ( Datagrams.IsStable() && m_pClient->m_nUDP > 0 && ! m_bUDP && tNow > m_tRequest && tNow - m_tRequest > Settings.eDonkey.ReAskTime * 1000 - 20000 )
+	else if ( !( CEDPacket::IsLowID( m_pSource->m_pAddress.S_un.S_addr ) || m_pSource->m_bPushOnly ) &&
+				!Network.IsFirewalled() &&  Datagrams.IsStable() && m_pClient->m_nUDP > 0 && ! m_bUDP && tNow > m_tRequest &&
+				tNow - m_tRequest > Settings.eDonkey.ReAskTime * 1000 - 20000 )
 	{
 		CEDPacket* pPing = CEDPacket::New( ED2K_C2C_UDP_REASKFILEPING, ED2K_PROTOCOL_EMULE );
 		pPing->Write( m_pDownload->m_oED2K );

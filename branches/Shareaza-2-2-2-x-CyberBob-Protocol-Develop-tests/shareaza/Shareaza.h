@@ -28,6 +28,7 @@
 
 class CUPnPFinder;
 class CMainWnd;
+class CSplashDlg;
 
 class CQueryHit;
 class CSearchWnd;
@@ -43,6 +44,7 @@ public:
 	virtual void ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast);
 
 	BOOL m_bSilentTray;
+	BOOL m_bNoSplash;
 };
 
 class CShareazaApp : public CWinApp
@@ -167,6 +169,7 @@ protected:
 
 	void				GetVersionNumber();
 	void				InitResources();
+	void				SplashStep(CSplashDlg*& dlg, LPCTSTR pszMessage);
 
 	DECLARE_MESSAGE_MAP()
 };
@@ -184,7 +187,7 @@ LPCTSTR _tcsistr(LPCTSTR pszString, LPCTSTR pszPattern);
 LPCTSTR _tcsnistr(LPCTSTR pszString, LPCTSTR pszPattern, size_t plen);
 void Replace(CString& strBuffer, LPCTSTR pszFind, LPCTSTR pszReplace);
 void Split(CString strSource, LPCTSTR strDelimiter, CArray< CString >& pAddIt, BOOL bAddFirstEmpty);
-BOOL LoadSourcesString(CString& str, DWORD num);
+BOOL LoadSourcesString(CString& str, DWORD num, bool bFraction=false);
 
 DWORD	TimeFromString(LPCTSTR psz);
 CString	TimeToString(time_t tVal);
@@ -210,6 +213,14 @@ typedef enum
 	sHiragana = 8,
 	sKatakana = 16
 } ScriptType;
+
+struct CompareNums
+{
+	inline bool operator()(WORD lhs, WORD rhs) const
+	{
+		return lhs > rhs;
+	}
+};
 
 inline bool IsCharacter(TCHAR nChar)
 {

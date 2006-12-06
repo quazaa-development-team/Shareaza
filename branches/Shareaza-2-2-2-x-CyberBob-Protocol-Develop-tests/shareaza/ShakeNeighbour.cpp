@@ -1,7 +1,7 @@
 //
 // ShakeNeighbour.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2005.
+// Copyright (c) Shareaza Development Team, 2002-2006.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -61,7 +61,8 @@ CShakeNeighbour::CShakeNeighbour() : CNeighbour( PROTOCOL_NULL ) // Call the CNe
 
 	//ToDo: Check this - G1 setting?
 	// Set m_bCanDeflate to true if the checkboxes in Shareaza Settings allow us to send and receive compressed data
-	m_bCanDeflate = Neighbours.IsG2Leaf() ? ( Settings.Gnutella.DeflateHub2Hub || Settings.Gnutella.DeflateLeaf2Hub ) : ( Settings.Gnutella.DeflateHub2Hub || Settings.Gnutella.DeflateHub2Leaf );
+	m_bCanDeflate = Neighbours.IsG2Leaf() ? ( Settings.Gnutella.DeflateHub2Hub || Settings.Gnutella.DeflateLeaf2Hub ) 
+										  : ( Settings.Gnutella.DeflateHub2Hub || Settings.Gnutella.DeflateHub2Leaf );
 
 	// Start out ultrapeer settings as unknown
 	m_bUltraPeerSet    = TS_UNKNOWN; // The remote computer hasn't told us if it's ultra or not yet
@@ -73,8 +74,11 @@ CShakeNeighbour::CShakeNeighbour() : CNeighbour( PROTOCOL_NULL ) // Call the CNe
 CShakeNeighbour::~CShakeNeighbour()
 {
 	// This virtual method will be redefined by a class that inherits from CShakeNeighbour
-	Neighbours.m_nCount[PROTOCOL_G1][ntNull]--;
-	Neighbours.m_nCount[PROTOCOL_G2][ntNull]--;
+	if ( m_nState != nrsNull )
+	{
+		InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G1][ntNull]) );
+		InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][ntNull]) );
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -117,8 +121,8 @@ BOOL CShakeNeighbour::ConnectTo(IN_ADDR* pAddress, WORD nPort, BOOL bAutomatic, 
 
 	// Add this CShakeNeighbour object to the list of them
 	Neighbours.Add( this );
-	Neighbours.m_nCount[PROTOCOL_G1][ntNull]++;
-	Neighbours.m_nCount[PROTOCOL_G2][ntNull]++;
+	InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G1][ntNull]) );
+	InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][ntNull]) );
 	// The connection was made without error
 	return TRUE;
 }
@@ -144,8 +148,8 @@ void CShakeNeighbour::AttachTo(CConnection* pConnection)
 
 	// Add this CShakeNeighbour object to the list of them
 	Neighbours.Add( this );
-	Neighbours.m_nCount[PROTOCOL_G1][ntNull]++;
-	Neighbours.m_nCount[PROTOCOL_G2][ntNull]++;
+	InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G1][ntNull]) );
+	InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][ntNull]) );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -197,8 +201,8 @@ BOOL CShakeNeighbour::OnConnected()
 		// We initiated the connection to this computer, send it our first block of handshake headers
 		m_pOutput->Print( "GNUTELLA CONNECT/0.6\r\n" ); // Ask to connect
 		SendPublicHeaders();                            // User agent, ip addresses, Gnutella2 and deflate, advanced Gnutella 
-														// features
-		// POSSIBLE POLUTION ALERT:
+													// features
+		// POSSIBLE POLLUTION ALERT:
 		// This SendHostHeaders() should not be here. because remote node is not known either G1 or G2.
 		// calling this function here sends Cached G1 address to remote host, but since RAZA tells the remote that it is G2 capable
 		// and if the remote host is RAZA, it will store GNUTELLA1 nodes into GNUTELLA2 cache.
@@ -227,19 +231,20 @@ void CShakeNeighbour::OnDropped(BOOL /*bError*/)
 	// We tried to connect the socket, but are still waiting for the socket connection to be made
 	if ( m_nState == nrsConnecting )
 	{
-		if ( m_bInitiated ) BlockedHostAddr.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+		if ( m_bInitiated ) 
+			FailedNeighbours.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
 		// Close the connection, citing refused as the reason it didn't work out
 		Close( IDS_CONNECTION_REFUSED );
 
 	} // We are somewhere else in the chain of connecting and doing the handshake
 	else
 	{
-		// connection to node has succeed but has been dropped.
-		// the node is seems like having too many connections thus bun it just for 5minute only 
-		// (prevent the node IP gets added to HostCache again)
+		// Connection to node has succeeded but was dropped.
+		// The node is seems like having too many connections, thus ban it just for 5 min only 
+		// (to prevent the node IP being added to HostCache again)
 		if ( m_bInitiated ) 
 		{
-			BlockedHostAddr.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
+			FailedNeighbours.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
 			HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
 		}
 		// Close the connection, citing dropped as the explanation of what happened
@@ -295,8 +300,8 @@ BOOL CShakeNeighbour::OnRun()
 			{
 				// Tell discovery services that we're giving up on this one, and close the connection
 				DiscoveryServices.OnGnutellaFailed( &m_pHost.sin_addr );
-				// connection to remote node never made success. more like The node is not online
-				BlockedHostAddr.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+				// Connection to remote node never succeeded. The node is likely not online.
+				FailedNeighbours.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
 				Close( IDS_CONNECTION_TIMEOUT_CONNECT );
 			}
 			else
@@ -310,7 +315,7 @@ BOOL CShakeNeighbour::OnRun()
 		break;
 
 	// We are exchanging handshake headers with the remote computer, and the most recent thing that's happened is
-	case nrsHandshake1: // Either We've sent a complete group of headers, or remote computer has just connected to us
+	case nrsHandshake1: // Either we've sent a complete group of headers, or remote computer has just connected to us
 	case nrsHandshake2: // The remote computer sent the first line of its initial group of headers to us
 	case nrsHandshake3: // The remote computer sent the first line of its final group of headers to us
 	case nrsRejected:   // The remote computer sent us a line with a 503 error code
@@ -320,7 +325,7 @@ BOOL CShakeNeighbour::OnRun()
 		{
 			if ( m_bInitiated )
 			{
-				BlockedHostAddr.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
+				FailedNeighbours.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
 				HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
 			}
 			// Close the connection
@@ -367,16 +372,16 @@ void CShakeNeighbour::SendMinimalHeaders()
 		// If we initiated the connection to the remote computer
 		if ( m_bInitiated )
 		{
-			if (Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday)
+			if ( Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday )
 			{
 				// Tell the remote computer we know how to read Gnutella and Gnutella2 packets
 				m_pOutput->Print( "Accept: application/x-gnutella2,application/x-gnutella-packets\r\n" );
 			}
-			else if (Settings.Gnutella2.EnableToday)
+			else if ( Settings.Gnutella2.EnableToday )
 			{
 				m_pOutput->Print( "Accept: application/x-gnutella2\r\n" );
 			}
-			else if (Settings.Gnutella1.EnableToday)
+			else if ( Settings.Gnutella1.EnableToday )
 			{
 				m_pOutput->Print( "Accept: application/x-gnutella-packets\r\n" );
 			}
@@ -395,7 +400,7 @@ void CShakeNeighbour::SendMinimalHeaders()
 		{
 			m_pOutput->Print( "Accept: application/x-gnutella-packets\r\n" );
 		}
-		else if ( m_bG1Accept ) // The remote computer contacted us, and accepts Gnutella2 packets
+		else if ( m_bG1Accept ) // The remote computer contacted us, and accepts Gnutella1 packets
 		{
 			// Reply by saying we accept them also, and will be sending them
 			m_pOutput->Print( "Accept: application/x-gnutella-packets\r\n" );
@@ -440,7 +445,7 @@ void CShakeNeighbour::SendPublicHeaders()
 		{
 			// Tell the remote computer we accept Gnutella and Gnutella2 packets
 			if ( Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday )
-				m_pOutput->Print( "Accept: application/x-gnutella2, application/x-gnutella-packets\r\n" );
+				m_pOutput->Print( "Accept: application/x-gnutella2,application/x-gnutella-packets\r\n" );
 			else if ( Settings.Gnutella2.EnableToday )
 				m_pOutput->Print( "Accept: application/x-gnutella2\r\n" );
 			else if ( Settings.Gnutella1.EnableToday )
@@ -487,7 +492,7 @@ void CShakeNeighbour::SendPublicHeaders()
 		m_pOutput->Print( "X-Query-Routing: 0.1\r\n" );										// We support the query routing protocol
 	}
 
-	if ( m_nProtocol == PROTOCOL_G1 ) // This protocol ID this method got passed is Gnutella2
+	if ( m_nProtocol == PROTOCOL_G1 ) // This protocol ID this method got passed is Gnutella1
 	{
 		// Find out if we are an ultrapeer or at least eligible to become one soon
 		if ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER || Neighbours.IsG1Ultrapeer() || 
@@ -522,15 +527,15 @@ void CShakeNeighbour::SendPublicHeaders()
 		else
 			m_pOutput->Print( "X-Ultrapeer-Needed: False\r\n" );
 	}
-	else if ( m_nProtocol == PROTOCOL_NULL ) // This protocol ID this method got passed is Gnutella2
+	else if ( m_nProtocol == PROTOCOL_NULL ) // This protocol ID this method got passed is both Gnutella1 and Gnutella2
 	{
 		if ( m_bInitiated )
 		{
 			if ( Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday )
 			{
-				// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
+				// Find out if we are a Gnutella1 Ultrapeer or Gnutella2 hub already, or at least eligible to become one soon
 				if ( ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER || Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() ) &&
-					( Settings.Gnutella2.ClientMode == MODE_HUB || Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() ) )
+					 ( Settings.Gnutella2.ClientMode == MODE_HUB || Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() ) )
 				{
 					// Tell the remote computer that we are a hub
 					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
@@ -548,7 +553,7 @@ void CShakeNeighbour::SendPublicHeaders()
 			}
 			else if ( Settings.Gnutella1.EnableToday )
 			{
-				// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
+				// Find out if we are a Gnutella1 Ultrapeer, or at least eligible to become one soon
 				if ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER || Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() )
 				{
 					// Tell the remote computer that we are a hub
@@ -595,7 +600,7 @@ void CShakeNeighbour::SendPublicHeaders()
 			if ( Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday && 
 				( m_bG2Send || m_bG2Accept) && ( m_bG1Send || m_bG1Accept) )
 			{
-				// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
+				// Find out if we are a Gnutella1 Ultrapeer or Gnutella2 hub already, or at least eligible to become one soon
 				if ( ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER || Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() ) &&
 					( Settings.Gnutella2.ClientMode == MODE_HUB || Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() ) )
 				{
@@ -615,7 +620,7 @@ void CShakeNeighbour::SendPublicHeaders()
 			}
 			else if ( Settings.Gnutella1.EnableToday && ( m_bG1Send || m_bG1Accept) )
 			{
-				// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
+				// Find out if we are a Gnutella1 Ultrapeer, or at least eligible to become one soon
 				if ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER || Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() )
 				{
 					// Tell the remote computer that we are a hub
@@ -675,7 +680,7 @@ void CShakeNeighbour::SendPrivateHeaders()
 	}
 	else if ( m_bInitiated && m_bG1Send && m_bG1Accept && ( m_nProtocol != PROTOCOL_G2 ) )
 	{
-		// Tell it we also accept gnutella2 packets, and we're also going to send them
+		// Tell it we also accept gnutella1 packets, and we're also going to send them
 		m_pOutput->Print( "Accept: application/x-gnutella-packets\r\n" );
 		m_pOutput->Print( "Content-Type: application/x-gnutella-packets\r\n" );
 	}
@@ -850,7 +855,7 @@ BOOL CShakeNeighbour::ReadResponse()
 	} // The remote computer said something else that we aren't expecting here
 	else
 	{
-		BlockedHostAddr.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+		FailedNeighbours.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
 		HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
 		// Close the connection, citing the reason as we can't understand the handshake
 		Close( IDS_HANDSHAKE_FAIL );
@@ -907,7 +912,7 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			m_nState = nrsRejected;
 			// Ban them and ignore anything else in the headers
 			theApp.Message( MSG_ERROR, _T("Banning hostile client %s"), (LPCTSTR)m_sUserAgent );
-			BlockedHostAddr.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+			FailedNeighbours.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
 			HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
 			m_bBadClient = TRUE;
 			return FALSE;
@@ -920,7 +925,7 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			theApp.Message( MSG_ERROR, IDS_HANDSHAKE_REJECTED, (LPCTSTR)m_sAddress, (LPCTSTR)m_sUserAgent );
 			m_nState = nrsRejected;
 			Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
-			BlockedHostAddr.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+			FailedNeighbours.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
 			m_bBadClient = TRUE;
 			return FALSE;
 		}
@@ -1054,7 +1059,8 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			// Add the host to the Gnutella2 host cache, noting it's a DNA hub
 			// adding host with "GDNA" will not help a lot, if the name is blank, raza might get the name through
 			// KHL over linked Neighbours.
-			//if ( HostCache.Gnutella2.Add( strHost, 0, _T("GDNA") ) ) nCount++;
+			if ( HostCache.Gnutella2.Add( strHost, 0, NULL ) )
+				nCount++;
 		}
 		// Tell discovery services the remote computer's IP address, and how many hosts it just told us about
 		DiscoveryServices.OnGnutellaAdded( &m_pHost.sin_addr, nCount );
@@ -1175,7 +1181,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 	// The remote computer replied to our headers with something other than "200 OK"
 	if ( m_nState == nrsRejected )
 	{
-		BlockedHostAddr.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
+		FailedNeighbours.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
 		HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
 		// Close the connection
 		Close( 0 );   // Don't specify an error

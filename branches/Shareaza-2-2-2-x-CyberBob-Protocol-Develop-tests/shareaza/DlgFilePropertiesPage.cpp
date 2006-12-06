@@ -23,9 +23,7 @@
 #include "Shareaza.h"
 #include "Library.h"
 #include "SharedFile.h"
-#include "CoolInterface.h"
 #include "ShellIcons.h"
-#include "Skin.h"
 #include "DlgFilePropertiesSheet.h"
 #include "DlgFilePropertiesPage.h"
 
@@ -35,24 +33,21 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-IMPLEMENT_DYNAMIC(CFilePropertiesPage, CPropertyPage)
+IMPLEMENT_DYNAMIC(CFilePropertiesPage, CPropertyPageAdv)
 
-BEGIN_MESSAGE_MAP(CFilePropertiesPage, CPropertyPage)
+BEGIN_MESSAGE_MAP(CFilePropertiesPage, CPropertyPageAdv)
 	//{{AFX_MSG_MAP(CFilePropertiesPage)
-	ON_WM_PAINT()
 	//}}AFX_MSG_MAP
-	ON_WM_CTLCOLOR()
 END_MESSAGE_MAP()
 
 
 /////////////////////////////////////////////////////////////////////////////
 // CFilePropertiesPage property page
 
-CFilePropertiesPage::CFilePropertiesPage(UINT nIDD) : CPropertyPage( nIDD )
+CFilePropertiesPage::CFilePropertiesPage(UINT nIDD) : CPropertyPageAdv( nIDD )
 {
 	//{{AFX_DATA_INIT(CFilePropertiesPage)
 	//}}AFX_DATA_INIT
-	m_nIcon = -1;
 }
 
 CFilePropertiesPage::~CFilePropertiesPage()
@@ -61,7 +56,7 @@ CFilePropertiesPage::~CFilePropertiesPage()
 
 void CFilePropertiesPage::DoDataExchange(CDataExchange* pDX)
 {
-	CPropertyPage::DoDataExchange(pDX);
+	CPropertyPageAdv::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CFilePropertiesPage)
 	//}}AFX_DATA_MAP
 }
@@ -91,9 +86,7 @@ CLibraryList* CFilePropertiesPage::GetList() const
 
 BOOL CFilePropertiesPage::OnInitDialog()
 {
-	CPropertyPage::OnInitDialog();
-
-	Skin.Apply( NULL, this );
+	CPropertyPageAdv::OnInitDialog();
 
 	CSingleLock oLock( &Library.m_pSection, TRUE );
 	if ( CLibraryFile* pFile = GetFile() )
@@ -144,69 +137,3 @@ BOOL CFilePropertiesPage::OnInitDialog()
 	return TRUE;
 }
 
-void CFilePropertiesPage::OnPaint()
-{
-	CPaintDC dc( this );
-	if ( theApp.m_bRTL ) theApp.m_pfnSetLayout( dc.m_hDC, LAYOUT_RTL );
-
-	if ( m_nIcon >= 0 )
-	{
-		ShellIcons.Draw( &dc, m_nIcon, 48, 4, 4 );
-	}
-
-	for ( CWnd* pWnd = GetWindow( GW_CHILD ) ; pWnd ; pWnd = pWnd->GetNextWindow() )
-	{
-		if ( pWnd->GetStyle() & WS_VISIBLE ) continue;
-
-		TCHAR szClass[16];
-		GetClassName( pWnd->GetSafeHwnd(), szClass, 16 );
-		if ( _tcsicmp( szClass, _T("STATIC") ) ) continue;
-
-		CString str;
-		CRect rc;
-
-		pWnd->GetWindowText( str );
-		pWnd->GetWindowRect( &rc );
-		ScreenToClient( &rc );
-
-		if ( str.IsEmpty() || str.GetAt( 0 ) != '-' )
-			PaintStaticHeader( &dc, &rc, str );
-	}
-
-	dc.SetBkColor( CCoolInterface::GetDialogBkColor() );
-}
-
-void CFilePropertiesPage::PaintStaticHeader(CDC* pDC, CRect* prc, LPCTSTR psz)
-{
-	CFont* pOldFont = (CFont*)pDC->SelectObject( GetFont() );
-	CSize sz = pDC->GetTextExtent( psz );
-
-	pDC->SetBkMode( OPAQUE );
-	pDC->SetBkColor( Skin.m_crBannerBack );
-	pDC->SetTextColor( Skin.m_crBannerText );
-
-	CRect rc( prc );
-	rc.bottom	= rc.top + min( rc.Height(), 16 );
-	rc.right	= rc.left + sz.cx + 10;
-
-	pDC->ExtTextOut( rc.left + 4, rc.top + 1, ETO_CLIPPED|ETO_OPAQUE,
-		&rc, psz, static_cast< UINT >( _tcslen( psz ) ), NULL );
-
-	rc.SetRect( rc.right, rc.top, prc->right, rc.top + 1 );
-	pDC->ExtTextOut( rc.left, rc.top, ETO_OPAQUE, &rc, NULL, 0, NULL );
-
-	pDC->SelectObject( pOldFont );
-}
-
-HBRUSH CFilePropertiesPage::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
-{
-	HBRUSH hbr = CPropertyPage::OnCtlColor( pDC, pWnd, nCtlColor );
-
-	if ( nCtlColor == CTLCOLOR_DLG || nCtlColor == CTLCOLOR_STATIC )
-	{
-		pDC->SetBkColor( Skin.m_crDialog );
-		hbr = Skin.m_brDialog;
-	}
-
-	return hbr;
-}
