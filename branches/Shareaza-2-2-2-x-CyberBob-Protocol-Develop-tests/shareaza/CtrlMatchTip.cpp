@@ -322,6 +322,7 @@ void CMatchTipCtrl::LoadFromFile()
 		m_sTiger.Empty();
 		m_sED2K.Empty();
 		m_sMD5.Empty();
+		m_sGUID.Empty();
 	}
 	else
 	{
@@ -329,6 +330,27 @@ void CMatchTipCtrl::LoadFromFile()
 		m_sTiger = m_pFile->m_oTiger.toShortUrn();
 		m_sED2K = m_pFile->m_oED2K.toShortUrn();
 		m_sMD5 = m_pFile->m_oMD5.toShortUrn();
+		if ( m_pFile->m_nSources == 1 )
+		{
+			Hashes::Guid oID ( m_pFile->m_pBest->m_oClientID );
+			if ( oID.isValid() )
+			{
+				// MFC's CString::Format is like sprintf, "%.2X" formats a byte into 2 hexidecimal characters like "ff"
+				m_sGUID.Format(	_T("GUID:%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X"),
+					int( oID[0] ),  int( oID[1] ),  int( oID[2] ),  int( oID[3] ),		// Our GUID
+					int( oID[4] ),  int( oID[5] ),  int( oID[6] ),  int( oID[7] ),
+					int( oID[8] ),  int( oID[9] ),  int( oID[10] ), int( oID[11] ),
+					int( oID[12] ), int( oID[13] ), int( oID[14] ), int( oID[15] ) );
+			}
+			else
+			{
+				m_sGUID.Empty();
+			}
+		}
+		else
+		{
+			m_sGUID.Empty();
+		}
 	}
 
 	if ( m_pFile->m_nFiltered == 1 && m_pFile->m_pBest->m_nPartial )
@@ -522,6 +544,7 @@ void CMatchTipCtrl::LoadFromHit()
 		m_sTiger.Empty();
 		m_sED2K.Empty();
 		m_sMD5.Empty();
+		m_sGUID.Empty();
 	}
 	else
 	{
@@ -529,6 +552,20 @@ void CMatchTipCtrl::LoadFromHit()
 		m_sTiger = m_pHit->m_oTiger.toShortUrn();
 		m_sED2K = m_pHit->m_oED2K.toShortUrn();
 		m_sMD5 = m_pHit->m_oMD5.toShortUrn();
+		Hashes::Guid oID ( m_pHit->m_oClientID );
+		if ( oID.isValid() )
+		{
+			// MFC's CString::Format is like sprintf, "%.2X" formats a byte into 2 hexidecimal characters like "ff"
+			m_sGUID.Format(	_T("GUID:%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X"),
+				int( oID[0] ),  int( oID[1] ),  int( oID[2] ),  int( oID[3] ),		// Our GUID
+				int( oID[4] ),  int( oID[5] ),  int( oID[6] ),  int( oID[7] ),
+				int( oID[8] ),  int( oID[9] ),  int( oID[10] ), int( oID[11] ),
+				int( oID[12] ), int( oID[13] ), int( oID[14] ), int( oID[15] ) );
+		}
+		else
+		{
+			m_sGUID.Empty();
+		}
 	}
 
 	if ( m_pHit->m_nPartial )
@@ -704,6 +741,12 @@ CSize CMatchTipCtrl::ComputeSize()
 		sz.cy += TIP_TEXTHEIGHT;
 	}
 
+	if ( m_sGUID.GetLength() )
+	{
+		ExpandSize( dc, sz, m_sGUID );
+		sz.cy += TIP_TEXTHEIGHT;
+	}
+
 	sz.cy += 5 + 6;
 
 	if ( m_sStatus.GetLength() )
@@ -863,6 +906,12 @@ void CMatchTipCtrl::OnPaint()
 	if ( m_sUser.GetLength() )
 	{
 		DrawText( dc, pt, m_sUser );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+
+	if ( m_sGUID.GetLength() )
+	{
+		DrawText( dc, pt, m_sGUID );
 		pt.y += TIP_TEXTHEIGHT;
 	}
 
