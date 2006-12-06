@@ -180,8 +180,6 @@ CNeighbour* CNeighboursWithConnect::ConnectTo(
 			{
 				pNeighbour->m_nProtocol = nProtocol;
 			}
-			else
-				pNeighbour->m_nProtocol = nProtocol;
 
 			return pNeighbour;
 		}
@@ -920,7 +918,7 @@ BOOL CNeighboursWithConnect::NeedMoreLeafs(PROTOCOLID nProtocol)
 
 		// If we need more Gnutella or Gnutella2 leaves, return true, only return false if we don't need more leaves from either network
 		return ( ( ( Settings.Gnutella1.EnableToday ) && ( m_nCount[PROTOCOL_G1][ntLeaf] < m_nLimit[PROTOCOL_G1][ntLeaf] ) ) ||
-		         ( ( Settings.Gnutella2.EnableToday ) && ( m_nCount[PROTOCOL_G1][ntLeaf] < m_nLimit[PROTOCOL_G1][ntLeaf] ) ) );
+		         ( ( Settings.Gnutella2.EnableToday ) && ( m_nCount[PROTOCOL_G2][ntLeaf] < m_nLimit[PROTOCOL_G2][ntLeaf] ) ) );
 
 	// Return true if we need more Gnutella ultrapeer connections
 	case PROTOCOL_G1:
@@ -1343,7 +1341,7 @@ void CNeighboursWithConnect::Maintain()
 
 			// If we need more connections for this network, get IP addresses from the host cache and try to connect to them
 			for ( CHostCacheHost* pHost = pCache->GetNewest(); // Get the newest entry in the host cache for this network
-				  pHost && m_nCount[ nProtocol ][0] < nAttempt;  // Loop if we need more hubs that we have handshaking connections
+				  pHost && m_nCount[ nProtocol ][ntNull] < nAttempt;  // Loop if we need more hubs that we have handshaking connections
 				  pHost = pHost->m_pPrevTime )                 // At the end of the loop, move to the next youngest host cache entry
 			{
 				// If we can connect to this IP address from the host cache, try to make the connection
