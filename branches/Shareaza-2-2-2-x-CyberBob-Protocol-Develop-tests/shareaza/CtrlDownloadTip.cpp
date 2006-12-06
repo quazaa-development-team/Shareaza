@@ -756,9 +756,24 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 	m_sz.cy += TIP_TEXTHEIGHT + TIP_RULE;
 
 	AddSize( pDC, m_sURL, 80 );
-	AddSize( pDC, m_sHubList, 80 );
-	AddSize( pDC, m_sPushProxyList, 80 );
-	m_sz.cy += TIP_TEXTHEIGHT * 8;
+	m_sz.cy += TIP_TEXTHEIGHT * 5;
+
+	if (pSource->m_oGUID.isValid())
+	{
+		m_sz.cy += TIP_TEXTHEIGHT;
+	}
+
+	if ( m_sPushProxyList.GetLength() != 0 )
+	{
+		AddSize( pDC, m_sPushProxyList, 80 );
+		m_sz.cy += TIP_TEXTHEIGHT;
+	}
+
+	if ( m_sHubList.GetLength() != 0 )
+	{
+		AddSize( pDC, m_sHubList, 80 );
+		m_sz.cy += TIP_TEXTHEIGHT;
+	}
 
 	m_sz.cy += TIP_GAP;
 	m_sz.cy += TIP_TEXTHEIGHT;
@@ -892,11 +907,11 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownloadSource* pSource)
 	pt.y += TIP_TEXTHEIGHT;
 
 
-	strText = _T("GUID:");
-	DrawText( pDC, &pt, strText );
-
 	if (pSource->m_oGUID.isValid())
 	{
+		strText = _T("GUID:");
+		DrawText( pDC, &pt, strText );
+
 		Hashes::Guid oID( pSource->m_oGUID );
 		// Compose the X-MyGUID string, which is like "X-MyGUID: " with two newlines at the end (do)
 		// MFC's CString::Format is like sprintf, "%.2X" formats a byte into 2 hexidecimal characters like "ff"
@@ -905,39 +920,24 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownloadSource* pSource)
 			int( oID[4] ),  int( oID[5] ),  int( oID[6] ),  int( oID[7] ),
 			int( oID[8] ),  int( oID[9] ),  int( oID[10] ), int( oID[11] ),
 			int( oID[12] ), int( oID[13] ), int( oID[14] ), int( oID[15] ) );
-	}
-	else
-	{
-		strText = _T("Invalid GUID");
+		DrawText( pDC, &pt, strText, 80 );
+		pt.y += TIP_TEXTHEIGHT;
 	}
 
-	DrawText( pDC, &pt, strText, 80 );
-	pt.y += TIP_TEXTHEIGHT;
-
-
-	strText = _T("PushProxies:");
-	DrawText( pDC, &pt, strText );
 	if ( m_sPushProxyList.GetLength() )
 	{
+		strText = _T("PushProxies:");
+		DrawText( pDC, &pt, strText );
+
 		DrawText( pDC, &pt, m_sPushProxyList, 80 );
 		pt.y += TIP_TEXTHEIGHT;
 	}
-	else
-	{
-		DrawText( pDC, &pt, _T("Empty"), 80 );
-		pt.y += TIP_TEXTHEIGHT;
-	}
 
-	strText = _T("Hubs:");
-	DrawText( pDC, &pt, strText );
 	if ( m_sHubList.GetLength() )
 	{
+		strText = _T("Hubs:");
+		DrawText( pDC, &pt, strText );
 		DrawText( pDC, &pt, m_sHubList, 80 );
-		pt.y += TIP_TEXTHEIGHT;
-	}
-	else
-	{
-		DrawText( pDC, &pt, _T("Empty"), 80 );
 		pt.y += TIP_TEXTHEIGHT;
 	}
 
