@@ -182,7 +182,7 @@ BOOL CNetwork::CITMSendPush::OnProcess()
 					pLock.Lock();
 				}
 			}
-			oGUID2[15] ++;
+			oGUID2[15]++;
 		}
 
 	}
@@ -1291,11 +1291,11 @@ void CNetwork::UDPHostCache( IN_ADDR* pAddress, WORD nPort )
 		pItem->WriteByte( 0 );
 
 	pBlock.Write( pPing );
-	Datagrams.Send( pAddress, nPort, pPing, TRUE, NULL, FALSE );
+	Datagrams.Send( pAddress, nPort, pPing, TRUE, NULL, FALSE, TRUE );
 }
 
 void CNetwork::UDPKnownHubCache( IN_ADDR* pAddress, WORD nPort )
 {
 	CG2Packet* pKHLR = CG2Packet::New( G2_PACKET_KHL_REQ );
-	Datagrams.Send( pAddress, nPort, pKHLR, TRUE, NULL, FALSE );
+	Datagrams.Send( pAddress, nPort, pKHLR, TRUE, NULL, FALSE, TRUE );
 }

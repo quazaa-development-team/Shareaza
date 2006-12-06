@@ -110,8 +110,8 @@ public:
 	BOOL	Listen();
 	void	Disconnect();
 	BOOL	IsStable();
-	BOOL	Send(IN_ADDR* pAddress, WORD nPort, CPacket* pPacket, BOOL bRelease = TRUE, LPVOID pToken = NULL, BOOL bAck = TRUE);
-	BOOL	Send(SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease = TRUE, LPVOID pToken = NULL, BOOL bAck = TRUE);
+	BOOL	Send(IN_ADDR* pAddress, WORD nPort, CPacket* pPacket, BOOL bRelease = TRUE, LPVOID pToken = NULL, BOOL bAck = TRUE, BOOL bBypassSecurity = FALSE);
+	BOOL	Send(SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease = TRUE, LPVOID pToken = NULL, BOOL bAck = TRUE, BOOL bBypassSecurity = FALSE);
 	void	PurgeToken(LPVOID pToken);
 	void	OnRun();
 protected:

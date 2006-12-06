@@ -246,7 +246,7 @@ BOOL CDatagrams::IsStable()
 //////////////////////////////////////////////////////////////////////
 // CDatagrams send
 
-BOOL CDatagrams::Send(IN_ADDR* pAddress, WORD nPort, CPacket* pPacket, BOOL bRelease, LPVOID pToken, BOOL bAck)
+BOOL CDatagrams::Send(IN_ADDR* pAddress, WORD nPort, CPacket* pPacket, BOOL bRelease, LPVOID pToken, BOOL bAck, BOOL bBypassSecurity)
 {
 	SOCKADDR_IN pHost;
 
@@ -254,14 +254,14 @@ BOOL CDatagrams::Send(IN_ADDR* pAddress, WORD nPort, CPacket* pPacket, BOOL bRel
 	pHost.sin_addr		= *pAddress;
 	pHost.sin_port		= htons( nPort );
 
-	return Send( &pHost, pPacket, bRelease, pToken, bAck );
+	return Send( &pHost, pPacket, bRelease, pToken, bAck, bBypassSecurity );
 }
 
-BOOL CDatagrams::Send(SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease, LPVOID pToken, BOOL bAck)
+BOOL CDatagrams::Send(SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease, LPVOID pToken, BOOL bAck, BOOL bBypassSecurity)
 {
 	ASSERT( pHost != NULL && pPacket != NULL );
 
-	if ( m_hSocket == INVALID_SOCKET || Security.IsDenied( &pHost->sin_addr ) )
+	if ( m_hSocket == INVALID_SOCKET || ( !bBypassSecurity && Security.IsDenied( &pHost->sin_addr ) ) )
 	{
 		if ( bRelease ) pPacket->Release();
 		return FALSE;
