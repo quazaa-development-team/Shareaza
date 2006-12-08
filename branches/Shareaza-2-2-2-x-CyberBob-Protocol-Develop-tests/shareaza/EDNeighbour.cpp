@@ -222,7 +222,7 @@ void CEDNeighbour::OnDropped(BOOL /*bError*/)
 {
 	if ( m_nState < nrsConnected )
 	{
-		HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ), false, PROTOCOL_ED2K );
+		HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ), PROTOCOL_ED2K, false );
 	}
 	
 	if ( m_nState == nrsConnecting )

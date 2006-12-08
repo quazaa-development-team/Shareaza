@@ -118,6 +118,7 @@ protected:
 	TRISTATE m_bUltraPeerLoaded;
 
 	BOOL	m_bFirewallTest;		// Are we testing remote firewall? [Brov]
+	UINT	m_nDelayCloseReason;	// Reason for DelayClose;
 
 public:
 

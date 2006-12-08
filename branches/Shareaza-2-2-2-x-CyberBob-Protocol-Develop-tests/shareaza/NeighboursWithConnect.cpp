@@ -101,16 +101,18 @@ CNeighbour* CNeighboursWithConnect::ConnectTo(
 	if ( Settings.Connection.IgnoreOwnIP && pAddress->S_un.S_addr == Network.m_pHost.sin_addr.S_un.S_addr ) 
 		return NULL;
 
-	// Don't connect to blocked addresses
-	if ( /* FailedNeighbours.IsDenied( pAddress ) || */ Security.IsDenied( pAddress ) )
-	{
-		// If automatic (do) leave without making a note of the error
-		if ( bAutomatic ) return NULL;
+	// Commenting out for now, this part would mean nothing since CConnection Blocks
 
-		// Report that this address is on the block list, and return no new connection made
-		theApp.Message( MSG_ERROR, IDS_NETWORK_SECURITY_OUTGOING, (LPCTSTR)CString( inet_ntoa( *pAddress ) ) );
-		return NULL;
-	}
+	// Don't connect to blocked addresses
+	//if ( Security.IsDenied( pAddress ) )
+	//{
+	//	// If automatic (do) leave without making a note of the error
+	//	if ( bAutomatic ) return NULL;
+	//
+	//	// Report that this address is on the block list, and return no new connection made
+	//	theApp.Message( MSG_ERROR, IDS_NETWORK_SECURITY_OUTGOING, (LPCTSTR)CString( inet_ntoa( *pAddress ) ) );
+	//	return NULL;
+	//}
 
 	// If automatic (do) and the network object knows this IP address is firewalled and can't receive connections, give up
 	if ( bAutomatic && Network.IsFirewalledAddress( pAddress, TRUE ) ) return NULL;
@@ -1375,7 +1377,7 @@ void CNeighboursWithConnect::Maintain()
 			if ( Network.m_bAutoConnect )
 			{
 				// If we don't have any handshaking connections for this network, and we've been connected to a hub for more than 30 seconds
-				if ( m_nCount[ nProtocol ][ 0 ] == 0          || // We don't have any handshaking connections for this network, or
+				if ( m_nCount[ nProtocol ][ ntNull ] == 0          || // We don't have any handshaking connections for this network, or
 					 tNow - m_tPresent[ nProtocol ] >= 30 )    // We've been connected to a hub for more than 30 seconds
 				{
 					// We're looping for Gnutella2 right now
@@ -1447,13 +1449,6 @@ void CNeighboursWithConnect::Maintain()
 			if ( pNewest != NULL ) pNewest->Close(); // Close the connection
 		}
 	}
-
-	// If connected to Enough Ultrappeers and Hubs, then clear HandshakeBan list.
-	if (	( !Settings.Gnutella1.EnableToday || m_nCount[PROTOCOL_G1][ntHub] >= m_nLimit[PROTOCOL_G1][ntNode] ) &&
-			( !Settings.Gnutella2.EnableToday || m_nCount[PROTOCOL_G2][ntHub] >= m_nLimit[PROTOCOL_G2][ntNode] ) )
-	{
-		//FailedNeighbours.Clear();
-	}
 }
 
 int CNeighboursWithConnect::GetCount(PROTOCOLID nProtocol, int nState, int nNodeType) const
@@ -1476,11 +1471,46 @@ int CNeighboursWithConnect::GetCount(PROTOCOLID nProtocol, int nState, int nNode
 			}
 		}
 	}
+	if ( nProtocol == PROTOCOL_ANY && nNodeType == -1 )
+	{
+		if ( nState == nrsConnected )
+		{
+			return m_nCount[PROTOCOL_ED2K][ntHub] +
+					m_nCount[PROTOCOL_G1][ntHub] +
+					m_nCount[PROTOCOL_G1][ntLeaf] +
+					m_nCount[PROTOCOL_G2][ntHub] +
+					m_nCount[PROTOCOL_G2][ntLeaf];
+		}
+	}
 	return CNeighboursWithRouting::GetCount( nProtocol, nState, nNodeType );
 }
 
 void CNeighboursWithConnect::Connect()
 {
 	m_tModeCheck = 0;
+
+	if ( Settings.Gnutella2.ClientMode == MODE_HUB )
+	{
+		m_bG2Leaf	= FALSE;
+		m_bG2Hub	= TRUE;
+	}
+	else
+	{
+		m_bG2Leaf	= TRUE;
+		m_bG2Hub	= FALSE;
+	}
+
+	if ( Settings.Gnutella1.ClientMode == MODE_HUB )
+	{
+		m_bG1Leaf      = FALSE;
+		m_bG1Ultrapeer = TRUE;
+	}
+	else
+	{
+		m_bG1Leaf      = TRUE;
+		m_bG1Ultrapeer = FALSE;
+	}
+
+
 	CNeighboursWithRouting::Connect();
 }

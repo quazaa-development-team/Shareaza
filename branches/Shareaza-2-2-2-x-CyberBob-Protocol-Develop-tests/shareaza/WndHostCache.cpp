@@ -92,7 +92,7 @@ CHostCacheWnd::~CHostCacheWnd()
 int CHostCacheWnd::OnCreate(LPCREATESTRUCT lpCreateStruct) 
 {
 	if ( Settings.Gnutella.HostCacheView < PROTOCOL_NULL || Settings.Gnutella.HostCacheView > PROTOCOL_ED2K )
-		Settings.Gnutella.HostCacheView = PROTOCOL_G2;
+		 Settings.Gnutella.HostCacheView = PROTOCOL_G2;
 
 	m_nMode = PROTOCOLID( Settings.Gnutella.HostCacheView );
 
@@ -122,13 +122,15 @@ int CHostCacheWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndList.InsertColumn( 1, _T("Port"), LVCFMT_CENTER, 60, 0 );
 	m_wndList.InsertColumn( 2, _T("Client"), LVCFMT_CENTER, 100, 1 );
 	m_wndList.InsertColumn( 3, _T("Last Seen"), LVCFMT_CENTER, 130, 2 );
-	m_wndList.InsertColumn( 4, _T("Name"), LVCFMT_LEFT, 130, 3 );
-	m_wndList.InsertColumn( 5, _T("Description"), LVCFMT_LEFT, 130, 4 );
-	m_wndList.InsertColumn( 6, _T("CurUsers"), LVCFMT_CENTER, 60, 5 );
-	m_wndList.InsertColumn( 7, _T("MaxUsers"), LVCFMT_CENTER, 60, 6 );
-	m_wndList.InsertColumn( 8, _T("Key"), LVCFMT_RIGHT, 60, 7 );
-	m_wndList.InsertColumn( 9, _T("Query"), LVCFMT_RIGHT, 60, 8 );
-	m_wndList.InsertColumn( 10, _T("Ack"), LVCFMT_RIGHT, 60, 9 );
+	m_wndList.InsertColumn( 4, _T("Daily Uptime"), LVCFMT_CENTER, 130, 3 );
+	m_wndList.InsertColumn( 5, _T("Name"), LVCFMT_LEFT, 130, 4 );
+	m_wndList.InsertColumn( 6, _T("Description"), LVCFMT_LEFT, 130, 5 );
+	m_wndList.InsertColumn( 7, _T("CurUsers"), LVCFMT_CENTER, 60, 6 );
+	m_wndList.InsertColumn( 8, _T("MaxUsers"), LVCFMT_CENTER, 60, 7 );
+	m_wndList.InsertColumn( 9, _T("FailureCount"), LVCFMT_CENTER, 60, 7 );
+	m_wndList.InsertColumn( 10, _T("Key"), LVCFMT_RIGHT, 60, 7 );
+	m_wndList.InsertColumn( 11, _T("Query"), LVCFMT_RIGHT, 60, 8 );
+	m_wndList.InsertColumn( 12, _T("Ack"), LVCFMT_RIGHT, 60, 9 );
 
 	m_wndList.SetFont( &theApp.m_gdiFont );
 
@@ -167,7 +169,7 @@ void CHostCacheWnd::Update(BOOL bForce)
 	
 	m_wndList.ModifyStyle( WS_VISIBLE, 0 );
 	
-	CLiveList pLiveList( 11 );
+	CLiveList pLiveList( 13 );
 	
 	PROTOCOLID nEffective = m_nMode ? m_nMode : PROTOCOL_G2;
 
@@ -204,15 +206,22 @@ void CHostCacheWnd::Update(BOOL bForce)
 		CTime pTime( (time_t)pHost->m_tSeen );
 		pItem->Set( 3, pTime.Format( _T("%Y-%m-%d %H:%M:%S") ) );
 		
-		pItem->Set( 4, pHost->m_sName );
-		pItem->Set( 5, pHost->m_sDescription );
-		
-		if ( pHost->m_nUserCount ) pItem->Format( 6, _T("%u"), pHost->m_nUserCount );
-		if ( pHost->m_nUserLimit ) pItem->Format( 7, _T("%u"), pHost->m_nUserLimit );
+		if ( pHost->m_nDailyUptime )
+		{ 
+			pTime = (time_t)pHost->m_nDailyUptime;
+			pItem->Set( 4, pTime.Format( _T("%H:%M:%S") ) );
 
-		if ( pHost->m_nKeyValue ) pItem->Format( 8, _T("%u"), pHost->m_nKeyValue);
-		if ( pHost->m_tQuery ) pItem->Format( 9, _T("%u"), pHost->m_tQuery );
-		if ( pHost->m_tAck ) pItem->Format( 10, _T("%u"), pHost->m_tAck);
+		}
+		pItem->Set( 5, pHost->m_sName );
+		pItem->Set( 6, pHost->m_sDescription );
+		
+		if ( pHost->m_nUserCount ) pItem->Format( 7, _T("%u"), pHost->m_nUserCount );
+		if ( pHost->m_nUserLimit ) pItem->Format( 8, _T("%u"), pHost->m_nUserLimit );
+
+		if ( pHost->m_nFailures ) pItem->Format( 9, _T("%u"), pHost->m_nFailures );
+		if ( pHost->m_nKeyValue ) pItem->Format( 10, _T("%u"), pHost->m_nKeyValue);
+		if ( pHost->m_tQuery ) pItem->Format( 11, _T("%u"), pHost->m_tQuery );
+		if ( pHost->m_tAck ) pItem->Format( 12, _T("%u"), pHost->m_tAck);
 
 	}
 	
@@ -268,8 +277,8 @@ void CHostCacheWnd::OnTimer(UINT_PTR nIDEvent)
 		CHostCacheList* pCache = HostCache.ForProtocol( nEffective );
 		DWORD tTicks = GetTickCount();
 
-		// Wait 5 seconds before refreshing; do not force updates
-		if ( ( pCache->m_nCookie != m_nCookie ) && ( ( tTicks - tLastUpdate ) > 5000 ) ) Update();
+		// Wait 10 seconds before refreshing; do not force updates
+		if ( ( pCache->m_nCookie != m_nCookie ) && ( ( tTicks - tLastUpdate ) > 10000 ) ) Update();
 	}
 }
 

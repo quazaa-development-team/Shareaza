@@ -647,7 +647,7 @@ int CG1Neighbour::WriteRandomCache(CGGEPItem* pItem)
 
 		// We won't provide Shareaza hosts for G1 cache, since users may disable
 		// G1 and it will polute the host caches ( ??? )
-		if ( pHost && pHost->m_nFailures == 0 )
+		if ( pHost && pHost->m_nFailures == 0 && pHost->m_bCheckedLocally )
 		{
 			pItem->Write( (void*)&pHost->m_pAddress, 4 );
 			pItem->Write( (void*)&pHost->m_nPort, 2 );
@@ -684,6 +684,9 @@ BOOL CG1Neighbour::OnPong(CG1Packet* pPacket)
 	DWORD nFiles   = pPacket->ReadLongLE();  // 4 bytes, the number of files the source computer is sharing
 	DWORD nVolume  = pPacket->ReadLongLE();  // 4 bytes, the total size of all those files
 
+	m_nFileCount  = nFiles;
+	m_nFileVolume = nVolume;
+
 	// If that IP address is in our list of computers to not talk to
 	if ( Security.IsDenied( (IN_ADDR*)&nAddress ) )
 	{
@@ -693,7 +696,7 @@ BOOL CG1Neighbour::OnPong(CG1Packet* pPacket)
 		return TRUE;
 	}
 
-	// If the pong is bigger than 14 bytes, and the remote compuer told us in the handshake it supports GGEP blocks
+	// If the pong is bigger than 14 bytes, and the remote computer told us in the handshake it supports GGEP blocks
 	if ( pPacket->m_nLength > 14 && m_bGGEP && Settings.Gnutella1.EnableGGEP )
 	{
 		CGGEPBlock pGGEP;
@@ -701,9 +704,21 @@ BOOL CG1Neighbour::OnPong(CG1Packet* pPacket)
 		if ( pGGEP.ReadFromPacket( pPacket ) )
 		{
 			CGGEPItem* pUP = pGGEP.Find( L"UP" );
-			CGGEPItem* pGUE = pGGEP.Find( L"GUE" );
 			CGGEPItem* pVC = pGGEP.Find( L"VC", 4 );
+			CGGEPItem* pIPPs = pGGEP.Find( L"IPP", 6 );
+			// Read daily uptime
+			CGGEPItem* pDU = pGGEP.Find( L"DU", 1 );
 			CString sVendorCode;
+			DWORD nUptime = 0;
+			time_t nTime = NULL;
+			
+			if ( pDU != NULL )
+			{
+				int nLength = pDU->m_nLength;
+				if ( nLength > 4 )
+					nLength = 4;
+				pDU->Read( &nUptime, nLength );
+			}
 			if ( pVC != NULL )
 			{
 				CHAR szaVendor[ 4 ];
@@ -713,25 +728,29 @@ BOOL CG1Neighbour::OnPong(CG1Packet* pPacket)
 				sVendorCode.Format( _T("%s"), (LPCTSTR)szVendor);
 			}
 
-			if ( pUP != NULL && pGUE != NULL )
+			if ( pUP != NULL || pIPPs != NULL)
+			{
+				nTime = time(NULL);
+			}
+
+			if ( ( m_nNodeType == ntNode || m_nNodeType == ntHub ) && pUP != NULL )
 			{
 				sVendorCode.Trim( _T(" ") );
-				if ( HostCache.Gnutella1.CountHosts() < ( Settings.Gnutella1.HostCacheSize * 0.8 ) )
-				{
-					HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, nPort, 0,
-											( sVendorCode.GetLength() ? (LPCTSTR)sVendorCode : NULL ) );
-				}
-				else
-				{
-					CHostCacheHost* pCachedHost = HostCache.Gnutella1.Find( (IN_ADDR*)&nAddress );
-					if ( pCachedHost != NULL ) pCachedHost->Update( nPort, 0, ( sVendorCode.GetLength() ?
-																				(LPCTSTR)sVendorCode : NULL ) );
-				}
+				//if ( HostCache.Gnutella1.CountHosts() < ( Settings.Gnutella1.HostCacheSize * 0.8 ) )
+				//{
+					HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, nPort, nTime,
+						( sVendorCode.GetLength() ? (LPCTSTR)sVendorCode : NULL ), nUptime );
+				//}
+				//else
+				//{
+				//	CHostCacheHost* pCachedHost = HostCache.Gnutella1.Find( (IN_ADDR*)&nAddress );
+				//	if ( pCachedHost != NULL ) 
+				//		pCachedHost->Update( nPort, 0, ( sVendorCode.GetLength() ? (LPCTSTR)sVendorCode : NULL ), nUptime );
+				//}
 				theApp.Message( MSG_DEBUG, _T("Got %s host through pong marked with GGEP GUE and UP (%s:%i)"), 
 					(LPCTSTR)sVendorCode, (LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nAddress ) ), nPort ); 
 			}
 
-			CGGEPItem* pIPPs = pGGEP.Find( L"IPP", 6 );
 
 			// We got a response to SCP extension, add hosts to cache if IPP extension exists
 			if ( pIPPs != NULL )
@@ -750,7 +769,7 @@ BOOL CG1Neighbour::OnPong(CG1Packet* pPacket)
 						// used to have some IP:port check here, but removed because HostCache already have built-in check
 						theApp.Message( MSG_DEBUG, _T("Got Gnutella1 hosts through pong (%s:%i)"), 
 							(LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nIPPAddress ) ), nIPPPort ); 
-						HostCache.Gnutella1.Add( (IN_ADDR*)&nIPPAddress, nIPPPort, 0, NULL );
+						HostCache.Gnutella1.Add( (IN_ADDR*)&nIPPAddress, nIPPPort, nTime, NULL );
 					}
 				}
 			}
@@ -798,31 +817,12 @@ BOOL CG1Neighbour::OnPong(CG1Packet* pPacket)
 		return TRUE;
 	}
 
-	// If the IP address and port number in the pong is reachable
-	if ( ! bLocal && ! Network.IsFirewalledAddress( &nAddress, TRUE ) )
-	{
-		// If the pong hasn't hopped at all yet, and the address in it is the address of this remote computer
-		if ( pPacket->m_nHops == 0 && nAddress == m_pHost.sin_addr.S_un.S_addr )
-		{
-			// Copy the number of files and their total size into this CG1Neighbour object
-			m_nFileCount  = nFiles;
-			m_nFileVolume = nVolume;
-
-			// Add the IP address and port number to the Gnutella host cache of computers we can try to connect to
-			HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, nPort, 0, m_bShareaza ? SHAREAZA_VENDOR_T : NULL );
-
-		} // This pong packet wasn't made by the remote computer, just sent to us by it
-		else
-		{
-			// Add the IP address and port number to the Gnutella host cache of computers we can try to connect to
-			HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, nPort );
-		}
-	}
-
 	// Tell the neighbours object about this pong packet (do)
 	BYTE nHops = pPacket->m_nHops + 1;
 	nHops = min( nHops, PONG_NEEDED_BUFFER - 1u );
-	if ( ! bLocal ) Neighbours.OnG1Pong( this, (IN_ADDR*)&nAddress, nPort, nHops + 1, nFiles, nVolume );
+
+	if ( Neighbours.IsG1Ultrapeer() && ! bLocal )
+		Neighbours.OnG1Pong( this, (IN_ADDR*)&nAddress, nPort, nHops + 1, nFiles, nVolume );
 
 	// This method always returns true
 	return TRUE;

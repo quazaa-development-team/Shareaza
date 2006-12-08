@@ -52,8 +52,8 @@ protected:
 	
 // Operations
 public:
-	CHostCacheHost*	Add(IN_ADDR* pAddress, WORD nPort, DWORD tSeen = 0, LPCTSTR pszVendor = NULL);
-	BOOL			Add(LPCTSTR pszHost, DWORD tSeen = 0, LPCTSTR pszVendor = NULL);
+	CHostCacheHost*	Add(IN_ADDR* pAddress, WORD nPort, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0);
+	BOOL			Add(LPCTSTR pszHost, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0);
 	CHostCacheHost*	Find(IN_ADDR* pAddress) const;
 	BOOL			Check(CHostCacheHost* pHost) const;
 	void			Remove(CHostCacheHost* pHost);
@@ -68,7 +68,7 @@ public:
 	int				ImportMET(CFile* pFile);
 	int				LoadDefaultED2KServers();
 protected:
-	CHostCacheHost*	AddInternal(IN_ADDR* pAddress, WORD nPort, DWORD tSeen, LPCTSTR pszVendor);
+	CHostCacheHost*	AddInternal(IN_ADDR* pAddress, WORD nPort, DWORD tSeen, LPCTSTR pszVendor, DWORD nUptime = 0);
 	void			RemoveOldest();
 	
 // Inlines
@@ -112,6 +112,7 @@ public:
 	CString		m_sDescription;
 	DWORD		m_nTCPFlags;
 	DWORD		m_nUDPFlags;
+	BOOL		m_bCheckedLocally;
 
 // Attributes: Contact Times
 public:
@@ -124,6 +125,8 @@ public:
 	DWORD		m_tStats;			// ED2K stats UDP request
 	DWORD		m_tFailure;
 	DWORD		m_nFailures;
+	DWORD		m_nDailyUptime;
+	DWORD		m_tCheckTime;
 
 // Attributes: Query Keys
 public:
@@ -133,7 +136,7 @@ public:
 
 // Operations
 public:
-	void		Update(WORD nPort, DWORD tSeen = 0, LPCTSTR pszVendor = NULL);
+	void		Update(WORD nPort, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0);
 	CNeighbour*	ConnectTo(BOOL bAutomatic = FALSE);
 	CG1Packet*	ToG1Ping(int nTTL, const Hashes::Guid& oGUID);
 	CString		ToString() const;
@@ -174,8 +177,10 @@ public:
 	CHostCacheHost*	Find(IN_ADDR* pAddress) const;
 	BOOL			Check(CHostCacheHost* pHost) const;
 	void			Remove(CHostCacheHost* pHost);
-	void			OnFailure(IN_ADDR* pAddress, WORD nPort, bool bRemove, PROTOCOLID nProtocol);
-	void			OnSuccess(IN_ADDR* pAddress, WORD nPort, bool bUpdate, PROTOCOLID nProtocol );
+	void			OnFailure(IN_ADDR* pAddress, WORD nPort, 
+							  PROTOCOLID nProtocol=PROTOCOL_NULL, bool bRemove=true);
+	void			OnSuccess(IN_ADDR* pAddress, WORD nPort, 
+							  PROTOCOLID nProtocol=PROTOCOL_NULL, bool bUpdate=true);
 
 // Inlines
 public:

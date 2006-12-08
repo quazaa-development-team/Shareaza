@@ -598,7 +598,6 @@ void CNetwork::Disconnect()
 	pLock.Unlock();
 	
 	DiscoveryServices.Stop();
-	//FailedNeighbours.Clear();
 	
 	theApp.Message( MSG_SYSTEM, IDS_NETWORK_DISCONNECTED ); 
 	theApp.Message( MSG_DEFAULT, _T("") );
@@ -1273,10 +1272,8 @@ void CNetwork::OnQueryHits(CQueryHit* pHits)
 	pHits->Delete();
 }
 
-void CNetwork::UDPHostCache( IN_ADDR* pAddress, WORD nPort )
+void CNetwork::UDPHostCache(IN_ADDR* pAddress, WORD nPort)
 {
-	bool bNeedFreePeerSlot = Neighbours.IsG1Ultrapeer() ? true : false;
-
 	CG1Packet* pPing = CG1Packet::New( G1_PACKET_PING, 1, Hashes::Guid( MyProfile.oGUID ) );
 
 	CGGEPBlock pBlock;
@@ -1285,16 +1282,13 @@ void CNetwork::UDPHostCache( IN_ADDR* pAddress, WORD nPort )
 	pItem = pBlock.Add( L"SCP" );
 	pItem->UnsetCOBS();
 	pItem->UnsetSmall();
-	if ( bNeedFreePeerSlot ) 
-		pItem->WriteByte( 1 );
-	else
-		pItem->WriteByte( 0 );
+	pItem->WriteByte( Neighbours.IsG1Ultrapeer() ? 1 : 0 );
 
 	pBlock.Write( pPing );
 	Datagrams.Send( pAddress, nPort, pPing, TRUE, NULL, FALSE, TRUE );
 }
 
-void CNetwork::UDPKnownHubCache( IN_ADDR* pAddress, WORD nPort )
+void CNetwork::UDPKnownHubCache(IN_ADDR* pAddress, WORD nPort)
 {
 	CG2Packet* pKHLR = CG2Packet::New( G2_PACKET_KHL_REQ );
 	Datagrams.Send( pAddress, nPort, pKHLR, TRUE, NULL, FALSE, TRUE );

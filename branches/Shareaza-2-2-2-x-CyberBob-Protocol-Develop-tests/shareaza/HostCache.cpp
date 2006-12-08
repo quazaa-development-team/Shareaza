@@ -115,7 +115,7 @@ BOOL CHostCache::Save()
 
 void CHostCache::Serialize(CArchive& ar)
 {
-	int nVersion = 11;
+	int nVersion = 12;
 	
 	if ( ar.IsStoring() )
 	{
@@ -184,7 +184,7 @@ void CHostCache::Remove(CHostCacheHost* pHost)
 	}
 }
 
-void CHostCache::OnFailure(IN_ADDR* pAddress, WORD nPort, bool bRemove, PROTOCOLID nProtocol )
+void CHostCache::OnFailure(IN_ADDR* pAddress, WORD nPort, PROTOCOLID nProtocol, bool bRemove)
 {
 	for ( POSITION pos = m_pList.GetHeadPosition() ; pos ; )
 	{
@@ -194,7 +194,7 @@ void CHostCache::OnFailure(IN_ADDR* pAddress, WORD nPort, bool bRemove, PROTOCOL
 	}
 }
 
-void CHostCache::OnSuccess(IN_ADDR* pAddress, WORD nPort, bool bUpdate, PROTOCOLID nProtocol )
+void CHostCache::OnSuccess(IN_ADDR* pAddress, WORD nPort, PROTOCOLID nProtocol, bool bUpdate)
 {
 	for ( POSITION pos = m_pList.GetHeadPosition() ; pos ; )
 	{
@@ -267,7 +267,7 @@ void CHostCacheList::Clear()
 //////////////////////////////////////////////////////////////////////
 // CHostCacheList host add
 
-CHostCacheHost* CHostCacheList::Add(IN_ADDR* pAddress, WORD nPort, DWORD tSeen, LPCTSTR pszVendor)
+CHostCacheHost* CHostCacheList::Add(IN_ADDR* pAddress, WORD nPort, DWORD tSeen, LPCTSTR pszVendor, DWORD nUptime)
 {
 	// Don't add invalid addresses
 	if ( ! nPort ) 
@@ -283,19 +283,19 @@ CHostCacheHost* CHostCacheList::Add(IN_ADDR* pAddress, WORD nPort, DWORD tSeen, 
 	if ( ( Settings.Connection.IgnoreOwnIP ) && ( Network.m_pHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) )
 		return NULL;
 
-	// Check security settings, don't add blocked IPs
-	if ( /* FailedNeighbours.IsDenied( pAddress ) || */ Security.IsDenied( pAddress ) )
-		return NULL;
-
 	// check against IANA Reserved address.
 	if ( Network.IsReserved( pAddress ) )
 		return NULL;
 
+	// Check security settings, don't add blocked IPs
+	if ( Security.IsDenied( pAddress ) )
+		return NULL;
+
 	// Try adding it to the cache. (duplicates will be rejected)
-	return AddInternal( pAddress, nPort, tSeen, pszVendor );
+	return AddInternal( pAddress, nPort, tSeen, pszVendor, nUptime );
 }
 
-BOOL CHostCacheList::Add(LPCTSTR pszHost, DWORD tSeen, LPCTSTR pszVendor)
+BOOL CHostCacheList::Add(LPCTSTR pszHost, DWORD tSeen, LPCTSTR pszVendor, DWORD nUptime)
 {
 	CString strHost( pszHost );
 	
@@ -342,23 +342,24 @@ BOOL CHostCacheList::Add(LPCTSTR pszHost, DWORD tSeen, LPCTSTR pszVendor)
 	if ( ( Settings.Connection.IgnoreOwnIP ) && ( Network.m_pHost.sin_addr.S_un.S_addr == nAddress ) )
 		 return TRUE;
 
-	// Check security settings, don't add blocked IPs
-	if ( /* FailedNeighbours.IsDenied( (IN_ADDR*)&nAddress ) || */ Security.IsDenied( (IN_ADDR*)&nAddress ) )
-		 return TRUE;
-
 	// check against IANA Reserved address.
 	if ( Network.IsReserved( (IN_ADDR*)&nAddress ) )
+		return TRUE;
+
+	// Check security settings, don't add blocked IPs
+	if ( Security.IsDenied( (IN_ADDR*)&nAddress ) )
 		 return TRUE;
 
 	// Try adding it to the cache. (duplicates will be rejected)
-	AddInternal( (IN_ADDR*)&nAddress, (WORD)nPort, tSeen, pszVendor );
+	AddInternal( (IN_ADDR*)&nAddress, (WORD)nPort, tSeen, pszVendor, nUptime );
 	
 	return TRUE;
 }
 
 // This function actually add the remote client to the host cache. Private, but used by the public 
 // functions. No security checking, etc.
-CHostCacheHost* CHostCacheList::AddInternal(IN_ADDR* pAddress, WORD nPort, DWORD tSeen, LPCTSTR pszVendor)
+CHostCacheHost* CHostCacheList::AddInternal(IN_ADDR* pAddress, WORD nPort, 
+											DWORD tSeen, LPCTSTR pszVendor, DWORD nUptime)
 {
 	// Check if we already have the host
 	BYTE nHash	= pAddress->S_un.S_un_b.s_b1
@@ -390,7 +391,7 @@ CHostCacheHost* CHostCacheList::AddInternal(IN_ADDR* pAddress, WORD nPort, DWORD
 		
 		pHost->Reset( pAddress );
 	}
-	else if ( time( NULL ) - pHost->m_tFailure >= 180 )
+	else if ( time( NULL ) - pHost->m_tFailure >= 300 )
 	{
 		if ( pHost->m_pPrevTime )
 			pHost->m_pPrevTime->m_pNextTime = pHost->m_pNextTime;
@@ -420,7 +421,7 @@ CHostCacheHost* CHostCacheList::AddInternal(IN_ADDR* pAddress, WORD nPort, DWORD
 		m_pNewest = pHost;
 	}
 	
-	pHost->Update( nPort, tSeen, pszVendor );
+	pHost->Update( nPort, tSeen, pszVendor, nUptime );
 	m_nCookie++;
 	
 	return pHost;
@@ -534,37 +535,39 @@ void CHostCacheList::OnFailure(IN_ADDR* pAddress, WORD nPort, bool bRemove)
 		if ( pHost->m_pAddress.S_un.S_addr == pAddress->S_un.S_addr &&
 			 ( ! nPort || pHost->m_nPort == nPort ) )
 		{
+			pHost->m_nFailures++;
+
 			if ( pHost->m_bPriority ) return;
 			
-			/*
+			/////////////////////////////////////////////////////////
 			if ( pHost->m_pPrevTime )
 				pHost->m_pPrevTime->m_pNextTime = pHost->m_pNextTime;
 			else
 				m_pOldest = pHost->m_pNextTime;
-			
+
 			if ( pHost->m_pNextTime )
 				pHost->m_pNextTime->m_pPrevTime = pHost->m_pPrevTime;
 			else
 				m_pNewest = pHost->m_pPrevTime;
-			
+
 			pHost->m_pPrevTime = NULL;
 			pHost->m_pNextTime = m_pOldest;
-			
+
 			if ( m_pOldest )
 				m_pOldest->m_pPrevTime = pHost;
 			else
 				m_pNewest = pHost;
-			
+
 			m_pOldest = pHost;
-			
-			pHost->m_tFailure = time( NULL );
-			*/
-			if ( bRemove )
+
+			/////////////////////////////////////////////////////////
+
+			if ( bRemove || pHost->m_nFailures > 2 )
 				Remove( pHost );
 			else
 			{
 				pHost->m_tFailure = time( NULL );
-				pHost->m_nFailures++;
+				pHost->m_bCheckedLocally = TRUE;
 			}
 	
 			break;
@@ -591,6 +594,7 @@ void CHostCacheList::OnSuccess(IN_ADDR* pAddress, WORD nPort, bool bUpdate)
 		{
 			pHost->m_tFailure = 0;
 			pHost->m_nFailures = 0;
+			pHost->m_bCheckedLocally = TRUE;
 			if ( bUpdate )
 				pHost->Update( nPort );
 
@@ -599,18 +603,21 @@ void CHostCacheList::OnSuccess(IN_ADDR* pAddress, WORD nPort, bool bUpdate)
 	}
 }
 
-
 //////////////////////////////////////////////////////////////////////
 // CHostCacheList count
 
 DWORD CHostCacheList::CountHosts() const
 {
+	/*
 	DWORD nCount = 0;
 
 	for ( CHostCacheHost* pHost = GetNewest() ; pHost ; pHost = pHost->m_pPrevTime )
 		nCount++;
 
+	ASSERT( m_nHosts == nCount );
 	return ( nCount );
+	*/
+	return m_nHosts;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -657,7 +664,7 @@ void CHostCacheList::PruneOldHosts()
 		else // ed2k
 			nExpire = 0;
 
-		if ( ( nExpire ) && ( tNow - pHost->m_tSeen > nExpire ) || pHost->m_nFailures == 3 )
+		if ( ( nExpire ) && ( tNow - pHost->m_tSeen > nExpire ) || pHost->m_nFailures > 2 )
 		{
 			Remove( pHost );
 		}
@@ -871,8 +878,15 @@ int CHostCacheList::LoadDefaultED2KServers()
 // CHostCacheHost construction
 
 CHostCacheHost::CHostCacheHost()
+: m_nProtocol(PROTOCOL_NULL)
+, m_nPort(0), m_pVendor(NULL), m_bPriority(FALSE), m_nUserCount(0)
+, m_nUserLimit(0), m_nFileLimit(0), m_nTCPFlags(0), m_nUDPFlags(0)
+, m_tAdded(0), m_tSeen(0), m_tRetryAfter(0), m_tConnect(0)
+, m_tQuery(0), m_tAck(0), m_tStats(0), m_tFailure(0)
+, m_nFailures(0), m_nDailyUptime(0), m_tKeyTime(0)
+, m_nKeyValue(0), m_nKeyHost(0), m_pNextHash(NULL)
+, m_pPrevTime(NULL), m_pNextTime(NULL), m_bCheckedLocally(FALSE)
 {
-	m_pNextHash = m_pPrevTime = m_pNextTime = NULL;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -923,6 +937,8 @@ void CHostCacheHost::Serialize(CArchive& ar, int nVersion)
 
 		ar << m_tFailure;
 		ar << m_nFailures;
+		ar << m_bCheckedLocally;
+		ar << m_nDailyUptime;
 	}
 	else
 	{
@@ -988,6 +1004,12 @@ void CHostCacheHost::Serialize(CArchive& ar, int nVersion)
 			ar >> m_nFailures;
 		}
 
+		if ( nVersion >= 12 )
+		{
+			ar >> m_bCheckedLocally;
+			ar >> m_nDailyUptime;
+		}
+
 	}
 }
 
@@ -1022,15 +1044,21 @@ void CHostCacheHost::Reset(IN_ADDR* pAddress)
 	m_tKeyTime		= 0;
 	m_nKeyValue		= 0;
 	m_nKeyHost		= 0;
+
+	m_bCheckedLocally = TRUE;
 }
 
 //////////////////////////////////////////////////////////////////////
 // CHostCacheHost update
 
-void CHostCacheHost::Update(WORD nPort, DWORD tSeen, LPCTSTR pszVendor)
+void CHostCacheHost::Update(WORD nPort, DWORD tSeen, LPCTSTR pszVendor, DWORD nUptime)
 {
 	m_nPort		= nPort;
 	m_tSeen		= tSeen > 1 ? tSeen : static_cast< DWORD >( time( NULL ) );
+	if ( nUptime )
+	{
+		m_nDailyUptime = nUptime > 86400 ? 86400 : nUptime;
+	}
 	
 	if ( pszVendor != NULL )
 	{
@@ -1072,6 +1100,12 @@ CG1Packet* CHostCacheHost::ToG1Ping(int nTTL, const Hashes::Guid& oGUID)
 	else
 		pItem->WriteByte( 0 );
 
+	CGGEPItem * pLOC = pBlock.Add( L"LOC");
+	pLOC->UnsetCOBS();
+	pLOC->UnsetSmall();
+	pLOC->WriteUTF8( L"ja" );
+	pLOC->WriteByte( NULL );
+
 	pBlock.Write( pPing );
 	
 	return pPing;
@@ -1102,17 +1136,11 @@ BOOL CHostCacheHost::CanConnect(DWORD tNow) const
 	if ( ! m_tConnect ) return TRUE;
 	if ( m_pAddress.S_un.S_addr == Network.m_pHost.sin_addr.S_un.S_addr ) return FALSE;
 	if ( ! tNow ) tNow = static_cast< DWORD >( time( NULL ) );
-	if ( tNow - m_tFailure < 60 * 60 ) return FALSE;
+	if ( tNow - m_tFailure >= 300 ) return FALSE;
 
 	// Check is host expired
 	bool bShouldTry = tNow - m_tSeen < Settings.Gnutella1.HostExpire;
-	// Check if it failed today
-	CTime pFailureTime( (time_t)m_tFailure );
-	CTime pTimeToday( (time_t)tNow );
-	bShouldTry &= ( pTimeToday.GetYear() != pFailureTime.GetYear() ) || 
-				  ( pTimeToday.GetMonth() != pFailureTime.GetMonth() ) ||
-				  ( pTimeToday.GetDay() != pFailureTime.GetDay() );
-	bShouldTry &= m_nFailures != 3;
+	bShouldTry &= m_nFailures <= 3;
 
 	return bShouldTry && tNow - m_tConnect >= Settings.Gnutella.ConnectThrottle;
 }
@@ -1185,6 +1213,7 @@ void CHostCacheHost::SetKey(DWORD nKey, IN_ADDR* pHost)
 {
 	m_tAck		= 0;
 	m_nFailures	= 0;
+	m_tFailure	= 0;
 	m_tKeyTime	= nKey ? static_cast< DWORD >( time( NULL ) ) : 0;
 	m_nKeyValue	= nKey;
 	m_nKeyHost	= pHost && nKey ? pHost->S_un.S_addr : Network.m_pHost.sin_addr.S_un.S_addr;

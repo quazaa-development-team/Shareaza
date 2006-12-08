@@ -474,6 +474,7 @@ CString CPacket::ToASCII() const
 // Takes text that describes what happened
 void CPacket::Debug(LPCTSTR pszReason) const
 {
+	UNUSED_ALWAYS(pszReason);
 // Only include these lines in the program if it is being compiled in debug mode
 #ifdef _DEBUG
 
@@ -494,10 +495,6 @@ void CPacket::Debug(LPCTSTR pszReason) const
 	}
 
 	theApp.Message( MSG_DEBUG, LPCTSTR( strOutput ) );
-
-#else
-	pszReason;
-// Go back to including all the lines in the program
 #endif
 }
 

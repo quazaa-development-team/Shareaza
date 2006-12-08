@@ -101,7 +101,7 @@ CPongItem* CPongCache::PC_Add(CNeighbour* pNeighbour, IN_ADDR* pAddress, WORD nP
 
 	CPongItem* pItem = new CPongItem( pNeighbour, pAddress, nPort, nHops, nFiles, nVolume );
 
-	m_pCache.AddTail( pItem );
+	if ( pItem != NULL ) m_pCache.AddTail( pItem );
 
 	return pItem;
 }
@@ -167,12 +167,15 @@ CG1Packet* CPongItem::ToPacket(int nTTL, const Hashes::Guid& oGUID)
 {
 	CG1Packet* pPong = CG1Packet::New( G1_PACKET_PONG, nTTL, oGUID );
 
-	pPong->m_nHops = m_nHops;
+	if ( pPong != NULL )
+	{
+		pPong->m_nHops = m_nHops;
 
-	pPong->WriteShortLE( m_nPort );
-	pPong->WriteLongLE( *(DWORD*)&m_pAddress );
-	pPong->WriteLongLE( m_nFiles );
-	pPong->WriteLongLE( m_nVolume );
+		pPong->WriteShortLE( m_nPort );
+		pPong->WriteLongLE( *(DWORD*)&m_pAddress );
+		pPong->WriteLongLE( m_nFiles );
+		pPong->WriteLongLE( m_nVolume );
+	}
 
 	return pPong;
 }

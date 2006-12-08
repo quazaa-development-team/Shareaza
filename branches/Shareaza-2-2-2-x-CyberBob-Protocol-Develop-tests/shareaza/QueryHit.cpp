@@ -910,19 +910,11 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 					{
 						if ( pItemPos->m_nLength <= 8 )
 						{
-							DWORD nByteCount = 0;
 							QWORD nFileSize = 0;
-							BYTE nTempSize = 0;
 
-							while ( nByteCount < pItemPos->m_nLength )
-							{
-								nTempSize = pItemPos->ReadByte();
-								if ( nTempSize == 0 ) break;
-								nFileSize += (QWORD)nTempSize << ( 8 * nByteCount );
-								nByteCount++;
-							}
-
-							if ( nByteCount == ( pItemPos->m_nLength -1 ) )
+							pItemPos->Read( &nFileSize , pItemPos->m_nLength );
+							
+							if ( m_nSize != 0 )
 								m_nSize = nFileSize;
 							else
 								m_nSize = SIZE_UNKNOWN;

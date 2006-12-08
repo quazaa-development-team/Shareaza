@@ -195,15 +195,15 @@ void CNeighbour::Close(UINT nError)
 	// Remove this neighbour from the list of them
 	Neighbours.Remove( this );
 
-	// Actually close the socket connection to the remote computer
-	CConnection::Close();
-
 	// If this Close method was called with an error, among which IDS_CONNECTION_CLOSED counts
 	if ( nError )
 	{
 		// Report a voluntary default close, or an error
 		theApp.Message( bVoluntary ? MSG_DEFAULT : MSG_ERROR, nError, (LPCTSTR)m_sAddress );
 	}
+
+	// Actually close the socket connection to the remote computer
+	CConnection::Close();
 
 	// Delete this CNeighbour object, calling its destructor right now
 	delete this;
