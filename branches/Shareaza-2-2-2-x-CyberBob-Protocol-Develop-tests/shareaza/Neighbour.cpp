@@ -196,7 +196,7 @@ void CNeighbour::Close(UINT nError)
 	Neighbours.Remove( this );
 
 	// If this Close method was called with an error, among which IDS_CONNECTION_CLOSED counts
-	if ( nError )
+	if ( nError && nError != IDS_HANDSHAKE_REJECTED )
 	{
 		// Report a voluntary default close, or an error
 		theApp.Message( bVoluntary ? MSG_DEFAULT : MSG_ERROR, nError, (LPCTSTR)m_sAddress );
