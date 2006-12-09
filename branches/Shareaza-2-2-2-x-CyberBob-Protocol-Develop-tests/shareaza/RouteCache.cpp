@@ -1,10 +1,6 @@
 //
 // RouteCache.cpp
 //
-//	Date:			"$Date: 2006/03/31 15:22:51 $"
-//	Revision:		"$Revision: 1.92 $"
-//  Last change by:	"$Author: CyberBob $"
-//
 // Copyright (c) Shareaza Development Team, 2002-2005.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
@@ -48,12 +44,11 @@ const unsigned BUFFER_BLOCK_SIZE = 1024u;
 //////////////////////////////////////////////////////////////////////
 // CRouteCache construction
 
-CRouteCache::CRouteCache() 
+CRouteCache::CRouteCache()
 	: m_nSeconds( 60 * 20 )
 	, m_pRecent( &m_pTable[0] )
 	, m_pHistory ( &m_pTable[1] )
 {
-	m_bLocked	= FALSE;
 }
 
 CRouteCache::~CRouteCache()
@@ -61,17 +56,17 @@ CRouteCache::~CRouteCache()
 }
 
 //////////////////////////////////////////////////////////////////////
-// CRouteCache Protected operations
+// CRouteCache operations
 
-void CRouteCache::RC_SetDuration(DWORD nSeconds)
+void CRouteCache::SetDuration(DWORD nSeconds)
 {
 	m_nSeconds = nSeconds;
-	RC_Clear();
+	Clear();
 }
 
-BOOL CRouteCache::RC_Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour)
+BOOL CRouteCache::Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour)
 {
-	if ( CRouteCacheItem* pItem = RC_Lookup( oGUID ) )
+	if ( CRouteCacheItem* pItem = Lookup( oGUID ) )
 	{
 		pItem->m_pNeighbour = pNeighbour;
 		return FALSE;
@@ -91,9 +86,9 @@ BOOL CRouteCache::RC_Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour
 	return TRUE;
 }
 
-BOOL CRouteCache::RC_Add(const Hashes::Guid& oGUID, const SOCKADDR_IN* pEndpoint)
+BOOL CRouteCache::Add(const Hashes::Guid& oGUID, const SOCKADDR_IN* pEndpoint)
 {
-	if ( CRouteCacheItem* pItem = RC_Lookup( oGUID ) )
+	if ( CRouteCacheItem* pItem = Lookup( oGUID ) )
 	{
 		pItem->m_pNeighbour	= NULL;
 		pItem->m_pEndpoint	= *pEndpoint;
@@ -114,7 +109,7 @@ BOOL CRouteCache::RC_Add(const Hashes::Guid& oGUID, const SOCKADDR_IN* pEndpoint
 	return TRUE;
 }
 
-CRouteCacheItem* CRouteCache::RC_Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD tAdded)
+CRouteCacheItem* CRouteCache::Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD tAdded)
 {
 	SOCKADDR_IN cEndpoint;
 	if ( pEndpoint != NULL ) cEndpoint = *pEndpoint;
@@ -131,7 +126,7 @@ CRouteCacheItem* CRouteCache::RC_Add(const Hashes::Guid& oGUID, const CNeighbour
 	return m_pRecent->Add( oGUID, pNeighbour, pEndpoint != NULL ? &cEndpoint : NULL, tAdded );
 }
 
-CRouteCacheItem* CRouteCache::RC_Lookup(const Hashes::Guid& oGUID, CNeighbour** ppNeighbour, SOCKADDR_IN* pEndpoint)
+CRouteCacheItem* CRouteCache::Lookup(const Hashes::Guid& oGUID, CNeighbour** ppNeighbour, SOCKADDR_IN* pEndpoint)
 {
 	CRouteCacheItem* pItem = m_pRecent->Find( oGUID );
 
@@ -142,12 +137,12 @@ CRouteCacheItem* CRouteCache::RC_Lookup(const Hashes::Guid& oGUID, CNeighbour** 
 		if ( pItem == NULL )
 		{
 			if ( ppNeighbour ) *ppNeighbour = NULL;
-			if ( pEndpoint ) ZeroMemory( pEndpoint, sizeof(*pEndpoint) );
+			if ( pEndpoint ) ZeroMemory( pEndpoint, sizeof(SOCKADDR_IN) );
 
 			return NULL;
 		}
 
-		pItem = RC_Add( pItem->m_oGUID, pItem->m_pNeighbour,
+		pItem = Add( pItem->m_oGUID, pItem->m_pNeighbour,
 			pItem->m_pNeighbour ? NULL : &pItem->m_pEndpoint, pItem->m_tAdded );
 	}
 
@@ -157,17 +152,18 @@ CRouteCacheItem* CRouteCache::RC_Lookup(const Hashes::Guid& oGUID, CNeighbour** 
 	return pItem;
 }
 
-void CRouteCache::RC_Remove(CNeighbour* pNeighbour)
+void CRouteCache::Remove(CNeighbour* pNeighbour)
 {
 	m_pTable[0].Remove( pNeighbour );
 	m_pTable[1].Remove( pNeighbour );
 }
 
-void CRouteCache::RC_Clear()
+void CRouteCache::Clear()
 {
 	m_pTable[0].Clear();
 	m_pTable[1].Clear();
 }
+
 
 //////////////////////////////////////////////////////////////////////
 // CRouteCacheTable construction
@@ -177,7 +173,6 @@ CRouteCacheTable::CRouteCacheTable()
 	, m_nBuffer( 0 )
 	, m_nUsed( 0 )
 {
-	m_bLocked	= FALSE;
 	Clear();
 }
 
@@ -187,9 +182,9 @@ CRouteCacheTable::~CRouteCacheTable()
 }
 
 //////////////////////////////////////////////////////////////////////
-// CRouteCacheTable Protected operations
+// CRouteCacheTable operations
 
-CRouteCacheItem* CRouteCacheTable::RCT_Find(const Hashes::Guid& oGUID)
+CRouteCacheItem* CRouteCacheTable::Find(const Hashes::Guid& oGUID)
 {
 	WORD nGUID = 0, *ppGUID = (WORD*)&oGUID[ 0 ];
 	for ( int nIt = 8 ; nIt ; nIt-- ) nGUID = WORD( nGUID + *ppGUID++ );
@@ -204,7 +199,7 @@ CRouteCacheItem* CRouteCacheTable::RCT_Find(const Hashes::Guid& oGUID)
 	return NULL;
 }
 
-CRouteCacheItem* CRouteCacheTable::RCT_Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD nTime)
+CRouteCacheItem* CRouteCacheTable::Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD nTime)
 {
 	if ( m_nUsed == m_nBuffer || ! m_pFree ) return NULL;
 	
@@ -240,7 +235,7 @@ CRouteCacheItem* CRouteCacheTable::RCT_Add(const Hashes::Guid& oGUID, const CNei
 	return pItem;
 }
 
-void CRouteCacheTable::RCT_Remove(CNeighbour* pNeighbour)
+void CRouteCacheTable::Remove(CNeighbour* pNeighbour)
 {
 	CRouteCacheItem** pHash = m_pHash;
 
@@ -269,7 +264,7 @@ void CRouteCacheTable::RCT_Remove(CNeighbour* pNeighbour)
 	}
 }
 
-void CRouteCacheTable::RCT_Resize(DWORD nSize)
+void CRouteCacheTable::Resize(DWORD nSize)
 {
 	DWORD nPrevSize = m_nBuffer;
 
@@ -320,7 +315,7 @@ void CRouteCacheTable::RCT_Resize(DWORD nSize)
 	}
 }
 
-DWORD CRouteCacheTable::RCT_GetNextSize(DWORD nDesired)
+DWORD CRouteCacheTable::GetNextSize(DWORD nDesired)
 {
 	DWORD nSeconds = ( m_tLast - m_tFirst ) / 1000;
 	if ( ! nSeconds ) nSeconds = 1;
@@ -328,7 +323,7 @@ DWORD CRouteCacheTable::RCT_GetNextSize(DWORD nDesired)
 	return m_nBuffer * nDesired / nSeconds;
 }
 
-void CRouteCacheTable::RCT_Clear()
+void CRouteCacheTable::Clear()
 {
-	RCT_Resize( 0 );
+	Resize( 0 );
 }

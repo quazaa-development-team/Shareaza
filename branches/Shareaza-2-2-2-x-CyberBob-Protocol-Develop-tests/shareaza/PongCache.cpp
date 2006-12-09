@@ -38,70 +38,78 @@ static char THIS_FILE[]=__FILE__;
 CPongCache::CPongCache()
 {
 	m_nTime = 0;
-	m_bLocked = FALSE;
 }
 
 CPongCache::~CPongCache()
 {
-	PC_Clear();
+	Clear();
 }
 
 //////////////////////////////////////////////////////////////////////
 // CPongCache clear
 
-void CPongCache::PC_Clear()
+void CPongCache::Clear()
 {
-	if ( !m_pCache.IsEmpty() )
+	for ( POSITION pos = m_pCache.GetHeadPosition() ; pos ; )
 	{
-		for ( POSITION pos = m_pCache.GetHeadPosition() ; pos ; )
-		{
-			CPongItem* pItem = m_pCache.GetNext( pos );
-			delete pItem;
-		}
-
-		m_pCache.RemoveAll();
+		CPongItem* pItem = m_pCache.GetNext( pos );
+		delete pItem;
 	}
+
+	m_pCache.RemoveAll();
 
 	m_nTime = GetTickCount();
 }
 
-BOOL CPongCache::PC_ClearIfOld()
+BOOL CPongCache::ClearIfOld()
 {
 	if ( GetTickCount() - m_nTime >= Settings.Gnutella1.PongCache )
 	{
-		PC_Clear();
+		Clear();
 		return TRUE;
 	}
 
 	return FALSE;
 }
 
+void CPongCache::ClearNeighbour(CNeighbour* pNeighbour)
+{
+	for ( POSITION pos = m_pCache.GetHeadPosition() ; pos ; )
+	{
+		CPongItem* pItem = m_pCache.GetNext( pos );
+		if ( pItem->m_pNeighbour == pNeighbour )
+		{
+			delete pItem;
+			m_pCache.RemoveAt( pos );
+		}
+	}
+
+	m_nTime = GetTickCount();
+}
+
 //////////////////////////////////////////////////////////////////////
 // CPongCache add
 
-CPongItem* CPongCache::PC_Add(CNeighbour* pNeighbour, IN_ADDR* pAddress, WORD nPort, BYTE nHops, DWORD nFiles, DWORD nVolume)
+CPongItem* CPongCache::Add(CNeighbour* pNeighbour, IN_ADDR* pAddress, WORD nPort, BYTE nHops, DWORD nFiles, DWORD nVolume)
 {
-	if ( !m_pCache.IsEmpty() )
+	for ( POSITION pos = m_pCache.GetHeadPosition() ; pos ; )
 	{
-		for ( POSITION pos = m_pCache.GetHeadPosition() ; pos ; )
+		CPongItem* pItem = m_pCache.GetNext( pos );
+
+		if ( pItem->m_nPort != nPort ) continue;
+		if ( pItem->m_nHops != nHops ) continue;
+
+		if ( memcmp( &pItem->m_pAddress, pAddress, sizeof(IN_ADDR) ) == 0 )
 		{
-			CPongItem* pItem = m_pCache.GetNext( pos );
-
-			if ( pItem->m_nPort != nPort ) continue;
-			if ( pItem->m_nHops != nHops ) continue;
-
-			if ( memcmp( &pItem->m_pAddress, pAddress, sizeof(IN_ADDR) ) == 0 )
-			{
-				pItem->m_nFiles		= nFiles;
-				pItem->m_nVolume	= nVolume;
-				return pItem;
-			}
+			pItem->m_nFiles		= nFiles;
+			pItem->m_nVolume	= nVolume;
+			return pItem;
 		}
 	}
 
 	CPongItem* pItem = new CPongItem( pNeighbour, pAddress, nPort, nHops, nFiles, nVolume );
 
-	if ( pItem != NULL ) m_pCache.AddTail( pItem );
+	m_pCache.AddTail( pItem );
 
 	return pItem;
 }
@@ -109,21 +117,18 @@ CPongItem* CPongCache::PC_Add(CNeighbour* pNeighbour, IN_ADDR* pAddress, WORD nP
 //////////////////////////////////////////////////////////////////////
 // CPongCache lookup
 
-CPongItem* CPongCache::PC_Lookup(CNeighbour* pNotFrom, BYTE nHops, CList< CPongItem* >* pIgnore)
+CPongItem* CPongCache::Lookup(CNeighbour* pNotFrom, BYTE nHops, CList< CPongItem* >* pIgnore)
 {
-	if ( !m_pCache.IsEmpty() )
+	for ( POSITION pos = m_pCache.GetHeadPosition() ; pos ; )
 	{
-		for ( POSITION pos = m_pCache.GetHeadPosition() ; pos ; )
-		{
-			CPongItem* pItem = m_pCache.GetNext( pos );
+		CPongItem* pItem = m_pCache.GetNext( pos );
 
-			if ( pItem->m_nHops != nHops ) continue;
-			if ( pItem->m_pNeighbour == pNotFrom ) continue;
+		if ( pItem->m_nHops != nHops ) continue;
+		if ( pItem->m_pNeighbour == pNotFrom ) continue;
 
-			if ( pIgnore && pIgnore->Find( pItem ) ) continue;
+		if ( pIgnore && pIgnore->Find( pItem ) ) continue;
 
-			return pItem;
-		}
+		return pItem;
 	}
 
 	return NULL;
@@ -132,12 +137,12 @@ CPongItem* CPongCache::PC_Lookup(CNeighbour* pNotFrom, BYTE nHops, CList< CPongI
 //////////////////////////////////////////////////////////////////////
 // CPongCache list access
 
-POSITION CPongCache::PC_GetIterator() const
+POSITION CPongCache::GetIterator() const
 {
 	return m_pCache.GetHeadPosition();
 }
 
-CPongItem* CPongCache::PC_GetNext(POSITION& pos) const
+CPongItem* CPongCache::GetNext(POSITION& pos) const
 {
 	return m_pCache.GetNext( pos );
 }
