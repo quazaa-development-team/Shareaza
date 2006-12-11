@@ -120,10 +120,11 @@ BOOL CConnectionSettingsPage::OnInitDialog()
 	m_wndCanAccept.AddString( str );
 	LoadString( str, IDS_GENERAL_AUTO );
 	m_wndCanAccept.AddString( str );
+	m_wndCanAccept.AddString( _T("TCP-Only") );
+	m_wndCanAccept.AddString( _T("UDP-Only") );
 
 	m_wndCanAccept.SetCurSel( Settings.Connection.FirewallStatus );
 
-	//m_bCanAccept			= Settings.Connection.FirewallStatus == CONNECTION_OPEN;
 	m_sInHost				= Settings.Connection.InHost;
 	m_bInRandom				= Settings.Connection.RandomPort;
 	m_nInPort				= m_bInRandom ? 0 : Settings.Connection.InPort;
@@ -141,6 +142,7 @@ BOOL CConnectionSettingsPage::OnInitDialog()
 	char mib[ sizeof(MIB_IPADDRTABLE) + 32 * sizeof(MIB_IPADDRROW) ];
 	ULONG nSize = sizeof(mib);
 	PMIB_IPADDRTABLE ipAddr = (PMIB_IPADDRTABLE)mib;
+	DWORD nIndexCount = 1;
 
 	if ( GetIpAddrTable( ipAddr, &nSize, TRUE ) == NO_ERROR )
 	{
@@ -160,8 +162,9 @@ BOOL CConnectionSettingsPage::OnInitDialog()
 				( ( ip & 0x00ff00 ) >> 8 ), ( ( ip & 0xff0000 ) >> 16 ),
 				( ip >> 24 ) );
 
-			m_wndInHost.AddString( (LPCTSTR)strIP );
-			m_wndOutHost.AddString( (LPCTSTR)strIP );
+			m_wndInHost.InsertString( nIndexCount, (LPCTSTR)strIP );
+			m_wndOutHost.InsertString( nIndexCount, (LPCTSTR)strIP );
+			nIndexCount++;
 		}
 	}
 
@@ -267,6 +270,9 @@ void CConnectionSettingsPage::OnOK()
 
 	if ( m_sInHost.CompareNoCase( strAutomatic ) == 0 )
 		m_sInHost.Empty();
+	else
+		m_bInBind = TRUE;
+
 	if ( m_sOutHost.CompareNoCase( strAutomatic ) == 0 )
 		m_sOutHost.Empty();
 
