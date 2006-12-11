@@ -660,6 +660,9 @@ BOOL CDownload::Save(BOOL bFlush)
 							// File error all the time, when Shareaza gets exit before the download complete(Complete download might
 							// have missing Chunk anyway... so the downloaded file will be broken most of times.)
 							// To solve this problem, need some FileExistance check is required.
+	if ( m_sSafeName.IsEmpty() )
+		m_sSafeName = CDownloadTask::SafeFilename( m_sDisplayName.Right( 64 ) );
+
 	::DeleteFile( m_sDiskName + _T(".sd.sav") );
 	
 	if ( ! pFile.Open( m_sDiskName + _T(".sd.sav"),

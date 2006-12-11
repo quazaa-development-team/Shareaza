@@ -708,10 +708,9 @@ BOOL CG1Neighbour::OnPong(CG1Packet* pPacket)
 			CGGEPItem* pIPPs = pGGEP.Find( L"IPP", 6 );
 			// Read daily uptime
 			CGGEPItem* pDU = pGGEP.Find( L"DU", 1 );
-			CString sVendorCode;
+			CString strVendorCode;
 			DWORD nUptime = 0;
-			time_t nTime = NULL;
-			
+						
 			if ( pDU != NULL )
 			{
 				int nLength = pDU->m_nLength;
@@ -725,30 +724,25 @@ BOOL CG1Neighbour::OnPong(CG1Packet* pPacket)
 				pVC->Read( szaVendor,4 );
 				TCHAR szVendor[5] = { szaVendor[0], szaVendor[1], szaVendor[2], szaVendor[3], 0 };
 
-				sVendorCode.Format( _T("%s"), (LPCTSTR)szVendor);
-			}
-
-			if ( pUP != NULL || pIPPs != NULL)
-			{
-				nTime = time(NULL);
+				strVendorCode.Format( _T("%s"), (LPCTSTR)szVendor);
 			}
 
 			if ( ( m_nNodeType == ntNode || m_nNodeType == ntHub ) && pUP != NULL )
 			{
-				sVendorCode.Trim( _T(" ") );
+				strVendorCode.Trim( _T(" ") );
 				//if ( HostCache.Gnutella1.CountHosts() < ( Settings.Gnutella1.HostCacheSize * 0.8 ) )
 				//{
-					HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, nPort, nTime,
-						( sVendorCode.GetLength() ? (LPCTSTR)sVendorCode : NULL ), nUptime );
+					HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, nPort, Network.m_nNetworkGlobalTime,
+						( strVendorCode.GetLength() ? (LPCTSTR)strVendorCode : NULL ), nUptime );
 				//}
 				//else
 				//{
 				//	CHostCacheHost* pCachedHost = HostCache.Gnutella1.Find( (IN_ADDR*)&nAddress );
 				//	if ( pCachedHost != NULL ) 
-				//		pCachedHost->Update( nPort, 0, ( sVendorCode.GetLength() ? (LPCTSTR)sVendorCode : NULL ), nUptime );
+				//		pCachedHost->Update( nPort, 0, ( strVendorCode.GetLength() ? (LPCTSTR)strVendorCode : NULL ), nUptime );
 				//}
 				theApp.Message( MSG_DEBUG, _T("Got %s host through pong marked with GGEP GUE and UP (%s:%i)"), 
-					(LPCTSTR)sVendorCode, (LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nAddress ) ), nPort ); 
+					(LPCTSTR)strVendorCode, (LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nAddress ) ), nPort ); 
 			}
 
 
@@ -769,10 +763,11 @@ BOOL CG1Neighbour::OnPong(CG1Packet* pPacket)
 						// used to have some IP:port check here, but removed because HostCache already have built-in check
 						theApp.Message( MSG_DEBUG, _T("Got Gnutella1 hosts through pong (%s:%i)"), 
 							(LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nIPPAddress ) ), nIPPPort ); 
-						HostCache.Gnutella1.Add( (IN_ADDR*)&nIPPAddress, nIPPPort, nTime, NULL );
+						HostCache.Gnutella1.Add( (IN_ADDR*)&nIPPAddress, nIPPPort, Network.m_nNetworkGlobalTime, NULL );
 					}
 				}
 			}
+
 			if ( pPacket->Hop() ) // Calling Hop makes sure TTL is 2+ and then moves a count from TTL to hops
 			{
 				// Find the CG1Neighbour object that created this pong packet (do)

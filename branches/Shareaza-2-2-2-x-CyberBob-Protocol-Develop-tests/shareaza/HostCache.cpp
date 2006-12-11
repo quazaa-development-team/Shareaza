@@ -312,8 +312,7 @@ BOOL CHostCacheList::Add(LPCTSTR pszHost, DWORD tSeen, LPCTSTR pszVendor, DWORD 
 		
 		tSeen = TimeFromString( strTime );
 
-		time_t tNow;
-		time( &tNow );
+		time_t tNow = Network.m_nNetworkGlobalTime;
 		if ( tNow < (time_t)tSeen ) 
 			tSeen = tNow;
 	}
@@ -391,7 +390,7 @@ CHostCacheHost* CHostCacheList::AddInternal(IN_ADDR* pAddress, WORD nPort,
 		
 		pHost->Reset( pAddress );
 	}
-	else if ( time( NULL ) - pHost->m_tFailure >= 300 )
+	else if ( Network.m_nNetworkGlobalTime - pHost->m_tFailure >= 300 )
 	{
 		if ( pHost->m_pPrevTime )
 			pHost->m_pPrevTime->m_pNextTime = pHost->m_pNextTime;
@@ -539,7 +538,6 @@ void CHostCacheList::OnFailure(IN_ADDR* pAddress, WORD nPort, bool bRemove)
 
 			if ( pHost->m_bPriority ) return;
 			
-			/////////////////////////////////////////////////////////
 			if ( pHost->m_pPrevTime )
 				pHost->m_pPrevTime->m_pNextTime = pHost->m_pNextTime;
 			else
@@ -559,15 +557,13 @@ void CHostCacheList::OnFailure(IN_ADDR* pAddress, WORD nPort, bool bRemove)
 				m_pNewest = pHost;
 
 			m_pOldest = pHost;
-
-			/////////////////////////////////////////////////////////
-
+			
 			if ( bRemove || pHost->m_nFailures > 2 )
 				Remove( pHost );
 			else
 			{
-				pHost->m_tFailure = time( NULL );
-				pHost->m_bCheckedLocally = TRUE;
+				pHost->m_tFailure = Network.m_nNetworkGlobalTime;
+				pHost->m_bCheckedLocally = FALSE;
 			}
 	
 			break;
@@ -612,7 +608,10 @@ DWORD CHostCacheList::CountHosts() const
 	DWORD nCount = 0;
 
 	for ( CHostCacheHost* pHost = GetNewest() ; pHost ; pHost = pHost->m_pPrevTime )
-		nCount++;
+	{
+		if ( pHost->m_nFailures == 0 && pHost->m_bCheckedLocally )
+			nCount++;
+	}
 
 	ASSERT( m_nHosts == nCount );
 	return ( nCount );
@@ -1031,7 +1030,7 @@ void CHostCacheHost::Reset(IN_ADDR* pAddress)
 	m_nUDPFlags		= 0;
 	m_nTCPFlags		= 0;
 	
-	m_tAdded		= GetTickCount();
+	m_tAdded		= Network.m_nNetworkGlobalTickCount;
 	m_tSeen			= 0;
 	m_tRetryAfter	= 0;
 	m_tConnect		= 0;
@@ -1045,7 +1044,7 @@ void CHostCacheHost::Reset(IN_ADDR* pAddress)
 	m_nKeyValue		= 0;
 	m_nKeyHost		= 0;
 
-	m_bCheckedLocally = TRUE;
+	m_bCheckedLocally = FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1054,7 +1053,7 @@ void CHostCacheHost::Reset(IN_ADDR* pAddress)
 void CHostCacheHost::Update(WORD nPort, DWORD tSeen, LPCTSTR pszVendor, DWORD nUptime)
 {
 	m_nPort		= nPort;
-	m_tSeen		= tSeen > 1 ? tSeen : static_cast< DWORD >( time( NULL ) );
+	m_tSeen		= tSeen > 1 ? tSeen : Network.m_nNetworkGlobalTime;
 	if ( nUptime )
 	{
 		m_nDailyUptime = nUptime > 86400 ? 86400 : nUptime;
@@ -1077,8 +1076,7 @@ void CHostCacheHost::Update(WORD nPort, DWORD tSeen, LPCTSTR pszVendor, DWORD nU
 
 CNeighbour* CHostCacheHost::ConnectTo(BOOL bAutomatic)
 {
-	m_tConnect = static_cast< DWORD >( time( NULL ) );
-	if ( bAutomatic && Network.IsFirewalledAddress( &m_pAddress, TRUE ) ) return NULL;
+	m_tConnect = Network.m_nNetworkGlobalTime;
 	return Neighbours.ConnectTo( &m_pAddress, m_nPort, m_nProtocol, bAutomatic );
 }
 
@@ -1135,12 +1133,12 @@ BOOL CHostCacheHost::CanConnect(DWORD tNow) const
 {
 	if ( ! m_tConnect ) return TRUE;
 	if ( m_pAddress.S_un.S_addr == Network.m_pHost.sin_addr.S_un.S_addr ) return FALSE;
-	if ( ! tNow ) tNow = static_cast< DWORD >( time( NULL ) );
+	if ( ! tNow ) tNow = Network.m_nNetworkGlobalTime;
 	if ( tNow - m_tFailure >= 300 ) return FALSE;
 
 	// Check is host expired
 	bool bShouldTry = tNow - m_tSeen < Settings.Gnutella1.HostExpire;
-	bShouldTry &= m_nFailures <= 3;
+	bShouldTry &= m_nFailures < 3;
 
 	return bShouldTry && tNow - m_tConnect >= Settings.Gnutella.ConnectThrottle;
 }
@@ -1150,7 +1148,7 @@ BOOL CHostCacheHost::CanConnect(DWORD tNow) const
 
 BOOL CHostCacheHost::CanQuote(DWORD tNow) const
 {
-	if ( ! tNow ) tNow = static_cast< DWORD >( time( NULL ) );
+	if ( ! tNow ) tNow = Network.m_nNetworkGlobalTime;
 	return tNow - m_tSeen < Settings.Gnutella2.HostCurrent;
 }
 
@@ -1168,7 +1166,7 @@ BOOL CHostCacheHost::CanQuery(DWORD tNow) const
 		if ( ! Settings.eDonkey.ServerWalk ) return FALSE;
 		
 		// Get the time if not supplied
-		if ( 0 == tNow ) tNow = static_cast< DWORD >( time( NULL ) );
+		if ( 0 == tNow ) tNow = Network.m_nNetworkGlobalTime;
 		
 		// Retry After
 		if ( 0 != m_tRetryAfter && tNow < m_tRetryAfter ) return FALSE;
@@ -1188,7 +1186,7 @@ BOOL CHostCacheHost::CanQuery(DWORD tNow) const
 		if ( 0 != m_tAck ) return FALSE;
 		
 		// Get the time if not supplied
-		if ( 0 == tNow ) tNow = static_cast< DWORD >( time( NULL ) );
+		if ( 0 == tNow ) tNow = Network.m_nNetworkGlobalTime;
 		
 		// Must be a recently seen (current) host
 		if ( ( tNow - m_tSeen ) > Settings.Gnutella2.HostCurrent ) return FALSE;
@@ -1214,7 +1212,7 @@ void CHostCacheHost::SetKey(DWORD nKey, IN_ADDR* pHost)
 	m_tAck		= 0;
 	m_nFailures	= 0;
 	m_tFailure	= 0;
-	m_tKeyTime	= nKey ? static_cast< DWORD >( time( NULL ) ) : 0;
+	m_tKeyTime	= nKey ? Network.m_nNetworkGlobalTime : 0;
 	m_nKeyValue	= nKey;
 	m_nKeyHost	= pHost && nKey ? pHost->S_un.S_addr : Network.m_pHost.sin_addr.S_un.S_addr;
 }

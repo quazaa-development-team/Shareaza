@@ -470,7 +470,10 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 		//if ( bAutoConnect && !Settings.Discovery.DisableAutoQuery ) DiscoveryServices.Execute( TRUE );
 		return TRUE;
 	}
-	
+
+	m_nNetworkGlobalTime = static_cast<DWORD>( time( NULL ) );
+	m_nNetworkGlobalTickCount = GetTickCount();
+
 	// Begin network startup
 	theApp.Message( MSG_SYSTEM, IDS_NETWORK_STARTUP );
 
@@ -596,7 +599,10 @@ void CNetwork::Disconnect()
 	}
 	
 	pLock.Unlock();
-	
+
+	m_nNetworkGlobalTime = static_cast<DWORD>( time( NULL ) );
+	m_nNetworkGlobalTickCount = GetTickCount();
+
 	DiscoveryServices.Stop();
 	
 	theApp.Message( MSG_SYSTEM, IDS_NETWORK_DISCONNECTED ); 
@@ -858,16 +864,18 @@ void CNetwork::OnRun()
 	DWORD m_tUPnP = GetTickCount();
 	while ( m_bEnabled )
 	{
-		Sleep( 50 );
-		WaitForSingleObject( m_pWakeup, 100 );
-	
+		WaitForSingleObject( m_pWakeup, 150 );
+
+		m_nNetworkGlobalTime = static_cast<DWORD>( time( NULL ) );
+		m_nNetworkGlobalTickCount = GetTickCount();
+
 		if ( ! theApp.m_bLive ) continue;
 		if ( theApp.m_pUPnPFinder && theApp.m_pUPnPFinder->IsAsyncFindRunning() )
 		{
 			// If the UPnP device host service hangs we can do nothing.
 			// In this situation only reboot helps since network thread stucks
 			// when we try to kill or reset the finder.
-			if ( GetTickCount() - m_tUPnP < 30000 )
+			if ( m_nNetworkGlobalTickCount - m_tUPnP < 30000 )
 				continue;
 			else
 			{
@@ -892,7 +900,7 @@ void CNetwork::OnRun()
 
 					theApp.Message( MSG_SYSTEM, _T("Making a firewall test for %s, port %lu"), (CString)inet_ntoa( pHost.sin_addr ), pHost.sin_port );
 					Neighbours.ConnectTo( (IN_ADDR*)&pHost.sin_addr, pHost.sin_port, PROTOCOL_G2, FALSE, FALSE, TRUE );
-					m_tLastFirewallTest = GetTickCount();
+					m_tLastFirewallTest = m_nNetworkGlobalTickCount;
 
                     m_FWTestQueue.RemoveHead();
 				}	

@@ -82,6 +82,8 @@ protected:
 	CMap< HANDLE, HANDLE, ResolveStruct*, ResolveStruct* > m_pLookups;
 public:
 	CITMQueue		m_pMessageQueue;
+	DWORD			m_nNetworkGlobalTime;
+	DWORD			m_nNetworkGlobalTickCount;
 
 public:
 	class CITMSendPush : CITMQueue::CITMItem

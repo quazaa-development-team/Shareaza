@@ -49,7 +49,7 @@ static char THIS_FILE[]=__FILE__;
 
 // Make a new CShakeNeighbour object
 CShakeNeighbour::CShakeNeighbour() : CNeighbour( PROTOCOL_NULL ), // Call the CNeighbour constructor first, with no protocol
-// Set member variables that record headers to false
+	// Set member variables that record headers to false
 m_bSentAddress(FALSE),			// We haven't told the remote computer "Listen-IP: 1.2.3.4:5"
 m_bG1Send(FALSE),				// The remote computer hasn't said "Content-Type: application/x-gnutella-packets" yet
 m_bG1Accept(FALSE),				// The remote computer hasn't said "Accept: application/x-gnutella-packets" yet
@@ -62,8 +62,8 @@ m_bUltraPeerSet(TS_UNKNOWN),	// The remote computer hasn't told us if it's ultra
 m_bUltraPeerNeeded(TS_UNKNOWN),	// The remote computer hasn't told us if it needs more ultra connections yet
 m_bUltraPeerLoaded(TS_UNKNOWN),	// May not be in use (do)
 m_nDelayCloseReason(0),
-//ToDo: Check this - G1 setting?
-// Set m_bCanDeflate to true if the checkboxes in Shareaza Settings allow us to send and receive compressed data
+	//ToDo: Check this - G1 setting?
+	// Set m_bCanDeflate to true if the checkboxes in Shareaza Settings allow us to send and receive compressed data
 m_bCanDeflate( Neighbours.IsG2Leaf() ? ( Settings.Gnutella.DeflateHub2Hub || Settings.Gnutella.DeflateLeaf2Hub ) 
 : ( Settings.Gnutella.DeflateHub2Hub || Settings.Gnutella.DeflateHub2Leaf ) )
 {
@@ -268,12 +268,15 @@ void CShakeNeighbour::OnDropped(BOOL /*bError*/)
 {
 	// We tried to connect the socket, but are still waiting for the socket connection to be made
 	if ( m_nState == nrsConnecting )
-		Close( IDS_CONNECTION_REFUSED );
+	{
+		theApp.Message( MSG_DEBUG, IDS_CONNECTION_REFUSED, (LPCTSTR)m_sAddress, _T("Unknown") );
+		DelayClose( IDS_CONNECTION_REFUSED );
+	}
 	else
 	{
 		// We are somewhere else in the chain of connecting and doing the handshake
 		// Connection to node has succeeded but was dropped.
-		Close( IDS_CONNECTION_DROPPED );
+		DelayClose( IDS_CONNECTION_DROPPED );
 	}
 }
 
@@ -1505,7 +1508,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG1()
 	// The remote computer started with "GNUTELLA/0.6", but did not say "200 OK"
 	if ( m_nState == nrsRejected )
 	{
-		Close( 0 );   // Don't specify an error
+		DelayClose( IDS_HANDSHAKE_REJECTED );
 		return FALSE; // Return false all the way back to CHandshakes::RunHandshakes, which will delete this object
 
 	} // We've been reading response headers from a remote computer that contacted us

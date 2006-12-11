@@ -49,18 +49,3 @@ M http://gwc.wodi.org/skulls.php
 D http://www.gruk.org/server.met
 D http://www.de-site.de/ed2k/koeln.met
 D http://www.emule-server.de/server.met/min/server.met
-#
-# Keep these comments at the end
-# Last updated 2nd - November, 2006
-#
-# Be sure to have at least one link to a .met file and four gwebcache
-# links or else they'll keep getting added every time they're removed
-#
-# A letter and space must precede each link to indicate the type of service
-# D = eDonkey server.met file, M = multinetwork gwebcache,
-# 2 = Gnutella 2 gwebcache, 1 = Gnutella gwebcache
-# X = banned, U = BootStrap(uhc, ukhl, gnutella1 host, gnutella2 host)
-#
-# If you make changes to this file that cause problems for you
-# Then just delete the file and Shareaza will use internal defaults
-# Or get the latest at http://svn.sourceforge.net/viewvc/*checkout*/shareaza/trunk/Data/DefaultServices.dat

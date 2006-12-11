@@ -194,7 +194,6 @@ void CPacket::WriteString(LPCTSTR pszString, BOOL bNull)
 	// Find out how many ANSI bytes the wide characters will become when converted
 	int nByte = WideCharToMultiByte(
 		CP_ACP,    // Use the ANSI code page
-				   // NOTE: CP_ACP is local ANSI codepage, not always ASCII(codepage 437)
 		0,         // No special flags
 		pszString, // Wide characters to convert
 		-1,        // The wide character text is null terminated, and the null terminator will be converted into a wide null terminator
@@ -214,7 +213,6 @@ void CPacket::WriteString(LPCTSTR pszString, BOOL bNull)
 	// Convert the wide characters into bytes of ANSI text
 	WideCharToMultiByte(
 		CP_ACP,    // Use the ANSI code page
-				   // NOTE: CP_ACP is local ANSI codepage, not always ASCII(codepage 437)
 		0,         // No special flags
 		pszString, // Wide characters to convert
 		-1,        // The wide character text is null terminated
@@ -242,7 +240,6 @@ int CPacket::GetStringLen(LPCTSTR pszString) const
 	int nLength = static_cast< int >( _tcslen( pszString ) ); // Same as lstrlen, doesn't include null terminator
 
 	// Find out how many ANSI bytes the text would convert into, and return that number
-	// NOTE: CP_ACP is local ANSI codepage, not always ASCII(codepage 437)
 	nLength = WideCharToMultiByte( CP_ACP, 0, pszString, nLength, NULL, 0, NULL, NULL );
 	return nLength;
 }

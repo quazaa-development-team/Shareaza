@@ -134,6 +134,19 @@ CPongItem* CPongCache::Lookup(CNeighbour* pNotFrom, BYTE nHops, CList< CPongItem
 	return NULL;
 }
 
+CPongItem* CPongCache::Lookup(CNeighbour* pFrom)
+{
+	for ( POSITION pos = m_pCache.GetHeadPosition() ; pos ; )
+	{
+		CPongItem* pItem = m_pCache.GetNext( pos );
+
+		if ( pItem->m_pNeighbour == pFrom )
+			return pItem;
+	}
+
+	return NULL;
+}
+
 //////////////////////////////////////////////////////////////////////
 // CPongCache list access
 

@@ -38,6 +38,7 @@
 #include "GGEP.h"
 #include "VendorCache.h"
 #include "RouteCache.h"
+#include "Security.h"
 
 #include "SHA.h"
 #include "TigerTree.h"
@@ -372,7 +373,6 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops, SOCKADDR_IN* p
 				}
 				nPrevHubAddress = pHub.sin_addr.S_un.S_addr;
 				nPrevHubPort = pHub.sin_port;
-
 				oHubList.push_back(pHub);
 
 			}
@@ -507,7 +507,7 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops, SOCKADDR_IN* p
 		
 		pPacket->Read( oSearchID );
 		oSearchID.validate();
-
+		
 		if ( ! bPush ) bPush = ( nPort == 0 || Network.IsFirewalledAddress( &nAddress ) );
 		
 		DWORD nIndex = 0;
@@ -797,13 +797,14 @@ BOOL CQueryHit::ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat,
 		{
 			int nLength = pItem->m_nLength;
 			SOCKADDR_IN pPushProxy;
-			WORD Port;
+			WORD nPort = 0;
 			for (;nLength >=6 ; nLength--)
 			{
 				pItem->Read(&pPushProxy.sin_addr, 4);
-				pItem->Read(&Port,2);
-				pPushProxy.sin_port = htons ( Port );
+				pItem->Read(&nPort,2);
+				pPushProxy.sin_port = htons ( nPort );
 				oPushProxyList->push_back(pPushProxy);
+				nPort = 0;
 			}
 		}
 	}

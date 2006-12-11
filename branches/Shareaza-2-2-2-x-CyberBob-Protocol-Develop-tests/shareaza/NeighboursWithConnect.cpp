@@ -49,19 +49,19 @@ static char THIS_FILE[]=__FILE__;
 
 // CNeighboursWithConnect adds an array that needs to be filled with 0s when the program creates its CNeighbours object
 CNeighboursWithConnect::CNeighboursWithConnect() :
-m_tModeCheck(0)
+// We're not acting as a hub/ultrapeer or leaf on Gnutella or Gnutella2 yet
+m_bG2Hub(FALSE),
+m_bG2Leaf(FALSE),
+m_bG1Ultrapeer(FALSE),
+m_bG1Leaf(FALSE),
+m_tHubG2Promotion(0),	// G2Hub promotion time (TIME)
+m_tModeCheck(0)			// Node state check for G2Hub/G2Leaf, G1Ultrapeer/G1Leaf (TickCount)
 {
 	// Zero the tick counts in m_tPresent, we haven't connected to a hub for any network yet
 	ZeroMemory( m_tPresent, sizeof(m_tPresent) );
-
-	// We're not acting as a hub or leaf on Gnutella or Gnutella2 yet
-	m_bG2Leaf			= FALSE;
-	m_bG2Hub			= FALSE;
-	m_bG1Leaf			= FALSE;
-	m_bG1Ultrapeer		= FALSE;
+	// Zero clear the connection count array(hold number of connection for each Protocol/NodeType in array)
 	ZeroMemory( m_nCount, sizeof( m_nCount ) );
 	ZeroMemory( m_nLimit, sizeof( m_nLimit ) );
-	m_tHubG2Promotion	= 0;
 }
 
 // CNeighboursWithConnect doesn't add anything to the CNeighbours inheritance column that needs to be cleaned up
@@ -173,6 +173,7 @@ CNeighbour* CNeighboursWithConnect::ConnectTo(
 	{
 		// Make a new CShakeNeighbour object, connect it to the IP address, and return a pointer to it
 		CShakeNeighbour* pNeighbour = new CShakeNeighbour();
+
 		if ( pNeighbour->ConnectTo( pAddress, nPort, bAutomatic, bNoUltraPeer, bFirewallTest ) ) // Started connecting to a Gnutella or Gnutella2 neighbour
 		{
 			// Started connecting to a G1/G2 neighbour
@@ -325,7 +326,7 @@ DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bDebug)
 	}
 
 	// We are running as a Gnutella2 leaf right now
-	if ( IsG2Leaf() )
+	if (  FALSE && IsG2Leaf() )
 	{
 		// We can never be a hub because we are a leaf (do)
 		if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: leaf") );
@@ -584,7 +585,7 @@ DWORD CNeighboursWithConnect::IsG1UltrapeerCapable(BOOL bDebug)
 	}
 
 	// We are running as a Gnutella leaf right now
-	if ( IsG1Leaf() )
+	if ( FALSE && IsG1Leaf() )
 	{
 		// We can never be an ultrapeer because we are a leaf (do)
 		if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: leaf") );
@@ -1057,8 +1058,8 @@ void CNeighboursWithConnect::Maintain()
 
 	// Get the time
 
-	DWORD tTimer = GetTickCount();							// The tick count (milliseconds)
-	DWORD tNow   = static_cast< DWORD >( time( NULL ) );	// The time (in seconds) 
+	DWORD tTimer = Network.m_nNetworkGlobalTickCount;		// The tick count (milliseconds)
+	DWORD tNow   = Network.m_nNetworkGlobalTime;			// The time (in seconds) 
 
 	// Don't initiate neighbour connections too quickly if connections are limited
 	if ( ( Settings.Connection.ConnectThrottle != 0 ) && ( tTimer >= Network.m_tLastConnect ) )
@@ -1101,7 +1102,7 @@ void CNeighboursWithConnect::Maintain()
 	}
 	*/
 
-	if ( m_tModeCheck == 0 || ( tTimer - m_tModeCheck ) > ( 20 * 1000 ) )
+	if ( m_tModeCheck == 0 || ( tTimer - m_tModeCheck ) > 20000 )
 	{
 		if ( m_nCount[PROTOCOL_G2][ntLeaf] || IsG2HubCapable() )
 		{
@@ -1284,7 +1285,7 @@ void CNeighboursWithConnect::Maintain()
 			if ( nProtocol != PROTOCOL_ED2K )
 			{
 				// For Gnutella and Gnutella2, try connection to the number of free slots multiplied by the connect factor from settings
-				nAttempt = ( m_nLimit[ nProtocol ][ ntHub ] - m_nCount[ nProtocol ][ ntNode ] );
+				nAttempt = m_nLimit[ nProtocol ][ ntHub ] - m_nCount[ nProtocol ][ ntNode ];
 				nAttempt *=  Settings.Gnutella.ConnectFactor;
 			}
 			else
@@ -1340,39 +1341,33 @@ void CNeighboursWithConnect::Maintain()
 					DiscoveryServices.Execute( TRUE, PROTOCOL_ED2K );
 				}
 			}
-
-			// If we need more connections for this network, get IP addresses from the host cache and try to connect to them
-			for ( CHostCacheHost* pHost = pCache->GetNewest(); // Get the newest entry in the host cache for this network
-				  pHost && m_nCount[ nProtocol ][ntNull] < nAttempt;  // Loop if we need more hubs that we have handshaking connections
-				  pHost = pHost->m_pPrevTime )                 // At the end of the loop, move to the next youngest host cache entry
+			else
 			{
-				// If we can connect to this IP address from the host cache, try to make the connection
-				if ( pHost->CanConnect( tNow ) && pHost->ConnectTo( TRUE ) ) // Enter the if statement if the connection worked
+				// If we need more connections for this network, get IP addresses from the host cache and try to connect to them
+				for ( CHostCacheHost* pHost = pCache->GetNewest(); // Get the newest entry in the host cache for this network
+					pHost && m_nCount[ nProtocol ][ntNull] < nAttempt;  // Loop if we need more hubs that we have handshaking connections
+					pHost = pHost->m_pPrevTime )                 // At the end of the loop, move to the next youngest host cache entry
 				{
-					// Make sure the connection we just made matches the protocol we're looping for right now
-					ASSERT( pHost->m_nProtocol == nProtocol );
-
-					// Count that we now have one more handshaking connection for this network
-					//nCount[ nProtocol ][0]++;
-
-					// If we're looping for eDonkey2000 right now
-					if ( nProtocol == PROTOCOL_ED2K )
+					// If we can connect to this IP address from the host cache, try to make the connection
+					if ( pHost->CanConnect( tNow ) && pHost->ConnectTo( TRUE ) ) // Enter the if statement if the connection worked
 					{
-						// Prevent queries while we log on (do)
-						pHost->m_tQuery = tNow;
-					}
+						// Make sure the connection we just made matches the protocol we're looping for right now
+						ASSERT( pHost->m_nProtocol == nProtocol );
 
-					// If settings wants to limit how frequently this method can run
-					if ( Settings.Connection.ConnectThrottle != 0 )
-					{
-						// Save the time we last made a connection as now, and leave
-						Network.m_tLastConnect = tTimer;
-						Downloads.m_tLastConnect = tTimer;
-						return;
+						// Count that we now have one more handshaking connection for this network
+						//nCount[ nProtocol ][0]++;
+
+						// If settings wants to limit how frequently this method can run
+						if ( Settings.Connection.ConnectThrottle != 0 )
+						{
+							// Save the time we last made a connection as now, and leave
+							Network.m_tLastConnect = tTimer;
+							Downloads.m_tLastConnect = tTimer;
+							return;
+						}
 					}
 				}
 			}
-
 			// If network autoconnet is on (do)
 			if ( Network.m_bAutoConnect )
 			{
