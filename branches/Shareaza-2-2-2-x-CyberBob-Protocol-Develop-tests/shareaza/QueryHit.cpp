@@ -798,7 +798,7 @@ BOOL CQueryHit::ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat,
 			int nLength = pItem->m_nLength;
 			SOCKADDR_IN pPushProxy;
 			WORD nPort = 0;
-			for (;nLength >=6 ; nLength--)
+			for ( ; nLength >=6 ; nLength = nLength - 6 )
 			{
 				pItem->Read(&pPushProxy.sin_addr, 4);
 				pItem->Read(&nPort,2);
