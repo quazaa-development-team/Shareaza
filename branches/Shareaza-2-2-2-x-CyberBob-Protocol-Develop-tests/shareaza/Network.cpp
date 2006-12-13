@@ -450,16 +450,6 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 	if ( bAutoConnect ) 
 	{
 		m_bAutoConnect = TRUE;
-
-		if ( bAutoConnect && !Settings.Discovery.DisableAutoQuery )
-		{
-			if ( Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday )
-				DiscoveryServices.Execute( FALSE, PROTOCOL_NULL );
-			else if ( Settings.Gnutella2.EnableToday )
-				DiscoveryServices.Execute( FALSE, PROTOCOL_G2 );
-			else if ( Settings.Gnutella1.EnableToday )
-				DiscoveryServices.Execute( FALSE, PROTOCOL_G1 );
-		}
 		// Remove really old G1 hosts before trying to connect to G1
 		// if ( Settings.Gnutella1.EnableToday ) HostCache.Gnutella1.PruneOldHosts();
 	}
