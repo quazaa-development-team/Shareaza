@@ -795,7 +795,7 @@ BOOL CG2Neighbour::OnPong( CG2Packet* pPacket )
 	DWORD tNow = GetTickCount();
 	CString sVendorCode, sName, sVersion;
 
-	if ( ! pPacket->m_bCompound )
+	if ( pPacket->m_bCompound )
 	{
 		CHAR szType[9];
 		DWORD nLength;
