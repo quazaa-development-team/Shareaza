@@ -1085,18 +1085,13 @@ CNeighbour* CHostCacheHost::ConnectTo(BOOL bAutomatic)
 
 CG1Packet* CHostCacheHost::ToG1Ping(int nTTL, const Hashes::Guid& oGUID)
 {
-	bool bNeedFreePeerSlot = Neighbours.IsG1Ultrapeer()? true : false;
-
 	CG1Packet* pPing = CG1Packet::New( G1_PACKET_PING, nTTL, oGUID );
 
 	CGGEPBlock pBlock;
 	CGGEPItem* pItem = pBlock.Add( L"SCP" );
 	pItem->UnsetCOBS();
 	pItem->UnsetSmall();
-	if ( bNeedFreePeerSlot )
-		pItem->WriteByte( 1 );
-	else
-		pItem->WriteByte( 0 );
+	pItem->WriteByte( Neighbours.IsG1Ultrapeer() ? 1 : 0 );
 
 	CGGEPItem * pLOC = pBlock.Add( L"LOC");
 	pLOC->UnsetCOBS();
