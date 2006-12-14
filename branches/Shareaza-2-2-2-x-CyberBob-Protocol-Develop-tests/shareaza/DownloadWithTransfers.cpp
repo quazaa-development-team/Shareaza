@@ -285,7 +285,7 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow, BOOL bSeeding)
 	{
 		CDownloadSource* pNext = pSource->m_pNext;
 		
-		if ( pSource->m_pTransfer != NULL )
+		if ( pSource->m_pTransfer )
 		{
 			// Already has a transfer
 		}
@@ -324,7 +324,10 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow, BOOL bSeeding)
 			}
 			else if ( tNow - pSource->m_tAttempt > 0 )
 			{
-				if ( pConnectHead == NULL && !pSource->m_oHubList.empty() && pSource->CanInitiate( bConnected, FALSE ) ) pConnectHead = pSource;
+				if ( pConnectHead == NULL && ( pSource->m_oHubList.size() || pSource->m_oPushProxyList.size() ) )
+				{
+					if ( pSource->CanInitiate( bConnected, FALSE ) ) pConnectHead = pSource;
+				}
 				else pSource->Remove( TRUE, FALSE );
 			}
 		}
