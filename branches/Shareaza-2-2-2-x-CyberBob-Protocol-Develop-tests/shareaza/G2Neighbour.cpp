@@ -963,6 +963,12 @@ void CG2Neighbour::SendLNI()
 BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 {
 	if ( ! pPacket->m_bCompound ) return TRUE;
+	Hashes::Guid oTO;
+	if ( pPacket->GetTo( oTO ) )
+	{
+		theApp.Message(MSG_SYSTEM, _T("Detected LNI packet with faked Destination. Ignoring the packet") );
+		return TRUE;
+	}
 
 //	DWORD tNow = time( NULL );
 	CHAR szType[9];
@@ -1207,6 +1213,12 @@ void CG2Neighbour::SendKHL()
 BOOL CG2Neighbour::OnKHL(CG2Packet* pPacket)
 {
 	if ( ! pPacket->m_bCompound ) return TRUE;
+	Hashes::Guid oTO;
+	if ( pPacket->GetTo( oTO ) )
+	{
+		theApp.Message(MSG_SYSTEM, _T("Detected KHL packet with faked Destination. Ignoring the packet") );
+		return TRUE;
+	}
 
 	CHAR szType[9], szInner[9];
 	DWORD nLength, nInner, nHubCount = 0;
@@ -1364,6 +1376,12 @@ void CG2Neighbour::SendHAW()
 BOOL CG2Neighbour::OnHAW(CG2Packet* pPacket)
 {
 	if ( ! pPacket->m_bCompound ) return TRUE;
+	Hashes::Guid oTO;
+	if ( pPacket->GetTo( oTO ) )
+	{
+		theApp.Message(MSG_SYSTEM, _T("Detected HAW packet with faked Destination. Ignoring the packet") );
+		return TRUE;
+	}
 
 	CString strVendor;
 	CHAR szType[9];
