@@ -1139,7 +1139,7 @@ void CG2Neighbour::SendKHL()
 					pPacket->WritePacket( "NH", 16 + 6, TRUE );					// 4
 					pPacket->WritePacket( "HS", 4 );							// 4
 					pPacket->WriteShortBE( (WORD)pNeighbour->m_nLeafCount );	// 2
-					pPacket->WriteShortBE( (WORD)Settings.Gnutella2.NumLeafs );	// 2
+					pPacket->WriteShortBE( (WORD)pNeighbour->m_nLeafLimit );	// 2
 					pPacket->WritePacket( "V", 4 );								// 3
 					pPacket->WriteString( pNeighbour->m_pVendor->m_sCode );		// 5
 				}
@@ -1148,7 +1148,7 @@ void CG2Neighbour::SendKHL()
 					pPacket->WritePacket( "NH", 9 + 6, TRUE );					// 4
 					pPacket->WritePacket( "HS", 4 );							// 4
 					pPacket->WriteShortBE( (WORD)pNeighbour->m_nLeafCount );	// 2
-					pPacket->WriteShortBE( (WORD)Settings.Gnutella2.NumLeafs );	// 2
+					pPacket->WriteShortBE( (WORD)pNeighbour->m_nLeafLimit );	// 2
 					pPacket->WriteByte( 0 );									// 1
 				}
 
