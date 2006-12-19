@@ -626,7 +626,7 @@ BOOL CShareazaURL::ParseDiscovery(LPCTSTR pszURL, int nType)
 	if ( _tcsncmp( pszURL, _T("http://"), 7 ) != 0 &&
 		 _tcsncmp( pszURL, _T("https://"), 8 ) != 0 &&
 		 _tcsncmp( pszURL, _T("uhc:"), 4 ) != 0 &&
-		 _tcsncmp( pszURL, _T("ukhl"), 5 ) != 0 &&
+		 _tcsncmp( pszURL, _T("ukhl:"), 5 ) != 0 &&
 		 _tcsncmp( pszURL, _T("gnutella1:host:"), 15 ) != 0 &&
 		 _tcsncmp( pszURL, _T("gnutella2:host:"), 15 ) != 0 ) return FALSE;
 	
