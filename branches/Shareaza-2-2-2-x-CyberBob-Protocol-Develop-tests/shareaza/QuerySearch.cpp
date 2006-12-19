@@ -267,6 +267,11 @@ CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 		pPacket->WriteShortBE( htons( pUDP->sin_port ) );
 		if ( nKey ) pPacket->WriteLongBE( nKey );
 	}
+	else if ( nKey )
+	{
+		pPacket->WritePacket( "QKY", 4 );
+		pPacket->WriteLongBE( nKey );
+	}
 
 	if ( !m_oHubList.empty() )
 	{
