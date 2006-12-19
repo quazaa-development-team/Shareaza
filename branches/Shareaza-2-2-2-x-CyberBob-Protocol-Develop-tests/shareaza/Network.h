@@ -56,6 +56,7 @@ public:
 	CMutex			m_pSection;
 	CEvent			m_pWakeup;
 	SOCKADDR_IN		m_pHost;				// Structure (Windows Sockets) which holds address of the local machine
+	SOCKADDR_IN		m_pOutBind;				// Structure (Windows Sockets) which holds OutBind address.
 	BOOL			m_bEnabled;				// If the network "enabled" (Connected or trying)
 	BOOL			m_bAutoConnect;
 	DWORD			m_tStartedConnecting;	// The time Shareaza started trying to connect

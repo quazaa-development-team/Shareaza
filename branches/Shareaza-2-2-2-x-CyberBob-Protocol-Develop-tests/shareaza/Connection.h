@@ -101,12 +101,12 @@ public:
 public:
 
 	// Exchange data with the other computer, measure bandwidth, and work with headers
-	BOOL DoRun();          // Communicate with the other computer, reading and writing everything we can right now
-	void QueueRun();       // (do) may no longer be in use
-	void Measure();        // Measure the bandwidth, setting nMeasure in the bandwidth meters for each direction
-	BOOL ReadHeaders();    // Read text headers sitting in the input buffer
-	BOOL SendMyAddress();  // If we are listening on a port, tell the other computer our IP address and port number
-	BOOL IsAgentBlocked(); // Check the other computer's software title against our list of programs not to talk to
+	virtual BOOL DoRun();          // Communicate with the other computer, reading and writing everything we can right now
+	virtual void QueueRun();       // (do) may no longer be in use
+	virtual void Measure();        // Measure the bandwidth, setting nMeasure in the bandwidth meters for each direction
+	virtual BOOL ReadHeaders();    // Read text headers sitting in the input buffer
+	virtual BOOL SendMyAddress();  // If we are listening on a port, tell the other computer our IP address and port number
+	virtual BOOL IsAgentBlocked(); // Check the other computer's software title against our list of programs not to talk to
 	
 protected:
 

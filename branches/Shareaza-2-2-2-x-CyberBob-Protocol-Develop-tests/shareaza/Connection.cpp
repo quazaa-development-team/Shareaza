@@ -165,7 +165,18 @@ BOOL CConnection::ConnectTo(IN_ADDR* pAddress, WORD nPort)
 		&dwValue ); // Nonzero, it should keep going
 
 	// If the OutHost string in connection settings has an IP address written in it
-	if ( Settings.Connection.OutHost.GetLength() )
+	if ( Network.IsConnected() )
+	{
+		if ( Network.m_pOutBind.sin_addr.S_un.S_addr )
+		{
+			// Call bind in Windows Sockets to associate the local address with the socket
+			bind(
+				m_hSocket,						// Our socket
+				(SOCKADDR*)&Network.m_pOutBind,	// The IP address this computer appears to have on the Internet (do)
+				sizeof(SOCKADDR_IN) );			// Tell bind how many bytes it can read at the pointer
+		}
+	}
+	else if ( Settings.Connection.OutHost.GetLength() )
 	{
 		// Read the text and copy the IP address and port into a new local MFC SOCKADDR_IN structure called pOutgoing
 		SOCKADDR_IN pOutgoing;
@@ -931,7 +942,7 @@ BOOL CConnection::IsAgentBlocked()
 	for ( strBlocked += '|' ; strBlocked.GetLength() ; )
 	{
 		// Break off a blocked program name from the start of the list
-		CString strBrowser	= strBlocked.SpanExcluding( _T("|;,") );		// Get the text before a puncutation mark
+		CString strBrowser	= strBlocked.SpanExcluding( _T("|;,") );		// Get the text before a punctuation mark
 		strBlocked			= strBlocked.Mid( strBrowser.GetLength() + 1 );	// Remove that much text from the start
 
 		// If the blocked list still exists and the blocked program and remote program match, block it

@@ -324,6 +324,9 @@ CNetwork::CNetwork() : 	m_pMessageQueue()
 	ZeroMemory( &m_pHost, sizeof( m_pHost ) );
 	m_pHost.sin_family		= AF_INET;
 
+	ZeroMemory( &m_pOutBind, sizeof( m_pOutBind ) );
+	m_pOutBind.sin_family		= AF_INET;
+
 	m_tLastFirewallTest		= 0;
 }
 
