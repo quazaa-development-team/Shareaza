@@ -98,12 +98,12 @@ CG2Neighbour::CG2Neighbour(CNeighbour* pBase) : CNeighbour( PROTOCOL_G2, pBase )
 	m_bSFLCheckFW	= FALSE; // add
 	m_bFWCheckSent	= FALSE; // add
 
-	SendStartups();
 	InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][( (m_nNodeType != ntLeaf )? ntHub : ntLeaf )]) );
 	if ( m_nNodeType == ntHub || m_nNodeType == ntNode )
 		Neighbours.m_oHub.push_back(this);
 	else if ( m_nNodeType == ntLeaf )
 		Neighbours.m_oLeaf.push_back(this);
+	SendStartups();
 }
 
 CG2Neighbour::~CG2Neighbour()
@@ -126,19 +126,6 @@ CG2Neighbour::~CG2Neighbour()
 
 void CG2Neighbour::Close(UINT nError)  // Send the buffer then close the socket, record the error given
 {
-	if ( nError == IDS_CONNECTION_CLOSED )
-	{
-		//CG2Packet * pClosePacket = CG2Packet::New( G2_PACKET_CLOSE, FALSE );
-		//pClosePacket->WriteString( "Manually Closing Connection",TRUE );
-		//Send( pClosePacket );
-	}
-	else if ( nError == IDS_CONNECTION_PEERPRUNE )
-	{
-		CG2Packet * pClosePacket = CG2Packet::New( G2_PACKET_CLOSE, FALSE );
-		pClosePacket->WriteString( "Leaf-to-Leaf connection is not in Gnutella2 specification",TRUE );
-		Send( pClosePacket );
-	}
-
 	CNeighbour::Close(nError);
 }
 
@@ -148,13 +135,19 @@ void CG2Neighbour::DelayClose(UINT nError)  // Send the buffer then close the so
 	if ( nError == IDS_CONNECTION_CLOSED )
 	{
 		CG2Packet * pClosePacket = CG2Packet::New( G2_PACKET_CLOSE, FALSE );
-		pClosePacket->WriteString( "Manually Closing Connection",TRUE );
+		pClosePacket->WriteString( "Closing Connection", TRUE );
 		Send( pClosePacket );
 	}
 	else if ( nError == IDS_CONNECTION_PEERPRUNE )
 	{
 		CG2Packet * pClosePacket = CG2Packet::New( G2_PACKET_CLOSE, FALSE );
-		pClosePacket->WriteString( "Leaf-to-Leaf connection is not in Gnutella2 specification",TRUE );
+		pClosePacket->WriteString( "Demoting to Leaf", TRUE );
+		Send( pClosePacket );
+	}
+	else if ( nError == IDS_CONNECTION_REFUSED )
+	{
+		CG2Packet * pClosePacket = CG2Packet::New( G2_PACKET_CLOSE, FALSE );
+		pClosePacket->WriteString( "Sorry, refusing any more transaction. Please check your software and update", TRUE );
 		Send( pClosePacket );
 	}
 
@@ -238,10 +231,10 @@ BOOL CG2Neighbour::OnRun()
 			pPing->WritePacket( "UDP", 6 );
 			pPing->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
 			pPing->WriteShortBE( htons( Network.m_pHost.sin_port ) );
+			Datagrams.Send( &m_pHost, CG2Packet::New( G2_PACKET_PING ), TRUE, NULL, FALSE );
 		}
 
 		Send( pPing );
-		Datagrams.Send( &m_pHost, CG2Packet::New( G2_PACKET_PING ), TRUE, NULL, FALSE );
 		m_tLastPingOut = tNow;
 
 		m_nPingsSent++;
@@ -975,7 +968,10 @@ BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 	DWORD nLength;
 
 	DWORD nLeafCount = 0, nFileCount = 0, nFileVolume = 0;
+	SOCKADDR_IN	pHostAddr;
 	
+	pHostAddr.sin_addr.S_un.S_addr = 0;
+	pHostAddr.sin_port = 0;
 
 	while ( pPacket->ReadPacket( szType, nLength ) )
 	{
@@ -983,8 +979,8 @@ BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 
 		if ( strcmp( szType, "NA" ) == 0 && nLength >= 6 )
 		{
-			m_pHost.sin_addr.S_un.S_addr = pPacket->ReadLongLE();
-			m_pHost.sin_port = htons( pPacket->ReadShortBE() );
+			pHostAddr.sin_addr.S_un.S_addr = pPacket->ReadLongLE();
+			pHostAddr.sin_port = htons( pPacket->ReadShortBE() );
 		}
 		else if ( strcmp( szType, "GU" ) == 0 && nLength >= 16 )
 		{
@@ -1049,12 +1045,25 @@ BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 	m_nLeafCount = nLeafCount;
 	if ( m_nNodeType != ntLeaf )
 	{
-		CHostCacheHost* pHostCache = HostCache.Gnutella2.Add( &m_pHost.sin_addr, htons( m_pHost.sin_port ), 0, 
-																m_pVendor->m_sCode );
-		if ( pHostCache != NULL )
+		if ( m_pHost.sin_addr.S_un.S_addr != pHostAddr.sin_addr.S_un.S_addr )
 		{
-			pHostCache->m_nUserCount = m_nLeafCount;
-			pHostCache->m_nUserLimit = m_nLeafLimit;
+			theApp.Message(MSG_SYSTEM, _T("LNI packet detected host \"%s\" has changed IP to \"%s\""),
+				CString( inet_ntoa( m_pHost.sin_addr ) ), CString( inet_ntoa( pHostAddr.sin_addr) ) );
+			m_pHost.sin_addr.S_un.S_addr = pHostAddr.sin_addr.S_un.S_addr;
+		}
+		if ( m_pHost.sin_port != pHostAddr.sin_port )
+		{
+			theApp.Message(MSG_SYSTEM, _T("LNI packet detected host \"%s\" has changed port from \"%u\" to \"%u\""),
+				CString( inet_ntoa( m_pHost.sin_addr ) ), ntohs( m_pHost.sin_port ), ntohs( pHostAddr.sin_port ) );
+			m_pHost.sin_port = pHostAddr.sin_port;
+		}
+
+		CHostCacheHost* pCache = HostCache.Gnutella2.Add( &m_pHost.sin_addr, htons( m_pHost.sin_port ), 0, m_pVendor->m_sCode, 0 );
+
+		if ( pCache != NULL )
+		{
+				pCache->m_nUserCount = m_nLeafCount;
+				pCache->m_nUserLimit = m_nLeafLimit;
 		}
 	}
 	else
@@ -1122,7 +1131,7 @@ void CG2Neighbour::SendKHL()
 	*/
 
 
-	if ( Neighbours.m_nCount[PROTOCOL_G2][ntHub] != 0 )
+	if ( Neighbours.m_nCount[PROTOCOL_G2][ntHub] != 0 && !m_bObsoleteClient )
 	{
 		std::list<CG2Neighbour*>::iterator iIndex = Neighbours.m_oHub.begin();
 		std::list<CG2Neighbour*>::iterator iEnd = Neighbours.m_oHub.end();
@@ -1158,8 +1167,13 @@ void CG2Neighbour::SendKHL()
 		}
 	}
 
+	int nCount;
 
-	int nCount = Settings.Gnutella2.KHLHubCount;
+	if ( !m_bObsoleteClient )
+		nCount = Settings.Gnutella2.KHLHubCount;
+	else 
+		nCount = 0;
+
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
 
 	pPacket->WritePacket( "TS", 4 );
@@ -1235,7 +1249,7 @@ BOOL CG2Neighbour::OnKHL(CG2Packet* pPacket)
 		DWORD nNext = pPacket->m_nPosition + nLength;
 
 		if (	strcmp( szType, "NH" ) == 0 ||
-				strcmp( szType, "CH" ) == 0 )
+			(	!m_bObsoleteClient && strcmp( szType, "CH" ) == 0 ) )
 		{
 			DWORD nAddress = 0, nKey = 0, tSeen = tNow;
 			WORD nPort = 0;
@@ -1487,6 +1501,8 @@ BOOL CG2Neighbour::SendQuery(CQuerySearch* pSearch, CPacket* pPacket, BOOL bLoca
 
 BOOL CG2Neighbour::OnQuery(CG2Packet* pPacket)
 {
+	if ( m_nNodeType == ntLeaf && m_bObsoleteClient ) return TRUE;
+
 	CQuerySearch* pSearch = CQuerySearch::FromPacket( pPacket );
 
 	// Check for invalid / blocked searches
@@ -1625,6 +1641,7 @@ BOOL CG2Neighbour::OnQueryKeyReq(CG2Packet* pPacket)
 {
 	if ( ! pPacket->m_bCompound ) return TRUE;
 	if ( m_nNodeType != ntLeaf ) return TRUE;
+	if ( !m_bObsoleteClient ) return TRUE;
 
 	DWORD nLength, nAddress = 0;
 	BOOL bCacheOkay = TRUE;
@@ -1833,6 +1850,36 @@ BOOL CG2Neighbour::OnPrivateMessage(CG2Packet* pPacket)
 
 BOOL CG2Neighbour::OnClose(CG2Packet* pPacket)
 {
-	UNUSED_ALWAYS(pPacket);
+	if ( pPacket->m_bCompound )
+	{
+		CHAR szType[9];
+		DWORD nLength;
+
+		Hashes::Guid oTO;
+		if ( pPacket->GetTo( oTO ) )
+		{
+			theApp.Message(MSG_SYSTEM, _T("Detected CLOSE packet with faked Destination. Ignoring the packet") );
+			return TRUE;
+		}
+
+		while ( pPacket->ReadPacket( szType, nLength ) )
+		{
+			DWORD nNext = pPacket->m_nPosition + nLength;
+
+			if ( strcmp( szType, "CH" ) == 0 && nLength >= 6 )
+			{
+				// there would be Hub node address in /CLOSE/CH for cache/alt-hub
+			}
+
+			pPacket->m_nPosition = nNext;
+		}
+	}
+	
+	if ( pPacket->GetRemaining() )
+	{
+		CString strReason = pPacket->ReadString( pPacket->GetRemaining() );
+		theApp.Message(MSG_SYSTEM, _T("Remote Client is closing connection: %s"), (LPCTSTR)strReason );
+	}
+
 	return TRUE;
 }
