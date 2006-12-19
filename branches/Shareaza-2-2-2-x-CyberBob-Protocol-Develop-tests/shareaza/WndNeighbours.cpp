@@ -409,7 +409,7 @@ void CNeighboursWnd::OnUpdateNeighboursDisconnect(CCmdUI* pCmdUI)
 	pCmdUI->Enable( m_wndList.GetSelectedCount() > 0 );
 }
 
-void CNeighboursWnd::OnNeighboursDisconnect() 
+void CNeighboursWnd::OnNeighboursDisconnect()
 {
 	CSingleLock pLock( &Network.m_pSection, TRUE );
 	

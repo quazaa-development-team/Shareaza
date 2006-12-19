@@ -1500,6 +1500,12 @@ void CMainWnd::OnUpdateNetworkConnect(CCmdUI* pCmdUI)
 void CMainWnd::OnNetworkConnect()
 {
 	Network.Connect( TRUE );
+	if ( Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday )
+		DiscoveryServices.Execute( FALSE, PROTOCOL_NULL );
+	if ( Settings.Gnutella1.EnableToday )
+		DiscoveryServices.Execute( FALSE, PROTOCOL_G1 );
+	if ( Settings.Gnutella2.EnableToday )
+		DiscoveryServices.Execute( FALSE, PROTOCOL_G2 );
 }
 
 void CMainWnd::OnUpdateNetworkDisconnect(CCmdUI* pCmdUI) 
@@ -1551,6 +1557,7 @@ void CMainWnd::OnNetworkG2()
 		
 		if ( AfxMessageBox( strMessage, MB_ICONEXCLAMATION|MB_YESNO|MB_DEFBUTTON2 ) == IDYES )
 		{
+			Network.EndTestG2UDPFW();
 			Settings.Gnutella2.EnableToday = FALSE;
 			if ( !Settings.Gnutella1.EnableToday && !Settings.eDonkey.EnableToday &&
 				Settings.Connection.RequireForTransfers )
@@ -1562,7 +1569,6 @@ void CMainWnd::OnNetworkG2()
 		if ( Network.IsConnected() )
 		{
 			Settings.Gnutella2.EnableToday = TRUE;
-			DiscoveryServices.Execute( FALSE, PROTOCOL_G2 );
 		}
 		else
 		{
@@ -1571,6 +1577,8 @@ void CMainWnd::OnNetworkG2()
 			Settings.eDonkey.EnableToday = FALSE;
 			Network.Connect( TRUE );
 		}
+		Network.BeginTestG2UDPFW();
+		DiscoveryServices.Execute( FALSE, PROTOCOL_G2 );
 	}
 }
 
@@ -1594,7 +1602,6 @@ void CMainWnd::OnNetworkG1()
 		if ( Network.IsConnected() )
 		{
 			Settings.Gnutella1.EnableToday = TRUE;
-			DiscoveryServices.Execute( FALSE, PROTOCOL_G1 );
 		}
 		else
 		{
@@ -1603,6 +1610,7 @@ void CMainWnd::OnNetworkG1()
 			Settings.eDonkey.EnableToday = FALSE;
 			Network.Connect( TRUE );
 		}
+		DiscoveryServices.Execute( FALSE, PROTOCOL_G1 );
 	}
 }
 
@@ -1626,7 +1634,6 @@ void CMainWnd::OnNetworkED2K()
 		if ( Network.IsConnected() )
 		{
 			Settings.eDonkey.EnableToday = TRUE;
-			DiscoveryServices.Execute( FALSE, PROTOCOL_ED2K );
 		}
 		else
 		{
@@ -1635,6 +1642,7 @@ void CMainWnd::OnNetworkED2K()
 			Settings.eDonkey.EnableToday = TRUE;
 			Network.Connect( TRUE );
 		}
+		DiscoveryServices.Execute( FALSE, PROTOCOL_ED2K );
 	}
 }
 

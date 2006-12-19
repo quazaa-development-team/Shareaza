@@ -66,6 +66,7 @@ protected:
 	HANDLE			m_hThread;
 	DWORD			m_nSequence;
 	DWORD			m_tLastFirewallTest;
+	DWORD			m_tStartTestingUDPFW;
 	CList<sockaddr_in> m_FWTestQueue;
 
 	struct ResolveStruct
@@ -128,6 +129,10 @@ public:
 	BOOL		IsConnectedTo(IN_ADDR* pAddress);
 	BOOL		ReadyToTransfer(DWORD tNow) const;		// Are we ready to start downloading?
 	BOOL		IsFirewalled();
+	BOOL		IsTestingUDPFW();
+	void		BeginTestG2UDPFW();
+	void		EndTestG2UDPFW(TRISTATE bFirewalled = TS_UNKNOWN);
+
 public:
 	BOOL		Connect(BOOL bAutoConnect = FALSE);
 	void		Disconnect();

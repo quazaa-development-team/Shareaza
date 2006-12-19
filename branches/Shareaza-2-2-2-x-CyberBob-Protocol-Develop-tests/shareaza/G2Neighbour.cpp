@@ -364,7 +364,7 @@ void CG2Neighbour::SendStartups()
 	pPing->WritePacket( "VER", 0);
 	pPing->WritePacket( "SFL", 0);
 
-	if ( !Datagrams.IsStable() || Network.IsFirewalled() )
+	if ( !Datagrams.IsStable() || Network.IsFirewalled() || Network.IsTestingUDPFW() )
 	{
 		pPing->WritePacket( "UDP", 6 );
 		pPing->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
@@ -378,9 +378,10 @@ void CG2Neighbour::SendStartups()
 	if ( m_bShareaza )
 		m_nPingsSent++;
 
-	Datagrams.Send( &m_pHost, CG2Packet::New( G2_PACKET_PING ), TRUE, NULL, FALSE );
-
 	Send( CG2Packet::New( G2_PACKET_PROFILE_CHALLENGE ), TRUE, TRUE );
+
+	if ( !Network.IsTestingUDPFW() )
+		Datagrams.Send( &m_pHost, CG2Packet::New( G2_PACKET_PING ), TRUE, NULL, FALSE );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -561,9 +562,10 @@ BOOL CG2Neighbour::OnPacket(CG2Packet* pPacket)
 BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 {
 
-	CString sVendorCode, sName, sVersion;
+	CString strVendorCode, strName, strVersion;
 
 	BOOL bRelay = FALSE;
+	BOOL bUDP = FALSE;
 	BOOL bVersion = FALSE;
 	BOOL bTestFirewall = FALSE;
 	BOOL bConnectRequest = FALSE; //add
@@ -585,7 +587,6 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 		return TRUE;
 	}
 
-	CG2Packet* pPong = CG2Packet::New( G2_PACKET_PONG, TRUE );
 	while ( pPacket->ReadPacket( szType, nLength ) )
 	{
 		DWORD nNext = pPacket->m_nPosition + nLength;
@@ -594,6 +595,7 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 		{
 			nAddress	= pPacket->ReadLongLE();
 			nPort		= pPacket->ReadShortBE();
+			bUDP		= TRUE;
 		}
 		else if ( strcmp( szType, "VER" ) == 0 )
 		{
@@ -624,71 +626,30 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 		pPacket->m_nPosition = nNext;
 	}
 
-	if ( !bRelay )
+
+	if ( bTestFirewall && nAddress != 0 && nPort != 0 && !Network.IsFirewalledAddress( &nAddress, TRUE, TRUE ) )
+		Network.TestRemoteFirewall( nAddress, nPort );
+
+	if ( bRelay && bUDP )
 	{
-		if (bVersion)
-		{
-			sVendorCode = VENDOR_CODE;
-			sName = CLIENT_NAME;
-			sVersion = theApp.m_sVersion;
+		if ( Network.IsTestingUDPFW() && !Datagrams.IsStable() ) return TRUE;
+		if ( nAddress == 0 || nPort == 0 || Network.IsFirewalledAddress( &nAddress, TRUE, TRUE ) ) return TRUE;
 
-			pPong->WritePacket( "VC", pPong->GetStringLenUTF8( sVendorCode ) );
-			pPong->WriteStringUTF8( sVendorCode, FALSE );
-			pPong->WritePacket( "AN", pPong->GetStringLenUTF8( sName ) );
-			pPong->WriteStringUTF8( sName, FALSE );
-			pPong->WritePacket( "AV", pPong->GetStringLenUTF8( sVersion ) );
-			pPong->WriteStringUTF8( sVersion, FALSE );
-		}
-
-		if ( bSupportedFeature )
-		{
-			// Format of Supported Feature list is feature name feature name followed by 2Byte feature versions
-			// first byte is Major version, and second is Miner version.
-			CG2Packet * pSFL = CG2Packet::New( "SFL", TRUE );
-
-			// indicate G2/1.0
-			pSFL->WritePacket( "G2",2 );
-			pSFL->WriteByte(1);
-			pSFL->WriteByte(0);
-
-			// indicate TFW/1.0 (TestFireWall)
-			pSFL->WritePacket( "TFW",2 );
-			pSFL->WriteByte(1);
-			pSFL->WriteByte(0);
-
-			// indicate UDPKHL/1.0
-			pSFL->WritePacket( "UDPKHL",2 );
-			pSFL->WriteByte(1);
-			pSFL->WriteByte(0);
-
-			// end compound
-			pSFL->WriteByte(0);
-
-			// adding SFL packet as compound packet in PONG
-			pPong->WritePacket( pSFL );
-			pSFL->Release();
-		}
-
-		Send( pPong );
-		Statistics.Current.Gnutella2.PongsSent++;
-	}
-
-	if ( nAddress == 0 || nPort == 0 || Network.IsFirewalledAddress( &nAddress ) ) return TRUE;
-
-	if ( bTestFirewall ) Network.TestRemoteFirewall ( nAddress, nPort );
-
-	if ( bRelay )
-	{
-		pPong = CG2Packet::New( G2_PACKET_PONG, TRUE );
+		CG2Packet* pPong = CG2Packet::New( G2_PACKET_PONG, TRUE );
 		pPong->WritePacket( "RELAY", 0 );
 		
-		if ( bVersion ){
-			pPong->WritePacket( "VC", pPong->GetStringLenUTF8( sVendorCode ) );
-			pPong->WriteStringUTF8( sVendorCode, TRUE );
-			pPong->WritePacket( "AN", pPong->GetStringLenUTF8( sName ) );
-			pPong->WriteStringUTF8( sName, TRUE );
-			pPong->WritePacket( "AV", pPong->GetStringLenUTF8( sVersion ) );
-			pPong->WriteStringUTF8( sVersion, TRUE );
+		if ( bVersion )
+		{
+			strVendorCode = VENDOR_CODE;
+			strName = CLIENT_NAME;
+			strVersion = theApp.m_sVersion;
+
+			pPong->WritePacket( "VC", pPong->GetStringLenUTF8( strVendorCode ) );
+			pPong->WriteStringUTF8( strVendorCode, TRUE );
+			pPong->WritePacket( "AN", pPong->GetStringLenUTF8( strName ) );
+			pPong->WriteStringUTF8( strName, TRUE );
+			pPong->WritePacket( "AV", pPong->GetStringLenUTF8( strVersion ) );
+			pPong->WriteStringUTF8( strVersion, TRUE );
 		}
 
 		if ( bSupportedFeature )
@@ -722,9 +683,66 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 
 		Datagrams.Send( (IN_ADDR*)&nAddress, nPort, pPong, TRUE, NULL, FALSE );
 		Statistics.Current.Gnutella2.PongsSent++;
+
+	}
+	else if ( !bUDP )
+	{
+		CG2Packet* pPong = CG2Packet::New( G2_PACKET_PONG, TRUE );
+		if (bVersion)
+		{
+			strVendorCode = VENDOR_CODE;
+			strName = CLIENT_NAME;
+			strVersion = theApp.m_sVersion;
+
+			pPong->WritePacket( "VC", pPong->GetStringLenUTF8( strVendorCode ) );
+			pPong->WriteStringUTF8( strVendorCode, FALSE );
+			pPong->WritePacket( "AN", pPong->GetStringLenUTF8( strName ) );
+			pPong->WriteStringUTF8( strName, FALSE );
+			pPong->WritePacket( "AV", pPong->GetStringLenUTF8( strVersion ) );
+			pPong->WriteStringUTF8( strVersion, FALSE );
+		}
+
+		if ( bSupportedFeature )
+		{
+			// Format of Supported Feature list is feature name feature name followed by 2Byte feature versions
+			// first byte is Major version, and second is Miner version.
+			CG2Packet * pSFL = CG2Packet::New( "SFL", TRUE );
+
+			// indicate G2/1.0
+			pSFL->WritePacket( "G2",2 );
+			pSFL->WriteByte(1);
+			pSFL->WriteByte(0);
+
+			// indicate TFW/1.0 (TestFireWall)
+			pSFL->WritePacket( "TFW",2 );
+			pSFL->WriteByte(1);
+			pSFL->WriteByte(0);
+
+			// indicate UDPKHL/1.0
+			pSFL->WritePacket( "UDPKHL",2 );
+			pSFL->WriteByte(1);
+			pSFL->WriteByte(0);
+
+			// end compound
+			pSFL->WriteByte(0);
+
+			// adding SFL packet as compound packet in PONG
+			pPong->WritePacket( pSFL );
+			pSFL->Release();
+		}
+
+		Send( pPong );
+		Statistics.Current.Gnutella2.PongsSent++;
+
+	}
+	else if ( bRelay )
+	{
+
 	}
 	else
 	{
+		if ( nAddress == 0 || nPort == 0 || Network.IsFirewalledAddress( &nAddress, TRUE, TRUE ) )
+			return TRUE;
 
 		DWORD tNow = GetTickCount();
 		if ( tNow - m_tLastPingIn < Settings.Gnutella1.PingFlood ) return TRUE;
@@ -786,7 +804,7 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 BOOL CG2Neighbour::OnPong( CG2Packet* pPacket )
 {
 	DWORD tNow = GetTickCount();
-	CString sVendorCode, sName, sVersion;
+	CString strVendorCode, strName, strVersion;
 
 	if ( pPacket->m_bCompound )
 	{
@@ -800,15 +818,15 @@ BOOL CG2Neighbour::OnPong( CG2Packet* pPacket )
 
 			if ( strcmp( szType, "VC" ) == 0 && nLength != 0 )	// Vendor Code of Remote Node  (e.g. "RAZA")
 			{
-				sVendorCode = pPacket->ReadStringUTF8( nLength );
+				strVendorCode = pPacket->ReadStringUTF8( nLength );
 			}
 			else if ( strcmp( szType, "AN" ) == 0 && nLength != 0 )	// Agent name of Remote Node (e.g. "Shareaza")
 			{
-				sName = pPacket->ReadStringUTF8( nLength );
+				strName = pPacket->ReadStringUTF8( nLength );
 			}
 			else if ( strcmp( szType, "AV" ) == 0 && nLength != 0 )	// Agent version of Remote Node (e.g. 2.2.2.20)
 			{
-				sVersion = pPacket->ReadStringUTF8( nLength );
+				strVersion = pPacket->ReadStringUTF8( nLength );
 			}
 			else if ( strcmp( szType, "SFL" ) == 0 && bCompound == TRUE )	// Agent version of Remote Node (e.g. 2.2.2.20)
 			{
@@ -861,12 +879,12 @@ BOOL CG2Neighbour::OnPong( CG2Packet* pPacket )
 			m_bBusy = FALSE;
 		theApp.Message( MSG_DEBUG, _T("Received PONG from %s. RTT: %d."), m_sAddress, m_tRTT );
 	}
-	if ( sVendorCode.GetLength() > 0 )
-		theApp.Message( MSG_SYSTEM, _T("Received PONG contained VenderCode: %s"), (LPCTSTR)sVendorCode);
-	if ( sName.GetLength() > 0 )
-		theApp.Message( MSG_SYSTEM, _T("Received PONG contained AgentName: %s"), (LPCTSTR)sName);
-	if ( sVersion.GetLength() > 0 )
-		theApp.Message( MSG_SYSTEM, _T("Received PONG contained AgentVersion: %s"), (LPCTSTR)sVersion);
+	if ( strVendorCode.GetLength() > 0 )
+		theApp.Message( MSG_SYSTEM, _T("Received PONG contained VenderCode: %s"), (LPCTSTR)strVendorCode);
+	if ( strName.GetLength() > 0 )
+		theApp.Message( MSG_SYSTEM, _T("Received PONG contained AgentName: %s"), (LPCTSTR)strName);
+	if ( strVersion.GetLength() > 0 )
+		theApp.Message( MSG_SYSTEM, _T("Received PONG contained AgentVersion: %s"), (LPCTSTR)strVersion);
 
 	return TRUE;
 }

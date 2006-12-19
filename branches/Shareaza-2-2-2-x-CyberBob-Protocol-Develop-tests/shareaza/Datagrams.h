@@ -110,6 +110,7 @@ public:
 	BOOL	Listen();
 	void	Disconnect();
 	BOOL	IsStable();
+	void	Stable(BOOL bStable);
 	BOOL	Send(IN_ADDR* pAddress, WORD nPort, CPacket* pPacket, BOOL bRelease = TRUE, LPVOID pToken = NULL, BOOL bAck = TRUE, BOOL bBypassSecurity = FALSE);
 	BOOL	Send(SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease = TRUE, LPVOID pToken = NULL, BOOL bAck = TRUE, BOOL bBypassSecurity = FALSE);
 	void	PurgeToken(LPVOID pToken);

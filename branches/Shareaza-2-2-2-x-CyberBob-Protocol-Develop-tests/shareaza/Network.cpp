@@ -377,7 +377,34 @@ BOOL CNetwork::IsStable() const
 BOOL CNetwork::IsFirewalled()
 {
 	//return !( Datagrams.IsStable() && IsStable() );
-	return !IsStable();
+	if ( ! IsListening() ) return FALSE;
+
+	if ( Settings.Connection.FirewallStatus == CONNECTION_FIREWALLED )
+		return TRUE;			// We know we are firewalled
+	else if ( Settings.Connection.FirewallStatus == CONNECTION_OPEN )
+		return FALSE;			// We know we are not firewalled
+	else // ( Settings.Connection.FirewallStatus == CONNECTION_AUTO )
+		return !IsStable();
+}
+
+BOOL CNetwork::IsTestingUDPFW()
+{
+	return m_tStartTestingUDPFW != 0 && ( m_nNetworkGlobalTime - m_tStartTestingUDPFW < 600 );
+}
+
+void CNetwork::BeginTestG2UDPFW()
+{
+	m_tStartTestingUDPFW = static_cast<DWORD>( time( NULL ) );
+	Datagrams.Stable(FALSE);
+}
+
+void CNetwork::EndTestG2UDPFW(TRISTATE bFirewalled)
+{
+	m_tStartTestingUDPFW = 0;
+	if ( bFirewalled == TS_TRUE )
+		Datagrams.Stable(FALSE);
+	else if ( bFirewalled == TS_FALSE )
+		Datagrams.Stable(TRUE);
 }
 
 BOOL CNetwork::CanTestFirewall() 
@@ -444,23 +471,15 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 		Settings.Gnutella1.EnableToday = ( Settings.Gnutella1.EnableAlways ? TRUE : Settings.Gnutella1.EnableToday );
 		Settings.Gnutella2.EnableToday = ( Settings.Gnutella2.EnableAlways ? TRUE : Settings.Gnutella2.EnableToday );
 		Settings.eDonkey.EnableToday = ( Settings.eDonkey.EnableAlways ? TRUE : Settings.eDonkey.EnableToday );
-		DiscoveryServices.Execute( FALSE, PROTOCOL_NULL );
 	}
 
 	CSingleLock pLock( &m_pSection, TRUE );
-	
 	Settings.Live.AutoClose = FALSE;
-	if ( bAutoConnect ) 
-	{
-		m_bAutoConnect = TRUE;
-		// Remove really old G1 hosts before trying to connect to G1
-		// if ( Settings.Gnutella1.EnableToday ) HostCache.Gnutella1.PruneOldHosts();
-	}
-	
-	// If we are already connected, see if we need to query discovery services and exit.
+	m_bAutoConnect = bAutoConnect ? TRUE : m_bAutoConnect;
+
+	// If we are already connected, skiping further initializations. 
 	if ( m_bEnabled )
 	{
-		//if ( bAutoConnect && !Settings.Discovery.DisableAutoQuery ) DiscoveryServices.Execute( TRUE );
 		return TRUE;
 	}
 
@@ -510,6 +529,8 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 	m_bEnabled				= TRUE;
 	m_tStartedConnecting	= GetTickCount();
 	CITMQueue::EnableITM( &(Network.m_pMessageQueue) );
+	if ( Settings.Gnutella2.EnableToday ) BeginTestG2UDPFW();
+    
 	CWinThread* pThread = AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_NORMAL );
 	m_hThread				= pThread->m_hThread;
 	SetThreadName( pThread->m_nThreadID, "Network" );
@@ -527,6 +548,7 @@ void CNetwork::Disconnect()
 	CSingleLock pLock( &m_pSection, TRUE );
 	
 	CITMQueue::DisableITM( &(Network.m_pMessageQueue) );
+	if ( Settings.Gnutella2.EnableToday ) EndTestG2UDPFW( TS_UNKNOWN );
 	if ( ! m_bEnabled ) return;
 	
 	Settings.Gnutella1.EnableToday = FALSE;
@@ -539,7 +561,9 @@ void CNetwork::Disconnect()
 	m_bEnabled				= FALSE;
 	m_bAutoConnect			= FALSE;
 	m_tStartedConnecting	= 0;
-	
+	m_tStartTestingUDPFW	= 0;
+	Datagrams.Stable(FALSE);
+
 	Neighbours.Close();
 	
 	pLock.Unlock();
@@ -857,7 +881,8 @@ void CNetwork::OnRun()
 	DWORD m_tUPnP = GetTickCount();
 	while ( m_bEnabled )
 	{
-		WaitForSingleObject( m_pWakeup, 150 );
+		Sleep(50);
+		WaitForSingleObject( m_pWakeup, 100 );
 
 		m_nNetworkGlobalTime = static_cast<DWORD>( time( NULL ) );
 		m_nNetworkGlobalTickCount = GetTickCount();
