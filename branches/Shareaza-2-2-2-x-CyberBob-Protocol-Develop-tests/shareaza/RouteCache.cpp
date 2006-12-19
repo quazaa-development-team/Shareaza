@@ -33,8 +33,8 @@ static char THIS_FILE[]=__FILE__;
 
 #undef HASH_SIZE
 #undef HASH_MASK
-const unsigned HASH_SIZE = 512u;
-const unsigned HASH_MASK = 0x1FF;
+const unsigned HASH_SIZE = 1024u;
+const unsigned HASH_MASK = 0x3FF;
 
 const DWORD MIN_BUFFER_SIZE = 1024u;
 const DWORD MAX_BUFFER_SIZE = 40960u;
