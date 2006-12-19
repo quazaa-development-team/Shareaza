@@ -516,8 +516,7 @@ void CShakeNeighbour::SendPublicHeaders()
 	if ( m_nProtocol == PROTOCOL_G1 ) // This protocol ID this method got passed is Gnutella1
 	{
 		// Find out if we are an ultrapeer or at least eligible to become one soon
-		if ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER || Neighbours.IsG1Ultrapeer() || 
-			Neighbours.IsG1UltrapeerCapable() )
+		if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() )
 		{
 			// Tell the remote computer that we are an ultrapeer
 			m_pOutput->Print( "X-Ultrapeer: True\r\n" );
@@ -532,7 +531,7 @@ void CShakeNeighbour::SendPublicHeaders()
 	else if ( m_nProtocol == PROTOCOL_G2 ) // This protocol ID this method got passed is Gnutella2
 	{
 		// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
-		if ( Settings.Gnutella2.ClientMode == MODE_HUB || Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() )
+		if ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() )
 		{
 			// Tell the remote computer that we are a hub
 			m_pOutput->Print( "X-Ultrapeer: True\r\n" );
@@ -555,8 +554,8 @@ void CShakeNeighbour::SendPublicHeaders()
 			if ( Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday )
 			{
 				// Find out if we are a Gnutella1 Ultrapeer or Gnutella2 hub already, or at least eligible to become one soon
-				if ( ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER || Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() ) &&
-					 ( Settings.Gnutella2.ClientMode == MODE_HUB || Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() ) )
+				if ( ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() ) &&
+					 ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() ) )
 				{
 					// Tell the remote computer that we are a hub
 					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
@@ -575,7 +574,7 @@ void CShakeNeighbour::SendPublicHeaders()
 			else if ( Settings.Gnutella1.EnableToday )
 			{
 				// Find out if we are a Gnutella1 Ultrapeer, or at least eligible to become one soon
-				if ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER || Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() )
+				if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() )
 				{
 					// Tell the remote computer that we are a hub
 					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
@@ -594,7 +593,7 @@ void CShakeNeighbour::SendPublicHeaders()
 			else if ( Settings.Gnutella2.EnableToday )
 			{
 				// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
-				if ( Settings.Gnutella2.ClientMode == MODE_HUB || Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() )
+				if ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() )
 				{
 					// Tell the remote computer that we are a hub
 					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
@@ -622,8 +621,8 @@ void CShakeNeighbour::SendPublicHeaders()
 				( m_bG2Send || m_bG2Accept) && ( m_bG1Send || m_bG1Accept) )
 			{
 				// Find out if we are a Gnutella1 Ultrapeer or Gnutella2 hub already, or at least eligible to become one soon
-				if ( ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER || Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() ) &&
-					( Settings.Gnutella2.ClientMode == MODE_HUB || Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() ) )
+				if ( ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() ) &&
+					( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() ) )
 				{
 					// Tell the remote computer that we are a hub
 					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
@@ -642,7 +641,7 @@ void CShakeNeighbour::SendPublicHeaders()
 			else if ( Settings.Gnutella1.EnableToday && ( m_bG1Send || m_bG1Accept) )
 			{
 				// Find out if we are a Gnutella1 Ultrapeer, or at least eligible to become one soon
-				if ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER || Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() )
+				if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() )
 				{
 					// Tell the remote computer that we are a hub
 					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
@@ -661,7 +660,7 @@ void CShakeNeighbour::SendPublicHeaders()
 			else if ( Settings.Gnutella2.EnableToday && ( m_bG2Send || m_bG2Accept) )
 			{
 				// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
-				if ( Settings.Gnutella2.ClientMode == MODE_HUB || Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() )
+				if ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() )
 				{
 					// Tell the remote computer that we are a hub
 					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
@@ -1275,7 +1274,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 		else if ( m_bUltraPeerSet == TS_TRUE )
 		{
 			// And so are we
-			if ( Settings.Gnutella2.ClientMode == MODE_HUB )
+			if ( Neighbours.IsG2Hub() )
 			{
 				// (do)
 				SendHostHeaders( _T("GNUTELLA/0.6 503 Ultrapeer disabled") );
@@ -1290,7 +1289,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 		else if ( m_bUltraPeerSet == TS_FALSE )
 		{
 			m_nNodeType = ntLeaf;
-			if ( Settings.Gnutella2.ClientMode == MODE_LEAF )
+			if ( Neighbours.IsG2Leaf() )
 			{
 				// Tell the remote computer we can't connect because we need a hub
 				SendHostHeaders( _T("GNUTELLA/0.6 503 Need an Ultrapeer") );
@@ -1301,7 +1300,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 		else if ( m_bUltraPeerSet == TS_UNKNOWN )
 		{
 			// We are a leaf
-			if ( Settings.Gnutella2.ClientMode == MODE_LEAF )
+			if ( Neighbours.IsG2Leaf() )
 			{
 				// Tell the remote computer we can't connect because we need a hub
 				SendHostHeaders( _T("GNUTELLA/0.6 503 Need an Ultrapeer") );
@@ -1354,7 +1353,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 			}
 
 		} // The remote computer is an ultrapeer, and we are not running in hub mode
-		else if ( m_bUltraPeerSet == TS_TRUE && ( Settings.Gnutella2.ClientMode != MODE_HUB ) )
+		else if ( m_bUltraPeerSet == TS_TRUE && Neighbours.IsG2Leaf() )
 		{
 			// This connection is to a hub above us
 			m_nNodeType = ntHub;
@@ -1423,8 +1422,8 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 			return FALSE; // Return false all the way back to CHandshakes::RunHandshakes, which will delete this object
 
 		} // Or, if we're both in the same role on the network
-		else if ( ( m_nNodeType == ntHub && ( Settings.Gnutella2.ClientMode == MODE_HUB ) ) ||  // We're both hubs
-				  ( m_nNodeType == ntLeaf && ( Settings.Gnutella2.ClientMode == MODE_LEAF ) ) ) // We're both leaves
+		else if ( ( m_nNodeType == ntHub && Neighbours.IsG2Hub() ) ||  // We're both hubs
+				  ( m_nNodeType == ntLeaf && Neighbours.IsG2Leaf() ) ) // We're both leaves
 		{
 			// Tell the remote computer that we can't connect
 			SendHostHeaders( _T("GNUTELLA/0.6 503 Ultrapeer disabled") ); // Send the error code along with more IP addresses the remote computer can try
@@ -1432,7 +1431,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 			return FALSE; // Return false all the way back to CHandshakes::RunHandshakes, which will delete this object
 
 		} // This connection isn't to a hub above us, and we're a leaf
-		else if ( m_nNodeType != ntHub && ( Settings.Gnutella2.ClientMode == MODE_LEAF ) )
+		else if ( m_nNodeType != ntHub && Neighbours.IsG2Leaf() )
 		{
 			// Tell the remote computer we can't connect because we need a hub
 			SendHostHeaders( _T("GNUTELLA/0.6 503 Need an Ultrapeer") );
@@ -1784,7 +1783,7 @@ void CShakeNeighbour::OnHandshakeComplete()
 	// If the remote computer is G2, or can send and understand Gnutella2 packets and isn't G1
 	if ( m_bG2Send && m_bG2Accept && m_nProtocol != PROTOCOL_G1 )
 	{
-		if ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !m_bAutomatic && m_bInitiated )
+		if ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !m_bAutomatic )
 		{
 			HostCache.OnSuccess( &m_pHost.sin_addr, htons( m_pHost.sin_port ), PROTOCOL_G2, true );
 		}
@@ -1806,7 +1805,7 @@ void CShakeNeighbour::OnHandshakeComplete()
 	}
 	else if (  m_bG1Send && m_bG1Accept && m_nProtocol != PROTOCOL_G2 )
 	{
-		if ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !m_bAutomatic && m_bInitiated )
+		if ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !m_bAutomatic )
 		{
 			HostCache.OnSuccess( &m_pHost.sin_addr, htons( m_pHost.sin_port ), PROTOCOL_G1, true );
 		}
@@ -1938,7 +1937,7 @@ BOOL CShakeNeighbour::IsClientBad()
 	
 
 	// Really obsolete versions of Shareaza should be blocked. (they may have bad settings)
-	if ( _tcsistr( m_sUserAgent, _T("shareaza") ) )	
+	if ( _tcsistr( m_sUserAgent, _T("shareaza") ) )
 	{
 		if ( _tcsistr( m_sUserAgent, _T("shareaza 1.") ) )	return TRUE;
 		if ( _tcsistr( m_sUserAgent, _T("shareaza 2.0") ) )	return TRUE;
@@ -1946,6 +1945,37 @@ BOOL CShakeNeighbour::IsClientBad()
 		if ( _tcsistr( m_sUserAgent, _T("shareaza 3.") ) )	return TRUE;
 		if ( _tcsistr( m_sUserAgent, _T("shareaza 6.") ) )	return TRUE;
 		if ( _tcsistr( m_sUserAgent, _T("shareaza 7.") ) )	return TRUE;
+		// Current versions okay
+		return FALSE;
+	}
+
+	// MLDonkey older than 2.8.2 are known to give Neighbour hub's address in /QH2/NA
+	// which may increase unnecessary TCP requests for Hubs
+	if ( _tcsistr( m_sUserAgent, _T("MLDonkey/") ) )
+	{
+		if ( _tcsistr( m_sUserAgent, _T("MLDonkey/0.") ) )	return TRUE;
+		if ( _tcsistr( m_sUserAgent, _T("MLDonkey/1.") ) )	return TRUE;
+		if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.") ) )
+		{
+			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.0.") ) ) return TRUE;
+			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.1.") ) ) return TRUE;
+			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.2.") ) ) return TRUE;
+			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.3.") ) ) return TRUE;
+			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.4.") ) ) return TRUE;
+			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.5.") ) ) return TRUE;
+			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.6.") ) ) return TRUE;
+			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.7.") ) ) return TRUE;
+			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.8.") ) )
+			{
+				if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.8.0") ) )
+				{
+					CString strUserAgent(m_sUserAgent);
+					strUserAgent.Append(_T(" ") );
+					if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.8.0 ") ) ) return TRUE;
+				}
+				if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.8.1") ) ) return TRUE;
+			}
+		}
 		// Current versions okay
 		return FALSE;
 	}

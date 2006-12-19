@@ -45,7 +45,7 @@ public:
 protected:
 
 	// Shareaza Settings allow us to send and receive compressed data
-	BOOL m_bCanDeflate;
+	BOOL		m_bCanDeflate;
 
 	// Set to true when we have sent the following handshake header
 	BOOL        m_bSentAddress;     // We told the remote computer our Internet IP address that we are listening on
