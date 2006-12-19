@@ -76,12 +76,12 @@ CNeighboursWithConnect::~CNeighboursWithConnect()
 // Takes an IP address and port number from the host cache, and connects to it
 // Returns a pointer to the new neighbour in the connected list, or null if no connection was made
 CNeighbour* CNeighboursWithConnect::ConnectTo(
-	IN_ADDR*   pAddress,     // IP address from the host cache to connect to, like 67.163.208.23
-	WORD       nPort,        // Port number that goes with that IP address, like 6346
-	PROTOCOLID nProtocol,    // Protocol name, like PROTOCOL_G1 for Gnutella
-	BOOL       bAutomatic,   // True to (do)
-	BOOL       bNoUltraPeer, // By default, false to not (do)
-	BOOL	   bFirewallTest)
+	IN_ADDR*		pAddress,		// IP address from the host cache to connect to, like 67.163.208.23
+	WORD			nPort,			// Port number that goes with that IP address, like 6346
+	PROTOCOLID		nProtocol,		// Protocol name, like PROTOCOL_G1 for Gnutella
+	BOOL			bAutomatic,		// True to (do)
+	BOOL			bNoUltraPeer,	// By default, false to not (do)
+	BOOL			bFirewallTest)	// Making Connection to test if the remote node's TCP is firewalled or not.
 {
 	// Get this thread exclusive access to the network (do) while this method runs 
 	CSingleLock pLock( &Network.m_pSection, TRUE ); // When control leaves the method, pLock will go out of scope and release access
@@ -273,7 +273,7 @@ void CNeighboursWithConnect::PeerPrune(PROTOCOLID nProtocol)
 BOOL CNeighboursWithConnect::IsG2Leaf()
 {
 	// If the network is enabled (do) and we have at least 1 connection up to a hub, then we're a leaf
-	return ( Network.m_bEnabled && m_bG2Leaf );
+	return ( Network.m_bEnabled && m_bG2Leaf && Settings.Gnutella1.ClientMode != MODE_HUB );
 }
 
 // Determines if we are a hub on the Gnutella2 network right now
@@ -281,7 +281,7 @@ BOOL CNeighboursWithConnect::IsG2Leaf()
 BOOL CNeighboursWithConnect::IsG2Hub()
 {
 	// If the network is enabled (do) and we have at least 1 connection down to a leaf, then we're a hub
-	return ( Network.m_bEnabled && m_bG2Hub );
+	return ( Network.m_bEnabled && m_bG2Hub && Settings.Gnutella1.ClientMode != MODE_LEAF );
 }
 
 // Takes true if we are running the program in debug mode, and this method should write out debug information
@@ -422,18 +422,32 @@ DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bDebug)
 			}
 		}
 
-		// Make sure the datagram is stable (do)
-		if ( !Datagrams.IsStable() && Network.IsFirewalled() )
+		// Make sure UDP is stable (do)
+		if ( !Datagrams.IsStable() )
 		{
 			// Record this is why we can't be a hub, and return no
-			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: datagram not stable") );
+			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: UDP not stable") );
 			return FALSE;
 
 		} // The datagram is stable (do)
 		else
 		{
 			// Make a note we passed this test, and keep going
-			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("OK: datagram stable") );
+			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("OK: UDP stable") );
+		}
+
+		// Make sure TCP is stable (do)
+		if ( Network.IsFirewalled() )
+		{
+			// Record this is why we can't be a hub, and return no
+			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: TCP not stable") );
+			return FALSE;
+
+		} // The datagram is stable (do)
+		else
+		{
+			// Make a note we passed this test, and keep going
+			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("OK: TCP stable") );
 		}
 
 		// The scheduler is enabled in settings, and it says we can't be a hub
@@ -536,7 +550,7 @@ DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bDebug)
 BOOL CNeighboursWithConnect::IsG1Leaf()
 {
 	// If the network is enabled (do) and we have at least 1 connection up to an ultrapeer, then we're a leaf
-	return ( Network.m_bEnabled && m_bG1Leaf );
+	return ( Network.m_bEnabled && m_bG1Leaf && Settings.Gnutella1.ClientMode != MODE_ULTRAPEER );
 }
 
 // Determines if we are an ultrapeer on the Gnutella network right now
@@ -544,7 +558,7 @@ BOOL CNeighboursWithConnect::IsG1Leaf()
 BOOL CNeighboursWithConnect::IsG1Ultrapeer()
 {
 	// If the network is enabled (do) and we have at least 1 connection down to a leaf, then we're an ultrapeer
-	return ( Network.m_bEnabled && m_bG1Ultrapeer );
+	return ( Network.m_bEnabled && m_bG1Ultrapeer && Settings.Gnutella1.ClientMode != MODE_LEAF );
 }
 
 // Takes true if we are running the program in debug mode, and this method should write out debug information
