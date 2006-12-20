@@ -921,51 +921,86 @@ void CG2Neighbour::SendLNI()
 	}
 	*/
 
-	pPacket->WritePacket( "NA", 6 );
-	pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
-	pPacket->WriteShortBE( htons( Network.m_pHost.sin_port ) );
+	pPacket->WritePacket( "NA", 6 );									// Node address
+	pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );		// IP
+	pPacket->WriteShortBE( htons( Network.m_pHost.sin_port ) );			// port
 
-	pPacket->WritePacket( "GU", 16 );
+	pPacket->WritePacket( "GU", 16 );									// GUID of this node.
 	pPacket->Write( Hashes::Guid( MyProfile.oGUID ) );
 
-	pPacket->WritePacket( "V", 4 );
+	pPacket->WritePacket( "V", 4 );										// Vendor code of this node
 	pPacket->WriteString( SHAREAZA_VENDOR_A, FALSE );
 
-	pPacket->WritePacket( "LS", 8 );
-	pPacket->WriteLongBE( (DWORD)nMyFiles );
-	pPacket->WriteLongBE( (DWORD)nMyVolume );
+	pPacket->WritePacket( "LS", 8 );									// Library State
+	pPacket->WriteLongBE( (DWORD)nMyFiles );							// Number of shared files
+	pPacket->WriteLongBE( (DWORD)nMyVolume );							// Total Size of shared files (KB)
 
 	if ( ! Neighbours.IsG2Leaf() )
 	{
-		pPacket->WritePacket( "HS", 4 );
-		pPacket->WriteShortBE( nLeafs );
-		pPacket->WriteShortBE( WORD( Settings.Gnutella2.NumLeafs ) );
+		pPacket->WritePacket( "HS", 4 );								// Hub Statistic - only for Hub node
+		pPacket->WriteShortBE( nLeafs );								// Number of Leaf connections currently have
+		pPacket->WriteShortBE( WORD( Settings.Gnutella2.NumLeafs ) );	// Max number of Leaf connections this hub can accept
 
 		pPacket->WritePacket( "QK", 0 );
 	}
 
 	if ( Network.IsFirewalled() || !Datagrams.IsStable() ) //add
 	{
-		pPacket->WritePacket( "FW", 0 );
+		if ( !Network.IsTestingUDPFW() )
+		{
+			pPacket->WritePacket( "FW", 0 );
+			if ( Network.IsFirewalled() )
+				pPacket->WritePacket( "TCPFW", 0 );
+			else
+				pPacket->WritePacket( "TCPNFW", 0 );
+
+			if ( !Datagrams.IsStable() )
+				pPacket->WritePacket( "UDPFW", 0 );
+			else
+				pPacket->WritePacket( "UDPNFW", 0 );
+		}
 	}
-	else if ( Settings.Gnutella2.ClientMode != MODE_LEAF && Neighbours.IsG2HubCapable() ) //add
+	else if ( Neighbours.IsG2Hub() && Neighbours.IsG2HubCapable() ) //add
 	{
-		pPacket->WritePacket( "HA", 0 );
+		pPacket->WritePacket( "HA", 0 );						// Hubable - Not used on shareaza yet but used on Gnucleaus
+																//			This might be useful sometime.
+		
+		pPacket->WritePacket( "TCPNFW", 2 );					// TCP Not Firewalled
+		pPacket->WriteShortLE( Network.m_pHost.sin_port );		// telling TCP port
+		pPacket->WritePacket( "UDPNFW", 2 );					// UDP Not Firewalled
+		pPacket->WriteShortLE( Network.m_pHost.sin_port );		// telling UDP port
 	}
+	else
+	{
+		pPacket->WritePacket( "NFW", 0 );
+		pPacket->WritePacket( "TCPNFW", 2 );					// TCP Not Firewalled
+		pPacket->WriteShortLE( Network.m_pHost.sin_port );		// telling TCP port
+		pPacket->WritePacket( "UDPNFW", 2 );					// UDP Not Firewalled
+		pPacket->WriteShortLE( Network.m_pHost.sin_port );		// telling UDP port
+	}
+
+	/*	Note: about FW, NFW, TCPFW, TCPNFW, UDPFW, UDPNFW
+		These tags are not used in Shareaza yet. for some of them like "FW" has been used in Gnucleus.
+		the reason why TCPNFW and UDPNFW has port as payload, this is not really planed yet, but might
+		make some specification to use separate port number for TCP/UDP bindings. since there are some
+		models of routers can not use same port number forwarded to same PC. if thats the case, G2 does
+		not work good in that network and thus need to create this kind of very unusual info transfered
+		through LNI packet.
+	*/
 
 	pPacket->WritePacket( "NBW", 8 ); //add
-	pPacket->WriteLongBE( Settings.Bandwidth.Downloads );
-	pPacket->WriteLongBE( Settings.Bandwidth.Uploads );
+	pPacket->WriteLongBE( Settings.Bandwidth.Downloads );	// These two are not used on Shareaza. only on Gnucleus right now.
+	pPacket->WriteLongBE( Settings.Bandwidth.Uploads );		//
 
 	pPacket->WritePacket( "UP", 4 ); //add
-	pPacket->WriteLongBE( Network.GetStableTime() );
+	pPacket->WriteLongBE( Network.GetStableTime() );		// not used - only on Gnucleus
 
 	DWORD nGPS = MyProfile.GetPackedGPS();
 
 	if ( nGPS )
 	{
 		pPacket->WritePacket( "GPS", 4 ); //add
-		pPacket->WriteLongBE( nGPS );
+		pPacket->WriteLongBE( nGPS );						// not used - only on Gnucleus
 	}
 
 	Send( pPacket, TRUE, FALSE );
