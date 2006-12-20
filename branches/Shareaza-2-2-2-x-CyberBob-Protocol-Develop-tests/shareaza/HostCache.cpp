@@ -184,24 +184,26 @@ void CHostCache::Remove(CHostCacheHost* pHost)
 	}
 }
 
-void CHostCache::OnFailure(IN_ADDR* pAddress, WORD nPort, PROTOCOLID nProtocol, bool bRemove)
+CHostCacheHost* CHostCache::OnFailure(IN_ADDR* pAddress, WORD nPort, PROTOCOLID nProtocol, bool bRemove)
 {
 	for ( POSITION pos = m_pList.GetHeadPosition() ; pos ; )
 	{
 		CHostCacheList* pCache = m_pList.GetNext( pos );
 		if ( nProtocol == PROTOCOL_NULL || nProtocol == pCache->m_nProtocol )
-			pCache->OnFailure( pAddress, nPort, bRemove );
+			return pCache->OnFailure( pAddress, nPort, bRemove );
 	}
+	return NULL;
 }
 
-void CHostCache::OnSuccess(IN_ADDR* pAddress, WORD nPort, PROTOCOLID nProtocol, bool bUpdate)
+CHostCacheHost* CHostCache::OnSuccess(IN_ADDR* pAddress, WORD nPort, PROTOCOLID nProtocol, bool bUpdate)
 {
 	for ( POSITION pos = m_pList.GetHeadPosition() ; pos ; )
 	{
 		CHostCacheList* pCache = m_pList.GetNext( pos );
 		if ( nProtocol == PROTOCOL_NULL || nProtocol == pCache->m_nProtocol )
-			pCache->OnSuccess( pAddress, nPort, bUpdate );
+			return pCache->OnSuccess( pAddress, nPort, bUpdate );
 	}
+	return NULL;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -252,6 +254,7 @@ void CHostCacheList::Clear()
 	{
 		pHost->m_pNextHash = ( nPos == 1 ) ? NULL : pHost + 1;
 		pHost->m_nProtocol = m_nProtocol;
+		pHost->m_pContainer = this;
 	}
 	
 	ZeroMemory( m_pHash, sizeof(CHostCacheHost*) * 256 );
@@ -375,9 +378,47 @@ CHostCacheHost* CHostCacheList::AddInternal(IN_ADDR* pAddress, WORD nPort,
 	}
 	
 	BOOL bToNewest = TRUE;
+	BOOL bRemove = FALSE;
+
+	if ( pszVendor != NULL )
+	{
+		CString strVendorCode(pszVendor);
+		strVendorCode.Trim();
+		CVendor* pVendor;
+
+		if (  strVendorCode.GetLength() != 0 )
+		{
+			pVendor = VendorCache.Lookup( (LPCTSTR)strVendorCode );
+
+
+			if ( pVendor->m_sName == _T("Fake Shareaza") ) bRemove = TRUE; // Block "Fake Shareaza"
+
+			// Get the list of blocked programs, and make a copy here of it all in lowercase letters
+			CString strBlocked = Settings.Uploads.BlockAgents;
+			CharLower( strBlocked.GetBuffer() );
+			strBlocked.ReleaseBuffer();
+
+			// Get the name of the program running on the other side of the connection, and make it lowercase also
+			CString strAgent = pVendor->m_sName;
+			CharLower( strAgent.GetBuffer() );
+			strAgent.ReleaseBuffer();
+
+			// Loop through the list of programs to block
+			for ( strBlocked += '|' ; strBlocked.GetLength() ; )
+			{
+				// Break off a blocked program name from the start of the list
+				CString strBrowser	= strBlocked.SpanExcluding( _T("|;,") );		// Get the text before a punctuation mark
+				strBlocked			= strBlocked.Mid( strBrowser.GetLength() + 1 );	// Remove that much text from the start
+
+				// If the blocked list still exists and the blocked program and remote program match, block it
+				if ( strBrowser.GetLength() > 0 && strAgent.Find( strBrowser ) >= 0 ) bRemove = TRUE;
+			}
+		}
+	}
 	
 	if ( pHost == NULL )
 	{
+		if ( bRemove ) return NULL;
 		if ( m_nHosts == m_nBuffer ) RemoveOldest();
 		if ( m_nHosts == m_nBuffer || ! m_pFree ) return NULL;
 		
@@ -389,6 +430,12 @@ CHostCacheHost* CHostCacheList::AddInternal(IN_ADDR* pAddress, WORD nPort,
 		*pHash = pHost;
 		
 		pHost->Reset( pAddress );
+	}
+	else if ( bRemove )
+	{
+		Remove( pHost );
+		m_nCookie++;
+		return NULL;
 	}
 	else if ( Network.m_nNetworkGlobalTime - pHost->m_tFailure >= 300 )
 	{
@@ -520,7 +567,7 @@ void CHostCacheList::RemoveOldest()
 //////////////////////////////////////////////////////////////////////
 // CHostCacheList failure processor
 
-void CHostCacheList::OnFailure(IN_ADDR* pAddress, WORD nPort, bool bRemove)
+CHostCacheHost*	CHostCacheList::OnFailure(IN_ADDR* pAddress, WORD nPort, bool bRemove)
 {
 	BYTE nHash	= pAddress->S_un.S_un_b.s_b1
 				+ pAddress->S_un.S_un_b.s_b2
@@ -536,50 +583,72 @@ void CHostCacheList::OnFailure(IN_ADDR* pAddress, WORD nPort, bool bRemove)
 		{
 			pHost->m_nFailures++;
 
-			if ( pHost->m_bPriority ) return;
-			
-			if ( pHost->m_pPrevTime )
-				pHost->m_pPrevTime->m_pNextTime = pHost->m_pNextTime;
-			else
-				m_pOldest = pHost->m_pNextTime;
+			if ( pHost->m_bPriority ) return pHost;
 
-			if ( pHost->m_pNextTime )
-				pHost->m_pNextTime->m_pPrevTime = pHost->m_pPrevTime;
-			else
-				m_pNewest = pHost->m_pPrevTime;
+			MoveToBottom( pHost );
 
-			pHost->m_pPrevTime = NULL;
-			pHost->m_pNextTime = m_pOldest;
-
-			if ( m_pOldest )
-				m_pOldest->m_pPrevTime = pHost;
-			else
-				m_pNewest = pHost;
-
-			m_pOldest = pHost;
-			
 			if ( bRemove || pHost->m_nFailures > 2 )
+			{
 				Remove( pHost );
+				break;
+			}				
 			else
 			{
 				pHost->m_tFailure = Network.m_nNetworkGlobalTime;
 				pHost->m_bCheckedLocally = FALSE;
 			}
-	
-			break;
+
+			return pHost;
 		}
 	}
+	return NULL;
+}
+
+CHostCacheHost*	CHostCacheList::OnFailure(CHostCacheHost* pFailedHost, bool bRemove)
+{
+	BYTE nHash	= pFailedHost->m_pAddress.S_un.S_un_b.s_b1
+				+ pFailedHost->m_pAddress.S_un.S_un_b.s_b2
+				+ pFailedHost->m_pAddress.S_un.S_un_b.s_b3
+				+ pFailedHost->m_pAddress.S_un.S_un_b.s_b4;
+
+	CHostCacheHost** pHash = m_pHash + nHash;
+
+	for ( CHostCacheHost* pHost = *pHash ; pHost ; pHost = pHost->m_pNextHash )
+	{
+		if ( pHost == pFailedHost )
+		{
+			pHost->m_nFailures++;
+
+			if ( pHost->m_bPriority ) return pHost;
+
+			MoveToBottom( pHost );
+
+			if ( bRemove || pHost->m_nFailures > 2 )
+			{
+				Remove( pHost );
+				break;
+			}
+			else
+			{
+				pHost->m_tFailure = Network.m_nNetworkGlobalTime;
+				pHost->m_bCheckedLocally = FALSE;
+			}
+
+			return pHost;
+		}
+	}
+	return NULL;
 }
 
 //////////////////////////////////////////////////////////////////////
-// CHostCacheList failure processor
+// CHostCacheList success processor
 
-void CHostCacheList::OnSuccess(IN_ADDR* pAddress, WORD nPort, bool bUpdate)
+CHostCacheHost*	CHostCacheList::OnSuccess(IN_ADDR* pAddress, WORD nPort, bool bUpdate)
 {
 	BYTE nHash	= pAddress->S_un.S_un_b.s_b1
-		+ pAddress->S_un.S_un_b.s_b2
-		+ pAddress->S_un.S_un_b.s_b3
-		+ pAddress->S_un.S_un_b.s_b4;
+				+ pAddress->S_un.S_un_b.s_b2
+				+ pAddress->S_un.S_un_b.s_b3
+				+ pAddress->S_un.S_un_b.s_b4;
 
 	CHostCacheHost** pHash = m_pHash + nHash;
 
@@ -592,11 +661,103 @@ void CHostCacheList::OnSuccess(IN_ADDR* pAddress, WORD nPort, bool bUpdate)
 			pHost->m_nFailures = 0;
 			pHost->m_bCheckedLocally = TRUE;
 			if ( bUpdate )
+			{
 				pHost->Update( nPort );
+				MoveToTop( pHost );
+			}
 
-			break;
+			return pHost;
 		}
 	}
+	return NULL;
+}
+
+CHostCacheHost*	CHostCacheList::OnSuccess(CHostCacheHost* pUpdateHost, bool bUpdate)
+{
+	BYTE nHash	= pUpdateHost->m_pAddress.S_un.S_un_b.s_b1
+				+ pUpdateHost->m_pAddress.S_un.S_un_b.s_b2
+				+ pUpdateHost->m_pAddress.S_un.S_un_b.s_b3
+				+ pUpdateHost->m_pAddress.S_un.S_un_b.s_b4;
+
+	CHostCacheHost** pHash = m_pHash + nHash;
+
+	for ( CHostCacheHost* pHost = *pHash ; pHost ; pHost = pHost->m_pNextHash )
+	{
+		if ( pHost == pUpdateHost )
+		{
+			pHost->m_tFailure = 0;
+			pHost->m_nFailures = 0;
+			pHost->m_bCheckedLocally = TRUE;
+			if ( bUpdate )
+			{
+				pHost->Update( pHost->m_nPort );
+				MoveToTop( pHost );
+			}
+
+			return pHost;
+		}
+	}
+	return NULL;
+}
+
+void CHostCacheList::MoveToTop(CHostCacheHost* pHost)
+{
+	
+	///////////////// UnLink from SeenTime chain //////////////////
+	if ( pHost->m_pPrevTime )
+		pHost->m_pPrevTime->m_pNextTime = pHost->m_pNextTime;
+	else
+		m_pOldest = pHost->m_pNextTime;
+
+	if ( pHost->m_pNextTime )
+		pHost->m_pNextTime->m_pPrevTime = pHost->m_pPrevTime;
+	else
+		m_pNewest = pHost->m_pPrevTime;
+	///////////////// UnLink from SeenTime chain //////////////////
+
+
+	//////////// Put the pHost top of SeenTime chain ///////////////
+	pHost->m_pNextTime = NULL;
+	pHost->m_pPrevTime = m_pNewest;
+
+	if ( m_pNewest )
+		m_pNewest->m_pNextTime = pHost;
+	else
+		m_pOldest = pHost;
+
+	m_pNewest = pHost;
+	//////////// Put the pHost top of SeenTime chain ///////////////
+
+}
+
+void CHostCacheList::MoveToBottom(CHostCacheHost* pHost)
+{
+
+	///////////////// UnLink from SeenTime chain //////////////////
+	if ( pHost->m_pPrevTime )
+		pHost->m_pPrevTime->m_pNextTime = pHost->m_pNextTime;
+	else
+		m_pOldest = pHost->m_pNextTime;
+
+	if ( pHost->m_pNextTime )
+		pHost->m_pNextTime->m_pPrevTime = pHost->m_pPrevTime;
+	else
+		m_pNewest = pHost->m_pPrevTime;
+	///////////////// UnLink from SeenTime chain //////////////////
+
+
+	////////// Put the pHost Bottom of SeenTime chain /////////////
+	pHost->m_pPrevTime = NULL;
+	pHost->m_pNextTime = m_pOldest;
+
+	if ( m_pOldest )
+		m_pOldest->m_pPrevTime = pHost;
+	else
+		m_pNewest = pHost;
+
+	m_pOldest = pHost;
+	////////// Put the pHost Bottom of SeenTime chain /////////////
+
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -625,8 +786,9 @@ DWORD CHostCacheList::CountHosts() const
 void CHostCacheList::PruneByQueryAck()
 {
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
-	
-	for ( CHostCacheHost* pHost = m_pNewest ; pHost ; )
+	DWORD nHostCount = m_nHosts;
+
+	for ( CHostCacheHost* pHost = m_pNewest ; pHost && nHostCount ; nHostCount-- )
 	{
 		CHostCacheHost* pNext = pHost->m_pPrevTime;
 		
@@ -885,6 +1047,7 @@ CHostCacheHost::CHostCacheHost()
 , m_nFailures(0), m_nDailyUptime(0), m_tKeyTime(0)
 , m_nKeyValue(0), m_nKeyHost(0), m_pNextHash(NULL)
 , m_pPrevTime(NULL), m_pNextTime(NULL), m_bCheckedLocally(FALSE)
+,m_pContainer(NULL)
 {
 }
 
@@ -1210,4 +1373,24 @@ void CHostCacheHost::SetKey(DWORD nKey, IN_ADDR* pHost)
 	m_tKeyTime	= nKey ? Network.m_nNetworkGlobalTime : 0;
 	m_nKeyValue	= nKey;
 	m_nKeyHost	= pHost && nKey ? pHost->S_un.S_addr : Network.m_pHost.sin_addr.S_un.S_addr;
+}
+
+void CHostCacheHost::OnFailure(bool bRemove)
+{
+	m_pContainer->OnFailure(this, bRemove);
+}
+
+void CHostCacheHost::OnSuccess(bool bUpdate)
+{
+	m_pContainer->OnSuccess(this, bUpdate);
+}
+
+void CHostCacheHost::MoveToTop()
+{
+	m_pContainer->MoveToTop(this);
+}
+
+void CHostCacheHost::MoveToBottom()
+{
+	m_pContainer->MoveToBottom(this);
 }

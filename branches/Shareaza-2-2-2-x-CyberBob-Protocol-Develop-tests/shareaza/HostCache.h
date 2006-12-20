@@ -57,8 +57,12 @@ public:
 	CHostCacheHost*	Find(IN_ADDR* pAddress) const;
 	BOOL			Check(CHostCacheHost* pHost) const;
 	void			Remove(CHostCacheHost* pHost);
-	void			OnFailure(IN_ADDR* pAddress, WORD nPort, bool bRemove=true);
-	void			OnSuccess(IN_ADDR* pAddress, WORD nPort, bool bUpdate=true);
+	CHostCacheHost*	OnFailure(IN_ADDR* pAddress, WORD nPort, bool bRemove=false);
+	CHostCacheHost*	OnFailure(CHostCacheHost* pHost, bool bRemove=false);
+	CHostCacheHost*	OnSuccess(IN_ADDR* pAddress, WORD nPort, bool bUpdate=true);
+	CHostCacheHost*	OnSuccess(CHostCacheHost* pHost, bool bUpdate=true);
+	void			MoveToTop(CHostCacheHost* pHost);
+	void			MoveToBottom(CHostCacheHost* pHost);
 	DWORD			CountHosts() const;
 	void			PruneByQueryAck();			// For G2
 	void			PruneOldHosts();			// For G1
@@ -70,7 +74,7 @@ public:
 protected:
 	CHostCacheHost*	AddInternal(IN_ADDR* pAddress, WORD nPort, DWORD tSeen, LPCTSTR pszVendor, DWORD nUptime = 0);
 	void			RemoveOldest();
-	
+
 // Inlines
 public:
 
@@ -97,59 +101,64 @@ public:
 	CHostCacheHost*	m_pNextHash;
 	CHostCacheHost*	m_pPrevTime;
 	CHostCacheHost*	m_pNextTime;
+	CHostCacheList*	m_pContainer;
 
 // Attributes: Host Information
 public:
-	PROTOCOLID	m_nProtocol;
-	IN_ADDR		m_pAddress;
-	WORD		m_nPort;
-	CVendor*	m_pVendor;
-	BOOL		m_bPriority;
-	DWORD		m_nUserCount;
-	DWORD		m_nUserLimit;
-	DWORD		m_nFileLimit;
-	CString		m_sName;
-	CString		m_sDescription;
-	DWORD		m_nTCPFlags;
-	DWORD		m_nUDPFlags;
-	BOOL		m_bCheckedLocally;
+	PROTOCOLID		m_nProtocol;
+	IN_ADDR			m_pAddress;
+	WORD			m_nPort;
+	CVendor*		m_pVendor;
+	BOOL			m_bPriority;
+	DWORD			m_nUserCount;
+	DWORD			m_nUserLimit;
+	DWORD			m_nFileLimit;
+	CString			m_sName;
+	CString			m_sDescription;
+	DWORD			m_nTCPFlags;
+	DWORD			m_nUDPFlags;
+	BOOL			m_bCheckedLocally;
 
 // Attributes: Contact Times
 public:
-	DWORD		m_tAdded;
-	DWORD		m_tSeen;
-	DWORD		m_tRetryAfter;
-	DWORD		m_tConnect;
-	DWORD		m_tQuery;
-	DWORD		m_tAck;
-	DWORD		m_tStats;			// ED2K stats UDP request
-	DWORD		m_tFailure;
-	DWORD		m_nFailures;
-	DWORD		m_nDailyUptime;
-	DWORD		m_tCheckTime;
+	DWORD			m_tAdded;
+	DWORD			m_tSeen;
+	DWORD			m_tRetryAfter;
+	DWORD			m_tConnect;
+	DWORD			m_tQuery;
+	DWORD			m_tAck;
+	DWORD			m_tStats;			// ED2K stats UDP request
+	DWORD			m_tFailure;
+	DWORD			m_nFailures;
+	DWORD			m_nDailyUptime;
+	DWORD			m_tCheckTime;
 
 // Attributes: Query Keys
 public:
-	DWORD		m_tKeyTime;
-	DWORD		m_nKeyValue;
-	DWORD		m_nKeyHost;
+	DWORD			m_tKeyTime;
+	DWORD			m_nKeyValue;
+	DWORD			m_nKeyHost;
 
 // Operations
 public:
-	void		Update(WORD nPort, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0);
-	CNeighbour*	ConnectTo(BOOL bAutomatic = FALSE);
-	CG1Packet*	ToG1Ping(int nTTL, const Hashes::Guid& oGUID);
-	CString		ToString() const;
-	BOOL		CanConnect(DWORD tNow = 0) const;	// Can we connect to this host now?
-	BOOL		CanQuote(DWORD tNow = 0) const;		// Is this a recently seen host?
-	BOOL		CanQuery(DWORD tNow = 0) const;		// Can we UDP query this host? (G2/ed2k)
-	void		SetKey(DWORD nKey, IN_ADDR* pHost = NULL);
+	void			Update(WORD nPort, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0);
+	CNeighbour*		ConnectTo(BOOL bAutomatic = FALSE);
+	CG1Packet*		ToG1Ping(int nTTL, const Hashes::Guid& oGUID);
+	CString			ToString() const;
+	BOOL			CanConnect(DWORD tNow = 0) const;	// Can we connect to this host now?
+	BOOL			CanQuote(DWORD tNow = 0) const;		// Is this a recently seen host?
+	BOOL			CanQuery(DWORD tNow = 0) const;		// Can we UDP query this host? (G2/ed2k)
+	void			SetKey(DWORD nKey, IN_ADDR* pHost = NULL);
+	void			OnFailure(bool bRemove=false);
+	void			OnSuccess(bool bUpdate=true);
+	void			MoveToTop();
+	void			MoveToBottom();
 protected:
-	void		Serialize(CArchive& ar, int nVersion);
-	void		Reset(IN_ADDR* pAddress);
+	void			Serialize(CArchive& ar, int nVersion);
+	void			Reset(IN_ADDR* pAddress);
 
-	friend class CHostCacheList;
-	friend class CHostCacheLinks;
+	friend	class	CHostCacheList;
+	friend	class	CHostCacheLinks;
 };
 
 
@@ -177,10 +186,8 @@ public:
 	CHostCacheHost*	Find(IN_ADDR* pAddress) const;
 	BOOL			Check(CHostCacheHost* pHost) const;
 	void			Remove(CHostCacheHost* pHost);
-	void			OnFailure(IN_ADDR* pAddress, WORD nPort, 
-							  PROTOCOLID nProtocol=PROTOCOL_NULL, bool bRemove=true);
-	void			OnSuccess(IN_ADDR* pAddress, WORD nPort, 
-							  PROTOCOLID nProtocol=PROTOCOL_NULL, bool bUpdate=true);
+	CHostCacheHost* OnFailure(IN_ADDR* pAddress, WORD nPort, PROTOCOLID nProtocol=PROTOCOL_NULL, bool bRemove=false);
+	CHostCacheHost* OnSuccess(IN_ADDR* pAddress, WORD nPort, PROTOCOLID nProtocol=PROTOCOL_NULL, bool bUpdate=true);
 
 // Inlines
 public:
