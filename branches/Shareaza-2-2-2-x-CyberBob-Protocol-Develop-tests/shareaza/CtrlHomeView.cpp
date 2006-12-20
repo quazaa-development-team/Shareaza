@@ -50,6 +50,7 @@ END_MESSAGE_MAP()
 #define GROUP_FIREWALLED		4
 #define GROUP_REMOTE			5
 #define GROUP_FIREWALLED_TCP	6
+#define GROUP_FIREWALLED_UDP	7
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -128,8 +129,9 @@ void CHomeViewCtrl::Update()
 	m_pDocument.ShowGroup( GROUP_CONNECTED, bConnected );
 
 	BOOL bOnG2 = bConnected && Settings.Gnutella2.EnableToday && ( Neighbours.GetCount( PROTOCOL_G2, nrsConnected, -1 ) >= Settings.Gnutella2.NumHubs );
-	m_pDocument.ShowGroup( GROUP_FIREWALLED, bOnG2 && ! Datagrams.IsStable() );
+	m_pDocument.ShowGroup( GROUP_FIREWALLED, bOnG2 && ( ! Datagrams.IsStable() || Network.IsFirewalled() ) );
 	m_pDocument.ShowGroup( GROUP_FIREWALLED_TCP, bOnG2 && Network.IsFirewalled() );
+	m_pDocument.ShowGroup( GROUP_FIREWALLED_UDP, bOnG2 && ! Datagrams.IsStable() );
 
 	if ( VersionChecker.m_bUpgrade )
 	{
