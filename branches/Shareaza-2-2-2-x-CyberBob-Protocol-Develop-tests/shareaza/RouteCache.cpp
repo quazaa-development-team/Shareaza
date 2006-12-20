@@ -109,7 +109,10 @@ BOOL CRouteCache::Add(const Hashes::Guid& oGUID, const SOCKADDR_IN* pEndpoint)
 	return TRUE;
 }
 
-CRouteCacheItem* CRouteCache::Add(const Hashes::Guid& oGUID, const CNeighbour* pNeighbour, const SOCKADDR_IN* pEndpoint, DWORD tAdded)
+CRouteCacheItem* CRouteCache::Add(const Hashes::Guid& oGUID,		// GUID of node
+								  const CNeighbour* pNeighbour,		// pointer to CNeighbour for Destination of GUID
+								  const SOCKADDR_IN* pEndpoint,		// pointer to SOCKADDR_IN structure containing Destination
+								  DWORD tAdded)						// Time the node added ( TickCount )
 {
 	SOCKADDR_IN cEndpoint;
 	if ( pEndpoint != NULL ) cEndpoint = *pEndpoint;
