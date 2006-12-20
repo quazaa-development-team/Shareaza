@@ -1041,6 +1041,7 @@ BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 		else if ( strcmp( szType, "GU" ) == 0 && nLength >= 16 )
 		{
 			pPacket->Read( m_oGUID );
+			m_oGUID.validate();
 		}
 		else if ( strcmp( szType, "V" ) == 0 && nLength >= 4 )
 		{
@@ -1065,10 +1066,16 @@ BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 		else if ( strcmp( szType, "HA" ) == 0 ) //add G2/1.1
 		{
 			m_bHubAble = TRUE;
+			m_bFirewall = m_bFirewall ? FALSE : m_bFirewall;
 		}
 		else if ( strcmp( szType, "FW" ) == 0 ) //add G2/1.1
 		{
+			m_bHubAble = FALSE;
 			m_bFirewall = TRUE;
+		}
+		else if ( strcmp( szType, "NFW" ) == 0 ) //add G2/1.1
+		{
+			m_bFirewall = FALSE;
 		}
 		else if ( strcmp( szType, "RTR" ) == 0 ) //add G2/1.1
 		{
@@ -1140,6 +1147,9 @@ BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 	}
 
 	m_tWaitLNI = 0;
+
+	if ( m_oGUID.isValid() )
+		Network.NodeRoute->Add( m_oGUID, this, NULL, Network.m_nNetworkGlobalTickCount );
 
 	return TRUE;
 }
