@@ -191,7 +191,7 @@ BOOL CG2Neighbour::OnRun()
 {
 	if ( ! CNeighbour::OnRun() ) return FALSE;
 
-	DWORD tNow = GetTickCount();
+	DWORD tNow = Network.m_nNetworkGlobalTickCount;
 
 	if ( tNow - m_tLastPongIn > 60 * 1000 /* keepAlive if PONG has been received within 60sec */ && 
 		m_tWaitLNI > 0 && tNow - m_tWaitLNI > Settings.Gnutella2.KHLPeriod * 3 )
@@ -202,7 +202,7 @@ BOOL CG2Neighbour::OnRun()
 	else if ( m_bSFLCheckFW && !m_bFWCheckSent && tNow - m_tLastPingOut >= Settings.Gnutella1.PingRate )
 	{
 		BOOL bNeedStable = Network.IsListening() && ! Datagrams.IsStable();
-		CG2Packet* pPing = CG2Packet::New( G2_PACKET_PING, TRUE );
+		CG2Packet* pPing = CG2Packet::New( G2_PACKET_PING, bNeedStable );
 
 		if ( bNeedStable )
 		{
@@ -215,16 +215,19 @@ BOOL CG2Neighbour::OnRun()
 				pPing->WritePacket( "TFW", 0 );
 			}
 		}
+		else
+		{
+			m_nPingsSent++;
+		}
 
 		Send( pPing );
 		m_tLastPingOut = tNow;
-		m_nPingsSent++;
 		m_bFWCheckSent = TRUE;
 	}
 	else if ( tNow - m_tLastPingOut >= Settings.Gnutella1.PingRate )
 	{
 		BOOL bNeedStable = Network.IsListening() && ! Datagrams.IsStable();
-		CG2Packet* pPing = CG2Packet::New( G2_PACKET_PING, TRUE );
+		CG2Packet* pPing = CG2Packet::New( G2_PACKET_PING, bNeedStable );
 
 		if ( bNeedStable )
 		{
@@ -233,11 +236,14 @@ BOOL CG2Neighbour::OnRun()
 			pPing->WriteShortBE( htons( Network.m_pHost.sin_port ) );
 			Datagrams.Send( &m_pHost, CG2Packet::New( G2_PACKET_PING ), TRUE, NULL, FALSE );
 		}
+		else
+		{
+			m_nPingsSent++;
+		}
 
 		Send( pPing );
 		m_tLastPingOut = tNow;
 
-		m_nPingsSent++;
 
 		// we are a firewalled leaf and this hub is connected for at least minute
 		if ( m_nNodeType == ntHub && Network.IsFirewalled() && ( tNow - m_tConnected ) >= 1 * 60 * 1000 )
@@ -464,7 +470,7 @@ BOOL CG2Neighbour::ProcessPackets()
 BOOL CG2Neighbour::OnPacket(CG2Packet* pPacket)
 {
 	m_nInputCount++;
-	m_tLastPacket = GetTickCount();
+	m_tLastPacket = Network.m_nNetworkGlobalTickCount;
 	Statistics.Current.Gnutella2.Incoming++;
 
 	pPacket->SmartDump( this, NULL, FALSE );
@@ -595,7 +601,8 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 		{
 			nAddress	= pPacket->ReadLongLE();
 			nPort		= pPacket->ReadShortBE();
-			bUDP		= TRUE;
+			if ( nAddress != 0 && nPort != 0 && !Network.IsFirewalledAddress( &nAddress, TRUE, TRUE ) )
+				bUDP = TRUE;
 		}
 		else if ( strcmp( szType, "VER" ) == 0 )
 		{
@@ -627,13 +634,13 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 	}
 
 
-	if ( bTestFirewall && nAddress != 0 && nPort != 0 && !Network.IsFirewalledAddress( &nAddress, TRUE, TRUE ) )
+	if ( bTestFirewall && bUDP )
 		Network.TestRemoteFirewall( nAddress, nPort );
 
 	if ( bRelay && bUDP )
 	{
-		if ( Network.IsTestingUDPFW() && !Datagrams.IsStable() ) return TRUE;
-		if ( nAddress == 0 || nPort == 0 || Network.IsFirewalledAddress( &nAddress, TRUE, TRUE ) ) return TRUE;
+		if ( Network.IsTestingUDPFW() && !Datagrams.IsStable() )
+			return TRUE;
 
 		CG2Packet* pPong = CG2Packet::New( G2_PACKET_PONG, TRUE );
 		pPong->WritePacket( "RELAY", 0 );
@@ -685,61 +692,7 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 		Statistics.Current.Gnutella2.PongsSent++;
 
 	}
-	else if ( !bUDP )
-	{
-		CG2Packet* pPong = CG2Packet::New( G2_PACKET_PONG, TRUE );
-		if (bVersion)
-		{
-			strVendorCode = VENDOR_CODE;
-			strName = CLIENT_NAME;
-			strVersion = theApp.m_sVersion;
-
-			pPong->WritePacket( "VC", pPong->GetStringLenUTF8( strVendorCode ) );
-			pPong->WriteStringUTF8( strVendorCode, FALSE );
-			pPong->WritePacket( "AN", pPong->GetStringLenUTF8( strName ) );
-			pPong->WriteStringUTF8( strName, FALSE );
-			pPong->WritePacket( "AV", pPong->GetStringLenUTF8( strVersion ) );
-			pPong->WriteStringUTF8( strVersion, FALSE );
-		}
-
-		if ( bSupportedFeature )
-		{
-			// Format of Supported Feature list is feature name feature name followed by 2Byte feature versions
-			// first byte is Major version, and second is Miner version.
-			CG2Packet * pSFL = CG2Packet::New( "SFL", TRUE );
-
-			// indicate G2/1.0
-			pSFL->WritePacket( "G2",2 );
-			pSFL->WriteByte(1);
-			pSFL->WriteByte(0);
-
-			// indicate TFW/1.0 (TestFireWall)
-			pSFL->WritePacket( "TFW",2 );
-			pSFL->WriteByte(1);
-			pSFL->WriteByte(0);
-
-			// indicate UDPKHL/1.0
-			pSFL->WritePacket( "UDPKHL",2 );
-			pSFL->WriteByte(1);
-			pSFL->WriteByte(0);
-
-			// end compound
-			pSFL->WriteByte(0);
-
-			// adding SFL packet as compound packet in PONG
-			pPong->WritePacket( pSFL );
-			pSFL->Release();
-		}
-
-		Send( pPong );
-		Statistics.Current.Gnutella2.PongsSent++;
-
-	}
-	else if ( bRelay )
-	{
-
-	}
-	else
+	else if ( !bRelay && bUDP )
 	{
 		if ( nAddress == 0 || nPort == 0 || Network.IsFirewalledAddress( &nAddress, TRUE, TRUE ) )
 			return TRUE;
@@ -793,6 +746,56 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket)
 			if ( m_bShareaza ) pNeighbour->m_nPingsSent++; //add
 			pG2Nodes.RemoveAt( nRand );
 		}
+	}
+	else
+	{
+		CG2Packet* pPong = CG2Packet::New( G2_PACKET_PONG, TRUE );
+		if (bVersion)
+		{
+			strVendorCode = VENDOR_CODE;
+			strName = CLIENT_NAME;
+			strVersion = theApp.m_sVersion;
+
+			pPong->WritePacket( "VC", pPong->GetStringLenUTF8( strVendorCode ) );
+			pPong->WriteStringUTF8( strVendorCode, FALSE );
+			pPong->WritePacket( "AN", pPong->GetStringLenUTF8( strName ) );
+			pPong->WriteStringUTF8( strName, FALSE );
+			pPong->WritePacket( "AV", pPong->GetStringLenUTF8( strVersion ) );
+			pPong->WriteStringUTF8( strVersion, FALSE );
+		}
+
+		if ( bSupportedFeature )
+		{
+			// Format of Supported Feature list is feature name feature name followed by 2Byte feature versions
+			// first byte is Major version, and second is Miner version.
+			CG2Packet * pSFL = CG2Packet::New( "SFL", TRUE );
+
+			// indicate G2/1.0
+			pSFL->WritePacket( "G2",2 );
+			pSFL->WriteByte(1);
+			pSFL->WriteByte(0);
+
+			// indicate TFW/1.0 (TestFireWall)
+			pSFL->WritePacket( "TFW",2 );
+			pSFL->WriteByte(1);
+			pSFL->WriteByte(0);
+
+			// indicate UDPKHL/1.0
+			pSFL->WritePacket( "UDPKHL",2 );
+			pSFL->WriteByte(1);
+			pSFL->WriteByte(0);
+
+			// end compound
+			pSFL->WriteByte(0);
+
+			// adding SFL packet as compound packet in PONG
+			pPong->WritePacket( pSFL );
+			pSFL->Release();
+		}
+
+		Send( pPong );
+		Statistics.Current.Gnutella2.PongsSent++;
+
 	}
 
 	return TRUE;

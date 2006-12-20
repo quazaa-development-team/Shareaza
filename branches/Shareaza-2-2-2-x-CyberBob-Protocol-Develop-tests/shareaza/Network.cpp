@@ -389,7 +389,7 @@ BOOL CNetwork::IsFirewalled()
 
 BOOL CNetwork::IsTestingUDPFW()
 {
-	return m_tStartTestingUDPFW != 0 && ( m_nNetworkGlobalTime - m_tStartTestingUDPFW < 600 );
+	return m_tStartTestingUDPFW != 0 && ( m_nNetworkGlobalTime - m_tStartTestingUDPFW < 3600 );
 }
 
 void CNetwork::BeginTestG2UDPFW()
