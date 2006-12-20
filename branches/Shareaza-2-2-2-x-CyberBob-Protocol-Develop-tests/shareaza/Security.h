@@ -56,7 +56,7 @@ public:
 	void			Remove(CSecureRule* pRule);
 	void			MoveUp(CSecureRule* pRule);
 	void			MoveDown(CSecureRule* pRule);
-	void			Ban(IN_ADDR* pAddress, int nBanLength, BOOL bMessage = TRUE);
+	CSecureRule*	Ban(IN_ADDR* pAddress, int nBanLength, BOOL bMessage = TRUE);
 public:
 	void			Clear();
 	BOOL			IsDenied(IN_ADDR* pAddress, LPCTSTR pszContent = NULL);

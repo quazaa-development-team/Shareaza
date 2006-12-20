@@ -146,10 +146,10 @@ void CSecurity::Clear()
 //////////////////////////////////////////////////////////////////////
 // CSecurity ban
 
-void CSecurity::Ban(IN_ADDR* pAddress, int nBanLength, BOOL bMessage)
+CSecureRule* CSecurity::Ban(IN_ADDR* pAddress, int nBanLength, BOOL bMessage)
 {
 	CSingleLock pLock( &Network.m_pSection );
-	if ( ! pLock.Lock( 250 ) ) return;
+	if ( ! pLock.Lock( 250 ) ) return NULL;
 
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
 	CString strAddress = inet_ntoa( *pAddress );
@@ -176,7 +176,7 @@ void CSecurity::Ban(IN_ADDR* pAddress, int nBanLength, BOOL bMessage)
 						(LPCTSTR)strAddress );
 				}
 
-				return;
+				return pRule;
 			}
 		}
 	}
@@ -223,6 +223,8 @@ void CSecurity::Ban(IN_ADDR* pAddress, int nBanLength, BOOL bMessage)
 		theApp.Message( MSG_SYSTEM, IDS_NETWORK_SECURITY_BLOCKED,
 			(LPCTSTR)strAddress );
 	}
+
+	return pRule;
 }
 /*
 //////////////////////////////////////////////////////////////////////
