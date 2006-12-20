@@ -730,17 +730,8 @@ BOOL CG1Neighbour::OnPong(CG1Packet* pPacket)
 			if ( ( m_nNodeType == ntNode || m_nNodeType == ntHub ) && pUP != NULL )
 			{
 				strVendorCode.Trim( _T(" ") );
-				//if ( HostCache.Gnutella1.CountHosts() < ( Settings.Gnutella1.HostCacheSize * 0.8 ) )
-				//{
-					HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, nPort, Network.m_nNetworkGlobalTime,
-						( strVendorCode.GetLength() ? (LPCTSTR)strVendorCode : NULL ), nUptime );
-				//}
-				//else
-				//{
-				//	CHostCacheHost* pCachedHost = HostCache.Gnutella1.Find( (IN_ADDR*)&nAddress );
-				//	if ( pCachedHost != NULL ) 
-				//		pCachedHost->Update( nPort, 0, ( strVendorCode.GetLength() ? (LPCTSTR)strVendorCode : NULL ), nUptime );
-				//}
+				HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, nPort, Network.m_nNetworkGlobalTime,
+					( strVendorCode.GetLength() ? (LPCTSTR)strVendorCode : NULL ), nUptime );
 				theApp.Message( MSG_DEBUG, _T("Got %s host through pong marked with GGEP GUE and UP (%s:%i)"), 
 					(LPCTSTR)strVendorCode, (LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nAddress ) ), nPort ); 
 			}
