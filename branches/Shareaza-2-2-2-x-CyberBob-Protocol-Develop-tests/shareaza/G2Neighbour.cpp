@@ -1594,8 +1594,8 @@ BOOL CG2Neighbour::OnQuery(CG2Packet* pPacket)
 			// Abusive client
 			m_bBlacklisted = TRUE;
 			theApp.Message( MSG_SYSTEM, _T("Blacklisting %s due to excess traffic"), (LPCTSTR)m_sAddress );
-			//Security.Ban( &m_pHost.sin_addr, ban30Mins, FALSE );
-
+			CSecureRule* pRule = Security.Ban( &m_pHost.sin_addr, ban30Mins, FALSE );
+			if ( pRule ) pRule->m_sComment = _T("Blacklisted due to excess traffic");
 		}
 
 		if ( ( m_bBlacklisted ) || ( m_nQueryLimiter < 0 ) )
