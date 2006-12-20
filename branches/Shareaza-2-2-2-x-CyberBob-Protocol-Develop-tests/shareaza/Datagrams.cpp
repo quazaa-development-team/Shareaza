@@ -76,17 +76,21 @@ CDatagrams Datagrams;
 //////////////////////////////////////////////////////////////////////
 // CDatagrams construction
 
-CDatagrams::CDatagrams()
+CDatagrams::CDatagrams() :
+m_oUHCFilter(),
+m_oUKHLFilter(),
+m_hSocket(INVALID_SOCKET),
+m_bStable(FALSE),
+m_nSequence(0),
+m_nInBandwidth(0),
+m_nInFrags(0),
+m_nInPackets(0),
+m_nOutBandwidth(0),
+m_nOutFrags(0),
+m_nOutPackets(0)
 {
-	m_hSocket	= INVALID_SOCKET;
-	m_nSequence	= 0;
-	m_bStable	= FALSE;
-
 	ZeroMemory( &m_mInput, sizeof(m_mInput) );
 	ZeroMemory( &m_mOutput, sizeof(m_mOutput) );
-
-	m_nInBandwidth	= m_nInFrags	= m_nInPackets	= 0;
-	m_nOutBandwidth	= m_nOutFrags	= m_nOutPackets	= 0;
 }
 
 CDatagrams::~CDatagrams()
@@ -224,6 +228,9 @@ void CDatagrams::Disconnect()
 	m_nInBandwidth	= m_nInFrags	= m_nInPackets	= 0;
 	m_nOutBandwidth	= m_nOutFrags	= m_nOutPackets	= 0;
 	m_bStable = FALSE;
+
+	m_oUHCFilter.clear();
+	m_oUKHLFilter.clear();
 
 }
 
@@ -384,6 +391,55 @@ BOOL CDatagrams::Send(SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease, LPVOI
 }
 
 //////////////////////////////////////////////////////////////////////
+// CDatagrams - send UDP DiscoveryDatagram
+
+void CDatagrams::SendUDPHostCache(IN_ADDR* pAddress, WORD nPort, ServiceType nService)
+{
+	if ( m_hSocket == INVALID_SOCKET ) return;
+
+	CG1Packet* pPing = CG1Packet::New( G1_PACKET_PING, 1, Hashes::Guid( MyProfile.oGUID ) );
+
+	CGGEPBlock pBlock;
+	CGGEPItem* pItem;
+
+	pItem = pBlock.Add( L"SCP" );
+	pItem->UnsetCOBS();
+	pItem->UnsetSmall();
+	pItem->WriteByte( Neighbours.IsG1Ultrapeer() ? 1 : 0 );
+
+	pBlock.Write( pPing );
+
+	UDPBootSecurityItem oItem;
+	oItem.m_pHost.sin_family = PF_INET;
+	oItem.m_pHost.sin_addr.S_un.S_addr = pAddress->S_un.S_addr;
+	oItem.m_pHost.sin_port = htons( nPort );
+	oItem.m_nTime = Network.m_nNetworkGlobalTime;
+	oItem.m_nService = nService;
+
+	m_oUHCFilter.push_back( oItem );
+
+	Send( &(oItem.m_pHost), pPing, TRUE, NULL, FALSE, TRUE );
+}
+
+void CDatagrams::SendUDPKnownHubCache(IN_ADDR* pAddress, WORD nPort, ServiceType nService)
+{
+	if ( m_hSocket == INVALID_SOCKET ) return;
+
+	CG2Packet* pKHLR = CG2Packet::New( G2_PACKET_KHL_REQ );
+
+	UDPBootSecurityItem oItem;
+	oItem.m_pHost.sin_family = PF_INET;
+	oItem.m_pHost.sin_addr.S_un.S_addr = pAddress->S_un.S_addr;
+	oItem.m_pHost.sin_port = htons( nPort );
+	oItem.m_nTime = Network.m_nNetworkGlobalTime;
+	oItem.m_nService = nService;
+
+	m_oUKHLFilter.push_back( oItem );
+
+	Send( &(oItem.m_pHost), pKHLR, TRUE, NULL, FALSE, TRUE );
+}
+
+//////////////////////////////////////////////////////////////////////
 // CDatagrams purge outbound fragments with a specified token
 
 void CDatagrams::PurgeToken(LPVOID pToken)
@@ -426,6 +482,52 @@ void CDatagrams::OnRun()
 	while ( TryRead() );
 
 	Measure();
+
+	if ( m_oUHCFilter.size() != 0 )
+	{
+		BootSecurityFilterItem iIndex	= m_oUHCFilter.begin();
+		BootSecurityFilterItem iEnd		= m_oUHCFilter.end();
+		BootSecurityFilterItem iTemp;
+		for ( ; iIndex != iEnd ; )
+		{
+			iTemp = iIndex;
+			iIndex++;
+			if ( Network.m_nNetworkGlobalTime - ( iTemp->m_nTime ) > ( Settings.Connection.TimeoutConnect / 1000 ) )
+			{
+
+				if ( iTemp->m_nService == ubsDiscovery )
+				{
+					CDiscoveryService* pService = DiscoveryServices.GetByAddress( &(iTemp->m_pHost.sin_addr), ntohs(iTemp->m_pHost.sin_port), 3 );
+					if ( pService ) pService->OnFailure();
+				}
+
+				m_oUHCFilter.erase( iTemp );
+			}
+		}
+	}
+
+	if ( m_oUKHLFilter.size() != 0 )
+	{
+		BootSecurityFilterItem iIndex	= m_oUKHLFilter.begin();
+		BootSecurityFilterItem iEnd		= m_oUKHLFilter.end();
+		BootSecurityFilterItem iTemp;
+		for ( ; iIndex != iEnd ; )
+		{
+			iTemp = iIndex;
+			iIndex++;
+			if ( Network.m_nNetworkGlobalTime - ( iTemp->m_nTime ) > ( Settings.Connection.TimeoutConnect / 1000 ) )
+			{
+				if ( iTemp->m_nService == ubsDiscovery )
+				{
+					CDiscoveryService* pService = DiscoveryServices.GetByAddress( &(iTemp->m_pHost.sin_addr), ntohs(iTemp->m_pHost.sin_port), 4 );
+					if ( pService ) pService->OnFailure();
+				}
+
+				m_oUKHLFilter.erase( iTemp );
+			}
+		}
+	}
+
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -639,10 +741,10 @@ BOOL CDatagrams::TryRead()
 	m_mInput.nTotal += nLength;
 	Statistics.Current.Bandwidth.Incoming += nLength;
 
-	if ( Security.IsAccepted( &pFrom.sin_addr ) )
-	{
+	//if ( Security.IsAccepted( &pFrom.sin_addr ) )
+	//{
 		OnDatagram( &pFrom, pBuffer, nLength );
-	}
+	//}
 
 	return TRUE;
 }
@@ -659,18 +761,43 @@ BOOL CDatagrams::OnDatagram(SOCKADDR_IN* pHost, BYTE* pBuffer, DWORD nLength)
 		// if it is Gnutella packet, packet header size + payload length written in length field = UDP packet size
 		&& ( sizeof(GNUTELLAPACKET) + pG1UDP->m_nLength ) == nLength )
 	{
-		CG1Packet* pG1Packet = CG1Packet::New( (GNUTELLAPACKET*)pG1UDP );
-		ASSERT( pG1Packet->m_nReference == 1 );
-		pG1Packet->SmartDump( NULL, &pHost->sin_addr, FALSE );
-		if ( OnPacket( pHost, pG1Packet ) )
+		if ( Security.IsAccepted( &(pHost->sin_addr) ) )
 		{
-			pG1Packet->Release();
-			return TRUE;
+			CG1Packet* pG1Packet = CG1Packet::New( (GNUTELLAPACKET*)pG1UDP );
+			pG1Packet->SmartDump( NULL, &pHost->sin_addr, FALSE );
+			if ( OnPacket( pHost, pG1Packet ) )
+			{
+				pG1Packet->Release();
+				return TRUE;
+			}
+			else
+			{
+				pG1Packet->Release();
+				if ( TRUE /* should put setting define if the packet should go through all packet handlers or not */) return TRUE;
+			}
 		}
 		else
 		{
+			CG1Packet* pG1Packet = CG1Packet::New( (GNUTELLAPACKET*)pG1UDP );
+
+			if ( pG1Packet->m_nType == G1_PACKET_PONG && m_oUHCFilter.size() != 0 )
+			{
+				BootSecurityFilterItem iIndex	= m_oUHCFilter.begin();
+				BootSecurityFilterItem iEnd		= m_oUHCFilter.end();
+				for ( ; iIndex != iEnd ; iIndex++ )
+				{
+					if ( iIndex->m_pHost.sin_addr.S_un.S_addr == pHost->sin_addr.S_un.S_addr && 
+						iIndex->m_pHost.sin_port == pHost->sin_port )
+					{
+						pG1Packet->SmartDump( NULL, &pHost->sin_addr, FALSE );
+						OnPacket( pHost, pG1Packet );
+						pG1Packet->Release();
+						return TRUE;
+					}
+				}
+			}
 			pG1Packet->Release();
-			if ( TRUE /* should put setting define if the packet should go through all packet handlers or not */) return TRUE;
+			return TRUE;
 		}
 	}
 
@@ -679,7 +806,8 @@ BOOL CDatagrams::OnDatagram(SOCKADDR_IN* pHost, BYTE* pBuffer, DWORD nLength)
 	if ( nLength > sizeof(*pMULE) && (
 		 pMULE->nProtocol == ED2K_PROTOCOL_EDONKEY ||
 		 pMULE->nProtocol == ED2K_PROTOCOL_EMULE ||
-		 pMULE->nProtocol == ED2K_PROTOCOL_PACKED ) )
+		 pMULE->nProtocol == ED2K_PROTOCOL_PACKED ) &&
+		 Security.IsAccepted( &(pHost->sin_addr) ) )
 	{
 		CEDPacket* pPacket = CEDPacket::New( pMULE, nLength );
 
@@ -971,6 +1099,26 @@ BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 
 BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
+
+	if ( Security.IsDenied( &(pHost->sin_addr) ) )
+	{
+		if ( pPacket->IsType( G2_PACKET_KHL_ANS ) && m_oUKHLFilter.size() != 0 )
+		{
+			BootSecurityFilterItem iIndex	= m_oUKHLFilter.begin();
+			BootSecurityFilterItem iEnd		= m_oUKHLFilter.end();
+			for ( ; iIndex != iEnd ; iIndex++ )
+			{
+				if ( iIndex->m_pHost.sin_addr.S_un.S_addr == pHost->sin_addr.S_un.S_addr && 
+					iIndex->m_pHost.sin_port == pHost->sin_port )
+				{
+					break;
+				}
+			}
+			if ( iIndex == iEnd ) return TRUE;
+		}
+
+	}
+
 	pPacket->SmartDump( NULL, &pHost->sin_addr, FALSE );
 
 	m_nInPackets++;
@@ -1077,6 +1225,7 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 	// Since we do not provide leaves, ignore the preference data
 	if ( bSCP )
 	{
+
 		CGGEPItem* pItem = pGGEP.Add( _T("IPP") );
 		DWORD nCount = min( DWORD(50), HostCache.Gnutella1.CountHosts() );
 		WORD nPos = 0;
@@ -1261,10 +1410,28 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 	UNUSED_ALWAYS(nFiles);
 	UNUSED_ALWAYS(nVolume);
 
-	CDiscoveryService * pService = DiscoveryServices.GetByAddress( &(pHost->sin_addr) , ntohs(pHost->sin_port), 3 );
+	CDiscoveryService* pService = NULL;
+	bool bBypassSecurity = false;
+
+	if ( m_oUHCFilter.size() != 0 )
+	{
+		BootSecurityFilterItem iIndex	= m_oUHCFilter.begin();
+		BootSecurityFilterItem iEnd		= m_oUHCFilter.end();
+		for ( ; iIndex != iEnd ; iIndex++ )
+		{
+			if ( iIndex->m_pHost.sin_addr.S_un.S_addr == pHost->sin_addr.S_un.S_addr &&
+				iIndex->m_pHost.sin_port == pHost->sin_port )
+			{
+				if ( iIndex->m_nService == ubsDiscovery )
+					pService = DiscoveryServices.GetByAddress( &(pHost->sin_addr), ntohs(pHost->sin_port), 3 );
+				bBypassSecurity = true;
+				break;
+			}
+		}
+	}
 
 	// If that IP address is in our list of computers to not talk to, except ones in UHC list in discovery
-	if ( pService == NULL && Security.IsDenied( (IN_ADDR*)&nAddress ) )
+	if ( !bBypassSecurity && Security.IsDenied( (IN_ADDR*)&nAddress ) )
 	{
 		// Record the packet as dropped, do nothing else, and leave now
 		Statistics.Current.Gnutella1.Dropped++;
@@ -2358,9 +2525,26 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
 	if ( ! pPacket->m_bCompound ) return FALSE; // if it is not Compound packet, it is basically malformed packet
 
-	CDiscoveryService * pService = DiscoveryServices.GetByAddress( &(pHost->sin_addr) , ntohs(pHost->sin_port), 4 );
+	CDiscoveryService* pService = NULL;
+	bool bBypassSecurity = false;
+	if ( m_oUKHLFilter.size() != 0 )
+	{
+		BootSecurityFilterItem iIndex	= m_oUKHLFilter.begin();
+		BootSecurityFilterItem iEnd		= m_oUKHLFilter.end();
+		for ( ; iIndex != iEnd ; iIndex++ )
+		{
+			if ( iIndex->m_pHost.sin_addr.S_un.S_addr == pHost->sin_addr.S_un.S_addr &&
+				iIndex->m_pHost.sin_port == pHost->sin_port )
+			{
+				if ( iIndex->m_nService == ubsDiscovery )
+					pService = DiscoveryServices.GetByAddress( &(pHost->sin_addr), ntohs(pHost->sin_port), 4 );
+				bBypassSecurity = true;
+				break;
+			}
+		}
+	}
 
-	if (	pService == NULL &&
+	if (	!bBypassSecurity &&
 		(	Network.IsFirewalledAddress( (LPVOID*)&pHost->sin_addr, TRUE, TRUE ) ||
 			Network.IsReserved( &pHost->sin_addr ) ||
 			Security.IsDenied( &pHost->sin_addr ) )

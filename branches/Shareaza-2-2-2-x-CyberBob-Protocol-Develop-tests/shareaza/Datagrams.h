@@ -55,6 +55,23 @@ typedef struct
 	DWORD		tLastSlot;
 } UDPBandwidthMeter;
 
+enum ServiceType
+{ 
+	ubsNull = 0,
+	ubsDiscovery = 1,
+	ubsHostCache = 2
+};
+
+typedef struct
+{
+	SOCKADDR_IN	m_pHost;
+	DWORD		m_nTime;
+	ServiceType	m_nService;
+} UDPBootSecurityItem;
+
+typedef	std::list<UDPBootSecurityItem>				BootSecurityFilter;
+typedef	std::list<UDPBootSecurityItem>::iterator	BootSecurityFilterItem;
+
 class CBuffer;
 class CPacket;
 class CG1Packet;
@@ -104,6 +121,9 @@ public:
 	DWORD				m_nOutBandwidth;
 	DWORD				m_nOutFrags;
 	DWORD				m_nOutPackets;
+protected:
+	BootSecurityFilter	m_oUHCFilter;
+	BootSecurityFilter	m_oUKHLFilter;
 
 // Operations
 public:
@@ -113,6 +133,9 @@ public:
 	void	Stable(BOOL bStable);
 	BOOL	Send(IN_ADDR* pAddress, WORD nPort, CPacket* pPacket, BOOL bRelease = TRUE, LPVOID pToken = NULL, BOOL bAck = TRUE, BOOL bBypassSecurity = FALSE);
 	BOOL	Send(SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease = TRUE, LPVOID pToken = NULL, BOOL bAck = TRUE, BOOL bBypassSecurity = FALSE);
+public:
+	void	SendUDPHostCache(IN_ADDR* pAddress, WORD nPort, ServiceType nService);
+	void	SendUDPKnownHubCache(IN_ADDR* pAddress, WORD nPort, ServiceType nService);
 	void	PurgeToken(LPVOID pToken);
 	void	OnRun();
 protected:

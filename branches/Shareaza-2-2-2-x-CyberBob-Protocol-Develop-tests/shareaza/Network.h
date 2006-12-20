@@ -160,9 +160,6 @@ protected:
 	static UINT	ThreadStart(LPVOID pParam);
 	void		OnRun();
 	BOOL		CanTestFirewall();
-public:
-	void		UDPHostCache(IN_ADDR* pAddress, WORD nPort);
-	void		UDPKnownHubCache(IN_ADDR* pAddress, WORD nPort);
 
 	friend class CHandshakes;
 	friend class CNeighbours;

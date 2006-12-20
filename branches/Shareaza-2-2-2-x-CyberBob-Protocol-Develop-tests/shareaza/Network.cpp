@@ -961,7 +961,7 @@ void CNetwork::OnWinsock(WPARAM wParam, LPARAM lParam)
 			// code to invoke UDPHC/UDPKHL Sender.
 			if ( pResolve->m_nProtocol == PROTOCOL_G1 )
 			{
-				strAddress = L"uhc:" + *(pResolve->m_sAddress);
+				strAddress.Format( _T("uhc:%s"), LPCTSTR(*(pResolve->m_sAddress)) );
 				pService = DiscoveryServices.GetByAddress( strAddress );
 				if ( pService == NULL )
 				{
@@ -974,11 +974,11 @@ void CNetwork::OnWinsock(WPARAM wParam, LPARAM lParam)
 					pService->m_pAddress = *((IN_ADDR*)pResolve->m_pHost.h_addr);
 					pService->m_nPort =  pResolve->m_nPort;
 				}
-				UDPHostCache((IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort);
+				Datagrams.SendUDPHostCache((IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, ubsDiscovery );
 			}
 			else if ( pResolve->m_nProtocol == PROTOCOL_G2 )
 			{
-				strAddress = L"ukhl:" + *(pResolve->m_sAddress);
+				strAddress.Format( _T("ukhl:%s"), LPCTSTR(*(pResolve->m_sAddress)) );
 				pService = DiscoveryServices.GetByAddress( strAddress );
 				if ( pService == NULL )
 				{
@@ -991,7 +991,7 @@ void CNetwork::OnWinsock(WPARAM wParam, LPARAM lParam)
 					pService->m_pAddress =  *((IN_ADDR*)pResolve->m_pHost.h_addr);
 					pService->m_nPort =  pResolve->m_nPort;
 				}
-				UDPKnownHubCache((IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort);
+				Datagrams.SendUDPKnownHubCache((IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, ubsDiscovery );
 			}
 		}
 	}
@@ -1005,7 +1005,7 @@ void CNetwork::OnWinsock(WPARAM wParam, LPARAM lParam)
 		{
 			if ( pResolve->m_nProtocol == PROTOCOL_G1 )
 			{
-				strAddress = L"uhc:" + *(pResolve->m_sAddress);
+				strAddress.Format( _T("uhc:%s"), LPCTSTR(*(pResolve->m_sAddress)) );
 				pService = DiscoveryServices.GetByAddress( strAddress );
 				if ( pService == NULL )
 				{
@@ -1020,7 +1020,7 @@ void CNetwork::OnWinsock(WPARAM wParam, LPARAM lParam)
 			}
 			else if ( pResolve->m_nProtocol == PROTOCOL_G2 )
 			{
-				strAddress = L"ukhl:" + *(pResolve->m_sAddress);
+				strAddress.Format( _T("ukhl:%s"), LPCTSTR(*(pResolve->m_sAddress)) );
 				pService = DiscoveryServices.GetByAddress( strAddress );
 				if ( pService == NULL )
 				{
@@ -1296,26 +1296,4 @@ void CNetwork::OnQueryHits(CQueryHit* pHits)
 */
 
 	pHits->Delete();
-}
-
-void CNetwork::UDPHostCache(IN_ADDR* pAddress, WORD nPort)
-{
-	CG1Packet* pPing = CG1Packet::New( G1_PACKET_PING, 1, Hashes::Guid( MyProfile.oGUID ) );
-
-	CGGEPBlock pBlock;
-	CGGEPItem* pItem;
-	
-	pItem = pBlock.Add( L"SCP" );
-	pItem->UnsetCOBS();
-	pItem->UnsetSmall();
-	pItem->WriteByte( Neighbours.IsG1Ultrapeer() ? 1 : 0 );
-
-	pBlock.Write( pPing );
-	Datagrams.Send( pAddress, nPort, pPing, TRUE, NULL, FALSE, TRUE );
-}
-
-void CNetwork::UDPKnownHubCache(IN_ADDR* pAddress, WORD nPort)
-{
-	CG2Packet* pKHLR = CG2Packet::New( G2_PACKET_KHL_REQ );
-	Datagrams.Send( pAddress, nPort, pKHLR, TRUE, NULL, FALSE, TRUE );
 }
