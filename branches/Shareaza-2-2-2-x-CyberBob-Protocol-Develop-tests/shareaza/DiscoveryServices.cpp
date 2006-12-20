@@ -1752,6 +1752,7 @@ BOOL CDiscoveryService::ResolveGnutella()
 		nSkip = 15;
 		m_bGnutella1 = TRUE;
 		m_bGnutella2 = FALSE;
+		nPort = GNUTELLA_DEFAULT_PORT;
 	}
 	else if ( _tcsnicmp( strHost, _T("gnutella2:host:"), 15 ) == 0 )
 	{
@@ -1759,6 +1760,7 @@ BOOL CDiscoveryService::ResolveGnutella()
 		nSkip = 15;
 		m_bGnutella1 = FALSE;
 		m_bGnutella2 = TRUE;
+		nPort = GNUTELLA_DEFAULT_PORT;
 	}
 	else if ( _tcsnicmp( strHost, _T("uhc:"), 4 ) == 0 )
 	{
@@ -1766,6 +1768,7 @@ BOOL CDiscoveryService::ResolveGnutella()
 		nSkip = 4;
 		m_bGnutella1 = TRUE;
 		m_bGnutella2 = FALSE;
+		nPort = 9999;
 	}
 	else if ( _tcsnicmp( strHost, _T("ukhl:"), 5 ) == 0 )
 	{
@@ -1773,9 +1776,8 @@ BOOL CDiscoveryService::ResolveGnutella()
 		nSkip = 5;
 		m_bGnutella1 = FALSE;
 		m_bGnutella2 = TRUE;
+		nPort = GNUTELLA_DEFAULT_PORT;
 	}
-
-	int nPort = GNUTELLA_DEFAULT_PORT;
 
 	if (m_nSubType == 0)
 	{
