@@ -646,7 +646,7 @@ int CG1Neighbour::WriteRandomCache(CGGEPItem* pItem)
 		for ( ; pHost && nPos-- ; pHost = pHost->m_pPrevTime );
 
 		// We won't provide Shareaza hosts for G1 cache, since users may disable
-		// G1 and it will polute the host caches ( ??? )
+		// G1 and it will pollute the host caches ( ??? )
 		if ( pHost && pHost->m_nFailures == 0 && pHost->m_bCheckedLocally )
 		{
 			pItem->Write( (void*)&pHost->m_pAddress, 4 );

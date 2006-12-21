@@ -108,7 +108,8 @@ private:
 	bool	m_bPortIsFree;
 	CString m_sLocalIP;
 	CString m_sExternalIP;
-	bool	m_bADSL;
+	bool	m_bADSL;		// Is the device ADSL?
+	bool	m_ADSLFailed;	// Did port mapping failed for the ADSL device?
 
 	com_ptr< IUPnPDeviceFinderCallback > m_pDeviceFinderCallback;
 	com_ptr< IUPnPServiceCallback >      m_pServiceCallback;

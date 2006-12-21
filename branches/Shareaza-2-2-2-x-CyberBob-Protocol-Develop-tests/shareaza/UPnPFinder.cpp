@@ -38,6 +38,7 @@ CUPnPFinder::CUPnPFinder()
 	m_nAsyncFindHandle( 0 ),
 	m_bAsyncFindRunning( false ),
 	m_bADSL( false ),
+	m_ADSLFailed( false ),
 	m_bPortIsFree( true ),
 	m_sLocalIP(),
 	m_sExternalIP(),
@@ -368,14 +369,15 @@ HRESULT CUPnPFinder::MapPort(const ServicePointer& service)
 
 	if ( m_bADSL ) // not a very reliable way to detect ADSL, since WANEthLinkC* is optional
 	{
-		if ( theApp.m_bUPnPPortsForwarded ) // another physical device or was run again
+		if ( theApp.m_bUPnPPortsForwarded == TS_TRUE ) // another physical device or the setup was ran again manually
 		{
-			// Reset settings and recheck ( is there better solution? )
+			// Reset settings and recheck ( is there a better solution? )
 			Settings.Connection.SkipWANIPSetup  = FALSE;
 			Settings.Connection.SkipWANPPPSetup = FALSE;
 			m_bADSL = false;
+			m_ADSLFailed = false;
 		}
-		else
+		else if ( !m_ADSLFailed )
 		{
 			theApp.Message( MSG_DEBUG, L"ADSL device detected. Disabling WANIPConn setup..." );
 			Settings.Connection.SkipWANIPSetup  = TRUE;
@@ -383,9 +385,13 @@ HRESULT CUPnPFinder::MapPort(const ServicePointer& service)
 		}
 	}
 	
+	// We expect that the first device in ADSL routers is WANEthLinkC.
+	// The problem is that it's unclear if the order of services is always the same...
+	// But looks like it is.
 	if ( !m_bADSL )
 	{
-		m_bADSL = !( strServiceId.Find( L"urn:upnp-org:serviceId:WANEthLinkC" ) == -1 );
+		m_bADSL = !( strServiceId.Find( L"urn:upnp-org:serviceId:WANEthLinkC" ) == -1 ) ||
+				  !( strServiceId.Find( L"urn:upnp-org:serviceId:WANDSLLinkC" ) == -1 );
 	}
 
 	bool bPPP = !( strServiceId.Find( L"urn:upnp-org:serviceId:WANPPPConn" ) == -1 );
@@ -407,7 +413,7 @@ HRESULT CUPnPFinder::MapPort(const ServicePointer& service)
 	if ( strResult.IsEmpty() )
 		return hr;
 
-	theApp.Message( MSG_DEBUG, L"Got status info from the service %s: %s\n", strServiceId, strResult );
+	theApp.Message( MSG_DEBUG, L"Got status info from the service %s: %s", strServiceId, strResult );
 
 	if ( _tcsistr( strResult, L"|VT_BSTR=Connected|" ) != NULL )
 	{
@@ -420,7 +426,7 @@ HRESULT CUPnPFinder::MapPort(const ServicePointer& service)
 		if ( FAILED( hr ) ) 
 			UPnPMessage( hr );
 		else
-			theApp.Message( MSG_DEBUG, L"Callback added for the service %s\n",
+			theApp.Message( MSG_DEBUG, L"Callback added for the service %s",
 				strServiceId );
 
 		// Delete old and add new port mappings
@@ -431,6 +437,20 @@ HRESULT CUPnPFinder::MapPort(const ServicePointer& service)
 			CreatePortMappings( service );
 			theApp.m_bUPnPDeviceConnected = TS_TRUE;
 		}
+	}
+	else if ( _tcsistr( strResult, L"|VT_BSTR=Disconnected|" ) != NULL && m_bADSL && bPPP )
+	{
+		theApp.Message( MSG_DEBUG, L"Disconnected PPP service in ADSL device..." );
+		Settings.Connection.SkipWANIPSetup  = FALSE;
+		Settings.Connection.SkipWANPPPSetup = TRUE;
+		m_ADSLFailed = true;
+	}
+	else if ( _tcsistr( strResult, L"|VT_BSTR=Disconnected|" ) != NULL && m_bADSL && bIP )
+	{
+		theApp.Message( MSG_DEBUG, L"Disconnected IP service in ADSL device..." );
+		Settings.Connection.SkipWANIPSetup  = TRUE;
+		Settings.Connection.SkipWANPPPSetup = FALSE;
+		m_ADSLFailed = true;
 	}
 	return S_OK;
 }
