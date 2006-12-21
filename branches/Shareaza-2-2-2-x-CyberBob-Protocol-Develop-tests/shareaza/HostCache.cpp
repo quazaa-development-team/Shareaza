@@ -1267,12 +1267,6 @@ CG1Packet* CHostCacheHost::ToG1Ping(int nTTL, const Hashes::Guid& oGUID)
 	pItem->UnsetSmall();
 	pItem->WriteByte( Neighbours.IsG1Ultrapeer() ? 1 : 0 );
 
-	CGGEPItem * pLOC = pBlock.Add( L"LOC");
-	pLOC->UnsetCOBS();
-	pLOC->UnsetSmall();
-	pLOC->WriteUTF8( L"ja" );
-	pLOC->WriteByte( NULL );
-
 	pBlock.Write( pPing );
 	
 	return pPing;
