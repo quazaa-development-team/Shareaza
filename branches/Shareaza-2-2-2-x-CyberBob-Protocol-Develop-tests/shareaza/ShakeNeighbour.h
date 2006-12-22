@@ -118,7 +118,12 @@ protected:
 	TRISTATE m_bUltraPeerLoaded;
 
 	BOOL	m_bFirewallTest;		// Are we testing remote firewall? [Brov]
+	BOOL	m_bDelayClose;			// This is DelayClose
 	UINT	m_nDelayCloseReason;	// Reason for DelayClose;
+	CString	m_sTryUltrapeers;		// Storage of X-Try-Ultrapeers Header
+	CString	m_sTryHubs;				// Storage of X-Try-Hubs Header
+	CString	m_sTryDNAHubs;			// Storage of X-Try-DNA-Hubs Header
+
 
 public:
 
