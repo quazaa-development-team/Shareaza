@@ -1099,12 +1099,24 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 // Returns false to delete this object, or true to keep reading headers and negotiating the handshake
 BOOL CShakeNeighbour::OnHeadersComplete()
 {
+	// determine what kind of Network this handshake is for.
+	if ( m_bInitiated )
+	{
+		if ( ! m_bG1Accept && ! m_bG2Accept ) m_bG1Accept = TRUE;
+		if ( ! m_bG1Send && ! m_bG2Send ) m_bG1Send = TRUE;
+	}
+	else
+	{
+		if ( m_nState == nrsHandshake2 && ! m_bG1Accept && ! m_bG2Accept ) m_bG1Accept = TRUE;
+		if ( m_nState == nrsHandshake3 && ! m_bG1Send && ! m_bG2Send ) m_bG1Send = TRUE;
+	}
 
 	// These codes for HostCache should be here and ones in HeaderLine should just store these info in String array for this part of Process.
-	if ( m_bObsoleteClient || m_bBadClient )
+	if ( !m_bInitiated || m_bObsoleteClient || m_bBadClient )
 	{
-		// We don't want to accept Hubs or UltraPeers from clients that have bugs that pollute 
-		// the host cache, so stop here.
+		// We don't want accept Hubs or UltraPeers from clients that have bugs that pollute
+		// the host cache, not even the cache from incoming connections. this part should be 
+		// ignored
 	}
 	else if ( m_sTryDNAHubs.GetLength() )
 	{	// The remote computer is giving us a list GnucDNA G2 hubs
@@ -1163,7 +1175,7 @@ BOOL CShakeNeighbour::OnHeadersComplete()
 			CString strHost = m_sTryUltrapeers.Left( nPos ); // Copy the text up to the comma into strHost
 			m_sTryUltrapeers = m_sTryUltrapeers.Mid( nPos + 1 );     // Clip that text and the comma off the start of strValue
 
-			// The remote computer accepts Gnutella2 packets, is sending them, or is Shareaza
+			// The remote computer accepts Gnutella2 connection.
 			if ( m_bG2Accept || m_bG2Send )
 			{
 				// since there is no clever way to detect what the given Hosts' vender codes are, just add then as NULL
@@ -1171,7 +1183,7 @@ BOOL CShakeNeighbour::OnHeadersComplete()
 				//if ( HostCache.Gnutella2.Add( strHost, 0, NULL ) ) nCount++; // Count it
 
 			} 
-			else	// This is a Gnutella connection, not Gnutella2
+			else if ( m_bG1Accept || m_bG1Send )	// This is a Gnutella connection, not Gnutella2
 			{
 				// Add the host to the Gnutella host cache
 				if ( HostCache.Gnutella1.Add( strHost, 0, NULL ) ) nCount++;
@@ -1193,19 +1205,6 @@ BOOL CShakeNeighbour::OnHeadersComplete()
 	{
 		// Really, we don't know if it's an ultrapeer or not, so assume remote client is leaf.
 		m_bUltraPeerSet = TS_FALSE;
-	}
-
-	if ( m_bInitiated )
-	{
-		if ( ! m_bG1Accept && ! m_bG2Accept ) m_bG1Accept = TRUE;
-		if ( ! m_bG1Send && ! m_bG2Send ) m_bG1Send = TRUE;
-	}
-
-
-	if ( !m_bInitiated )
-	{
-		if ( m_nState == nrsHandshake2 && ! m_bG1Accept && ! m_bG2Accept ) m_bG1Accept = TRUE;
-		if ( m_nState == nrsHandshake3 && ! m_bG1Send && ! m_bG2Send ) m_bG1Send = TRUE;
 	}
 
 	if ( ( ( ! m_bInitiated && m_bG2Accept ) || ( m_bInitiated && m_bG2Send ) ) &&
@@ -1293,7 +1292,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 				}
 
 				// If we are a Gnutella2 hub
-				if ( Settings.Gnutella2.ClientMode == MODE_HUB )
+				if ( Neighbours.IsG2Hub() )
 				{
 					// We are a hub, and the remote computer doesn't need any more hub connections, tell it we can't connect
 					SendHostHeaders( _T("GNUTELLA/0.6 503 Ultrapeer disabled") );
