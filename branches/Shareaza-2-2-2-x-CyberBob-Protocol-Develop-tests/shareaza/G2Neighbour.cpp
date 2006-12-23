@@ -193,8 +193,10 @@ BOOL CG2Neighbour::OnRun()
 
 	DWORD tNow = Network.m_nNetworkGlobalTickCount;
 
-	if ( tNow - m_tLastPongIn > 60 * 1000 /* keepAlive if PONG has been received within 60sec */ && 
-		m_tWaitLNI > 0 && tNow - m_tWaitLNI > Settings.Gnutella2.KHLPeriod * 3 )
+	if ( tNow - m_tLastPacket > Settings.Connection.TimeoutTraffic &&
+		( !m_tLastPongIn || tNow - m_tLastPongIn > 60 * 1000 /* keepAlive if PONG has been not received within 60sec */ ) && 
+		m_tWaitLNI > 0 &&
+		tNow - m_tWaitLNI > Settings.Gnutella2.KHLPeriod * 3 )
 	{
 		Close( IDS_CONNECTION_TIMEOUT_TRAFFIC );
 		return FALSE;

@@ -135,7 +135,7 @@ CNeighbour::CNeighbour(PROTOCOLID nProtocol, CNeighbour* pBase)
 	// If this connected computer is sending and receiving Gnutella2 packets, it will also support query routing
 	, m_pQueryTableRemote( m_bQueryRouting ? new CQueryHashTable : NULL )
 	, m_pQueryTableLocal( m_bQueryRouting ? new CQueryHashTable : NULL )
-	, m_tLastPacket( GetTickCount() )
+	, m_tLastPacket( Network.m_nNetworkGlobalTickCount )
 	, m_pZInput(           pBase->m_pZInput )	// transfer of ownership
 	, m_pZOutput(          pBase->m_pZOutput )
 	, m_nZInput(           pBase->m_nZInput )
@@ -258,7 +258,7 @@ BOOL CNeighbour::SendQuery(CQuerySearch* /*pSearch*/, CPacket* /*pPacket*/, BOOL
 BOOL CNeighbour::OnRun()
 {
 	// Get the tick count right now
-	DWORD tNow = GetTickCount();
+	DWORD tNow = Network.m_nNetworkGlobalTickCount;
 
 	// If it's been awhile since the last packet came in through this connection
 	if ( tNow - m_tLastPacket > Settings.Connection.TimeoutTraffic )
