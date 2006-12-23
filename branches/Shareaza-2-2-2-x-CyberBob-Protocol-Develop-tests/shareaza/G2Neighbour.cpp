@@ -1569,7 +1569,11 @@ BOOL CG2Neighbour::SendQuery(CQuerySearch* pSearch, CPacket* pPacket, BOOL bLoca
 
 BOOL CG2Neighbour::OnQuery(CG2Packet* pPacket)
 {
-	if ( m_nNodeType == ntLeaf && m_bObsoleteClient ) return TRUE;
+	if ( m_nNodeType == ntLeaf && m_bObsoleteClient )
+	{
+		Statistics.Current.Gnutella2.Dropped++;
+		return TRUE;
+	}
 
 	CQuerySearch* pSearch = CQuerySearch::FromPacket( pPacket );
 
@@ -1583,7 +1587,7 @@ BOOL CG2Neighbour::OnQuery(CG2Packet* pPacket)
 	}
 
 	// Check for excessive source searching
-	if ( pSearch->m_oSHA1 || pSearch->m_oBTH || pSearch->m_oED2K )
+	if ( pSearch->m_oSHA1 || pSearch->m_oBTH || pSearch->m_oED2K || pSearch->m_oTiger || pSearch->m_oMD5 )
 	{
 
 		// Update allowed query operations, check for bad client
