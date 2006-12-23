@@ -2017,12 +2017,26 @@ BOOL CShakeNeighbour::IsClientBad()
 					strUserAgent.Append(_T(" ") );
 					if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.8.0 ") ) ) return TRUE;
 				}
-				if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.8.1") ) ) return TRUE;
+				if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.8.1") ) )
+				{	// check if it is not 2.8.1 or 2.8.1x
+					CString strUserAgent(m_sUserAgent);
+					strUserAgent.Append(_T(" ") );
+					if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.8.1 ") ) ) return TRUE;
+				}
+				if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.8.2") ) )
+				{	// check if it is not 2.8.2 or 2.8.2x
+					CString strUserAgent(m_sUserAgent);
+					strUserAgent.Append(_T(" ") );
+					if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.8.2 ") ) ) return TRUE;
+				}
 			}
 		}
 		// Current versions okay
 		return FALSE;
 	}
+
+	if ( _tcsistr( m_sUserAgent, _T("MLDonkey ") ) ) // Official version is "MLDonkey/" not "MLDonkey ", so might be fake.
+		return TRUE;
 
 	if ( _tcsistr( m_sUserAgent, _T("WinMX") ) )		return TRUE;
 
