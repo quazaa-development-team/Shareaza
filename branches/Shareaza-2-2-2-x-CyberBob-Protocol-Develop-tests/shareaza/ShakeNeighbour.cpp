@@ -1221,6 +1221,15 @@ BOOL CShakeNeighbour::OnHeadersComplete()
 		m_nProtocol = PROTOCOL_G1;
 		return OnHeadersCompleteG1();
 	}
+	else
+	{
+		m_pOutput->Print( "GNUTELLA/0.6 503 Wrong Protocol\r\n" );
+		SendMinimalHeaders();       // Tell the remote computer we're Shareaza and we can exchange Gnutella2 packets
+		m_pOutput->Print( "\r\n" ); // End the group of headers with a blank line
+		DelayClose(IDS_HANDSHAKE_REJECTED);
+		m_nState = nrsClosing;
+		return TRUE;
+	}
 
 	return FALSE;
 }
