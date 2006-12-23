@@ -273,7 +273,7 @@ void CNeighboursWithConnect::PeerPrune(PROTOCOLID nProtocol)
 BOOL CNeighboursWithConnect::IsG2Leaf()
 {
 	// If the network is enabled (do) and we have at least 1 connection up to a hub, then we're a leaf
-	return ( Network.m_bEnabled && m_bG2Leaf && Settings.Gnutella1.ClientMode != MODE_HUB );
+	return ( Network.m_bEnabled && m_bG2Leaf && Settings.Gnutella2.ClientMode != MODE_HUB );
 }
 
 // Determines if we are a hub on the Gnutella2 network right now
@@ -281,7 +281,7 @@ BOOL CNeighboursWithConnect::IsG2Leaf()
 BOOL CNeighboursWithConnect::IsG2Hub()
 {
 	// If the network is enabled (do) and we have at least 1 connection down to a leaf, then we're a hub
-	return ( Network.m_bEnabled && m_bG2Hub && Settings.Gnutella1.ClientMode != MODE_LEAF );
+	return ( Network.m_bEnabled && m_bG2Hub && Settings.Gnutella2.ClientMode != MODE_LEAF );
 }
 
 // Takes true if we are running the program in debug mode, and this method should write out debug information
@@ -291,6 +291,8 @@ DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bDebug)
 {
 	// Start the rating at 0, which means we can't be a hub
 	DWORD nRating = 0; // We'll make this number bigger if we find signs we can be a hub
+
+	bDebug = Settings.General.Debug ? TRUE : bDebug;
 
 	// If the caller wants us to report debugging information, start out with a header line
 	if ( bDebug ) theApp.Message( MSG_DEBUG, _T("IsHubCapable():") );
@@ -326,11 +328,11 @@ DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bDebug)
 	}
 
 	// We are running as a Gnutella2 leaf right now
-	if (  FALSE && IsG2Leaf() )
+	if ( IsG2Leaf() )
 	{
 		// We can never be a hub because we are a leaf (do)
 		if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: leaf") );
-		//return FALSE;
+		return FALSE;
 
 	} // We are not running as a Gnutella2 leaf right now (do)
 	else
@@ -564,10 +566,12 @@ BOOL CNeighboursWithConnect::IsG1Ultrapeer()
 // Takes true if we are running the program in debug mode, and this method should write out debug information
 // Determines if the computer and Internet connection here are strong enough for this program to run as a Gnutella ultrapeer
 // Returns false, which is 0, if we can't be an ultrapeer, or a number 1+ that is higher the better ultrapeer we'd be
-DWORD CNeighboursWithConnect::IsG1UltrapeerCapable(BOOL bDebug) 
+DWORD CNeighboursWithConnect::IsG1UltrapeerCapable(BOOL bDebug)
 {
 	// Start out the rating as 0, meaning we can't be a Gnutella ultrapeer
 	DWORD nRating = 0; // If we can be an ultrapeer, we'll set this to 1, and then make it higher if we'd be an even better ultrapeer
+
+	bDebug = Settings.General.Debug ? TRUE : bDebug;
 
 	// If the caller requested we write out debugging information, start out by titling that the messages that follow come from this method
 	if ( bDebug ) theApp.Message( MSG_DEBUG, _T("IsUltrapeerCapable():") );
@@ -599,7 +603,7 @@ DWORD CNeighboursWithConnect::IsG1UltrapeerCapable(BOOL bDebug)
 	}
 
 	// We are running as a Gnutella leaf right now
-	if ( FALSE && IsG1Leaf() )
+	if ( IsG1Leaf() )
 	{
 		// We can never be an ultrapeer because we are a leaf (do)
 		if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: leaf") );
@@ -1118,7 +1122,12 @@ void CNeighboursWithConnect::Maintain()
 
 	if ( m_tModeCheck == 0 || ( tTimer - m_tModeCheck ) > 20000 )
 	{
-		if ( m_nCount[PROTOCOL_G2][ntLeaf] || IsG2HubCapable() )
+		if ( !Settings.Gnutella2.EnableToday )
+		{
+			m_bG2Leaf	= FALSE;
+			m_bG2Hub	= FALSE;
+		}
+		else if ( m_nCount[PROTOCOL_G2][ntLeaf] || IsG2Hub() || IsG2HubCapable() )
 		{
 			m_bG2Leaf	= FALSE;
 			m_bG2Hub	= TRUE;
@@ -1129,7 +1138,12 @@ void CNeighboursWithConnect::Maintain()
 			m_bG2Hub	= FALSE;
 		}
 
-		if ( m_nCount[PROTOCOL_G1][ntLeaf] || IsG1UltrapeerCapable() )
+		if ( !Settings.Gnutella1.EnableToday )
+		{
+			m_bG1Leaf      = FALSE;
+			m_bG1Ultrapeer = FALSE;
+		}
+		else if ( m_nCount[PROTOCOL_G1][ntLeaf] || IsG1Ultrapeer() || IsG1UltrapeerCapable() )
 		{
 			m_bG1Leaf      = FALSE;
 			m_bG1Ultrapeer = TRUE;
@@ -1498,7 +1512,12 @@ void CNeighboursWithConnect::Connect()
 {
 	m_tModeCheck = 0;
 
-	if ( Settings.Gnutella2.ClientMode == MODE_HUB )
+	if ( !Settings.Gnutella2.EnableToday )
+	{
+		m_bG2Leaf	= FALSE;
+		m_bG2Hub	= FALSE;
+	}
+	else if ( Settings.Gnutella2.ClientMode == MODE_HUB )
 	{
 		m_bG2Leaf	= FALSE;
 		m_bG2Hub	= TRUE;
@@ -1509,7 +1528,12 @@ void CNeighboursWithConnect::Connect()
 		m_bG2Hub	= FALSE;
 	}
 
-	if ( Settings.Gnutella1.ClientMode == MODE_HUB )
+	if ( !Settings.Gnutella1.EnableToday )
+	{
+		m_bG1Leaf      = FALSE;
+		m_bG1Ultrapeer = FALSE;
+	}
+	else if ( Settings.Gnutella1.ClientMode == MODE_HUB )
 	{
 		m_bG1Leaf      = FALSE;
 		m_bG1Ultrapeer = TRUE;
