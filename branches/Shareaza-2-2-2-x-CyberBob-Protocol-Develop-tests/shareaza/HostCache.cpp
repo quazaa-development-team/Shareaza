@@ -23,6 +23,7 @@
 #include "Shareaza.h"
 #include "Settings.h"
 #include "Network.h"
+#include "Datagrams.h"
 #include "HostCache.h"
 #include "Neighbours.h"
 #include "Security.h"
@@ -1270,6 +1271,28 @@ CG1Packet* CHostCacheHost::ToG1Ping(int nTTL, const Hashes::Guid& oGUID)
 	pBlock.Write( pPing );
 	
 	return pPing;
+}
+
+BOOL CHostCacheHost::UDPCacheQuery()
+{
+	DWORD nTime = static_cast<DWORD>( time(NULL) );
+	if ( CanConnect( nTime ) )
+	{
+		switch( m_nProtocol )
+		{
+			case PROTOCOL_G1:
+				Datagrams.SendUDPHostCache( &m_pAddress, m_nPort, ubsHostCache );
+				break;
+			case PROTOCOL_G2:
+				Datagrams.SendUDPKnownHubCache( &m_pAddress, m_nPort, ubsHostCache );
+				break;
+			default:
+				return FALSE;
+		}
+		m_tConnect = nTime;
+		return TRUE;
+	}
+	return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////
