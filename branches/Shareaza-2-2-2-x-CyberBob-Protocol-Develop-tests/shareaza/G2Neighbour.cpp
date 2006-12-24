@@ -1472,6 +1472,8 @@ BOOL CG2Neighbour::OnHAW(CG2Packet* pPacket)
 	DWORD nLength;
 	WORD nLeaf = 0;
 	WORD nMaxLeaf = 0;
+	BOOL bHSCurrent = FALSE;
+	BOOL bHSMax = FALSE;
 
 	DWORD nAddress	= 0;
 	WORD nPort		= 0;
@@ -1492,7 +1494,12 @@ BOOL CG2Neighbour::OnHAW(CG2Packet* pPacket)
 		else if ( strcmp( szType, "HS" ) == 0 && nLength >= 2 )
 		{
 			nLeaf = pPacket->ReadShortBE();
-			if ( nLength >= 4 ) nMaxLeaf = pPacket->ReadShortBE();
+			bHSCurrent = TRUE;
+			if ( nLength >= 4 )
+			{
+				bHSMax = TRUE;
+				nMaxLeaf = pPacket->ReadShortBE();
+			}
 		}
 
 		pPacket->m_nPosition = nNext;
@@ -1514,8 +1521,12 @@ BOOL CG2Neighbour::OnHAW(CG2Packet* pPacket)
 		CHostCacheHost* pHost = HostCache.Gnutella2.Add( (IN_ADDR*)&nAddress, nPort, 0, strVendor );
 		if (pHost != NULL)
 		{
-			pHost->m_nUserCount = nLeaf;
-			pHost->m_nUserLimit = nMaxLeaf;
+			if ( bHSCurrent )
+			{
+				pHost->m_nUserCount = nLeaf;
+				if ( bHSMax )
+					pHost->m_nUserLimit = nMaxLeaf;
+			}
 		}
 	}
 	
