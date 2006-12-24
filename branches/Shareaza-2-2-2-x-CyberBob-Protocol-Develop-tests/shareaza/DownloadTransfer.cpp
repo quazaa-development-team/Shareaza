@@ -102,8 +102,11 @@ void CDownloadTransfer::Close(TRISTATE bKeepSource, DWORD nRetryAfter)
 	}
 	else if ( m_nProtocol == PROTOCOL_BT )
 	{
-		// this might be able to removed like above ED2K transfer type.
-		CTransfer::Close();
+		// do not call CTransfer::Close()
+		// since BT Transfer object never use CTransfer
+		// NOTE: can not see anything use CConnection on BT transfer,
+		//		However CConnection call Close() on destruction so not important
+		//		calling it here.
 	}
 	
 	if ( m_pSource != NULL )
