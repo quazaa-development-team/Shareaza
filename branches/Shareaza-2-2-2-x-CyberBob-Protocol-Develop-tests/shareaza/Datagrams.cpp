@@ -246,6 +246,8 @@ BOOL CDatagrams::IsStable()
 		return FALSE;			// We know we are firewalled
 	else if ( Settings.Connection.FirewallStatus == CONNECTION_OPEN )
 		return TRUE;			// We know we are not firewalled
+	else if ( Settings.Connection.FirewallStatus == CONNECTION_OPEN_UDPONLY )
+		return TRUE;			// We know we are not firewalled
 	else // ( Settings.Connection.FirewallStatus == CONNECTION_AUTO )
 		return m_bStable;		// Use detected state
 }
@@ -1249,7 +1251,7 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 			pList.pop_back(); // remove it
 			for ( ; pHost && nPos-- ; pHost = pHost->m_pPrevTime );
 
-			if ( pHost && pHost->m_bCheckedLocally && pHost->m_nFailures == 0 )
+			if ( pHost && pHost->m_nFailures == 0 )
 			{
 				pItem->Write( (void*)&pHost->m_pAddress, 4 );
 				pItem->Write( (void*)&pHost->m_nPort, 2 );
@@ -2093,7 +2095,7 @@ BOOL CDatagrams::OnCrawlRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	BOOL bWantNames		= FALSE;
 	BOOL bWantGPS		= FALSE;
 	BOOL bWantREXT		= FALSE;
-	BOOL bIsHub			= ( ! Neighbours.IsG2Leaf() ) && ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() );
+	BOOL bIsHub			= ( ! Neighbours.IsG2Leaf() ) && ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable(Settings.General.Debug) );
 
 	CHAR szType[9];
 	DWORD nLength;

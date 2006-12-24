@@ -383,6 +383,8 @@ BOOL CNetwork::IsFirewalled()
 		return TRUE;			// We know we are firewalled
 	else if ( Settings.Connection.FirewallStatus == CONNECTION_OPEN )
 		return FALSE;			// We know we are not firewalled
+	else if ( Settings.Connection.FirewallStatus == CONNECTION_OPEN_TCPONLY )
+		return FALSE;			// We know we are not firewalled
 	else // ( Settings.Connection.FirewallStatus == CONNECTION_AUTO )
 		return !IsStable();
 }
