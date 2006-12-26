@@ -79,7 +79,11 @@ CDownload::~CDownload()
 		CloseTransfers();
 		CloseTorrentUploads();
 		Uploads.OnRename( m_sDiskName, NULL );
-		if ( ! ::DeleteFile( m_sDiskName ) )
+		if ( m_bSeeding && m_bComplete )
+		{
+			// do nothing
+		}
+		else if ( ! ::DeleteFile( m_sDiskName ) )
 			theApp.WriteProfileString( _T("Delete"), m_sDiskName, _T("") );
 	}
 }
@@ -176,7 +180,16 @@ void CDownload::Remove(BOOL bDelete)
 	DeleteFile( bDelete );
 	DeletePreviews();
 	
-	::DeleteFile( m_sDiskName + _T(".sd") );
+	if ( m_bSeeding )
+	{
+		::DeleteFile( Settings.Downloads.IncompletePath + L"\\" + m_sSafeName + L".sd" );
+		int nBackSlash = m_sDiskName.ReverseFind( '\\' );
+		CString strTempFileName = m_sDiskName.Mid( nBackSlash + 1 );
+		if ( m_oBTH.toString< Hashes::base16Encoding >() == strTempFileName )
+			::DeleteFile( m_sDiskName );
+	}
+	else
+		::DeleteFile( m_sDiskName + _T(".sd") );
 	::DeleteFile( m_sDiskName + _T(".png") );
 	
 	Downloads.Remove( this );
@@ -364,7 +377,13 @@ void CDownload::OnRun()
 				if ( m_bSeeding )
 				{
 					RunValidation( TRUE );
-					// in order to upload from firewalled node, something below like should be here.
+					if ( !Network.IsConnected() && Settings.BitTorrent.AutoSeed )
+					{
+						Network.Connect();
+						m_tBegan = GetTickCount();
+					}
+					SetModified();
+					// in order to upload from firewalled node, something like below should be here.
 					StartTransfersIfNeeded( tNow, TRUE );
 				}
 				else if ( m_pFile != NULL )
@@ -632,8 +651,13 @@ BOOL CDownload::Load(LPCTSTR pszName)
 		if ( bSuccess ) Save();
 	}
 	
+	if ( m_bSeeding )
+		m_sDiskName = m_sServingFileName;
+
 	m_bGotPreview = GetFileAttributes( m_sDiskName + L".png" ) != INVALID_FILE_ATTRIBUTES;
 	m_nSaveCookie = m_nCookie;
+	// only for debuging purpose
+	m_bTempPaused = TRUE;
 	
 	return bSuccess;
 }
@@ -645,8 +669,20 @@ BOOL CDownload::Save(BOOL bFlush)
 	m_nSaveCookie = m_nCookie;
 	m_tSaved = GetTickCount();
 	
-	if ( m_bComplete ) return TRUE;
+	if ( m_bComplete && !m_bSeeding ) return TRUE;
+	if ( m_bSeeding && !Settings.BitTorrent.AutoSeed ) return TRUE;
 	
+	if ( m_bSeeding )
+	{
+		m_sSafeName.Empty();
+		GenerateDiskName( true );
+		// Swap disk name with the safe name, since the complete file may be located elsewhere
+		// while .sd file remains in the incomplete folder for the single-file torrents.
+		m_sServingFileName = m_sDiskName;
+		m_sDiskName = Settings.Downloads.IncompletePath + _T("\\") + m_sSafeName;
+	}
+	else
+	{
 	if ( m_sDiskName.GetLength() == 0 )	// <- Condition added (CyberBob); this is needed to solve the problem below...
 		GenerateDiskName();				//<- this is very very dangerous to cause Loss of Download by Over writing
 							// existing SD file by different file.
@@ -662,7 +698,8 @@ BOOL CDownload::Save(BOOL bFlush)
 							// To solve this problem, need some FileExistance check is required.
 	if ( m_sSafeName.IsEmpty() )
 		m_sSafeName = CDownloadTask::SafeFilename( m_sDisplayName.Right( 64 ) );
-
+	}
+	
 	::DeleteFile( m_sDiskName + _T(".sd.sav") );
 	
 	if ( ! pFile.Open( m_sDiskName + _T(".sd.sav"),
@@ -681,28 +718,38 @@ BOOL CDownload::Save(BOOL bFlush)
 	pFile.Read( szID, 3 );
 	pFile.Close();
 	
+	BOOL bResult = TRUE;
 	if ( szID[0] == 'S' && szID[1] == 'D' && szID[2] == 'L' )
 	{
 		::DeleteFile( m_sDiskName + _T(".sd") );
 		MoveFile( m_sDiskName + _T(".sd.sav"), m_sDiskName + _T(".sd") );
-		return TRUE;
 	}
 	else
 	{
 		::DeleteFile( m_sDiskName + _T(".sd.sav") );
-		return FALSE;
+		bResult = FALSE;
 	}
+
+	if ( m_bSeeding )
+	{
+		m_sDiskName = m_sServingFileName;
+	}
+
+	return bResult;
 }
 
 //////////////////////////////////////////////////////////////////////
 // CDownload serialize
 
-#define DOWNLOAD_SER_VERSION	33
+#define DOWNLOAD_SER_VERSION	34
 
 void CDownload::Serialize(CArchive& ar, int nVersion)
 {
-	ASSERT( ! m_bComplete );
+	ASSERT( ! m_bComplete || m_bSeeding );
 	
+	if ( !Settings.BitTorrent.AutoSeed && m_bSeeding )
+		return;
+
 	if ( nVersion == 0 )
 	{
 		nVersion = DOWNLOAD_SER_VERSION;

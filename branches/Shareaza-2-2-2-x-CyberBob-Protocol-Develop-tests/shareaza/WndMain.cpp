@@ -1244,15 +1244,18 @@ void CMainWnd::UpdateMessages()
 			}
 			strMessage.Format( strFormat, nCount,
 								(LPCTSTR)Settings.SmartVolume( nLocalVolume, TRUE ) );
+			strMessage += Network.m_bAutoConnect ? _T(" (AutoConnect)") : _T(" (ManualConnect)");
 		}
 	}
 	else if ( Network.IsConnected() )
 	{	//Trying to connect
 		LoadString( strMessage, IDS_STATUS_BAR_CONNECTING );
+		strMessage += Network.m_bAutoConnect ? _T(" (AutoConnect)") : _T(" (ManualConnect)");
 	}
 	else
 	{	//Idle
 		LoadString( strMessage, IDS_STATUS_BAR_DISCONNECTED );
+		strMessage += Network.m_bAutoConnect ? _T(" (AutoConnect)") : _T(" (ManualConnect)");
 	}
 
 	if ( VersionChecker.m_sQuote.GetLength() )

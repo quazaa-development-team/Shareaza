@@ -397,16 +397,16 @@ BOOL CNetwork::IsTestingUDPFW()
 void CNetwork::BeginTestG2UDPFW()
 {
 	m_tStartTestingUDPFW = static_cast<DWORD>( time( NULL ) );
-	Datagrams.Stable(FALSE);
+	Datagrams.SetStable(FALSE);
 }
 
 void CNetwork::EndTestG2UDPFW(TRISTATE bFirewalled)
 {
 	m_tStartTestingUDPFW = 0;
 	if ( bFirewalled == TS_TRUE )
-		Datagrams.Stable(FALSE);
+		Datagrams.SetStable(FALSE);
 	else if ( bFirewalled == TS_FALSE )
-		Datagrams.Stable(TRUE);
+		Datagrams.SetStable(TRUE);
 }
 
 BOOL CNetwork::CanTestFirewall() 
@@ -564,7 +564,7 @@ void CNetwork::Disconnect()
 	m_bAutoConnect			= FALSE;
 	m_tStartedConnecting	= 0;
 	m_tStartTestingUDPFW	= 0;
-	Datagrams.Stable(FALSE);
+	Datagrams.SetStable(FALSE);
 
 	Neighbours.Close();
 	

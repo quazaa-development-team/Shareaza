@@ -112,6 +112,8 @@ void CDownloadWithTorrent::Serialize(CArchive& ar, int nVersion)
 		{
 			ar << m_nTorrentSuccess;
 			ar.Write( m_pTorrentBlock, sizeof(BYTE) * m_nTorrentBlock );
+			ar << BOOL( m_bSeeding && Settings.BitTorrent.AutoSeed );
+			ar << m_sServingFileName;
 		}
 		else
 		{
@@ -121,6 +123,11 @@ void CDownloadWithTorrent::Serialize(CArchive& ar, int nVersion)
 			ar >> m_nTorrentSuccess;
 			m_pTorrentBlock = new BYTE[ m_nTorrentBlock ];
 			ar.Read( m_pTorrentBlock, sizeof(BYTE) * m_nTorrentBlock );
+			if ( nVersion >= 34 )
+			{
+				ar >> m_bSeeding;
+				ar >> m_sServingFileName;
+			}
 		}
 	}
 }
@@ -714,7 +721,7 @@ BOOL CDownloadWithTorrent::SeedTorrent(LPCTSTR pszTarget)
 	m_bTorrentRequested		= TRUE;
 	m_bTorrentStarted		= FALSE;
 	m_nTorrentUploaded		= 0;
-	m_nTorrentDownloaded	= 0;
+	m_nTorrentDownloaded	= m_nSize;
 
 	if ( Network.IsFirewalled() && GetSourceCount() < 40 )
 		CBTTrackerRequest::SendStarted( this );

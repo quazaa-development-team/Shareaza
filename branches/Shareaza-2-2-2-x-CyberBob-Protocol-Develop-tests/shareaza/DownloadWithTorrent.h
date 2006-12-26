@@ -54,6 +54,7 @@ public:
     Hashes::BtGuid m_pPeerID;
 	CString		m_sKey;
     BOOL		m_bTorrentEndgame;
+	CString		m_sServingFileName;
 protected:
 	BOOL		m_bSeeding;
 	DWORD		m_nTorrentBlock;
@@ -99,7 +100,7 @@ private:
 		default: return TCHAR( '0' + ( rand() % 10 ) );
 		}
 	}
-	
+	friend class CDownloads;	// m_bSeeding for Load()
 };
 
 #endif // !defined(AFX_DOWNLOADWITHTORRENT_H__0F93FE22_BFCF_4B6E_8416_7C896432E65A__INCLUDED_)

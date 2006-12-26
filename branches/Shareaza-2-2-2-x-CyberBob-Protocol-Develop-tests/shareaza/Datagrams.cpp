@@ -1,7 +1,7 @@
 //
 // Datagrams.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2005.
+// Copyright (c) Shareaza Development Team, 2002-2006.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -51,7 +51,6 @@
 #include "HostCache.h"
 #include "DiscoveryServices.h"
 #include "QueryKeys.h"
-#include "HubHorizon.h"
 #include "LibraryMaps.h"
 #include "VendorCache.h"
 
@@ -107,6 +106,15 @@ BOOL CDatagrams::Listen()
 
 	m_hSocket = socket( PF_INET, SOCK_DGRAM, IPPROTO_UDP );
 	if ( m_hSocket == INVALID_SOCKET ) return FALSE;
+
+	// Do not see any Point doing this, since this wont make any sence if you do not
+	// Setup ALl the instance of RAZA in LAN to have same PORT. which will not be
+	// if just behind Router network.
+	/* 
+	const BOOL bEnable = TRUE;
+	VERIFY( setsockopt( m_hSocket, SOL_SOCKET, SO_BROADCAST,
+		(char*)&bEnable, sizeof( bEnable ) ) == 0 );
+	*/
 
 	SOCKADDR_IN saHost;
 
@@ -252,7 +260,7 @@ BOOL CDatagrams::IsStable()
 		return m_bStable;		// Use detected state
 }
 
-void CDatagrams::Stable(BOOL bStable)
+void CDatagrams::SetStable(BOOL bStable)
 {
 	m_bStable = bStable;
 }
@@ -355,12 +363,12 @@ BOOL CDatagrams::Send(SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease, LPVOI
 
 		m_pOutputFirst = pDG;
 
-		BYTE nHash	= BYTE( pHost->sin_addr.S_un.S_un_b.s_b1
+		BYTE nHash	= BYTE( ( pHost->sin_addr.S_un.S_un_b.s_b1
 			+ pHost->sin_addr.S_un.S_un_b.s_b2
 			+ pHost->sin_addr.S_un.S_un_b.s_b3
 			+ pHost->sin_addr.S_un.S_un_b.s_b4
 			+ pHost->sin_port
-			+ pDG->m_nSequence );
+			+ pDG->m_nSequence ) & 0xff );
 
 		CDatagramOut** pHash = m_pOutputHash + ( nHash & HASH_MASK );
 
@@ -387,8 +395,10 @@ BOOL CDatagrams::Send(SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease, LPVOI
 
 		return TRUE;
 	}
-
-	if ( bRelease ) pPacket->Release();
+	else if ( bRelease )
+	{
+		pPacket->Release();
+	}
 	return FALSE;
 }
 
@@ -623,7 +633,7 @@ BOOL CDatagrams::TryWrite()
 				SGP_HEADER* pTemp = (SGP_HEADER*)pPacket;
 				theApp.Message( MSG_DEBUG, _T("UDP: Sending (#%i) %i of %i to %s:%lu"),
 					pDG->m_nSequence, pTemp->nPart, pTemp->nCount,
-					(LPCTSTR)CString( inet_ntoa( pDG->m_pHost.sin_addr ) 0,
+					(LPCTSTR)CString( inet_ntoa( pDG->m_pHost.sin_addr ) ),
 					htons( pDG->m_pHost.sin_port ) );
 #endif
 
@@ -880,12 +890,12 @@ BOOL CDatagrams::OnReceiveSGP(SOCKADDR_IN* pHost, SGP_HEADER* pHeader, DWORD nLe
 			(SOCKADDR*)pHost, sizeof(SOCKADDR_IN) );
 	}
 
-	BYTE nHash	= BYTE( pHost->sin_addr.S_un.S_un_b.s_b1
+	BYTE nHash	= BYTE( ( pHost->sin_addr.S_un.S_un_b.s_b1
 				+ pHost->sin_addr.S_un.S_un_b.s_b2
 				+ pHost->sin_addr.S_un.S_un_b.s_b3
 				+ pHost->sin_addr.S_un.S_un_b.s_b4
 				+ pHost->sin_port
-				+ pHeader->nSequence );
+				+ pHeader->nSequence ) & 0xff );
 
 	CDatagramIn** pHash = m_pInputHash + ( nHash & HASH_MASK );
 
@@ -991,12 +1001,12 @@ BOOL CDatagrams::OnAcknowledgeSGP(SOCKADDR_IN* pHost, SGP_HEADER* pHeader, DWORD
 		pHeader->nSequence, pHeader->nPart, (LPCTSTR)CString( inet_ntoa( pHost->sin_addr ) ) );
 #endif
 
-	BYTE nHash	= BYTE( pHost->sin_addr.S_un.S_un_b.s_b1
+	BYTE nHash	= BYTE( ( pHost->sin_addr.S_un.S_un_b.s_b1
 				+ pHost->sin_addr.S_un.S_un_b.s_b2
 				+ pHost->sin_addr.S_un.S_un_b.s_b3
 				+ pHost->sin_addr.S_un.S_un_b.s_b4
 				+ pHost->sin_port
-				+ pHeader->nSequence );
+				+ pHeader->nSequence ) & 0xff );
 
 	CDatagramOut** pHash = m_pOutputHash + ( nHash & HASH_MASK );
 
@@ -1092,6 +1102,7 @@ BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 		case G1_PACKET_RUDP:		return OnRUDP( pHost, pPacket );				// Push open a connection
 		case G1_PACKET_QUERY:		return OnQuery( pHost, pPacket );			// Search query
 		case G1_PACKET_HIT:			return OnHit( pHost, pPacket );				// Hit, a search result
+		default:					return FALSE;
 	}
 	return FALSE;
 }
@@ -1104,7 +1115,7 @@ BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 
 	if ( Security.IsDenied( &(pHost->sin_addr) ) )
 	{
-		if ( pPacket->IsType( G2_PACKET_KHL_ANS ) && m_oUKHLFilter.size() != 0 )
+		if ( pPacket->m_nType == G2_PACKET_KHL_ANS && m_oUKHLFilter.size() != 0 )
 		{
 			BootSecurityFilterItem iIndex	= m_oUKHLFilter.begin();
 			BootSecurityFilterItem iEnd		= m_oUKHLFilter.end();
@@ -1125,80 +1136,68 @@ BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 
 	m_nInPackets++;
 
+	// Is it neigbour's packet or stranger's packet?
+	CNeighbour* pNeighbour = Neighbours.Get( &( pHost->sin_addr ) );
+//	CG1Neighbour* pNeighbour1 = static_cast< CG1Neighbour* >
+//		( ( pNeighbour && pNeighbour->m_nProtocol == PROTOCOL_G1 ) ? pNeighbour : NULL );
+	CG2Neighbour* pNeighbour2 = static_cast< CG2Neighbour* >
+		( ( pNeighbour && pNeighbour->m_nProtocol == PROTOCOL_G2 ) ? pNeighbour : NULL );
+
 	if ( Network.RoutePacket( pPacket ) ) return TRUE;
 
-	if ( pPacket->IsType( G2_PACKET_QUERY ) )
+	switch( pPacket->m_nType )
 	{
+	case G2_PACKET_QUERY:
 		return OnQuery( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_QUERY_KEY_REQ ) )
-	{
+	case G2_PACKET_QUERY_KEY_REQ:
 		return OnQueryKeyRequest( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_HIT ) )
-	{
+	case G2_PACKET_HIT:
 		return OnHit( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_HIT_WRAP ) )
-	{
-		return OnHit( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_QUERY_ACK ) )
-	{
+	case G2_PACKET_HIT_WRAP:
+		//return OnCommonHit( pHost, pPacket );
+		break;
+	case G2_PACKET_QUERY_WRAP:
+		// G2_PACKET_QUERY_WRAP deprecated and ignored
+		break;
+	case G2_PACKET_QUERY_ACK:
 		return OnQueryAck( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_QUERY_KEY_ANS ) )
-	{
+	case G2_PACKET_QUERY_KEY_ANS:
 		return OnQueryKeyAnswer( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_PING ) )
-	{
-		return OnPing( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_PONG ) )
-	{
-		return OnPong( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_PUSH ) )
-	{
+	case G2_PACKET_PING:
+		// Pass packet handling to neighbour if any
+		return pNeighbour2 ? pNeighbour2->OnPing( pPacket, FALSE ) : OnPing( pHost, pPacket );
+	case G2_PACKET_PONG:
+		// Pass packet handling to neighbour if any
+		return pNeighbour2 ? pNeighbour2->OnPong( pPacket, FALSE ) : OnPong( pHost, pPacket );
+	case G2_PACKET_PUSH:
 		return OnPush( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_CRAWL_REQ ) )
-	{
+	case G2_PACKET_CRAWL_REQ:
 		return OnCrawlRequest( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_CRAWL_ANS ) )
-	{
+	case G2_PACKET_CRAWL_ANS:
 		return OnCrawlAnswer( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_MODE_CHANGE_REQ ) )
-	{
-		return OnModeChangeReq( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_MODE_CHANGE_ACK ) )
-	{
-		return OnModeChangeAck( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_PRIVATE_MESSAGE ) )
-	{
-		return OnPrivateMessage( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_CLOSE ) )
-	{
-		return OnClose( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_KHL_ANS ) )
-	{
+	case G2_PACKET_KHL_ANS:
 		return OnKHLA( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_KHL_REQ ) )
-	{
+	case G2_PACKET_KHL_REQ:
 		return OnKHLR( pHost, pPacket );
-	}
-	else if ( pPacket->IsType( G2_PACKET_WEB_FW_CHECK ) )
-	{
+	case G2_PACKET_DISCOVERY:
+		return OnDiscovery( pHost, pPacket );
+	case G2_PACKET_KHL:
+		return OnKHL( pHost, pPacket );
+	case G2_PACKET_MODE_CHANGE_REQ:
+		return OnModeChangeReq( pHost, pPacket );
+	case G2_PACKET_MODE_CHANGE_ACK:
+		return OnModeChangeAck( pHost, pPacket );
+	case G2_PACKET_PRIVATE_MESSAGE:
+		return OnPrivateMessage( pHost, pPacket );
+	case G2_PACKET_CLOSE:
+		return OnClose( pHost, pPacket );
+	case G2_PACKET_WEB_FW_CHECK:
 		return OnJCT( pHost, pPacket );
+	default:
+		theApp.Message( MSG_DEBUG, _T("UDP: Received unexpected packet %s from %s"),
+			pPacket->GetType(), (LPCTSTR)CString( inet_ntoa( pHost->sin_addr ) ) );
 	}
+
 	return FALSE;
 }
 
@@ -1227,7 +1226,6 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 	// Since we do not provide leaves, ignore the preference data
 	if ( bSCP )
 	{
-
 		CGGEPItem* pItem = pGGEP.Add( _T("IPP") );
 		DWORD nCount = min( DWORD(50), HostCache.Gnutella1.CountHosts() );
 		WORD nPos = 0;
@@ -1303,36 +1301,37 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 
 //////////////////////////////////////////////////////////////////////
 // CDatagrams PING packet handler for G2UDP
+
 BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
-	CHAR szType[9];
+	QWORD nType;
 	DWORD nLength;
 	BOOL bConnectRequest = FALSE; // add
 	BOOL bHubMode = FALSE; // add
 	BOOL bVersion = FALSE; // add
 	BOOL bSupportedFeature = FALSE; // add
 	BOOL bWantSourceAddr = FALSE; // add
-	CString sVendorCode, sName, sVersion;
+	CString strVendorCode, strName, strVersion;
 
-	while ( pPacket->ReadPacket( szType, nLength ) )
+	while ( pPacket->ReadPacket( nType, nLength ) )
 	{
 		DWORD nNext = pPacket->m_nPosition + nLength;
 
-		if ( strcmp( szType, "CR" ) == 0 && nLength >= 1 ) //add G2/1.1, used on GnucDNA
+		if (  nType == G2_PACKET_CONNECT_REQUEST && nLength >= 1 ) //add G2/1.1, used on GnucDNA
 		{
 			bHubMode = pPacket->ReadByte();
 			bConnectRequest = TRUE;
 		}
-		else if ( strcmp( szType, "VER" ) == 0 )
+		else if ( nType == G2_PACKET_VER_DESC)
 		{
 			bVersion = TRUE;
 		}
-		else if ( strcmp( szType, "SFL" ) == 0 ) // Supported Feature List
+		else if ( nType == G2_PACKET_SFL_DESC ) // Supported Feature List
 		{
 			bSupportedFeature = TRUE;
 		}
-		else if ( strcmp( szType, "SIPP" ) == 0 )	// Sender want IP:Port of the source address of this paclet
-		{											// in order to detect Source NAT
+		else if ( nType == G2_PACKET_SRC_IP_AND_PORT )	// Sender want IP:Port of the source address of this packet
+		{												// in order to detect Source NAT
 			bWantSourceAddr = TRUE;
 		}
 
@@ -1342,20 +1341,20 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	CG2Packet* pPong = CG2Packet::New( G2_PACKET_PONG, TRUE );
 	if (bVersion)
 	{
-		sVendorCode = VENDOR_CODE;
-		sName = CLIENT_NAME;
-		sVersion = theApp.m_sVersion;
-		pPong->WritePacket( "VC", pPong->GetStringLen( sVendorCode ) );
-		pPong->WriteString( sVendorCode, FALSE );
-		pPong->WritePacket( "AN", pPong->GetStringLen( sName ) );
-		pPong->WriteString( sName, FALSE );
-		pPong->WritePacket( "AV", pPong->GetStringLen( sVersion ) );
-		pPong->WriteString( sVersion, FALSE );
+		strVendorCode = VENDOR_CODE;
+		strName = CLIENT_NAME;
+		strVersion = theApp.m_sVersion;
+		pPong->WritePacket( G2_PACKET_VENDORCODE, pPong->GetStringLen( strVendorCode ) );
+		pPong->WriteString( strVendorCode, FALSE );
+		pPong->WritePacket( G2_PACKET_AGENT_NAME, pPong->GetStringLen( strName ) );
+		pPong->WriteString( strName, FALSE );
+		pPong->WritePacket( G2_PACKET_AGENT_VERSION, pPong->GetStringLen( strVersion ) );
+		pPong->WriteString( strVersion, FALSE );
 
 	}
 	if ( bWantSourceAddr )
 	{
-		pPong->WritePacket("SIPP", 6);
+		pPong->WritePacket( G2_PACKET_SRC_IP_AND_PORT, 6);
 		pPong->WriteLongLE( pHost->sin_addr.S_un.S_addr );
 		pPong->WriteShortBE( htons( pHost->sin_port ) );
 	}
@@ -1363,20 +1362,20 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	{
 		// Format of Supported Feature list is feature name feature name followed by 2Byte feature versions
 		// first byte is Major version, and second is Miner version.
-		CG2Packet * pSFL = CG2Packet::New( "SFL", TRUE );
+		CG2Packet * pSFL = CG2Packet::New( G2_PACKET_SFL_DESC, TRUE );
 
 		// indicate G2/1.0
-		pSFL->WritePacket( "G2",2 );
+		pSFL->WritePacket( G2_PACKET_G2DESC, 2 );
 		pSFL->WriteByte(1);
 		pSFL->WriteByte(0);
 
 		// indicate TFW/1.0 (TestFireWall)
-		pSFL->WritePacket( "TFW",2 );
+		pSFL->WritePacket( G2_PACKET_TEST_FIREWALL, 2 );
 		pSFL->WriteByte(1);
 		pSFL->WriteByte(0);
 
 		// indicate UDPKHL/1.0
-		pSFL->WritePacket( "UDPKHL",2 );
+		pSFL->WritePacket( G2_PACKET_UDPKHL_DESC, 2 );
 		pSFL->WriteByte(1);
 		pSFL->WriteByte(0);
 
@@ -1391,6 +1390,9 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 
 	return TRUE;
 }
+
+//////////////////////////////////////////////////////////////////////
+// CDatagrams PONG packet handler
 
 BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 {
@@ -1523,65 +1525,65 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
 	if ( ! pPacket->m_bCompound ) return TRUE;
 
+	// not known what this packet is for. using MAKE_G2_PACKET to define packet maybe good to prevent typo,
+	// but make the temp definitions for testing, unknown name/use worth as HELL.
+	const G2_PACKET G2_PACKET_CA = MAKE_G2_PACKET( 'C', 'A',  0 ,  0 ,  0 ,  0 ,  0 ,  0  );
+
 	BOOL bRelayed = FALSE, bCompound = FALSE;
-	CHAR szType[9];
+	G2_PACKET nType;
 	DWORD nLength;
-	CString sVendorCode, sName, sVersion;
+	CString strVendorCode, strName, strVersion;
 	SOCKADDR_IN	MyAddr;
 
 	MyAddr.sin_addr.S_un.S_addr = 0;
 	MyAddr.sin_port = 0;
 
-	while ( pPacket->ReadPacket( szType, nLength, &bCompound ) )
+	while ( pPacket->ReadPacket( nType, nLength, &bCompound ) )
 	{
 		DWORD nOffset = pPacket->m_nPosition + nLength;
-
-		if ( strcmp( szType, "RELAY" ) == 0 )
-		{
-			bRelayed = TRUE;
-		}
-		else if ( strcmp( szType, "CA" ) == 0 ) // add G2/1.1 used on GnucDNA
+		if ( nType == G2_PACKET_RELAY ) bRelayed = TRUE;
+		else if ( nType == G2_PACKET_CA ) // add G2/1.1 used on GnucDNA
 		{
 			// TODO
 		}
-		else if ( strcmp( szType, "CH" ) == 0 ) // add G2/1.1 used on GnucDNA as G2 version of UDPHC, but no vendor code exist and
-		{										// possibly only GnucDNA Hub addresses.
+		else if ( nType == G2_PACKET_CACHED_HUB )	// add G2/1.1 used on GnucDNA as G2 version of UDPHC, but no vendor code
+		{											// exist and possibly only GnucDNA Hub addresses.
 			// TODO
 		}
-		else if ( strcmp( szType, "VC" ) == 0 && nLength >= 4 )	// Vendor Code of Remote Node  (e.g. "RAZA")
+		else if ( nType == G2_PACKET_VENDORCODE && nLength >= 4 )	// Vendor Code of Remote Node  (e.g. "RAZA")
 		{
-			sVendorCode = pPacket->ReadStringUTF8(nLength);
+			strVendorCode = pPacket->ReadStringUTF8(nLength);
 		}
-		else if ( strcmp( szType, "AN" ) == 0 && nLength >= 2 )	// Agent name of Remote Node (e.g. "Shareaza")
+		else if ( nType == G2_PACKET_AGENT_NAME && nLength >= 2 )	// Agent name of Remote Node (e.g. "Shareaza")
 		{
-			sName = pPacket->ReadStringUTF8(nLength);
+			strName = pPacket->ReadStringUTF8(nLength);
 		}
-		else if ( strcmp( szType, "AV" ) == 0 && nLength >= 2 )	// Agent version of Remote Node (e.g. 2.2.2.20)
+		else if ( nType == G2_PACKET_AGENT_VERSION && nLength >= 2 )	// Agent version of Remote Node (e.g. 2.2.2.20)
 		{
-			sVersion = pPacket->ReadStringUTF8(nLength);
+			strVersion = pPacket->ReadStringUTF8(nLength);
 		}
-		else if ( strcmp( szType, "SFL" ) == 0 && bCompound == TRUE )	// Agent version of Remote Node (e.g. 2.2.2.20)
+		else if ( nType == G2_PACKET_SFL_DESC && bCompound == TRUE )	// Agent version of Remote Node (e.g. 2.2.2.20)
 		{
-			CHAR szInner[9];
+			G2_PACKET nTypeInner;
 			DWORD nInner;
 
-			while ( pPacket->m_nPosition < nOffset && pPacket->ReadPacket( szInner, nInner ) )
+			while ( pPacket->m_nPosition < nOffset && pPacket->ReadPacket( nTypeInner, nInner ) )
 			{
 				DWORD nSkipInner = pPacket->m_nPosition + nInner;
 
-				if ( strcmp( szInner, "G2" ) == 0 && nInner >= 2 )
+				if ( nTypeInner == G2_PACKET_G2DESC && nInner >= 2 )
 				{
 					// G2 = TRUE
 					// G2Version = pPacket->ReadByte() << 8;
 					// G2Version = pPacket->ReadByte();
 				}
-				else if ( strcmp( szInner, "TFW" ) == 0 && nInner >= 2 )
+				else if ( nTypeInner == G2_PACKET_TEST_FIREWALL && nInner >= 2 )
 				{
 					// TFW = TRUE
 					// TFWVersion = pPacket->ReadByte() << 8;
 					// TFWVersion = pPacket->ReadByte();
 				}
-				else if ( strcmp( szInner, "UDPKHL" ) == 0 && nInner >= 2 )
+				else if ( nTypeInner == G2_PACKET_UDPKHL_DESC && nInner >= 2 )
 				{
 					// UDPKHL = TRUE
 					// UDPKHLVersion = pPacket->ReadByte() << 8;
@@ -1591,9 +1593,9 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 				pPacket->m_nPosition = nSkipInner;
 			}
 		}
-		else if ( strcmp( szType, "SIPP" ) == 0 && bCompound == FALSE )	// SIPP: source IP/PORT of UDP Ping packet, this is for
-		{																// UDP ip/port detection on NAT/NAPT to find outside 
-																		// IP/PORT.
+		else if ( nType == G2_PACKET_SRC_IP_AND_PORT && bCompound == FALSE )	// SIPP: source IP/PORT of UDP Ping packet,
+																				// this is for UDP ip/port detection on
+		{																		// NAT/NAPT to find outside IP/PORT.
 			MyAddr.sin_addr.S_un.S_addr = pPacket->ReadLongLE();
 			MyAddr.sin_port = htons( pPacket->ReadShortBE() );
 		}
@@ -1662,12 +1664,12 @@ BOOL CDatagrams::OnQuery(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 			(LPCTSTR)CString( inet_ntoa( pHost->sin_addr ) ), (LPCTSTR)strNode );
 
 		CG2Packet* pAnswer = CG2Packet::New( G2_PACKET_QUERY_KEY_ANS, TRUE );
-		pAnswer->WritePacket( "QK", 4 );
+		pAnswer->WritePacket( G2_PACKET_QUERY_KEY, 4 );
 		pAnswer->WriteLongBE( nKey );
 
 		if ( pHost->sin_addr.S_un.S_addr != pSearch->m_pEndpoint.sin_addr.S_un.S_addr )
 		{
-			pAnswer->WritePacket( "SNA", 4 );
+			pAnswer->WritePacket( G2_PACKET_SEND_ADDRESS, 4 );
 			pAnswer->WriteLongLE( pHost->sin_addr.S_un.S_addr );
 		}
 
@@ -1680,7 +1682,7 @@ BOOL CDatagrams::OnQuery(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	if ( ! Network.QueryRoute->Add( pSearch->m_oGUID, &pSearch->m_pEndpoint ) )
 	{
 		CG2Packet* pAnswer = CG2Packet::New( G2_PACKET_QUERY_ACK, TRUE );
-		pAnswer->WritePacket( "D", 8 );
+		pAnswer->WritePacket( G2_PACKET_QUERY_DONE, 8 );
 		pAnswer->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
 		pAnswer->WriteShortBE( htons( Network.m_pHost.sin_port ) );
 		pAnswer->WriteShortBE( 0 );
@@ -1789,7 +1791,11 @@ BOOL CDatagrams::OnHit(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 
 BOOL CDatagrams::OnQueryKeyRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
-	if ( ! Neighbours.IsG2Hub() ) return FALSE;
+	if ( ! Neighbours.IsG2Hub() )
+	{
+		Statistics.Current.Gnutella2.Dropped++;
+		return FALSE;
+	}
 
 	DWORD nRequestedAddress = pHost->sin_addr.S_un.S_addr;
 	WORD nRequestedPort = ntohs( pHost->sin_port );
@@ -1797,23 +1803,23 @@ BOOL CDatagrams::OnQueryKeyRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 
 	if ( pPacket->m_bCompound )
 	{
-		CHAR szType[9];
+		G2_PACKET nType;
 		DWORD nLength;
 
-		while ( pPacket->ReadPacket( szType, nLength ) )
+		while ( pPacket->ReadPacket( nType, nLength ) )
 		{
 			DWORD nOffset = pPacket->m_nPosition + nLength;
 
-			if ( strcmp( szType, "RNA" ) == 0 && nLength >= 6 )
+			if ( nType == G2_PACKET_REQUEST_ADDRESS && nLength >= 6 )
 			{
 				nRequestedAddress	= pPacket->ReadLongLE();
 				nRequestedPort		= pPacket->ReadShortBE();
 			}
-			else if ( strcmp( szType, "SNA" ) == 0 && nLength >= 4 )
+			else if ( nType == G2_PACKET_SEND_ADDRESS && nLength >= 4 )
 			{
 				nSendingAddress		= pPacket->ReadLongLE();
 			}
-			else if ( strcmp( szType, "dna" ) == 0 ) // add G2/1.1 dna
+			else if ( nType == G2_PACKET_dna ) // add G2/1.1 dna
 			{
 				// TODO
 			}
@@ -1832,12 +1838,12 @@ BOOL CDatagrams::OnQueryKeyRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 
 	CG2Packet* pAnswer = CG2Packet::New( G2_PACKET_QUERY_KEY_ANS, TRUE );
 
-	pAnswer->WritePacket( "QK", 4 );
+	pAnswer->WritePacket( G2_PACKET_QUERY_KEY, 4 );
 	pAnswer->WriteLongBE( nKey );
 
 	if ( nRequestedAddress != nSendingAddress )
 	{
-		pAnswer->WritePacket( "SNA", 4 );
+		pAnswer->WritePacket( G2_PACKET_SEND_ADDRESS, 4 );
 		pAnswer->WriteLongLE( nSendingAddress );
 	}
 
@@ -1851,22 +1857,26 @@ BOOL CDatagrams::OnQueryKeyRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 
 BOOL CDatagrams::OnQueryKeyAnswer(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
-	if ( ! pPacket->m_bCompound ) return FALSE;
+	if ( ! pPacket->m_bCompound )
+	{
+		Statistics.Current.Gnutella2.Dropped++;
+		return FALSE;
+	}
 
 	DWORD nKey = 0, nAddress = 0;
 
-	CHAR szType[9];
+	G2_PACKET nType;
 	DWORD nLength;
 
-	while ( pPacket->ReadPacket( szType, nLength ) )
+	while ( pPacket->ReadPacket( nType, nLength ) )
 	{
 		DWORD nOffset = pPacket->m_nPosition + nLength;
 
-		if ( strcmp( szType, "QK" ) == 0 && nLength >= 4 )
+		if ( nType == G2_PACKET_QUERY_KEY && nLength >= 4 )
 		{
 			nKey = pPacket->ReadLongBE();
 		}
-		else if ( strcmp( szType, "SNA" ) == 0 && nLength >= 4 )
+		else if ( nType == G2_PACKET_SEND_ADDRESS && nLength >= 4 )
 		{
 			nAddress = pPacket->ReadLongLE();
 		}
@@ -2020,7 +2030,7 @@ BOOL CDatagrams::OnPush(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 			{
 				// Create a new Gnutella2 push packet with the same information as this one, and send it
 				CG2Packet* pWrap = CG2Packet::New( G2_PACKET_PUSH, TRUE );
-				pWrap->WritePacket( "TO", 16 );
+				pWrap->WritePacket( G2_PACKET_TO, 16 );
 				pWrap->Write( oClientID );
 				pWrap->WriteByte( 0 );
 				pWrap->WriteLongLE( nAddress );
@@ -2089,7 +2099,11 @@ BOOL CDatagrams::OnRUDP(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 
 BOOL CDatagrams::OnCrawlRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
-	if ( ! pPacket->m_bCompound ) return FALSE;
+	if ( ! pPacket->m_bCompound )
+	{
+		Statistics.Current.Gnutella2.Dropped++;
+		return FALSE;
+	}
 
 	BOOL bWantLeaves	= FALSE;
 	BOOL bWantNames		= FALSE;
@@ -2097,26 +2111,26 @@ BOOL CDatagrams::OnCrawlRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	BOOL bWantREXT		= FALSE;
 	BOOL bIsHub			= ( ! Neighbours.IsG2Leaf() ) && ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable(Settings.General.Debug) );
 
-	CHAR szType[9];
+	G2_PACKET nType;
 	DWORD nLength;
 
-	while ( pPacket->ReadPacket( szType, nLength ) )
+	while ( pPacket->ReadPacket( nType, nLength ) )
 	{
 		DWORD nNext = pPacket->m_nPosition + nLength;
 
-		if ( strcmp( szType, "RLEAF" ) == 0 )
+		if ( nType == G2_PACKET_CRAWL_RLEAF )
 		{
 			bWantLeaves = TRUE;
 		}
-		else if ( strcmp( szType, "RNAME" ) == 0 )
+		else if ( nType == G2_PACKET_CRAWL_RNAME )
 		{
 			bWantNames = TRUE;
 		}
-		else if ( strcmp( szType, "RGPS" ) == 0 )
+		else if ( nType == G2_PACKET_CRAWL_RGPS )
 		{
 			bWantGPS = TRUE;
 		}
-		else if ( strcmp( szType, "REXT" ) == 0 )
+		else if ( nType == G2_PACKET_CRAWL_REXT )
 		{
 			bWantREXT = TRUE;
 		}
@@ -2148,48 +2162,48 @@ BOOL CDatagrams::OnCrawlRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	}
 
 	pPacket->WritePacket(
-		"SELF",
+		G2_PACKET_SELF,
 		16 + ( strNick.GetLength() ? pPacket->GetStringLen( strNick ) + 6 : 0 ) +
 			( nGPS ? 5 + 4 : 0 ) + (vendorCode.GetLength() ? pPacket->GetStringLen( vendorCode ) + 3 : 0 ) +
 		(currentVersion.GetLength() ? pPacket->GetStringLen( currentVersion ) + 4 : 0 ) +
 		(bIsHub ? 5 : 6),
 		TRUE );
 
-	pPacket->WritePacket( "NA", 6 );
+	pPacket->WritePacket( G2_PACKET_NODE_ADDRESS, 6 );
 	pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
 	pPacket->WriteShortBE( htons( Network.m_pHost.sin_port ) );
 
-	pPacket->WritePacket( "HS", 2 );
+	pPacket->WritePacket( G2_PACKET_HUB_STATUS, 2 );
 	pPacket->WriteShortBE( WORD( Neighbours.GetCount( PROTOCOL_G2, -1, ntLeaf ) ) );
 
 	if ( strNick.GetLength() )
 	{
-		pPacket->WritePacket( "NAME", pPacket->GetStringLen( strNick) );
+		pPacket->WritePacket( G2_PACKET_NAME, pPacket->GetStringLen( strNick) );
 		pPacket->WriteString( strNick, FALSE );
 	}
 	if ( vendorCode.GetLength() )
 	{
-		pPacket->WritePacket( "V", pPacket->GetStringLen( vendorCode) );
+		pPacket->WritePacket( G2_PACKET_VENDOR, pPacket->GetStringLen( vendorCode) );
 		pPacket->WriteString( vendorCode, FALSE );
 	}
 	if ( currentVersion.GetLength() )
 	{
-		pPacket->WritePacket( "CV", pPacket->GetStringLen( currentVersion) );
+		pPacket->WritePacket( G2_PACKET_VERSION, pPacket->GetStringLen( currentVersion) );
 		pPacket->WriteString( currentVersion, FALSE );
 	}
 
 	if ( bIsHub )
 	{
-		pPacket->WritePacket( "HUB", 0 );
+		pPacket->WritePacket( G2_PACKET_HUB, 0 );
 	}
 	else
 	{
-		pPacket->WritePacket( "LEAF", 0 );
+		pPacket->WritePacket( G2_PACKET_LEAF, 0 );
 	}
 
 	if ( nGPS )
 	{
-		pPacket->WritePacket( "GPS", 4 );
+		pPacket->WritePacket( G2_PACKET_GPS, 4 );
 		pPacket->WriteLongBE( nGPS );
 	}
 
@@ -2218,20 +2232,20 @@ BOOL CDatagrams::OnCrawlRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		if ( pNeighbour->m_nProtocol == PROTOCOL_G2 &&
 			 pNeighbour->m_nNodeType != ntLeaf )
 		{
-			pPacket->WritePacket( "NH", 16 + nExtraLen, TRUE );
+			pPacket->WritePacket( G2_PACKET_NEIGHBOUR_HUB, 16 + nExtraLen, TRUE );
 
-			pPacket->WritePacket( "NA", 6 );
+			pPacket->WritePacket( G2_PACKET_NODE_ADDRESS, 6 );
 			pPacket->WriteLongLE( pNeighbour->m_pHost.sin_addr.S_un.S_addr );
 			pPacket->WriteShortBE( htons( pNeighbour->m_pHost.sin_port ) );
 
-			pPacket->WritePacket( "HS", 2 );
+			pPacket->WritePacket( G2_PACKET_HUB_STATUS, 2 );
 			pPacket->WriteShortBE( (WORD)((CG2Neighbour*)pNeighbour)->m_nLeafCount );
 		}
 		else if ( pNeighbour->m_nNodeType == ntLeaf && bWantLeaves )
 		{
-			pPacket->WritePacket( "NL", 10 + nExtraLen, TRUE );
+			pPacket->WritePacket( G2_PACKET_NEIGHBOUR_LEAF, 10 + nExtraLen, TRUE );
 
-			pPacket->WritePacket( "NA", 6 );
+			pPacket->WritePacket( G2_PACKET_NODE_ADDRESS, 6 );
 			pPacket->WriteLongLE( pNeighbour->m_pHost.sin_addr.S_un.S_addr );
 			pPacket->WriteShortBE( htons( pNeighbour->m_pHost.sin_port ) );
 		}
@@ -2244,13 +2258,13 @@ BOOL CDatagrams::OnCrawlRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		{
 			if ( strNick.GetLength() )
 			{
-				pPacket->WritePacket( "NAME", pPacket->GetStringLen( strNick ) );
+				pPacket->WritePacket( G2_PACKET_NAME, pPacket->GetStringLen( strNick ) );
 				pPacket->WriteString( strNick, FALSE );
 			}
 
 			if ( nGPS )
 			{
-				pPacket->WritePacket( "GPS", 4 );
+				pPacket->WritePacket( G2_PACKET_GPS, 4 );
 				pPacket->WriteLongBE( nGPS );
 			}
 		}
@@ -2266,6 +2280,25 @@ BOOL CDatagrams::OnCrawlRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 BOOL CDatagrams::OnCrawlAnswer(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
 	CrawlSession.OnCrawl( pHost, pPacket );
+	return TRUE;
+}
+
+BOOL CDatagrams::OnDiscovery(SOCKADDR_IN* pHost, CG2Packet* /*pPacket*/)
+{
+	HostCache.Gnutella2.Add( &pHost->sin_addr, htons( pHost->sin_port ) );
+
+	Send( pHost, CG2Neighbour::CreateKHLPacket(), TRUE, 0, FALSE );
+
+	return TRUE;
+}
+
+BOOL CDatagrams::OnKHL(SOCKADDR_IN* pHost, CG2Packet* pPacket)
+{
+	// this is One of Dangerous Method to implement without Security of Sender/TimeOut/Reciever
+	// There for Commenting it out for now.
+	//HostCache.Gnutella2.Add( &pHost->sin_addr, htons( pHost->sin_port ) );
+
+	//return CG2Neighbour::ParseKHLPacket( pPacket );
 	return TRUE;
 }
 
@@ -2525,7 +2558,11 @@ BOOL CDatagrams::OnBye(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 // Better put cache as security to prevent attack, such as flooding cache with invalid host addresses.
 BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
-	if ( ! pPacket->m_bCompound ) return FALSE; // if it is not Compound packet, it is basically malformed packet
+	if ( ! pPacket->m_bCompound )
+	{
+		Statistics.Current.Gnutella2.Dropped++;
+		return FALSE; // if it is not Compound packet, it is basically malformed packet
+	}
 
 	CDiscoveryService* pService = NULL;
 	bool bBypassSecurity = false;
@@ -2550,46 +2587,50 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		(	Network.IsFirewalledAddress( (LPVOID*)&pHost->sin_addr, TRUE, TRUE ) ||
 			Network.IsReserved( &pHost->sin_addr ) ||
 			Security.IsDenied( &pHost->sin_addr ) )
-		) return FALSE;
+		)
+	{
+		Statistics.Current.Gnutella2.Dropped++;
+		return FALSE;
+	}
 
-	CHAR szType[9], szInner[9];
-	DWORD nLength, nInner, tAdjust = 0;
+	G2_PACKET nType, nInner;
+	DWORD nLength, nInnerLength, tAdjust = 0;
 	BOOL bCompound;
 	int nCount = 0;
 
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
 
-	while ( pPacket->ReadPacket( szType, nLength, &bCompound ) )
+	while ( pPacket->ReadPacket( nType, nLength, &bCompound ) )
 	{
 		DWORD nNext = pPacket->m_nPosition + nLength;
 
-		if (	strcmp( szType, "NH" ) == 0 ||
-				strcmp( szType, "CH" ) == 0 )
+		if ( nType == G2_PACKET_NEIGHBOUR_HUB ||
+			nType == G2_PACKET_CACHED_HUB )
 		{
 			DWORD nAddress = 0, tSeen = tNow, nLeafCount = 0, nLeafLimit = 0;
 			WORD nPort = 0;
 			CString strVendor;
 
-			if ( bCompound || 0 == strcmp( szType, "NH" ) )
+			if ( bCompound || G2_PACKET_NEIGHBOUR_HUB == nType )
 			{
-				while ( pPacket->m_nPosition < nNext && pPacket->ReadPacket( szInner, nInner ) )
+				while ( pPacket->m_nPosition < nNext && pPacket->ReadPacket( nInner, nInnerLength ) )
 				{
-					DWORD nNextX = pPacket->m_nPosition + nInner;
+					DWORD nNextX = pPacket->m_nPosition + nInnerLength;
 
-					if ( strcmp( szInner, "NA" ) == 0 && nInner >= 6 )
+					if ( nInner == G2_PACKET_NODE_ADDRESS && nInnerLength >= 6 )
 					{
 						nAddress = pPacket->ReadLongLE();
 						nPort = pPacket->ReadShortBE();
 					}
-					else if ( strcmp( szInner, "V" ) == 0 && nInner >= 4 )
+					else if ( nInner == G2_PACKET_VENDOR && nInnerLength >= 4 )
 					{
 						strVendor = pPacket->ReadString( 4 );
 					}
-					else if ( strcmp( szInner, "TS" ) == 0 && nInner >= 4 )
+					else if ( nInner == G2_PACKET_TIMESTAMP && nInnerLength >= 4 )
 					{
 						tSeen = pPacket->ReadLongBE() + tAdjust;
 					}
-					else if ( strcmp( szInner, "HS" ) == 0 && nInner >= 2 )
+					else if ( nInner == G2_PACKET_HUB_STATUS && nInner >= 2 )
 					{
 						nLeafCount = pPacket->ReadShortBE();
 						if ( nInner >= 4 ) nLeafLimit = pPacket->ReadShortBE();
@@ -2623,7 +2664,7 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 			}
 
 		}
-		else if ( strcmp( szType, "TS" ) == 0 && nLength >= 4 )
+		else if ( nType == G2_PACKET_TIMESTAMP && nLength >= 4 )
 		{
 			tAdjust = (LONG)tNow - (LONG)pPacket->ReadLongBE();
 		}
@@ -2646,7 +2687,11 @@ BOOL CDatagrams::OnKHLR(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	UNUSED_ALWAYS(pPacket);
 
 	if ( Security.IsDenied( &pHost->sin_addr ) || Network.IsFirewalledAddress( (LPVOID*)&pHost->sin_addr, TRUE ) ||
-		Network.IsReserved( &pHost->sin_addr ) ) return FALSE;
+		Network.IsReserved( &pHost->sin_addr ) )
+	{
+		Statistics.Current.Gnutella2.Dropped++;
+		return FALSE;
+	}
 
 	CG2Packet* pKHLA = CG2Packet::New( G2_PACKET_KHL_ANS, TRUE );
 
@@ -2663,17 +2708,17 @@ BOOL CDatagrams::OnKHLR(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		{
 			if ( pNeighbour->m_pVendor && pNeighbour->m_pVendor->m_sCode.GetLength() == 4 )
 			{
-				pKHLA->WritePacket( "NH", 16 + 6, TRUE );					// 4
-				pKHLA->WritePacket( "HS", 4 );								// 4
+				pKHLA->WritePacket( G2_PACKET_NEIGHBOUR_HUB, 16 + 6, TRUE );// 4
+				pKHLA->WritePacket( G2_PACKET_HUB_STATUS, 4 );				// 4
 				pKHLA->WriteShortBE( (WORD)pNeighbour->m_nLeafCount );		// 2
 				pKHLA->WriteShortBE( (WORD)pNeighbour->m_nLeafLimit );		// 2
-				pKHLA->WritePacket( "V", 4 );								// 3
+				pKHLA->WritePacket( G2_PACKET_VENDOR, 4 );					// 3
 				pKHLA->WriteString( pNeighbour->m_pVendor->m_sCode );		// 5
 			}
 			else
 			{
-				pKHLA->WritePacket( "NH", 9 + 6, TRUE );					// 4
-				pKHLA->WritePacket( "HS", 4 );								// 4
+				pKHLA->WritePacket( G2_PACKET_NEIGHBOUR_HUB, 9 + 6, TRUE );	// 4
+				pKHLA->WritePacket( G2_PACKET_HUB_STATUS, 4 );				// 4
 				pKHLA->WriteShortBE( (WORD)pNeighbour->m_nLeafCount );		// 2
 				pKHLA->WriteShortBE( (WORD)pNeighbour->m_nLeafLimit );		// 2
 				pKHLA->WriteByte( 0 );										// 1
@@ -2687,7 +2732,7 @@ BOOL CDatagrams::OnKHLR(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	int nCount = Settings.Gnutella2.KHLHubCount;
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
 
-	pKHLA->WritePacket( "TS", 4 );
+	pKHLA->WritePacket( G2_PACKET_TIMESTAMP, 4 );
 	pKHLA->WriteLongBE( tNow );
 
 	for ( CHostCacheHost* pCachedHost = HostCache.Gnutella2.GetNewest() ; pCachedHost && nCount > 0 ;
@@ -2699,11 +2744,11 @@ BOOL CDatagrams::OnKHLR(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		{
 
 			BOOL bCompound = ( pCachedHost->m_pVendor && pCachedHost->m_pVendor->m_sCode.GetLength() > 0 );
-			CG2Packet* pCHPacket = CG2Packet::New( "CH", bCompound );
+			CG2Packet* pCHPacket = CG2Packet::New( G2_PACKET_CACHED_HUB, bCompound );
 
 			if ( bCompound )
 			{
-				pCHPacket->WritePacket( "V", pPacket->GetStringLen( pCachedHost->m_pVendor->m_sCode ) );
+				pCHPacket->WritePacket( G2_PACKET_VENDOR, pCachedHost->m_pVendor->m_sCode.GetLength() );
 				pCHPacket->WriteString( pCachedHost->m_pVendor->m_sCode );
 			}
 

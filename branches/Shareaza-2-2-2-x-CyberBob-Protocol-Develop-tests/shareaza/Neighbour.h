@@ -85,26 +85,26 @@ public:
 public:
 
 	// Used by the list of neighbour objects in CNeighbours
-	DWORD      m_nRunCookie; // The number of times this neighbour has been run, CNeighboursBase::OnRun uses this to run each neighbour in the list once
-	DWORD      m_nUnique;    // A number, like 2, 3, 4 and so on, which is the unique key for this CNeighbour object in CNeighbour's m_pUniques map 
-	PROTOCOLID    m_nProtocol;
-	NrsState      m_nState;           // Neighbour state, like connecting, handshake 1, 2, or 3, or rejected
-	CVendor*      m_pVendor;
-	Hashes::Guid  m_oGUID;
-	CGProfile*    m_pProfile;
-	Hashes::Guid  m_oMoreResultsGUID; // GUID of the last search, used to get more results (do)
+	DWORD			m_nRunCookie;		// The number of times this neighbour has been run, CNeighboursBase::OnRun uses this to run each neighbour in the list once
+	DWORD			m_nUnique;			// A number, like 2, 3, 4 and so on, which is the unique key for this CNeighbour object in CNeighbour's m_pUniques map 
+	PROTOCOLID		m_nProtocol;
+	NrsState		m_nState;			// Neighbour state, like connecting, handshake 1, 2, or 3, or rejected
+	CVendor*		m_pVendor;
+	Hashes::Guid	m_oGUID;
+	CGProfile*		m_pProfile;
+	Hashes::Guid	m_oMoreResultsGUID;	// GUID of the last search, used to get more results (do)
 
 // Attributes: Capabilities
 public:
 
 	BOOL    m_bAutomatic;
-	BOOL    m_bShareaza;       // True if the remote computer is running Shareaza also
-	NrsNode m_nNodeType;       // This connection is to a hub above us, ntHub, a leaf below us, ntLeaf, or a hub just like us, ntNode
+	BOOL    m_bShareaza;		// True if the remote computer is running Shareaza also
+	NrsNode m_nNodeType;		// This connection is to a hub above us, ntHub, a leaf below us, ntLeaf, or a hub just like us, ntNode
 	BOOL    m_bQueryRouting;
 	BOOL    m_bPongCaching;
-	BOOL    m_bVendorMsg;      // True if the remote computer told us it supports vendor-specific messages
+	BOOL    m_bVendorMsg;		// True if the remote computer told us it supports vendor-specific messages
 	BOOL    m_bGGEP;
-	DWORD   m_tLastQuery;      // The time we last got a query packet, recorded as the number of seconds since 1970
+	DWORD   m_tLastQuery;		// The time we last got a query packet, recorded as the number of seconds since 1970
 	BOOL    m_bObsoleteClient;	// Is the remote client running an 'old' version of software. (An old beta, etc)
 	BOOL    m_bBadClient;		// Is the remote client running a 'bad' client- GPL rip, buggy, etc. (not banned, though)
 

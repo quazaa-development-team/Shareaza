@@ -1,7 +1,7 @@
 //
 // Datagrams.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2005.
+// Copyright (c) Shareaza Development Team, 2002-2006.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -130,7 +130,7 @@ public:
 	BOOL	Listen();
 	void	Disconnect();
 	BOOL	IsStable();
-	void	Stable(BOOL bStable);
+	void	SetStable(BOOL bStable);
 	BOOL	Send(IN_ADDR* pAddress, WORD nPort, CPacket* pPacket, BOOL bRelease = TRUE, LPVOID pToken = NULL, BOOL bAck = TRUE, BOOL bBypassSecurity = FALSE);
 	BOOL	Send(SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease = TRUE, LPVOID pToken = NULL, BOOL bAck = TRUE, BOOL bBypassSecurity = FALSE);
 public:
@@ -172,6 +172,8 @@ protected:
 	BOOL	OnVendor(SOCKADDR_IN* pHost, CG1Packet* pPacket);
 	BOOL	OnCrawlRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnCrawlAnswer(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnDiscovery(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnKHL(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnKHLR(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnModeChangeReq(SOCKADDR_IN* pHost, CG2Packet* pPacket);
