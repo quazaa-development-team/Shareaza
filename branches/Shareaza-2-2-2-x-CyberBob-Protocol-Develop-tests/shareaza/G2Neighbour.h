@@ -25,6 +25,7 @@
 #pragma once
 
 #include "Neighbour.h"
+#include "NeighboursWithG2.h"
 
 class CG2Packet;
 class CHubHorizonGroup;
@@ -62,10 +63,6 @@ public:
 	BOOL			OnModeChangeAck(CG2Packet* pPacket); //add
 	BOOL			OnPrivateMessage(CG2Packet* pPacket); //add
 	BOOL			OnClose(CG2Packet* pPacket); //add
-
-	static CG2Packet* CreateLNIPacket(CG2Neighbour* pOwner = NULL);
-	static CG2Packet* CreateKHLPacket(CG2Neighbour* pOwner = NULL);
-	static BOOL		ParseKHLPacket(CG2Packet* pPacket, CG2Neighbour* pOwner = NULL);
 
 public:
 	DWORD				m_nLeafCount;
@@ -125,6 +122,9 @@ protected:
 
 	void			SendStartups();
 	BOOL			ProcessPackets();
+
+	// this might be needed.
+	friend class CNeighboursWithG2;
 };
 
 #endif // !defined(AFX_G2NEIGHBOUR_H__F3C423B0_60F0_4721_81A3_1109E59CD425__INCLUDED_)

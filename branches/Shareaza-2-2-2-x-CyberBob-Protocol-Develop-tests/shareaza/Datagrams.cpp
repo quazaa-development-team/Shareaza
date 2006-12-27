@@ -2287,7 +2287,7 @@ BOOL CDatagrams::OnDiscovery(SOCKADDR_IN* pHost, CG2Packet* /*pPacket*/)
 {
 	HostCache.Gnutella2.Add( &pHost->sin_addr, htons( pHost->sin_port ) );
 
-	Send( pHost, CG2Neighbour::CreateKHLPacket(), TRUE, 0, FALSE );
+	Send( pHost, Neighbours.CreateKHLPacket(), TRUE, 0, FALSE );
 
 	return TRUE;
 }

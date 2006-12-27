@@ -57,14 +57,22 @@ public:
 
 	// Methods implimented by several classes in the CNeighbours inheritance column
 	virtual void Connect(); // Set the ping route duration and setup the hub horizon pool
+	// Pure virtual memombers.
+	virtual BOOL	IsG2Leaf() = 0;							// Returns true if we are acting as a Gnutella2 leaf on at least one connection
+	virtual BOOL	IsG2Hub() = 0;							// Returns true if we are acting as a Gnutella2 hub on at least one connection
+	virtual DWORD	IsG2HubCapable(BOOL bDebug = FALSE) = 0;// Returns true if we have a computer and Internet connection powerful enough to become a Gnutella2 hub
 
 public:
 
 	// Make and return a query web packet with IP addresses from the neighbours list and the Gnutella2 host cache
-	CG2Packet* CreateQueryWeb(const Hashes::Guid& oGUID, CNeighbour* pExcept = NULL);
+	CG2Packet*		CreateQueryWeb(const Hashes::Guid& oGUID, CNeighbour* pExcept = NULL);
 
 	// Return a random Gnutella2 hub neighbour that isn't pExcept and doesn't know about pGUID
-	CG2Neighbour* GetRandomHub(CG2Neighbour* pExcept, const Hashes::Guid& oGUID);
+	CG2Neighbour*	GetRandomHub(CG2Neighbour* pExcept, const Hashes::Guid& oGUID);
+
+	CG2Packet*		CreateLNIPacket(CG2Neighbour* pOwner = NULL);
+	CG2Packet*		CreateKHLPacket(CG2Neighbour* pOwner = NULL);
+	BOOL			ParseKHLPacket(CG2Packet* pPacket, CG2Neighbour* pOwner = NULL);
 };
 
 // End the group of lines to only include once, pragma once doesn't require an endif at the bottom
