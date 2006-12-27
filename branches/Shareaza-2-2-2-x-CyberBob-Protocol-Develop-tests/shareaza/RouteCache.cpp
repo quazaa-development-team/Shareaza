@@ -145,8 +145,18 @@ CRouteCacheItem* CRouteCache::Lookup(const Hashes::Guid& oGUID, CNeighbour** ppN
 			return NULL;
 		}
 
-		pItem = Add( pItem->m_oGUID, pItem->m_pNeighbour,
-			pItem->m_pNeighbour ? NULL : &pItem->m_pEndpoint, pItem->m_tAdded );
+		ASSERT( oGUID.isValid() );
+		ASSERT( pItem->m_oGUID.isValid() );
+		ASSERT( validAndEqual( oGUID, pItem->m_oGUID ) );
+
+		// This needs to be done, because CRouteCache::Add() can cause m_pHistory cache table deleted.
+		// thus this operation is needed.
+		Hashes::Guid oTempGUID( pItem->m_oGUID);
+		CNeighbour* pTempNeighbour = const_cast<CNeighbour*>(pItem->m_pNeighbour);
+		SOCKADDR_IN pTempEndPoint = pItem->m_pEndpoint;
+		DWORD tTempAddTime = pItem->m_tAdded;
+
+		pItem = Add( oTempGUID, pTempNeighbour, &pTempEndPoint, tTempAddTime );
 	}
 
 	if ( ppNeighbour ) *ppNeighbour = (CNeighbour*)pItem->m_pNeighbour;
