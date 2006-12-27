@@ -208,9 +208,9 @@ void CShakeNeighbour::DelayClose(UINT nError)
 	// If we initiated the connection to the remote computer
 	m_nDelayCloseReason = nError;
 	// Change this object's state to closing
-	//m_nState = nrsClosing;
-	m_bDelayClose = TRUE;
-
+	m_nState = nrsClosing;
+	//m_bDelayClose = TRUE;
+	
 	// Have the connection object write all the outgoing data soon
 	CNeighbour::QueueRun();
 }
@@ -229,9 +229,10 @@ BOOL CShakeNeighbour::OnConnected()
 
 	if ( m_bFirewallTest )	// If we're testing remote firewall [Brov]
 	{
-		m_pOutput->Print( "CONNECT BACK\r\n\r\n" ); 
-		DelayClose( 0 ); // Wait for data to be sent and then close connection
+		m_pOutput->Print( "CONNECT BACK\r\n\r\n" );
 		theApp.Message( MSG_SYSTEM, _T("TCP Firewall test passed for %s, port %lu."), (LPCTSTR)m_sAddress, m_pHost.sin_port );
+		Close( 0 ); // Wait for data to be sent and then close connection
+		return FALSE;
 	}
 	else
 	{
@@ -317,7 +318,7 @@ BOOL CShakeNeighbour::OnRead()
 BOOL CShakeNeighbour::OnRun()
 {
 	// Get the number of milliseconds since the computer has been turned on
-	DWORD nTimeNow = GetTickCount();
+	DWORD nTimeNow = Network.m_nNetworkGlobalTickCount;
 
 	// We connected the socket, and are waiting for the socket connection to be made
 	switch ( m_nState ) {
@@ -845,7 +846,8 @@ BOOL CShakeNeighbour::ReadResponse()
 			if ( strLine == _T("503 Not Good Leaf") || strLine == _T("503 We're Leaves") ||
 				 strLine == _T("503 Service unavailable") )
 			{
-				DelayClose( IDS_HANDSHAKE_REJECTED );
+				m_nDelayCloseReason =IDS_HANDSHAKE_REJECTED;
+				m_bDelayClose = TRUE;
 			}
 		} // It does say "200 OK", and the remote computer contacted us
 		else if ( ! m_bInitiated )
@@ -937,8 +939,8 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			// Ban them and ignore anything else in the headers
 			theApp.Message( MSG_ERROR, _T("Banning hostile client %s"), (LPCTSTR)m_sUserAgent );
 			m_bBadClient = TRUE;
-			DelayClose( IDS_HANDSHAKE_REJECTED );
-			return FALSE;
+			m_nDelayCloseReason =IDS_HANDSHAKE_REJECTED;
+			m_bDelayClose = TRUE;
 		}
 		
 		// If the remote computer is running a client the user has blocked
@@ -948,9 +950,9 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			theApp.Message( MSG_ERROR, IDS_HANDSHAKE_REJECTED, (LPCTSTR)m_sAddress, (LPCTSTR)m_sUserAgent );
 			m_nState = nrsRejected;
 			//Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
-			DelayClose( IDS_HANDSHAKE_REJECTED );
 			m_bBadClient = TRUE;
-			return FALSE;
+			m_nDelayCloseReason =IDS_HANDSHAKE_REJECTED;
+			m_bDelayClose = TRUE;
 		}
 
 	} // The remote computer is telling us our IP address
@@ -1197,7 +1199,10 @@ BOOL CShakeNeighbour::OnHeadersComplete()
 	if ( m_bDelayClose )
 	{
 		m_nState = nrsClosing;
-		return TRUE;
+		m_pOutput->Print( "GNUTELLA/0.6 503 Sorry, you can not connect me. Please update to newer version or use different Software\r\n" );
+		SendMinimalHeaders();       // Tell the remote computer we're Shareaza and we can exchange Gnutella2 packets
+		m_pOutput->Print( "\r\n" ); // End the group of headers with a blank line
+		return FALSE;
 	}
 
 	// The remote computer called us and it hasn't said Ultrapeer or not.
@@ -1419,7 +1424,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 					theApp.Message( MSG_ERROR, _T("Rejecting bad leaf client %s") , (LPCTSTR)m_sUserAgent );
 					m_pOutput->Print( "GNUTELLA/0.6 503 Refused\r\n" );
 				}
-				SendMinimalHeaders();  
+				SendMinimalHeaders();
 				DelayClose( IDS_HANDSHAKE_SURPLUS );
 				return FALSE; 
 			}
@@ -1995,48 +2000,44 @@ BOOL CShakeNeighbour::IsClientBad()
 
 	// MLDonkey older than 2.8.2 are known to give Neighbour hub's address in /QH2/NA
 	// which may increase unnecessary TCP requests for Hubs
-	if ( _tcsistr( m_sUserAgent, _T("MLDonkey/") ) )
+	if ( _tcsistr( m_sUserAgent, _T("MLDonkey") ) )
 	{
-		if ( _tcsistr( m_sUserAgent, _T("MLDonkey/0.") ) )	return TRUE;
-		if ( _tcsistr( m_sUserAgent, _T("MLDonkey/1.") ) )	return TRUE;
-		if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.") ) )
+		if ( m_sUserAgent.GetLength() < 10 ) return TRUE;
+		DWORD nVersion[3] = {0,0,0};
+		CString strVersion = m_sUserAgent.Mid(9);
+		if ( _stscanf( strVersion, _T("%u.%u.%u"), &nVersion[0], &nVersion[1], &nVersion[2] ) == 3)
 		{
-			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.0.") ) ) return TRUE;
-			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.1.") ) ) return TRUE;
-			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.2.") ) ) return TRUE;
-			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.3.") ) ) return TRUE;
-			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.4.") ) ) return TRUE;
-			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.5.") ) ) return TRUE;
-			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.6.") ) ) return TRUE;
-			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.7.") ) ) return TRUE;
-			if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.8.") ) )
+		}
+		else if ( _stscanf( strVersion, _T("%u.%u"), &nVersion[0], &nVersion[1] ) == 2)
+		{
+
+		}
+		else if ( _stscanf( strVersion, _T("%u"), &nVersion[0] ) == 1)
+		{
+
+		}
+		else
+		{
+			return TRUE;
+		}
+
+		if (nVersion[0] < 3)
+		{
+			if ( nVersion[0] == 0 ) return TRUE;
+			if ( nVersion[0] == 1 ) return TRUE;
+			if ( nVersion[0] == 2 )
 			{
-				if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.8.0") ) )
+				if ( nVersion[1] < 8 ) return TRUE;
+				if ( nVersion[1] == 8 )
 				{
-					CString strUserAgent(m_sUserAgent);
-					strUserAgent.Append(_T(" ") );
-					if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.8.0 ") ) ) return TRUE;
-				}
-				if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.8.1") ) )
-				{	// check if it is not 2.8.1 or 2.8.1x
-					CString strUserAgent(m_sUserAgent);
-					strUserAgent.Append(_T(" ") );
-					if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.8.1 ") ) ) return TRUE;
-				}
-				if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.8.2") ) )
-				{	// check if it is not 2.8.2 or 2.8.2x
-					CString strUserAgent(m_sUserAgent);
-					strUserAgent.Append(_T(" ") );
-					if ( _tcsistr( m_sUserAgent, _T("MLDonkey/2.8.2 ") ) ) return TRUE;
+					if ( nVersion[2] < 3 ) return TRUE;
 				}
 			}
 		}
+
 		// Current versions okay
 		return FALSE;
 	}
-
-	if ( _tcsistr( m_sUserAgent, _T("MLDonkey ") ) ) // Official version is "MLDonkey/" not "MLDonkey ", so might be fake.
-		return TRUE;
 
 	if ( _tcsistr( m_sUserAgent, _T("WinMX") ) )		return TRUE;
 
