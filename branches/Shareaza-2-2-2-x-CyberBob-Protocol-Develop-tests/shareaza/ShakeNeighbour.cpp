@@ -1909,8 +1909,8 @@ BOOL CShakeNeighbour::IsClientObsolete()
 		if ( m_sUserAgent.GetLength() < 16 ) return TRUE;
 		DWORD nVersion[4] = {0,0,0,0};
 		CString strVersion = m_sUserAgent.Mid(9);
-		strVersion.Append( _T(" ") );
-		strVersion = strVersion.Left( strVersion.Find( _T(" "),15 ) );
+		//strVersion.Append( _T(" ") );
+		//strVersion = strVersion.Left( strVersion.Find( _T(" "),15 ) );
 		if ( _stscanf( strVersion, _T("%u.%u.%u.%u"), &nVersion[0], &nVersion[1], &nVersion[2], &nVersion[3] ) == 4)
 		{
 			if ( nVersion[0] < 2 || nVersion[0] > 2 ) return TRUE;	// everything other than 2.x.x.x - Obsoletes and fakes
@@ -2050,8 +2050,8 @@ BOOL CShakeNeighbour::IsClientBad()
 		if ( m_sUserAgent.GetLength() < 16 ) return TRUE;
 		DWORD nVersion[4] = {0,0,0,0};
 		CString strVersion = m_sUserAgent.Mid(9);
-		strVersion.Append( _T(" ") );
-		strVersion = strVersion.Left( strVersion.Find( _T(" "),15 ) );
+		//strVersion.Append( _T(" ") );
+		//strVersion = strVersion.Left( strVersion.Find( _T(" "),15 ) );
 		if ( _stscanf( strVersion, _T("%u.%u.%u.%u"), &nVersion[0], &nVersion[1], &nVersion[2], &nVersion[3] ) == 4)
 		{
 			if ( nVersion[0] < 2 || nVersion[0] > 2 ) return TRUE;	// everything other than 2.x.x.x - Obsoletes and fakes
