@@ -1906,22 +1906,48 @@ BOOL CShakeNeighbour::IsClientObsolete()
 	if ( _tcsistr( m_sUserAgent, _T("Shareaza") ) )
 	{
 		// Shareaza client
-
-		// Check for fakes / version hacks.
-		if (( _tcsistr( m_sUserAgent, _T("Shareaza 3.0"  ) ) ) ||	// Fakes
-			( _tcsistr( m_sUserAgent, _T("Shareaza 6."   ) ) ) ||
-			( _tcsistr( m_sUserAgent, _T("Shareaza 7."   ) ) ) )
+		if ( m_sUserAgent.GetLength() < 16 ) return TRUE;
+		DWORD nVersion[4] = {0,0,0,0};
+		CString strVersion = m_sUserAgent.Mid(9);
+		strVersion.Append( _T(" ") );
+		strVersion = strVersion.Left( strVersion.Find( _T(" "),15 ) );
+		if ( _stscanf( strVersion, _T("%u.%u.%u.%u"), &nVersion[0], &nVersion[1], &nVersion[2], &nVersion[3] ) == 4)
+		{
+			if ( nVersion[0] < 2 || nVersion[0] > 2 ) return TRUE;	// everything other than 2.x.x.x - Obsoletes and fakes
+			if ( nVersion[0] == 2)
+			{
+				if ( nVersion[1] == 0 ) return TRUE;	// 2.0.x.x
+				if ( nVersion[1] == 1 ) return TRUE;	// 2.1.x.x - Blocked for ZeroLeaf Hub mode
+				if ( nVersion[1] == 2 )					// 2.2.x.x
+				{
+					if ( nVersion[2] == 0 ) return TRUE;	// 2.2.0.x - Blocked for No THEX
+					if ( nVersion[2] == 1 ) return FALSE;	// 2.2.1.x - known to be good official for now.
+					if ( nVersion[2] == 2 )
+					{
+						if ( nVersion[3] == 0 ) return FALSE;	// 2.2.2.0 - Official 2.2.2.0 (Never been released publicly)
+						return TRUE;							// 2.2.2.x - Unstable Beta.
+					}
+					if ( nVersion[2] == 3 )					// 2.2.3.x
+					{
+						if ( nVersion[3] == 0 ) return FALSE;	// 2.2.3.0 - Official Beta1
+						if ( nVersion[3] > 0 ) return FALSE;	// 2.2.3.x - Daily Builds based on 2.2.3.0
+					}
+					if ( nVersion[2] == 4 )					// 2.2.4.x
+					{
+						if ( nVersion[3] == 0 ) return FALSE;	// 2.2.4.0 - Official Beta2
+						if ( nVersion[3] > 0 ) return FALSE;	// 2.2.4.x - Daily Builds based on 2.2.4.0
+					}
+				}
+				// In case when official 2.3.0.0 released. this should not be done.
+				//if ( nVersion[1] == 3 ) return TRUE;	// 2.3.x.x - Not released yet, would be Fake.
+				if ( nVersion[1] > 3 ) return TRUE;	// 2.4.x.x and above - Not released yet, would be Fake.
+			}
+		}
+		else	// not Official version.
+		{
 			return TRUE;
+		}
 
-		// Check for old version and betas
-		if (( _tcsistr( m_sUserAgent, _T("Shareaza 1."   ) ) ) ||	// Old versions
-			( _tcsistr( m_sUserAgent, _T("Shareaza 2.0"  ) ) ) ||
-			( _tcsistr( m_sUserAgent, _T("Shareaza 2.1"  ) ) ) ||
-			( _tcsistr( m_sUserAgent, _T("Shareaza 2.2.0") ) ) )
-			return TRUE;
-
-		// Assumed to be reasonably current
-		return FALSE;
 	}
 	else if ( _tcsistr( m_sUserAgent, _T("gnucdna") ) )
 	{
@@ -1944,6 +1970,46 @@ BOOL CShakeNeighbour::IsClientObsolete()
 	{
 		// Uses outdated Shareaza code
 		return TRUE;
+	}
+	else if ( _tcsistr( m_sUserAgent, _T("MLDonkey") ) )
+	{	
+		// MLDonkey older than 2.8.2 are known to give Neighbour hub's address in /QH2/NA
+		// which may increase unnecessary TCP requests for Hubs
+		if ( m_sUserAgent.GetLength() < 10 ) return TRUE;
+		DWORD nVersion[3] = {0,0,0};
+		CString strVersion = m_sUserAgent.Mid(9);
+		if ( _stscanf( strVersion, _T("%u.%u.%u"), &nVersion[0], &nVersion[1], &nVersion[2] ) == 3)
+		{
+		}
+		else if ( _stscanf( strVersion, _T("%u.%u"), &nVersion[0], &nVersion[1] ) == 2)
+		{
+
+		}
+		else if ( _stscanf( strVersion, _T("%u"), &nVersion[0] ) == 1)
+		{
+
+		}
+		else
+		{
+			return TRUE;
+		}
+
+		if (nVersion[0] < 3)
+		{
+			if ( nVersion[0] == 0 ) return TRUE;
+			if ( nVersion[0] == 1 ) return TRUE;
+			if ( nVersion[0] == 2 )
+			{
+				if ( nVersion[1] < 8 ) return TRUE;
+				if ( nVersion[1] == 8 )
+				{
+					if ( nVersion[2] < 3 ) return TRUE;
+				}
+			}
+		}
+
+		// Current versions okay
+		return FALSE;
 	}
 
 	return FALSE;
@@ -1978,22 +2044,51 @@ BOOL CShakeNeighbour::IsClientBad()
 
 	if ( _tcsistr( m_sUserAgent, _T("eTomi") ) )		return TRUE;
 
-
-	// Known good clients
-	if ( _tcsistr( m_sUserAgent, _T("gnucdna") ) )		return FALSE;
-
-	if ( _tcsistr( m_sUserAgent, _T("adagio") ) )		return FALSE;
-	
-
 	// Really obsolete versions of Shareaza should be blocked. (they may have bad settings)
 	if ( _tcsistr( m_sUserAgent, _T("shareaza") ) )
 	{
-		if ( _tcsistr( m_sUserAgent, _T("shareaza 1.") ) )	return TRUE;
-		if ( _tcsistr( m_sUserAgent, _T("shareaza 2.0") ) )	return TRUE;
-		if ( _tcsistr( m_sUserAgent, _T("shareaza 2.1") ) )	return TRUE;	// Blocked for ZeroLeaf Hub mode
-		if ( _tcsistr( m_sUserAgent, _T("shareaza 3.") ) )	return TRUE;
-		if ( _tcsistr( m_sUserAgent, _T("shareaza 6.") ) )	return TRUE;
-		if ( _tcsistr( m_sUserAgent, _T("shareaza 7.") ) )	return TRUE;
+		if ( m_sUserAgent.GetLength() < 16 ) return TRUE;
+		DWORD nVersion[4] = {0,0,0,0};
+		CString strVersion = m_sUserAgent.Mid(9);
+		strVersion.Append( _T(" ") );
+		strVersion = strVersion.Left( strVersion.Find( _T(" "),15 ) );
+		if ( _stscanf( strVersion, _T("%u.%u.%u.%u"), &nVersion[0], &nVersion[1], &nVersion[2], &nVersion[3] ) == 4)
+		{
+			if ( nVersion[0] < 2 || nVersion[0] > 2 ) return TRUE;	// everything other than 2.x.x.x - Obsoletes and fakes
+			if ( nVersion[0] == 2)
+			{
+				if ( nVersion[1] == 0 ) return TRUE;	// 2.0.x.x
+				if ( nVersion[1] == 1 ) return TRUE;	// 2.1.x.x - Blocked for ZeroLeaf Hub mode
+				if ( nVersion[1] == 2 )					// 2.2.x.x
+				{
+					if ( nVersion[2] == 0 ) return TRUE;	// 2.2.0.x - Blocked for No THEX
+					if ( nVersion[2] == 1 ) return FALSE;	// 2.2.1.x - known to be good official for now.
+					if ( nVersion[2] == 2 )
+					{
+						if ( nVersion[3] == 0 ) return FALSE;	// 2.2.2.0 - Official 2.2.2.0 (Never been released publicly)
+						return TRUE;							// 2.2.2.x - Unstable Beta.
+					}
+					if ( nVersion[2] == 3 )					// 2.2.3.x
+					{
+						if ( nVersion[3] == 0 ) return FALSE;	// 2.2.3.0 - Official Beta1
+						if ( nVersion[3] > 0 ) return FALSE;	// 2.2.3.x - Daily Builds based on 2.2.3.0
+					}
+					if ( nVersion[2] == 4 )					// 2.2.4.x
+					{
+						if ( nVersion[3] == 0 ) return FALSE;	// 2.2.4.0 - Official Beta2
+						if ( nVersion[3] > 0 ) return FALSE;	// 2.2.4.x - Daily Builds based on 2.2.4.0
+					}
+				}
+				// In case when official 2.3.0.0 released. this should not be done yet.
+				//if ( nVersion[1] == 3 ) return TRUE;	// 2.3.x.x - Not released yet, would be Fake.
+				if ( nVersion[1] > 3 ) return TRUE;	// 2.4.x.x and above - Not released yet, would be Fake.
+			}
+		}
+		else	// not Official version.
+		{
+			return TRUE;
+		}
+
 		// Current versions okay
 		return FALSE;
 	}
@@ -2045,7 +2140,10 @@ BOOL CShakeNeighbour::IsClientBad()
 	//if ( _tcsistr( m_sUserAgent, _T("") ) )			return TRUE;
 
 
+	// Known good clients
+	if ( _tcsistr( m_sUserAgent, _T("gnucdna") ) )		return FALSE;
 
+	if ( _tcsistr( m_sUserAgent, _T("adagio") ) )		return FALSE;
 
 	// Unknown- Assume OK
 	return FALSE;
