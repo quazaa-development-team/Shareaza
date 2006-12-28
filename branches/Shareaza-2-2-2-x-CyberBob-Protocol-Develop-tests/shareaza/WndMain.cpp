@@ -1562,9 +1562,9 @@ void CMainWnd::OnNetworkG2()
 		{
 			Network.EndTestG2UDPFW();
 			Settings.Gnutella2.EnableToday = FALSE;
-			if ( !Settings.Gnutella1.EnableToday && !Settings.eDonkey.EnableToday &&
-				Settings.Connection.RequireForTransfers )
-				Network.Disconnect();
+			//if ( !Settings.Gnutella1.EnableToday && !Settings.eDonkey.EnableToday &&
+			//	Settings.Connection.RequireForTransfers )
+			//	Network.Disconnect();
 		}
 	}
 	else
@@ -1596,9 +1596,9 @@ void CMainWnd::OnNetworkG1()
 	if ( Network.IsConnected() && Settings.Gnutella1.EnableToday )
 	{
 		Settings.Gnutella1.EnableToday = FALSE;
-		if ( !Settings.Gnutella2.EnableToday && !Settings.eDonkey.EnableToday &&
-			  Settings.Connection.RequireForTransfers )
-			Network.Disconnect();
+		//if ( !Settings.Gnutella2.EnableToday && !Settings.eDonkey.EnableToday &&
+		//	  Settings.Connection.RequireForTransfers )
+		//	Network.Disconnect();
 	}
 	else
 	{
@@ -1628,9 +1628,9 @@ void CMainWnd::OnNetworkED2K()
 	if ( Network.IsConnected() && Settings.eDonkey.EnableToday )
 	{
 		Settings.eDonkey.EnableToday = FALSE;
-		if ( !Settings.Gnutella1.EnableToday && !Settings.Gnutella2.EnableToday &&
-			  Settings.Connection.RequireForTransfers )
-			Network.Disconnect();
+		//if ( !Settings.Gnutella1.EnableToday && !Settings.Gnutella2.EnableToday &&
+		//	  Settings.Connection.RequireForTransfers )
+		//	Network.Disconnect();
 	}
 	else
 	{
