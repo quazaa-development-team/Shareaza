@@ -30,7 +30,7 @@ Current Difference in between TRUNK and CB branch
 - 64Bit offset support in ED2K FileTransfer(not tested at all)
 - ASync impelmentation for certain process which requires to work on cross-thread (*1)
 - lookup of QueryHashTable Bitmap for QueryRouting has been optimized(number of Hashing operations for strings has been reduced a lot)
-- CNeighboursWithConnect has been optimized for counting neighbour connection. (reduced inclease/declease by make constructors of each network connections so no need to use LOOP operations a lot)
+- CNeighboursWithConnect has been optimized for counting neighbour connection. (reduced inclease/declease by make constructors of each network connections so no need to use LOOP operations a lot)(*2)
 - HTTP transfer can use HEAD request and support ReconnectOnDrop for WebServers with "Connection: close"
 - UHC/UKHL code has some security which basically accept only when request has been sent to the node.(accept all for non-blocked IP, some security Bypass has been added, because some UHC servers seems like "X-ray security"/"Shareaza Security" filter blocks some UHC server's IP range.) this added extra function which makes Failure detection such as Timeout on Service Query.
 
@@ -42,3 +42,14 @@ Current Difference in between TRUNK and CB branch
   - TRUNK version's network thread locks GUI thread to put Hits to SearchResult/HitMonitor window.
   - TRUNK version's network thread locks GUI thread to print out QueryPackets to SearchMonitor window.
   - TRUNK version's network thread locks GUI thread to print out PacketDump window.
+
+ (*2) little additional change.
+  - Leaf mode change.
+   * Max Hub connections has been changed to 2.
+   * Max Ultrapeer connections has been changed to 5
+  - Hub mode change
+   * Current TRUNK code try to connect to 4Hubs if you have "Number of Peers" set ot 4. this has been changed.
+     -  reuse "Max Hub connection" value as minimum peer connection.
+	 -  use Peer connection for Max Peer connection.
+	 In this way, Hubs never try to fill all the slot, so if some one promoted to Hub, there should be some Hubs which can accept peer connections.
+
