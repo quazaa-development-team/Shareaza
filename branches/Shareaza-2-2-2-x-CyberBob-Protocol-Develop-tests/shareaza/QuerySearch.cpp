@@ -184,33 +184,25 @@ CG1Packet* CQuerySearch::ToG1Packet()
 		strExtra = _T("urn:");
 	}*/
 
-	// use this for instead of Real URN to be added as HUGE. since it really looks like LimeWire ignore Query packet
-	// with URNs specified.
-	strExtra = _T("urn:");
-
-
 	if ( m_pXML )
 	{
-		if ( strExtra.GetLength() ) strExtra += '\x1C';
+		//if ( strExtra.GetLength() ) strExtra += '\x1C';
 		strExtra += m_pXML->ToString( TRUE );
+		pPacket->WriteString( strExtra, FALSE );
 	}
 	
-	pPacket->WriteString( strExtra, FALSE );
-
+	// use this for instead of Real URN to be added as HUGE. since it really looks like LimeWire ignore Query packet
+	// with URNs specified.
 	if ( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 || m_oBTH )
 	{
 		CGGEPBlock pBlock;
 		CGGEPItem* pItem;
-		strExtra = "";
-
-	/*	if ( m_oED2K )
+		if ( strExtra.GetLength() )
 		{
-			pItem = pBlock.Add( L"u" );
-			pItem->SetCOBS();
-			pItem->SetSmall();
-			strExtra = "ed2k:"+ m_oED2K.toString();
-			pItem->WriteUTF8(strExtra);
-		} */
+			pPacket->WriteByte( 0x1C );
+		}
+		strExtra.Empty();
+
 		if ( m_oBTH )
 		{
 			pItem = pBlock.Add( L"u" );
@@ -219,7 +211,15 @@ CG1Packet* CQuerySearch::ToG1Packet()
 			strExtra = "btih:"+ m_oBTH.toString();
 			pItem->WriteUTF8(strExtra);
 		}
-		
+		else if ( m_oED2K )
+		{
+			pItem = pBlock.Add( L"u" );
+			pItem->SetCOBS();
+			pItem->SetSmall();
+			strExtra = "ed2k:"+ m_oED2K.toString();
+			pItem->WriteUTF8(strExtra);
+		}
+
 		if ( m_oSHA1 &&  m_oTiger )
 		{
 			CGGEPItem* pItem = pBlock.Add( _T("H") );
@@ -246,9 +246,10 @@ CG1Packet* CQuerySearch::ToG1Packet()
 			pItem->Write( &m_oMD5[ 0 ], 16 );
 		}
 
-		pPacket->WriteByte(0x1C);
 		pBlock.Write( pPacket );
 	}	
+
+	pPacket->WriteByte( 0 );
 
 	return pPacket;
 }
