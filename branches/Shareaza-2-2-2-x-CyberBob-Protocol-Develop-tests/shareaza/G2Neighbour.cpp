@@ -343,6 +343,8 @@ void CG2Neighbour::SendStartups()
 
 	Send( CG2Packet::New( G2_PACKET_PROFILE_CHALLENGE ), TRUE, TRUE );
 
+	SendLNI();
+
 	if ( !Network.IsTestingUDPFW() )
 		Datagrams.Send( &m_pHost, CG2Packet::New( G2_PACKET_PING ), TRUE, NULL, FALSE );
 }
