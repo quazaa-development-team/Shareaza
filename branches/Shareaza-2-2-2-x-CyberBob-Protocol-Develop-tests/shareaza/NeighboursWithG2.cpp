@@ -69,11 +69,33 @@ CNeighboursWithG2::~CNeighboursWithG2()
 // Set the ping route cache duration from Gnutella settings, and setup the Gnutella2 hub horizon pool
 void CNeighboursWithG2::Connect()
 {
+	if ( Settings.Gnutella2.EnableToday == TRUE )
+	{
+		HubHorizonPool.Setup();
+	}
+
 	// Set the ping route cache duration from the program settings for Gnutella
 	CNeighboursWithG1::Connect();
 
 	// Setup the Gnutella 2 hub horizon pool
+}
+
+void CNeighboursWithG2::ConnectG2()
+{
 	HubHorizonPool.Setup();
+}
+
+//////////////////////////////////////////////////////////////////////
+// CNeighboursWithG2 close
+
+void CNeighboursWithG2::Close()
+{
+	HubHorizonPool.Clear();
+}
+
+void CNeighboursWithG2::DisconnectG2()
+{
+	HubHorizonPool.Clear();
 }
 
 //////////////////////////////////////////////////////////////////////

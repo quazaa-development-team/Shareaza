@@ -1547,3 +1547,27 @@ void CNeighboursWithConnect::Connect()
 
 	CNeighboursWithRouting::Connect();
 }
+
+void CNeighboursWithConnect::ConnectG2()
+{
+	if ( Settings.Gnutella2.ClientMode == MODE_HUB )
+	{
+		m_bG2Leaf	= FALSE;
+		m_bG2Hub	= TRUE;
+	}
+	else
+	{
+		m_bG2Leaf	= TRUE;
+		m_bG2Hub	= FALSE;
+	}
+
+	CNeighboursWithRouting::ConnectG2();
+}
+
+void CNeighboursWithConnect::DisconnectG2()
+{
+	m_bG2Leaf	= FALSE;
+	m_bG2Hub	= FALSE;
+
+	CNeighboursWithRouting::DisconnectG2();
+}

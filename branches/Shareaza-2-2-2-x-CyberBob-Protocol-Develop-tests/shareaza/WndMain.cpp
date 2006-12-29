@@ -1562,6 +1562,7 @@ void CMainWnd::OnNetworkG2()
 		{
 			Network.EndTestG2UDPFW();
 			Settings.Gnutella2.EnableToday = FALSE;
+			Neighbours.DisconnectG2();
 			//if ( !Settings.Gnutella1.EnableToday && !Settings.eDonkey.EnableToday &&
 			//	Settings.Connection.RequireForTransfers )
 			//	Network.Disconnect();
@@ -1581,6 +1582,7 @@ void CMainWnd::OnNetworkG2()
 			Network.Connect( TRUE );
 		}
 		Network.BeginTestG2UDPFW();
+		Neighbours.ConnectG2();
 		DiscoveryServices.Execute( FALSE, PROTOCOL_G2 );
 	}
 }
@@ -1652,8 +1654,7 @@ void CMainWnd::OnNetworkED2K()
 void CMainWnd::OnUpdateNetworkAutoClose(CCmdUI* pCmdUI) 
 {
 	pCmdUI->Enable( Settings.Connection.RequireForTransfers && 
-					( Settings.Live.AutoClose || ( Transfers.GetActiveCount() > 0 ) )
-				  );
+					( Settings.Live.AutoClose || ( Transfers.GetActiveCount() > 0 ) ) );
 	pCmdUI->SetCheck( Settings.Connection.RequireForTransfers && Settings.Live.AutoClose );
 }
 

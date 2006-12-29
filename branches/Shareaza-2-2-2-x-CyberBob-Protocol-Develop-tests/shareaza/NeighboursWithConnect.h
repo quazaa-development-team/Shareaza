@@ -67,7 +67,7 @@ public:
 	DWORD IsG1UltrapeerCapable(BOOL bDebug = FALSE); // Returns true if we have a computer and Internet connection powerful enough to become a Gnutella ultrapeer
 
 	// Determine our needs on the given network, Gnutella or Gnutella2
-	BOOL NeedMoreHubs( PROTOCOLID nProtocol, BOOL bMaxPeerSlot = FALSE );	// Returns true if we need more hub connections on 
+	BOOL NeedMoreHubs(PROTOCOLID nProtocol, BOOL bMaxPeerSlot = FALSE);		// Returns true if we need more hub connections on 
 																			// the given network
 	BOOL NeedMoreLeafs(PROTOCOLID nProtocol); // Returns true if we need more leaf connections on the given network
 	BOOL IsHubLoaded(PROTOCOLID nProtocol);   // Returns true if we have more than 75% of the number of hub connections settings says is our limit
@@ -104,6 +104,9 @@ protected:
 
 public:
 	int GetCount(PROTOCOLID nProtocol, int nState, int nNodeType) const;
+
+	virtual void ConnectG2();
+	virtual void DisconnectG2();
 
 };
 

@@ -56,7 +56,10 @@ public:
 public:
 
 	// Methods implimented by several classes in the CNeighbours inheritance column
-	virtual void Connect(); // Set the ping route duration and setup the hub horizon pool
+	virtual void	Connect();								// Set the ping route duration and setup the hub horizon pool
+	virtual void	Close();
+	virtual void	ConnectG2();
+	virtual void	DisconnectG2();
 	// Pure virtual memombers.
 	virtual BOOL	IsG2Leaf() = 0;							// Returns true if we are acting as a Gnutella2 leaf on at least one connection
 	virtual BOOL	IsG2Hub() = 0;							// Returns true if we are acting as a Gnutella2 hub on at least one connection
