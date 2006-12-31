@@ -199,7 +199,7 @@ BOOL CG1Neighbour::OnRun()
 	if ( ! CNeighbour::OnRun() ) return FALSE; // Pass up a false from CNeighbour::OnRun
 
 	// Send a ping if we haven't sent one in awhile
-	DWORD tNow = Network.m_nNetworkGlobalTickCount;
+	DWORD tNow = GetTickCount();
 	SendPing( tNow );
 
 	// We should stay connected to the remote computer

@@ -339,7 +339,7 @@ void CG2Neighbour::SendStartups()
 	}
 
 	Send( pPing, TRUE, TRUE );
-	m_tLastPingOut = Network.m_nNetworkGlobalTickCount;
+	m_tLastPingOut = GetTickCount();
 
 	Send( CG2Packet::New( G2_PACKET_PROFILE_CHALLENGE ), TRUE, TRUE );
 
@@ -429,7 +429,7 @@ BOOL CG2Neighbour::ProcessPackets()
 BOOL CG2Neighbour::OnPacket(CG2Packet* pPacket)
 {
 	m_nInputCount++;
-	m_tLastPacket = Network.m_nNetworkGlobalTickCount;
+	m_tLastPacket = GetTickCount();
 	Statistics.Current.Gnutella2.Incoming++;
 
 	pPacket->SmartDump( this, NULL, FALSE );
@@ -494,7 +494,7 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket, BOOL bTCP)
 {
 	Statistics.Current.Gnutella2.PingsReceived++;
 
-	DWORD tNow = Network.m_nNetworkGlobalTickCount;
+	DWORD tNow = GetTickCount();
 	BOOL bRelay = FALSE;
 	BOOL bUDP = FALSE;
 	DWORD nAddress = 0;
@@ -853,7 +853,7 @@ BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 		return TRUE;
 	}
 
-	m_tLastLNIIn = Network.m_nNetworkGlobalTickCount;
+	m_tLastLNIIn = GetTickCount();
 	m_nCountLNIIn ++;
 
 	G2_PACKET nType;
@@ -983,7 +983,7 @@ BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 	}
 
 	if ( m_oGUID.isValid() )
-		Network.NodeRoute->Add( m_oGUID, this, NULL, Network.m_nNetworkGlobalTickCount );
+		Network.NodeRoute->Add( m_oGUID, this, NULL, GetTickCount() );
 
 	return TRUE;
 }
@@ -995,7 +995,7 @@ void CG2Neighbour::SendKHL()
 {
 	Send( Neighbours.CreateKHLPacket( this ), TRUE, TRUE );
 
-	m_tLastKHLOut = Network.m_nNetworkGlobalTickCount;
+	m_tLastKHLOut = GetTickCount();
 	m_nCountKHLOut ++;
 }
 
@@ -1075,7 +1075,7 @@ BOOL CG2Neighbour::OnHAW(CG2Packet* pPacket)
 		return TRUE;
 	}
 
-	m_tLastHAWIn = Network.m_nNetworkGlobalTickCount;
+	m_tLastHAWIn = GetTickCount();
 	m_nCountHAWIn ++;
 
 	CString strVendor;
