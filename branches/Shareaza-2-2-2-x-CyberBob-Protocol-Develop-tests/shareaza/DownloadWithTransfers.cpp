@@ -322,9 +322,9 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow, BOOL bSeeding)
 					break;
 				}
 			}
-			else if ( tNow - pSource->m_tAttempt > 0 )
+			else if ( pConnectHead == NULL && tNow - pSource->m_tAttempt > 0 && int( tNow - pSource->m_tAttempt ) > 0 )
 			{
-				if ( pConnectHead == NULL && ( pSource->m_oHubList.size() || pSource->m_oPushProxyList.size() ) )
+				if ( pSource->m_oHubList.size() || pSource->m_oPushProxyList.size() )
 				{
 					if ( pSource->CanInitiate( bConnected, FALSE ) ) pConnectHead = pSource;
 				}
