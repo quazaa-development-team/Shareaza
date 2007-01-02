@@ -50,6 +50,6 @@ Current Difference in between TRUNK and CB branch
   - Hub mode change
    * Current TRUNK code try to connect to 4Hubs if you have "Number of Peers" set ot 4. this has been changed.
      -  reuse "Max Hub connection" value as minimum peer connection.
-	 -  use Peer connection for Max Peer connection.
+     -  use Peer connection for Max Peer connection.
 	 In this way, Hubs never try to fill all the slot, so if some one promoted to Hub, there should be some Hubs which can accept peer connections.
 
