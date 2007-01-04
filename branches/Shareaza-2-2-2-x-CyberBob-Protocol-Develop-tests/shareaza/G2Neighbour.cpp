@@ -202,7 +202,7 @@ BOOL CG2Neighbour::OnRun()
 {
 	if ( ! CNeighbour::OnRun() ) return FALSE;
 
-	DWORD tNow = Network.m_nNetworkGlobalTickCount;
+	DWORD tNow = GetTickCount();
 
 	// Check incoming LNI traffic
 	if ( m_nCountLNIIn == 0 && tNow - m_tConnected > Settings.Gnutella2.LNIPeriod * 3 )
@@ -825,7 +825,7 @@ BOOL CG2Neighbour::OnPong( CG2Packet* pPacket, BOOL bTCP )
 	// Condition below never be TRUE thus this condition should be removed.(Only commenting out for now.)
 	//if ( bRelayed && ! bTCP && ! Network.IsConnectedTo( &m_pHost.sin_addr ) )
 	//	Datagrams.SetStable();
-
+	UNUSED_ALWAYS( bTCP );
 	return TRUE;
 }
 
