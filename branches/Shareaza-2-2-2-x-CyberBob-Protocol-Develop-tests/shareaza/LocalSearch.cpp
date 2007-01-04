@@ -910,7 +910,7 @@ void CLocalSearch::AddMetadata(CSchema* pSchema, CXMLElement* pXML, int nIndex)
 //////////////////////////////////////////////////////////////////////
 // CLocalSearch XML to string
 
-CString CLocalSearch::GetXMLString()
+CString CLocalSearch::GetXMLString(BOOL bNewlines)
 {
 	CString strXML;
 
@@ -921,8 +921,10 @@ CString CLocalSearch::GetXMLString()
 
 		m_pSchemas.GetNextAssoc( pos1, pSchema, pGroup );
 
-		strXML += _T("<?xml version=\"1.0\"?>\r\n");
-		pGroup->ToString( strXML, TRUE );
+		strXML += _T("<?xml version=\"1.0\"?>");
+		if ( bNewlines )
+			strXML += _T("\r\n");
+		pGroup->ToString( strXML, bNewlines );
 
 		for ( POSITION pos2 = pGroup->GetElementIterator() ; pos2 ; )
 		{
@@ -972,7 +974,7 @@ void CLocalSearch::WriteTrailerG1()
 		nFlags[1] |= G1_QHD_GGEP;
 	}
 
-	CString strXML		= GetXMLString();
+	CString strXML		= GetXMLString( FALSE );
 	DWORD nCompressed	= 0;
 	auto_array< BYTE > pCompressed;
 
@@ -985,7 +987,7 @@ void CLocalSearch::WriteTrailerG1()
 
 	if ( strXML.GetLength() > 0 )
 	{
-		nXML = WideCharToMultiByte( CP_ACP, 0, strXML, -1, NULL, 0, NULL, NULL );
+		nXML = WideCharToMultiByte( CP_UTF8, 0, strXML, -1, NULL, 0, NULL, NULL );
 		pszXML = new CHAR[ nXML ];
 		WideCharToMultiByte( CP_ACP, 0, strXML, -1, pszXML, nXML, NULL, NULL );
 		if ( nXML > 0 ) nXML --;

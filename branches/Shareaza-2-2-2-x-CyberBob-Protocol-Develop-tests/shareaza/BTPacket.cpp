@@ -73,25 +73,45 @@ CBTPacket* CBTPacket::ReadBuffer(CBuffer* pBuffer)
 {
 	ASSERT( pBuffer != NULL );
 
-	for ( ;; )
+	DWORD nLength = (DWORD) - 1;
+	bool bKeepAlive = false;
+	bool bValid = true;
+
+	// Skip subsequent keep-alive packets
+	do
 	{
 		if ( pBuffer->m_nLength < sizeof( DWORD ) )
-			return NULL;
+			bValid = false;
+		else
+		{
+			nLength = transformFromBE( pBuffer->ReadDWORD() );
+			if ( pBuffer->m_nLength - sizeof( DWORD ) < nLength )
+				bValid = false;
+		}
 
-		DWORD nLength = transformFromBE( pBuffer->ReadDWORD() );
-		if ( nLength == 0 || pBuffer->m_nLength - 4 < nLength )
-			return NULL;
+		if ( !bKeepAlive && nLength == 0 )
+			bKeepAlive = true;
 
-		pBuffer->Remove( 4 );
-		if ( nLength == 0 )
-			continue;
+		if ( bValid )
+			pBuffer->Remove( sizeof( DWORD ) );		// remove size marker
+	} 
+	while ( bKeepAlive && bValid && nLength == 0 );
 
-		CBTPacket* pPacket = CBTPacket::New( pBuffer->m_pBuffer[0] );
-		pPacket->Write( pBuffer->m_pBuffer + 1, nLength - 1 );
-
-		pBuffer->Remove( nLength );
-		return pPacket;
+	CBTPacket* pPacket = NULL;
+	if ( bKeepAlive )
+	{
+		pPacket = CBTPacket::New( BT_PACKET_KEEPALIVE );
 	}
+	else if ( bValid )
+	{
+		pPacket = CBTPacket::New( pBuffer->m_pBuffer[0] );
+		pPacket->Write( pBuffer->m_pBuffer + 1, nLength - 1 );
+		pBuffer->Remove( nLength );
+	}
+	else
+		return NULL;
+
+	return pPacket;
 }
 
 //////////////////////////////////////////////////////////////////////
