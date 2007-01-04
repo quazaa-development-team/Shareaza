@@ -1415,7 +1415,7 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 	UNUSED_ALWAYS(nVolume);
 
 	CDiscoveryService* pService = NULL;
-	bool bBypassSecurity = false;
+	bool bQueried = false;
 
 	if ( m_oUHCFilter.size() != 0 )
 	{
@@ -1426,16 +1426,21 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 			if ( iIndex->m_pHost.sin_addr.S_un.S_addr == pHost->sin_addr.S_un.S_addr &&
 				iIndex->m_pHost.sin_port == pHost->sin_port )
 			{
+				bQueried = true;
 				if ( iIndex->m_nService == ubsDiscovery )
 					pService = DiscoveryServices.GetByAddress( &(pHost->sin_addr), ntohs(pHost->sin_port), 3 );
-				bBypassSecurity = true;
+				m_oUHCFilter.erase( iIndex );
 				break;
 			}
 		}
 	}
 
 	// If that IP address is in our list of computers to not talk to, except ones in UHC list in discovery
-	if ( !bBypassSecurity && Security.IsDenied( (IN_ADDR*)&nAddress ) )
+	if (	!bQueried &&	// Should not process the packet if the node is not queried for(Answer without asking = unsafe)
+		(	Network.IsFirewalledAddress( (LPVOID*)&pHost->sin_addr, TRUE, TRUE ) ||
+			Network.IsReserved( &pHost->sin_addr ) ||
+			Security.IsDenied( &pHost->sin_addr ) )
+		)
 	{
 		// Record the packet as dropped, do nothing else, and leave now
 		Statistics.Current.Gnutella1.Dropped++;
@@ -1450,68 +1455,107 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 		if ( pGGEP.ReadFromPacket( pPacket ) )
 		{
 
-			CGGEPItem* pUP = pGGEP.Find( L"UP" );
-			CGGEPItem* pVC = pGGEP.Find( L"VC", 4 );
+			CGGEPItem* pUP = NULL;
+			CGGEPItem* pDU = NULL;
+			CGGEPItem* pVC = NULL;
+			CGGEPItem* pIPPs = NULL;
 			CString sVendorCode;
-			if ( pVC != NULL )
-			{
-				CHAR szaVendor[ 4 ];
-				pVC->Read( szaVendor,4 );
-				TCHAR szVendor[5] = { szaVendor[0], szaVendor[1], szaVendor[2], szaVendor[3], 0 };
-
-				sVendorCode.Format( _T("%s"), (LPCTSTR)szVendor);
-			}
-
-			if ( pUP != NULL )
-			{
-				sVendorCode.Trim( _T(" ") );
-				HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, nPort, 0, (LPCTSTR)sVendorCode );
-			}
-
-
 			int nCount = 0;
-			CGGEPItem* pIPPs = pGGEP.Find( L"IPP", 6 );
+			DWORD nDailyUptime = 0;
 
-			// We got a response to SCP extension, add hosts to cache if IPP extension exists
-			if ( pIPPs != NULL )
+			if ( bQueried )
 			{
-				// The first four bytes represent the IP address and the last two represent the port
-				// The length of the number of bytes of IPP must be divisible by 6
-				if ( ( pIPPs->m_nLength - pIPPs->m_nPosition ) % 6 == 0 )
+				pUP = pGGEP.Find( L"UP" );
+				pDU = pGGEP.Find( L"DU" );
+				pVC = pGGEP.Find( L"VC", 4 );
+				pIPPs = pGGEP.Find( L"IPP", 6 );
+				if ( pVC != NULL )
 				{
-					while ( pIPPs->m_nPosition != pIPPs->m_nLength )
-					{
-						DWORD nIPPAddress = 0;
-						WORD nIPPPort = 0;
-						pIPPs->Read( (void*)&nIPPAddress, 4 );
-						pIPPs->Read( (void*)&nIPPPort, 2 );
-						if ( nPort != 0 )
-						{
-							CHostCacheHost * pCachedHost;
-							theApp.Message( MSG_DEBUG, _T("Got Gnutella hosts through UDP pong (%s:%i)"), 
-								(LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nIPPAddress ) ), nIPPPort ); 
-							pCachedHost = HostCache.Gnutella1.Add( (IN_ADDR*)&nIPPAddress, nIPPPort, 0, NULL );
-							// Add to separate cache to have a quick access only to GDNAs
+					CHAR szaVendor[ 4 ];
+					pVC->Read( szaVendor,4 );
+					TCHAR szVendor[5] = { szaVendor[0], szaVendor[1], szaVendor[2], szaVendor[3], 0 };
 
-							if ( pCachedHost != NULL ) nCount++;
+					sVendorCode.Format( _T("%s"), (LPCTSTR)szVendor);
+				}
+
+				if ( pUP != NULL )
+				{
+					if ( pDU != NULL ) pDU->Read( &nDailyUptime, pDU->m_nLength );
+					sVendorCode.Trim( _T(" ") );
+					HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, nPort, 0, (LPCTSTR)sVendorCode, nDailyUptime );
+					theApp.Message( MSG_SYSTEM, _T("Got %s host through pong marked with GGEP UP (%s:%i)"), 
+						(LPCTSTR)sVendorCode, (LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nAddress ) ), nPort ); 
+				}
+
+
+
+				// We got a response to SCP extension, add hosts to cache if IPP extension exists
+				if ( pIPPs != NULL )
+				{
+					// The first four bytes represent the IP address and the last two represent the port
+					// The length of the number of bytes of IPP must be divisible by 6
+					if ( ( pIPPs->m_nLength - pIPPs->m_nPosition ) % 6 == 0 )
+					{
+						while ( pIPPs->m_nPosition != pIPPs->m_nLength )
+						{
+							DWORD nIPPAddress = 0;
+							WORD nIPPPort = 0;
+							pIPPs->Read( (void*)&nIPPAddress, 4 );
+							pIPPs->Read( (void*)&nIPPPort, 2 );
+							if ( nPort != 0 )
+							{
+								CHostCacheHost * pCachedHost;
+								theApp.Message( MSG_DEBUG, _T("Got Gnutella hosts through UDP pong (%s:%i)"), 
+									(LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nIPPAddress ) ), nIPPPort ); 
+								pCachedHost = HostCache.Gnutella1.Add( (IN_ADDR*)&nIPPAddress, nIPPPort, 0, NULL );
+								// Add to separate cache to have a quick access only to GDNAs
+
+								if ( pCachedHost != NULL ) nCount++;
+							}
 						}
+					}
+
+					if ( pService != NULL )
+					{
+						pService->OnSuccess();
+						pService->m_nHosts = nCount;
 					}
 				}
 
-				if ( pService != NULL )
+				/*
+				CGGEPItem* pPHCs = pGGEP.Find( L"PHC", 1 );
+				if (pPHCs)
 				{
-					pService->OnSuccess();
-					pService->m_nHosts = nCount;
-				}
-			}
+				CString strServices = pPHCs->ReadFrom()
 
+
+				for ( strServices += '\n' ; strServices.GetLength() ; )
+				{
+				CString strService = strServices.SpanExcluding( _T("\r\n") );
+				strServices = strServices.Mid( strService.GetLength() + 1 );
+
+				if ( strService.GetLength() > 0 )
+				{
+				if ( _tcsistr( strService, _T("server.met") ) == NULL )
+				Add( strService, CDiscoveryService::dsWebCache );
+				else
+				Add( strService, CDiscoveryService::dsServerMet, PROTOCOL_ED2K );
+				}
+				}
+				}
+				*/
+			}
+			else
+			{
+				theApp.Message( MSG_ERROR, _T("Gnutella UHC reply from non-queried node %s (Ignored)"), (LPCTSTR)inet_ntoa( pHost->sin_addr ) );
+				Statistics.Current.Gnutella1.Dropped++;
+			}
 		}
 		else
 		{
 			// It's not, drop the packet, but stay connected
 			theApp.Message( MSG_ERROR, IDS_PROTOCOL_GGEP_REQUIRED, (LPCTSTR)inet_ntoa( pHost->sin_addr ) );
 			Statistics.Current.Gnutella1.Dropped++;
-			return TRUE;
 		}
 	}
 
@@ -1715,7 +1759,11 @@ BOOL CDatagrams::OnQuery(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 BOOL CDatagrams::OnQueryAck(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
 	CHostCacheHost* pCache = HostCache.Gnutella2.Add( &pHost->sin_addr, htons( pHost->sin_port ) );
-	if ( pCache ) pCache->m_tAck = pCache->m_nFailures = 0;
+	if ( pCache )
+	{
+		pCache->m_tAck = pCache->m_nFailures = 0;
+		pCache->m_bCheckedLocally = TRUE;
+	}
 	
 	Hashes::Guid oGUID;
 	
@@ -2294,6 +2342,8 @@ BOOL CDatagrams::OnDiscovery(SOCKADDR_IN* pHost, CG2Packet* /*pPacket*/)
 
 BOOL CDatagrams::OnKHL(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
+	UNUSED_ALWAYS(pHost);
+	UNUSED_ALWAYS(pPacket);
 	// this is One of Dangerous Method to implement without Security of Sender/TimeOut/Reciever
 	// There for Commenting it out for now.
 	//HostCache.Gnutella2.Add( &pHost->sin_addr, htons( pHost->sin_port ) );
@@ -2565,7 +2615,7 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	}
 
 	CDiscoveryService* pService = NULL;
-	bool bBypassSecurity = false;
+	bool bQueried = false;
 	if ( m_oUKHLFilter.size() != 0 )
 	{
 		BootSecurityFilterItem iIndex	= m_oUKHLFilter.begin();
@@ -2577,19 +2627,17 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 			{
 				if ( iIndex->m_nService == ubsDiscovery )
 					pService = DiscoveryServices.GetByAddress( &(pHost->sin_addr), ntohs(pHost->sin_port), 4 );
-				bBypassSecurity = true;
+				bQueried = true;
+				m_oUKHLFilter.erase( iIndex );
 				break;
 			}
 		}
 	}
 
-	if (	!bBypassSecurity &&
-		(	Network.IsFirewalledAddress( (LPVOID*)&pHost->sin_addr, TRUE, TRUE ) ||
-			Network.IsReserved( &pHost->sin_addr ) ||
-			Security.IsDenied( &pHost->sin_addr ) )
-		)
+	if ( !bQueried ) // Should not process the packet if the node is not queried for(Answer without asking = unsafe)
 	{
 		Statistics.Current.Gnutella2.Dropped++;
+		theApp.Message( MSG_ERROR, _T("Gnutella2 UKHL reply from non-queried node %s (Ignored)"), (LPCTSTR)inet_ntoa( pHost->sin_addr ) );
 		return FALSE;
 	}
 
