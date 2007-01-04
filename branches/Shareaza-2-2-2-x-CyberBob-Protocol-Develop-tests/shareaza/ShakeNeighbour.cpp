@@ -190,7 +190,7 @@ void CShakeNeighbour::Close(UINT nError)
 			break;
 	}
 
-	if ( bFail && m_bInitiated && !m_bFirewallTest && m_bAutomatic )
+	if ( bFail && m_bInitiated && !m_bFirewallTest )
 		HostCache.OnFailure( &m_pHost.sin_addr, htons( m_pHost.sin_port ), m_nProtocol, bRemove );
 
 	// Have CNeighbour remove this object from the list, and put away the socket
@@ -937,6 +937,8 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			theApp.Message( MSG_ERROR, IDS_HANDSHAKE_REJECTED, (LPCTSTR)m_sAddress, (LPCTSTR)m_sUserAgent );
 			m_nState = nrsRejected;
 			// Ban them and ignore anything else in the headers
+			CSecureRule* pRule = Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+			pRule->m_sComment.Format( _T("Banned Agent: %s"), (LPCTSTR)m_sUserAgent );
 			theApp.Message( MSG_ERROR, _T("Banning hostile client %s"), (LPCTSTR)m_sUserAgent );
 			m_bBadClient = TRUE;
 			m_nDelayCloseReason =IDS_HANDSHAKE_REJECTED;
@@ -949,7 +951,9 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			// Record that we're rejecting this handshake, and set the state to rejected
 			theApp.Message( MSG_ERROR, IDS_HANDSHAKE_REJECTED, (LPCTSTR)m_sAddress, (LPCTSTR)m_sUserAgent );
 			m_nState = nrsRejected;
-			//Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+			CSecureRule* pRule = Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+			pRule->m_sComment.Format( _T("Blocked Agent: %s"), (LPCTSTR)m_sUserAgent );
+			theApp.Message( MSG_ERROR, _T("Banning hostile client %s"), (LPCTSTR)m_sUserAgent );
 			m_bBadClient = TRUE;
 			m_nDelayCloseReason =IDS_HANDSHAKE_REJECTED;
 			m_bDelayClose = TRUE;
@@ -1832,13 +1836,13 @@ void CShakeNeighbour::OnHandshakeComplete()
 	// If the remote computer is G2, or can send and understand Gnutella2 packets and isn't G1
 	if ( m_bG2Send && m_bG2Accept && m_nProtocol != PROTOCOL_G1 )
 	{
-		if ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !m_bAutomatic )
+		if ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && m_bInitiated )
 		{
 			HostCache.OnSuccess( &m_pHost.sin_addr, htons( m_pHost.sin_port ), PROTOCOL_G2, true );
 		}
 
 		// check if this connection is still needed at this point
-		if ( !m_bAutomatic && ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !Neighbours.NeedMoreHubs( PROTOCOL_G2, TRUE ) ) ||
+		if ( m_bAutomatic && ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !Neighbours.NeedMoreHubs( PROTOCOL_G2, TRUE ) ) ||
 			( m_nNodeType == ntLeaf && !Neighbours.NeedMoreLeafs( PROTOCOL_G2 ) ) )
 		{
 			delete this;
@@ -1854,12 +1858,12 @@ void CShakeNeighbour::OnHandshakeComplete()
 	}
 	else if (  m_bG1Send && m_bG1Accept && m_nProtocol != PROTOCOL_G2 )
 	{
-		if ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !m_bAutomatic )
+		if ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && m_bInitiated )
 		{
 			HostCache.OnSuccess( &m_pHost.sin_addr, htons( m_pHost.sin_port ), PROTOCOL_G1, true );
 		}
 		// check if this connection is still needed at this point
-		if ( !m_bAutomatic && ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !Neighbours.NeedMoreHubs( PROTOCOL_G1, TRUE ) ) ||
+		if ( m_bAutomatic && ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !Neighbours.NeedMoreHubs( PROTOCOL_G1, TRUE ) ) ||
 			( m_nNodeType == ntLeaf && !Neighbours.NeedMoreLeafs( PROTOCOL_G1 ) ) )
 		{
 			delete this;
@@ -1909,8 +1913,6 @@ BOOL CShakeNeighbour::IsClientObsolete()
 		if ( m_sUserAgent.GetLength() < 16 ) return TRUE;
 		DWORD nVersion[4] = {0,0,0,0};
 		CString strVersion = m_sUserAgent.Mid(9);
-		//strVersion.Append( _T(" ") );
-		//strVersion = strVersion.Left( strVersion.Find( _T(" "),15 ) );
 		if ( _stscanf( strVersion, _T("%u.%u.%u.%u"), &nVersion[0], &nVersion[1], &nVersion[2], &nVersion[3] ) == 4)
 		{
 			if ( nVersion[0] < 2 || nVersion[0] > 2 ) return TRUE;	// everything other than 2.x.x.x - Obsoletes and fakes
@@ -1921,10 +1923,10 @@ BOOL CShakeNeighbour::IsClientObsolete()
 				if ( nVersion[1] == 2 )					// 2.2.x.x
 				{
 					if ( nVersion[2] == 0 ) return TRUE;	// 2.2.0.x - Blocked for No THEX
-					if ( nVersion[2] == 1 ) return FALSE;	// 2.2.1.x - known to be good official for now.
+					if ( nVersion[2] == 1 ) return TRUE;	// 2.2.1.x - known to be good official for now.
 					if ( nVersion[2] == 2 )
 					{
-						if ( nVersion[3] == 0 ) return FALSE;	// 2.2.2.0 - Official 2.2.2.0 (Never been released publicly)
+						if ( nVersion[3] == 0 ) return TRUE;	// 2.2.2.0 - Official 2.2.2.0 (Never been released publicly)
 						return TRUE;							// 2.2.2.x - Unstable Beta.
 					}
 					if ( nVersion[2] == 3 )					// 2.2.3.x
@@ -2050,8 +2052,6 @@ BOOL CShakeNeighbour::IsClientBad()
 		if ( m_sUserAgent.GetLength() < 16 ) return TRUE;
 		DWORD nVersion[4] = {0,0,0,0};
 		CString strVersion = m_sUserAgent.Mid(9);
-		//strVersion.Append( _T(" ") );
-		//strVersion = strVersion.Left( strVersion.Find( _T(" "),15 ) );
 		if ( _stscanf( strVersion, _T("%u.%u.%u.%u"), &nVersion[0], &nVersion[1], &nVersion[2], &nVersion[3] ) == 4)
 		{
 			if ( nVersion[0] < 2 || nVersion[0] > 2 ) return TRUE;	// everything other than 2.x.x.x - Obsoletes and fakes
