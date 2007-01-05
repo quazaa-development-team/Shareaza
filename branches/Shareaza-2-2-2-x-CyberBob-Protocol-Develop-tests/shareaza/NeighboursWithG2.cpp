@@ -189,36 +189,43 @@ CG2Packet* CNeighboursWithG2::CreateQueryWeb(const Hashes::Guid& oGUID, CNeighbo
 CG2Neighbour* CNeighboursWithG2::GetRandomHub(CG2Neighbour* pExcept, const Hashes::Guid& oGUID)
 {
 	// Make a new local empty list that will hold pointers to neighbours
-	CArray< CG2Neighbour* > pRandom;
+	std::list<CG2Neighbour*> oRandom;
+
+	std::list<CG2Neighbour*>::iterator iIndex = m_oHub.begin();
+	std::list<CG2Neighbour*>::iterator iEnd = m_oHub.end();
 
 	// Loop through each computer we're connected to
-	for ( POSITION pos = GetIterator() ; pos ; )
+	for (  ; iIndex != iEnd ; iIndex++ )
 	{
-		// Get the neighbour under the current position, and move to the next one in the list
-		CNeighbour* pNeighbour = GetNext( pos );
-
 		// If this is a Gnutella2 hub
-		if ( pNeighbour->m_nState == nrsConnected   && // We've finished the handshake with this computer, and
-			 pNeighbour->m_nProtocol == PROTOCOL_G2 && // It's running Gnutella2 software, and
-			 pNeighbour->m_nNodeType != ntLeaf      && // Our connection to it isn't down to a leaf, and
-			 pNeighbour != pExcept )                   // It's not the one the caller told us to avoid
+		if ( (*iIndex) != pExcept )                   // It's not the one the caller told us to avoid
 		{
 			// And, it doesn't know about the given GUID
-			if ( static_cast< CG2Neighbour* >( pNeighbour )->m_pGUIDCache->Lookup( oGUID ) == NULL )
+			if ( (*iIndex)->m_pGUIDCache->Lookup( oGUID ) == NULL )
 			{
 				// Add it to the random list
-				pRandom.Add( static_cast< CG2Neighbour* >( pNeighbour ) );
+				oRandom.push_back( *iIndex );
 			}
 		}
 	}
 
 	// If we didn't find any neighbours to put in the list, return null
-	INT_PTR nSize = pRandom.GetSize();
+	size_t nSize = oRandom.size();
 	if ( ! nSize ) return NULL;
 
 	// Choose a random number between 0 and nSize - 1, use it as an index, and return the neighbour at it
 	nSize = rand() % nSize; // The C runtime function rand() returns a random number up to RAND_MAX, 32767
-	return pRandom.GetAt( nSize );
+
+	iIndex = oRandom.begin();
+	iEnd = oRandom.end();
+	DWORD nCount = 0;
+	for (  ; iIndex != iEnd ; iIndex++, nCount++ )
+	{
+		// If this is a Gnutella2 hub
+		if ( nCount == nSize ) return *iIndex;
+	}
+    
+	return NULL;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -490,8 +497,7 @@ BOOL CNeighboursWithG2::ParseKHLPacket(CG2Packet* pPacket, CG2Neighbour* pOwner)
 		DWORD nNext = pPacket->m_nPosition + nLength;
 
 		if (	nType == G2_PACKET_NEIGHBOUR_HUB ||
-			(	!pOwner->m_bObsoleteClient &&
-			nType == G2_PACKET_CACHED_HUB ) )
+			(	!pOwner->m_bObsoleteClient && nType == G2_PACKET_CACHED_HUB ) )
 		{
 			DWORD nAddress = 0, nKey = 0, tSeen = tNow, nLeafCurrent = 0, nLeafLimit = 0;
 			WORD nPort = 0;
