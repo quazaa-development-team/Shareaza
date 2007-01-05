@@ -488,7 +488,7 @@ BOOL CNeighboursWithG2::ParseKHLPacket(CG2Packet* pPacket, CG2Neighbour* pOwner)
 	DWORD nLength, nInner, nHubCount = 0;
 	BOOL bCompound;
 	DWORD tAdjust = ( pOwner ) ? pOwner->m_tAdjust : 0;
-	DWORD tNow = Network.m_nNetworkGlobalTickCount;
+	DWORD tNow = Network.m_nNetworkGlobalTime;
 
 	if ( pOwner ) pOwner->m_pHubGroup->Clear();
 
