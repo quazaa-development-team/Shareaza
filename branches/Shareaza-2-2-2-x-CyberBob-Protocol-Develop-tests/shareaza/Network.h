@@ -35,6 +35,10 @@ class CQuerySearch;
 class CQueryHit;
 class CDownloadSource;
 
+
+class CNetwork;
+extern CNetwork Network;
+
 class CNetwork
 {
 // typedef
@@ -86,6 +90,20 @@ public:
 	CITMQueue		m_pMessageQueue;
 	DWORD			m_nNetworkGlobalTime;
 	DWORD			m_nNetworkGlobalTickCount;
+
+	class Lock
+	{
+	public:
+		Lock() { Network.m_pSection.Lock(); }
+		~Lock() { Network.m_pSection.Unlock(); }
+	private:
+		Lock(const Lock&);
+		Lock& operator=(const Lock&);
+		static void* operator new(std::size_t);
+		static void* operator new[](std::size_t);
+		static void operator delete(void*);
+		static void operator delete[](void*);
+	};
 
 public:
 	class CITMSendPush : CITMQueue::CITMItem

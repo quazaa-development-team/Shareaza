@@ -711,6 +711,7 @@ void CEDClient::SendHello(BYTE nType)
 	
 	if ( nType == ED2K_C2C_HELLO ) pPacket->WriteByte( 0x10 );
 	
+	CNetwork::Lock pLock;
 	CEDNeighbour* pServer = Neighbours.GetDonkeyServer();
 	
 	Hashes::Guid oGUID = MyProfile.oGUID;
