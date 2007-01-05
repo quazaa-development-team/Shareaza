@@ -325,11 +325,12 @@ BOOL CDownloadWithSources::AddSourceHit(CQueryHit* pHit, BOOL bForce)
 		m_oED2K = pHit->m_oED2K;
 		bUpdated = TRUE;
 	}
-	if ( !m_oBTH && pHit->m_oBTH )
-	{
-		m_oBTH = pHit->m_oBTH;
-		bUpdated = TRUE;
-	}
+	// the code below for BT hash should not be done since there is no way to get BT hash set through file transfer right now.
+	//if ( !m_oBTH && pHit->m_oBTH )
+	//{
+	//	m_oBTH = pHit->m_oBTH;
+	//	bUpdated = TRUE;
+	//}
 	if ( !m_oMD5 && pHit->m_oMD5 )
 	{
 		m_oMD5 = pHit->m_oMD5;

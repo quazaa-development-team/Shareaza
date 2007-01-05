@@ -154,6 +154,9 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, CQueryHit* pHit)
 		}
 	}
 	
+	if ( pHit->m_oBTH.isValid() && !pHit->m_oSHA1 && !pHit->m_oED2K && !pHit->m_oTiger && !pHit->m_oMD5 )
+		m_nProtocol = PROTOCOL_BT;
+
 	ResolveURL();
 
 	if ( m_nProtocol == PROTOCOL_HTTP )

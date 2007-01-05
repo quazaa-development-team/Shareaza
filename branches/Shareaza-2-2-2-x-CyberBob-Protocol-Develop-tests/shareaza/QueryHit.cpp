@@ -1500,8 +1500,7 @@ void CQueryHit::Resolve()
 		}
 		return;
 	}
-	
-	if ( m_nIndex == 0 || m_oTiger || m_oED2K || Settings.Downloads.RequestHash )
+	else if ( m_nIndex == 0 || m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 || Settings.Downloads.RequestHash )
 	{
 		if ( m_oSHA1 && m_oTiger )
 		{
@@ -1538,9 +1537,16 @@ void CQueryHit::Resolve()
 				(LPCTSTR)m_oMD5.toUrn() );
 			return;
 		}
+		else if ( m_oBTH )
+		{
+			m_sURL.Format( _T("btc://%s:%i//%s/"),
+				(LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort,
+				(LPCTSTR)m_oBTH.toString() );
+			m_nProtocol = PROTOCOL_BT;
+			return;
+		}
 	}
-	
-	if ( Settings.Downloads.RequestURLENC )
+	else if ( Settings.Downloads.RequestURLENC )
 	{
 		m_sURL.Format( _T("http://%s:%i/get/%lu/%s"),
 			(LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort, m_nIndex,
