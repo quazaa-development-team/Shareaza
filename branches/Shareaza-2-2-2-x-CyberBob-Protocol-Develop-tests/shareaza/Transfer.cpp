@@ -62,8 +62,9 @@ BOOL CTransfer::ConnectTo(IN_ADDR* pAddress, WORD nPort)
 
 void CTransfer::AttachTo(CConnection* pConnection)
 {
-	CConnection::AttachTo( pConnection );
-	Transfers.Add( this );
+	if ( pConnection != NULL && pConnection != this )	// if pConnection object trying attach is not NULL nor Itself
+		CConnection::AttachTo( pConnection );			// Attach connection object to this connection.
+	Transfers.Add( this );								// Add this Transfer object to Transfer array.
 }
 
 void CTransfer::Close()

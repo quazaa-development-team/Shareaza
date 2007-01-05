@@ -136,7 +136,7 @@ void CTransfers::StopThread()
 
 void CTransfers::Add(CTransfer* pTransfer)
 {
-	ASSERT( pTransfer->m_hSocket != INVALID_SOCKET );
+	//ASSERT( pTransfer->m_hSocket != INVALID_SOCKET );
 	WSAEventSelect( pTransfer->m_hSocket, m_pWakeup, FD_CONNECT|FD_READ|FD_WRITE|FD_CLOSE );
 
 	CTransfers::Lock oLock;

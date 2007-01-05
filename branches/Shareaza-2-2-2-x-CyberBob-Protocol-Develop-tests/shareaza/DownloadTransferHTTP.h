@@ -43,30 +43,32 @@ protected:
 	DWORD			m_nRequests;
 	DWORD			m_tRequest;
 	DWORD			m_tContent;
-	BOOL			m_bBadResponse;
-	BOOL			m_bBusyFault;
-	BOOL			m_bRangeFault;
-	BOOL			m_bKeepAlive;
-	BOOL			m_bHashMatch;
 	CString			m_sTigerTree;
-	BOOL			m_bTigerFetch;
-	BOOL			m_bTigerIgnore;
 	CString			m_sMetadata;
-	BOOL			m_bMetaFetch;
-	BOOL			m_bMetaIgnore;
-	BOOL			m_bGotRange;
-	BOOL			m_bGotRanges;
-	BOOL			m_bQueueFlag;
 	QWORD			m_nContentLength;
 	CString			m_sContentType;
 	DWORD			m_nRetryDelay;
-	BOOL			m_bRedirect;
 	CString			m_sRedirectionURL;
-	BOOL			m_bTigerForced;
-	BOOL			m_bTigerFailed;
-	BOOL			m_bHeadRequest;
 	DWORD			m_nRetryAfter;
-	BOOL			m_bGUIDSent;
+	// members below are just 1Bit BOOLs thus no need to use 32bit for each.
+	BOOL			m_bBadResponse	:1;
+	BOOL			m_bBusyFault	:1;
+	BOOL			m_bRangeFault	:1;
+	BOOL			m_bKeepAlive	:1;
+	BOOL			m_bHashMatch	:1;
+	BOOL			m_bTigerFetch	:1;
+	BOOL			m_bTigerIgnore	:1;
+	BOOL			m_bMetaFetch	:1;
+	BOOL			m_bMetaIgnore	:1;
+	BOOL			m_bGotRange		:1;
+	BOOL			m_bGotRanges	:1;
+	BOOL			m_bQueueFlag	:1;
+	BOOL			m_bRedirect		:1;
+	BOOL			m_bTigerForced	:1;
+	BOOL			m_bTigerFailed	:1;
+	BOOL			m_bHeadRequest	:1;
+	BOOL			m_bGUIDSent		:1;
+	BOOL			m_bPushWaiting	:1;
 
 // Operations
 public:
@@ -92,6 +94,7 @@ protected:
 	virtual BOOL	OnHeaderLine(CString& strHeader, CString& strValue);
 	virtual BOOL	OnHeadersComplete();
 
+	friend CDownloadWithTransfers;
 };
 
 #endif // !defined(AFX_DOWNLOADTRANSFERHTTP_H__EE18C980_54B9_40EF_A55B_42FC2AAEA3B0__INCLUDED_)

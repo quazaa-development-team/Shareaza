@@ -116,12 +116,8 @@ void CDownloadTransfer::Close(TRISTATE bKeepSource, DWORD nRetryAfter)
 		case TS_TRUE:
 			if ( m_pSource->m_bReConnect && ! m_pDownload->IsCompleted() )
 			{
-				if ( !m_pSource->m_bPushOnly )
-				{
-					if ( m_pSource->OnResumeClosed() ) return;
-				}
+				if ( m_pSource->OnResumeClosed() ) return;
 				m_pSource->OnFailure( TRUE, Settings.Downloads.PushTimeout );
-				m_pSource->PushRequest();
 			}
 			else
 			{

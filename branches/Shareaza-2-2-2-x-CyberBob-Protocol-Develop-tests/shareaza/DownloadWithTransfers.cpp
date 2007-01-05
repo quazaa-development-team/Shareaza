@@ -336,26 +336,8 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow, BOOL bSeeding)
 	
 	if ( pConnectHead != NULL )
 	{
-		if ( pConnectHead->m_bPushOnly && ! ( pConnectHead->m_nProtocol == PROTOCOL_ED2K ) )
-		{
-			if ( pConnectHead->PushRequest() )
-			{
-				return TRUE;
-			}
-			else if ( ! Settings.Downloads.NeverDrop )
-			{
-				pConnectHead->Remove( TRUE, FALSE );
-			}
-			else
-			{
-				SortSource( pConnectHead, FALSE );
-			}
-		}
-		else
-		{
-			CDownloadTransfer* pTransfer = pConnectHead->CreateTransfer();
-			return ( pTransfer != NULL && pTransfer->Initiate() );
-		}
+		CDownloadTransfer* pTransfer = pConnectHead->CreateTransfer();
+		return ( pTransfer != NULL && pTransfer->Initiate() );
 	}
 	
 	return FALSE;
@@ -431,19 +413,22 @@ BOOL CDownloadWithTransfers::OnAcceptPush(const Hashes::Guid& oClientID, CConnec
 			( nFileIndex == 0 || pSource->m_nIndex == nFileIndex ) ) break;
 	}
 	
-	if ( pSource == NULL ) return FALSE;
-	
-	if ( pSource->m_pTransfer != NULL )
+	// if incoming CONNECTION has invalid socket, or else, could not find any source for this PUSH connection.
+	if ( pConnection->m_hSocket == INVALID_SOCKET || pSource == NULL ) return FALSE;
+
+	// Found PUSH source matches to condition.
+	CDownloadTransferHTTP* pHTTPTransfer = NULL;
+
+	// cast CDownloadTransfer to CDownloadTransferHTTP if exist.
+	if ( pSource->m_pTransfer ) pHTTPTransfer = static_cast<CDownloadTransferHTTP*>(pSource->m_pTransfer);
+
+	if ( pHTTPTransfer && pHTTPTransfer->m_bPushWaiting )	// Cast succeed and transfer is waiting for PUSH connection.
 	{
-		if ( pSource->m_pTransfer->m_nState > dtsConnecting ) return FALSE;
-		pSource->m_pTransfer->Close( TS_TRUE );
+		ASSERT( pSource->m_nProtocol == PROTOCOL_G1 || pSource->m_nProtocol == PROTOCOL_G2 || pSource->m_nProtocol == PROTOCOL_HTTP );
+		return pHTTPTransfer->AcceptPush( pConnection );	// Accept Connection if it can
 	}
-	
-	if ( pConnection->m_hSocket == INVALID_SOCKET ) return FALSE;
-	
-	CDownloadTransferHTTP* pTransfer = (CDownloadTransferHTTP*)pSource->CreateTransfer();
-	ASSERT( pSource->m_nProtocol == PROTOCOL_G1 || pSource->m_nProtocol == PROTOCOL_G2 || pSource->m_nProtocol == PROTOCOL_HTTP );
-	return pTransfer->AcceptPush( pConnection );
+	return FALSE;
+
 }
 
 //////////////////////////////////////////////////////////////////////

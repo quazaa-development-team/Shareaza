@@ -103,7 +103,7 @@ public:
 	BOOL				m_bReConnect;			// Reconnect Flag for HTTP close connection
 	HubList				m_oPushProxyList;		// Local PUSH Proxy List Storage for RouteCache backup (G1)
 	HubList				m_oHubList;				// Local PUSH HubList Storage for RouteCache backup (G2)
-	int					m_nPushAttempted;		// number of times PushRequest has been t
+	int					m_nPushAttempted;		// number of times PushRequest has been tried
 
 // Operations
 public:

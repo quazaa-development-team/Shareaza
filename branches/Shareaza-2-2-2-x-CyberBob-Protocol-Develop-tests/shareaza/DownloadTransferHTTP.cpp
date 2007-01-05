@@ -29,6 +29,8 @@
 #include "Download.h"
 #include "Downloads.h"
 #include "DownloadSource.h"
+#include "Transfer.h"
+#include "Transfers.h"
 #include "DownloadTransfer.h"
 #include "DownloadTransferHTTP.h"
 #include "FragmentedFile.h"
@@ -73,6 +75,7 @@ CDownloadTransferHTTP::CDownloadTransferHTTP(CDownloadSource* pSource) : CDownlo
 	m_nRetryDelay	= Settings.Downloads.RetryDelay;
 	m_nRetryAfter	= 0;
 	m_bGUIDSent		= FALSE;
+	m_bPushWaiting	= FALSE;
 }
 
 CDownloadTransferHTTP::~CDownloadTransferHTTP()
@@ -90,7 +93,7 @@ BOOL CDownloadTransferHTTP::Initiate()
 	
 	m_pSource->m_bReConnect = FALSE;
 
-	if ( m_pSource->m_bCloseConn ) 
+	if ( m_pSource->m_bCloseConn )
 	{
 		m_bHeadRequest = FALSE;
 		m_pSource->m_bCloseConn = FALSE;
@@ -100,15 +103,21 @@ BOOL CDownloadTransferHTTP::Initiate()
 		m_bHeadRequest = TRUE;
 	}
 
-
-	if ( ConnectTo( &m_pSource->m_pAddress, m_pSource->m_nPort ) )
+	if ( m_pSource->m_bPushOnly && m_pSource->PushRequest() ) // This is PushOnly Source and Push succeed.
 	{
-		SetState( dtsConnecting );
+		m_bPushWaiting = TRUE;			// Set flag to indicate this is waiting for PUSH connection to come.
+		m_tConnected = GetTickCount();	// Set Connect time for Timeout calculation
+		CTransfer::AttachTo(this);		// Add this CTransfer derived object to CTransfers.
+		m_sAddress.Format( _T("Unknown - Attempting PUSH") );			// Set Message in Address field (Quick hack for GUI)
+		m_pHost.sin_port = htons( (WORD)m_pSource->m_nPushAttempted );	// Set attempt count to Port number(Quick hack for GUI)
+
+	}
+	else if ( ConnectTo( &m_pSource->m_pAddress, m_pSource->m_nPort ) )
+	{
+		m_bPushWaiting = FALSE;	// this is not PUSH connection.
 		
 		if ( ! m_pDownload->IsBoosted() )
 			m_mInput.pLimit = m_mOutput.pLimit = &m_nBandwidth;
-		
-		return TRUE;
 	}
 	else
 	{
@@ -119,6 +128,9 @@ BOOL CDownloadTransferHTTP::Initiate()
 		Close( TS_UNKNOWN );
 		return FALSE;
 	}
+
+	SetState( dtsConnecting );
+	return TRUE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -126,16 +138,17 @@ BOOL CDownloadTransferHTTP::Initiate()
 
 BOOL CDownloadTransferHTTP::AcceptPush(CConnection* pConnection)
 {
-	AttachTo( pConnection );
+	m_bPushWaiting = FALSE;					// this connection is no longer waiting for PUSH connection.
+	CConnection::AttachTo( pConnection );	// Attach CConnection object parsed from CHandshakes
 	
 	theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_PUSHED, (LPCTSTR)m_sAddress,
 		(LPCTSTR)m_pDownload->GetDisplayName() );
-	m_pSource->m_nPushAttempted = 0;
+	m_pSource->m_nPushAttempted = 0;		// PUSH succeed, so reset Attempt count.
 
 	if ( ! m_pDownload->IsBoosted() )
 		m_mInput.pLimit = m_mOutput.pLimit = &m_nBandwidth;
 
-	if ( m_pSource->m_bCloseConn ) 
+	if ( m_pSource->m_bCloseConn )
 	{
 		m_bHeadRequest = FALSE;
 		m_pSource->m_bCloseConn = FALSE;
@@ -641,20 +654,42 @@ BOOL CDownloadTransferHTTP::OnRun()
 	switch ( m_nState )
 	{
 	case dtsConnecting:
-		if ( tNow - m_tConnected > Settings.Connection.TimeoutConnect )
+		if ( m_bPushWaiting )	// Trying to connect with PUSH method
 		{
-			theApp.Message( MSG_ERROR, IDS_CONNECTION_TIMEOUT_CONNECT, (LPCTSTR)m_sAddress );
-			if ( m_pSource != NULL ) m_pSource->PushRequest();
-			m_pSource->m_bCloseConn = FALSE;
-			if ( m_pSource->m_bPushOnly )
+			if ( tNow - m_tConnected > Settings.Downloads.PushTimeout )	// if time of the trial is longer than PUSH timeout.
 			{
-				Close( TS_TRUE );
+				theApp.Message( MSG_ERROR, IDS_CONNECTION_TIMEOUT_CONNECT, (LPCTSTR)m_sAddress );
+				m_pSource->m_bCloseConn = FALSE;	// Reset CloseConnection flag.
+				
+				if ( m_pSource->m_bPushOnly )		// This is PUSH only source
+					Close( TS_TRUE );
+				else								// Not PUSH only source
+					Close( TS_UNKNOWN );	// Close connection with AttemptTime/FailureCount increased.
+				
+				return FALSE;
 			}
-			else
+		}
+		else	// this is not PUSH connection
+		{
+			if ( tNow - m_tConnected > Settings.Connection.TimeoutConnect )	// if time of trial is loger than Connection Timeout
 			{
-				Close( TS_UNKNOWN );
+				theApp.Message( MSG_ERROR, IDS_CONNECTION_TIMEOUT_CONNECT, (LPCTSTR)m_sAddress );
+				m_pSource->m_bCloseConn = FALSE;							// Reset CloseConnection flag
+				if ( Network.IsListening() && m_pSource->PushRequest() )	// Try PUSH if Network core is ready for it
+				{
+					CConnection::Close();									// Close Socket
+					m_bPushWaiting = TRUE;									// Set PUSH flag
+					m_tConnected  = tNow;									// Reset Connection time for Timeout
+					m_sAddress.Format( _T("Unknown - Attempting PUSH") );			// Set Message in Address field (Quick hack for GUI)
+					m_pHost.sin_port = htons( (WORD)m_pSource->m_nPushAttempted );	// Set attempt count to Port number(Quick hack for GUI)
+					return TRUE;
+				}
+				else	// PUSH is not option this time
+				{
+					Close( TS_UNKNOWN );	// Close connection with AttemptTime/FailureCount increased.
+					return FALSE;
+				}
 			}
-			return FALSE;
 		}
 		break;
 

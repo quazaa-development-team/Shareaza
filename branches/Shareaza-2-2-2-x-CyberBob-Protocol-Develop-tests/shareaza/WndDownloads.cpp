@@ -1432,11 +1432,7 @@ void CDownloadsWnd::OnTransfersConnect()
 				{
 					pSource->m_pDownload->Resume();
 
-					if ( pSource->m_bPushOnly )
-					{
-						pSource->PushRequest();
-					}
-					else if ( CDownloadTransfer* pTransfer = pSource->CreateTransfer() )
+					if ( CDownloadTransfer* pTransfer = pSource->CreateTransfer() )
 					{
 						pTransfer->Initiate();
 					}
