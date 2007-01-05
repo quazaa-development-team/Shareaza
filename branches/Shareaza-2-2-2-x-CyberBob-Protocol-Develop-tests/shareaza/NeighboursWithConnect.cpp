@@ -812,10 +812,17 @@ DWORD CNeighboursWithConnect::IsG1UltrapeerCapable(BOOL bDebug)
 // Takes a protocol name, like PROTOCOL_G1, PROTOCOL_G2, or PROTOCOL_NULL for both
 // Counts how many connections to hubs we have for that protocol, and compares that number to settings
 // Returns true if we need more hub connections, false if we have enough
-BOOL CNeighboursWithConnect::NeedMoreHubs( PROTOCOLID nProtocol, BOOL bWithMaxPeerSlot )
+BOOL CNeighboursWithConnect::NeedMoreHubs(PROTOCOLID nProtocol, BOOL bWithMaxPeerSlot)
 {
 	// Only continue if the network is connected (do)
 	if ( ! Network.IsConnected() ) return FALSE;
+	if ( ! Network.m_bAutoConnect )
+	{
+		if (bWithMaxPeerSlot)
+			return TRUE;
+		else
+			return FALSE;
+	}
 
 	// Make an array to count the number of hub connections we have for each network
 	//int nConnected[4] = { 0, 0, 0, 0 }; // Unknown network, Gnutella, Gnutella2, eDonkey2000
@@ -910,6 +917,7 @@ BOOL CNeighboursWithConnect::NeedMoreLeafs(PROTOCOLID nProtocol)
 {
 	// Only continue if the network is connected (do)
 	if ( ! Network.IsConnected() ) return FALSE;
+	if ( ! Network.m_bAutoConnect ) return TRUE;
 
 	// Make an array to count the number of leaf connections we have for each network
 	//int nConnected[4] = { 0, 0, 0, 0 }; // Unknown network, Gnutella, Gnutella2, eDonkey2000
