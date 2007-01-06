@@ -79,6 +79,14 @@ public:
 	virtual void Close();   // Calls Close on all the neighbours in the list, and resets member variables back to 0
 	virtual void OnRun();   // Calls DoRun on each neighbour in the list, making them send and receive data
 
+	// Network specific Initialization functions.
+	virtual void ConnectG2();			// Connect to Gnutella2
+	virtual void DisconnectG2();		// Disconnect from Gnutella2
+	virtual void ConnectG1();			// Connect to Gnutella1
+	virtual void DisconnectG1();		// Disconnect from Gnutella1
+	virtual void ConnectED2K();			// Connect to eDonkey2000
+	virtual void DisconnectED2K();		// Disconnect from eDonkey2000
+
 protected:
 
 	// Add and remove neighbour objects from the list

@@ -251,6 +251,8 @@ BEGIN_MESSAGE_MAP(CMainWnd, CMDIFrameWnd)
 	ON_COMMAND(ID_MEDIA_ADD, OnMediaCommand)
 	ON_COMMAND(ID_MEDIA_ADD_FOLDER, OnMediaCommand)
 	ON_COMMAND(ID_HELP, OnHelpFaq)
+	ON_UPDATE_COMMAND_UI(ID_NETWORK_MANUALCONNECT, OnUpdateNetworkManualConnect)
+	ON_COMMAND(ID_NETWORK_MANUALCONNECT, OnNetworkManualConnect)
 END_MESSAGE_MAP()
 
 
@@ -1503,12 +1505,13 @@ void CMainWnd::OnUpdateNetworkConnect(CCmdUI* pCmdUI)
 void CMainWnd::OnNetworkConnect()
 {
 	Network.Connect( TRUE );
-	if ( Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday )
-		DiscoveryServices.Execute( FALSE, PROTOCOL_NULL );
-	if ( Settings.Gnutella1.EnableToday )
-		DiscoveryServices.Execute( FALSE, PROTOCOL_G1 );
-	if ( Settings.Gnutella2.EnableToday )
-		DiscoveryServices.Execute( FALSE, PROTOCOL_G2 );
+	if ( Settings.Gnutella1.EnableToday)
+		DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G1 );
+	if ( Settings.Gnutella2.EnableToday)
+		DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G2 );
+	// No BootStrap for ED2K at all but maybe in future.
+	//if ( Settings.eDonkey.EnableToday )
+	//	DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_ED2K );
 }
 
 void CMainWnd::OnUpdateNetworkDisconnect(CCmdUI* pCmdUI) 
@@ -1518,6 +1521,9 @@ void CMainWnd::OnUpdateNetworkDisconnect(CCmdUI* pCmdUI)
 
 void CMainWnd::OnNetworkDisconnect() 
 {
+	Settings.Gnutella1.EnableToday = FALSE;
+	Settings.Gnutella2.EnableToday = FALSE;
+	Settings.eDonkey.EnableToday = FALSE;
 	Network.Disconnect();
 }
 
@@ -1573,6 +1579,8 @@ void CMainWnd::OnNetworkG2()
 		if ( Network.IsConnected() )
 		{
 			Settings.Gnutella2.EnableToday = TRUE;
+			Network.BeginTestG2UDPFW();
+			Neighbours.ConnectG2();
 		}
 		else
 		{
@@ -1581,8 +1589,6 @@ void CMainWnd::OnNetworkG2()
 			Settings.eDonkey.EnableToday = FALSE;
 			Network.Connect( TRUE );
 		}
-		Network.BeginTestG2UDPFW();
-		Neighbours.ConnectG2();
 		DiscoveryServices.Execute( FALSE, PROTOCOL_G2 );
 	}
 }
@@ -1598,6 +1604,7 @@ void CMainWnd::OnNetworkG1()
 	if ( Network.IsConnected() && Settings.Gnutella1.EnableToday )
 	{
 		Settings.Gnutella1.EnableToday = FALSE;
+		Neighbours.DisconnectG1();
 		//if ( !Settings.Gnutella2.EnableToday && !Settings.eDonkey.EnableToday &&
 		//	  Settings.Connection.RequireForTransfers )
 		//	Network.Disconnect();
@@ -1607,6 +1614,7 @@ void CMainWnd::OnNetworkG1()
 		if ( Network.IsConnected() )
 		{
 			Settings.Gnutella1.EnableToday = TRUE;
+			Neighbours.ConnectG1();
 		}
 		else
 		{
@@ -1629,6 +1637,7 @@ void CMainWnd::OnNetworkED2K()
 {
 	if ( Network.IsConnected() && Settings.eDonkey.EnableToday )
 	{
+		Neighbours.DisconnectED2K();
 		Settings.eDonkey.EnableToday = FALSE;
 		//if ( !Settings.Gnutella1.EnableToday && !Settings.Gnutella2.EnableToday &&
 		//	  Settings.Connection.RequireForTransfers )
@@ -1639,6 +1648,7 @@ void CMainWnd::OnNetworkED2K()
 		if ( Network.IsConnected() )
 		{
 			Settings.eDonkey.EnableToday = TRUE;
+			Neighbours.ConnectED2K();
 		}
 		else
 		{
@@ -1954,6 +1964,9 @@ void CMainWnd::OnTabConnect()
 			 ! Network.IsWellConnected() ||
 			AfxMessageBox( strMessage, MB_ICONQUESTION|MB_YESNO ) == IDYES )
 		{
+			Settings.Gnutella1.EnableToday = FALSE;
+			Settings.Gnutella2.EnableToday = FALSE;
+			Settings.eDonkey.EnableToday = FALSE;
 			Network.Disconnect();
 		}
 	}
@@ -2567,4 +2580,24 @@ BOOL CMainWnd::OnDrop(IDataObject* pDataObj, DWORD /* grfKeyState */, POINT /* p
 	}
 
 	return FALSE;
+}
+
+void CMainWnd::OnUpdateNetworkManualConnect(CCmdUI* pCmdUI) 
+{
+	pCmdUI->SetCheck( Network.IsConnected() && !Network.m_bAutoConnect );
+}
+
+void CMainWnd::OnNetworkManualConnect()
+{
+	if ( Network.IsConnected() )
+	{
+		if ( Network.m_bAutoConnect )
+			Network.m_bAutoConnect = FALSE;
+		else
+			Network.m_bAutoConnect = TRUE;
+	}
+	else
+	{
+		Network.Connect( FALSE );
+	}
 }

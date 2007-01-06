@@ -79,8 +79,8 @@ protected:
 	BOOL	m_bG2Hub;			// True if we are a hub to at least one computer on the Gnutella2 network
 	BOOL	m_bG1Leaf;			// True if we are a leaf to at least one computer on the Gnutella network
 	BOOL	m_bG1Ultrapeer;		// True if we are an ultrapeer to at least one computer on the Gnutella network
-	DWORD	m_tHubG2Promotion;	// Time we were promoted to a G2 hub
-	DWORD	m_tModeCheck;		// Time we checked and decided network mode.
+	DWORD	m_tHubG2Promotion;	// Time we were promoted to a G2 hub(UTC Time in seconds)
+	DWORD	m_tModeCheck;		// Time we checked and decided network mode(UTC Time in seconds)
 
 public:
 	int		m_nCount[4][5];		// Number of Neighbours we currently connected with
@@ -95,8 +95,9 @@ public:
 protected:
 
 	// Make new connections and close existing ones
-	void Maintain();                      // Count how many connections we have, and initiate or close them to match the ideal numbers in settings
-	void PeerPrune(PROTOCOLID nProtocol); // Close hub to hub connections when we get demoted to the leaf role (do)
+	void Maintain();						// Count how many connections we have, and initiate or close them to match the ideal numbers in settings
+	void ModeCheck();						// Time to check Local Node mode for networks(Gnutella1/2 only)
+	void PeerPrune(PROTOCOLID nProtocol);	// Close hub to hub connections when we get demoted to the leaf role (do)
 
 protected:
 	// The tick count when we last connected to a hub for each network
@@ -105,8 +106,12 @@ protected:
 public:
 	int GetCount(PROTOCOLID nProtocol, int nState, int nNodeType) const;
 
-	virtual void ConnectG2();
-	virtual void DisconnectG2();
+	virtual void ConnectG2();			// Connect to Gnutella2
+	virtual void DisconnectG2();		// Disconnect from Gnutella2
+	virtual void ConnectG1();			// Connect to Gnutella1
+	virtual void DisconnectG1();		// Disconnect from Gnutella1
+	virtual void ConnectED2K();			// Connect to eDonkey2000
+	virtual void DisconnectED2K();		// Disconnect from eDonkey2000
 
 };
 

@@ -387,3 +387,33 @@ void CNeighboursBase::Remove(CNeighbour* pNeighbour)
 	// Remove the neighbour object from the map
 	m_pUniques.RemoveKey( pNeighbour->m_nUnique ); // Remove it by its key
 }
+
+void CNeighboursBase::ConnectG2()			// Connect to Gnutella2
+{
+	// Currently Do nothing here.
+}
+
+void CNeighboursBase::DisconnectG2()		// Disconnect from Gnutella2
+{
+	// Currently Do nothing here.
+}
+
+void CNeighboursBase::ConnectG1()			// Connect to Gnutella1
+{
+	// Currently Do nothing here.
+}
+
+void CNeighboursBase::DisconnectG1()		// Disconnect from Gnutella1
+{
+	// Currently Do nothing here.
+}
+
+void CNeighboursBase::ConnectED2K()			// Connect to eDonkey2000
+{
+	// Currently Do nothing here.
+}
+
+void CNeighboursBase::DisconnectED2K()		// Disconnect from eDonkey2000
+{
+	// Currently Do nothing here.
+}

@@ -335,6 +335,7 @@
 		<button id="ID_BROWSE_LAUNCH" text="Browse User"/>
 		<button id="ID_NEIGHBOURS_CHAT" text="Chat to User"/>
 		<button id="ID_SECURITY_BAN" text="Ban Host"/>
+		<button id="ID_NETWORK_MANUALCONNECT" text="ManualConnectMode"/>
 		<rightAlign/>
 		<button id="ID_NETWORK_G2" text="Gnutella2"/>
 		<button id="ID_NETWORK_ED2K" text="eDonkey2000"/>
@@ -486,6 +487,7 @@
 			<separator/>
 			<item id="ID_NETWORK_CONNECT_TO" text="Connect _To..." shortcut="Ctrl+T"/>
 			<item id="ID_NETWORK_BROWSE_TO" text="_Browse Host..."/>
+			<item id="ID_NETWORK_MANUALCONNECT" text="ManualConnectMode"/>
 			<separator/>
 			<item id="ID_NETWORK_AUTO_CLOSE" text="Exit _After Transfers"/>
 			<item id="ID_NETWORK_EXIT" text="E_xit"/>
@@ -575,6 +577,7 @@
 			<separator/>
 			<item id="ID_NETWORK_CONNECT_TO" text="Connect _To..." shortcut="Ctrl+T"/>
 			<item id="ID_NETWORK_BROWSE_TO" text="_Browse Host..."/>
+			<item id="ID_NETWORK_MANUALCONNECT" text="ManualConnectMode"/>
 			<separator/>
 			<menu text="Choose _Networks">
 				<item id="ID_NETWORK_G2" text="Connect to _Gnutella2"/>

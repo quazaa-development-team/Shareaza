@@ -120,7 +120,13 @@ IDI_SMALL               ICON                    "Res\\ShareazaSmall.ico"
 IDI_ICON                ICON                    "Res\\ShareazaIcon.ico"
 IDR_BITTORRENT_ICON     ICON                    "res\\Bittorrent.ico"
 IDI_COLORS              ICON                    "res\\colors.ico"
-IDR_DEFAULTSERVICES		FILE					"res\\DefaultServices.dat"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// FILE
+//
+
+IDR_DEFAULTSERVICES     FILE                    "res\\DefaultServices.dat"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -179,6 +185,7 @@ BEGIN
         MENUITEM "Connect &To...\tCtrl+T",      ID_NETWORK_CONNECT_TO
         MENUITEM "&Browse User...",             ID_NETWORK_BROWSE_TO
         MENUITEM SEPARATOR
+        MENUITEM "Manual Connect Mode",         ID_NETWORK_MANUALCONNECT
         MENUITEM "Connect to &Gnutella2",       ID_NETWORK_G2
         MENUITEM "Connect to &eDonkey2000",     ID_NETWORK_ED2K
         MENUITEM "Connect to Gnutella&1",       ID_NETWORK_G1

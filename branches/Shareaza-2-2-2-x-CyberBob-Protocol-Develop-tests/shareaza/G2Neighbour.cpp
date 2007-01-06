@@ -946,9 +946,11 @@ BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 	{
 		if ( m_pHost.sin_addr.S_un.S_addr != pHostAddr.sin_addr.S_un.S_addr )
 		{
+			CString strAddress = inet_ntoa( pHostAddr.sin_addr );
 			theApp.Message(MSG_SYSTEM, _T("LNI packet detected host \"%s\" has changed IP to \"%s\""),
-				CString( inet_ntoa( m_pHost.sin_addr ) ), CString( inet_ntoa( pHostAddr.sin_addr) ) );
+				m_sAddress, strAddress );
 			m_pHost.sin_addr.S_un.S_addr = pHostAddr.sin_addr.S_un.S_addr;
+			m_sAddress = strAddress;
 		}
 		if ( m_pHost.sin_port != pHostAddr.sin_port )
 		{

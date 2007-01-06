@@ -240,6 +240,8 @@ protected:
 	afx_msg void OnRemoteClose();
 	afx_msg void OnUpdateMediaCommand(CCmdUI *pCmdUI);
 	afx_msg void OnMediaCommand();
+	afx_msg void OnUpdateNetworkManualConnect(CCmdUI* pCmdUI);
+	afx_msg void OnNetworkManualConnect();
 
 	DECLARE_MESSAGE_MAP()
 	DECLARE_DROP()

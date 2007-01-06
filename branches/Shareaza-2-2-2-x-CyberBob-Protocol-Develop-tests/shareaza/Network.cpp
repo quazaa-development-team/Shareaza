@@ -306,7 +306,7 @@ BOOL CNetwork::CITMSendPush::OnProcess()
 //////////////////////////////////////////////////////////////////////
 // CNetwork construction
 
-CNetwork::CNetwork() : 	m_pMessageQueue()
+CNetwork::CNetwork() : m_pMessageQueue()
 {
 	NodeRoute				= new CRouteCache();
 	QueryRoute				= new CRouteCache();
@@ -537,8 +537,13 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 	m_hThread				= pThread->m_hThread;
 	SetThreadName( pThread->m_nThreadID, "Network" );
 	
-	// if ( m_bAutoConnect && bAutoConnect ) DiscoveryServices.Execute();
-	
+	if ( Settings.Gnutella1.EnableToday)
+		DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G1 );
+	if ( Settings.Gnutella2.EnableToday)
+		DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G2 );
+	// No BootStrap for ED2K at all but maybe in future.
+	//if ( Settings.eDonkey.EnableToday )
+	//	DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_ED2K );
 	return TRUE;
 }
 

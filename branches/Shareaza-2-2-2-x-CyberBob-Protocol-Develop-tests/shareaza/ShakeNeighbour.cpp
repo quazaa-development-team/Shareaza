@@ -318,7 +318,7 @@ BOOL CShakeNeighbour::OnRead()
 BOOL CShakeNeighbour::OnRun()
 {
 	// Get the number of milliseconds since the computer has been turned on
-	DWORD nTimeNow = Network.m_nNetworkGlobalTickCount;
+	DWORD nTimeNow = GetTickCount();
 
 	// We connected the socket, and are waiting for the socket connection to be made
 	switch ( m_nState ) {
