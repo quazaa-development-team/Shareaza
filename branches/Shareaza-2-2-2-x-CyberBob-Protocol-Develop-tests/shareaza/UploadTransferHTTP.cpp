@@ -2111,12 +2111,12 @@ void CUploadTransferHTTP::SendResponse(UINT nResourceID, BOOL bFileHeaders)
 
 void CUploadTransferHTTP::GetNeighbourList(CString& strOutput)
 {
-	static LPCTSTR pszModes[4][3] =
+	static LPCTSTR pszModes[4][5] =
 	{
-		{ _T("Handshake"), _T("Handshake"), _T("Handshake") },
-		{ _T("G1 Peer"), _T("G1 Ultrapeer"), _T("G1 Leaf") },
-		{ _T("G2 Peer"), _T("G2 Hub"), _T("G2 Leaf") },
-		{ _T("eDonkey2000"), _T("eDonkey2000"), _T("eDonkey2000") }
+		{ _T("Handshake"), _T("Handshake"), _T("Handshake"), _T("Handshake"), _T("Handshake") },
+		{ _T("Unknown"), _T("G1 Peer"), _T("G1 Ultrapeer"), _T("G1 Leaf"), _T("Unknown") },
+		{ _T("Unknown"), _T("G2 Peer"), _T("G2 Hub"), _T("G2 Leaf"), _T("Unknown") },
+		{ _T("Unknown"), _T("eDonkey2000"), _T("Unknown"), _T("Unknown"), _T("Unknown") }
 	};
 	
 	strOutput.Empty();
