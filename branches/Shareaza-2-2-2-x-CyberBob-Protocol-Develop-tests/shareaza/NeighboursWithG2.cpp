@@ -304,7 +304,7 @@ CG2Packet* CNeighboursWithG2::CreateLNIPacket(CG2Neighbour* pOwner)
 
 		pPacket->WritePacket( G2_PACKET_TCP_NOT_FIREWALLED, 2 );// TCP Not Firewalled
 		pPacket->WriteShortLE( Network.m_pHost.sin_port );		// telling TCP port
-		pPacket->WritePacket( G2_PACKET_UDP_FIREWALLED, 2 );	// UDP Not Firewalled
+		pPacket->WritePacket( G2_PACKET_UDP_NOT_FIREWALLED, 2 );// UDP Not Firewalled
 		pPacket->WriteShortLE( Network.m_pHost.sin_port );		// telling UDP port
 	}
 	else
@@ -312,7 +312,7 @@ CG2Packet* CNeighboursWithG2::CreateLNIPacket(CG2Neighbour* pOwner)
 		pPacket->WritePacket( G2_PACKET_PEER_NOTFIREWALLED, 0 );
 		pPacket->WritePacket( G2_PACKET_TCP_NOT_FIREWALLED, 2 );// TCP Not Firewalled
 		pPacket->WriteShortLE( Network.m_pHost.sin_port );		// telling TCP port
-		pPacket->WritePacket( G2_PACKET_UDP_FIREWALLED, 2 );	// UDP Not Firewalled
+		pPacket->WritePacket( G2_PACKET_UDP_NOT_FIREWALLED, 2 );// UDP Not Firewalled
 		pPacket->WriteShortLE( Network.m_pHost.sin_port );		// telling UDP port
 	}
 
