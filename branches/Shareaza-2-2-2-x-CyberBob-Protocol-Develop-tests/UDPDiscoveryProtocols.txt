@@ -7,5 +7,5 @@ to use UDP stuffs adding address with prefix:
 
 for some extra, there is way to use TCP connections.
 
-* Prefix "gnutella:host:" will make Gnutella1 connection to the address specified.
+* Prefix "gnutella1:host:" will make Gnutella1 connection to the address specified.
 * Prefix "gnutella2:host:" will make Gnutella2 connection to the address specified.
