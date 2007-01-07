@@ -39,6 +39,10 @@ class CConnection;
 class CNeighboursWithConnect : public CNeighboursWithRouting // Continue the inheritance column CNeighbours : CNeighboursWithConnect : Routing : ED2K : G2 : G1 : CNeighboursBase
 {
 
+public:	// Typedefs
+	typedef std::list<SOCKADDR_IN>				HostAddrList;
+	typedef std::list<SOCKADDR_IN>::iterator	HostAddrPtr;
+
 public:
 
 	// Set up and clean up anything CNeighboursWithConnect adds to the CNeighbours class
@@ -53,7 +57,7 @@ public:
 
 protected:
 	virtual void Connect();
-
+	virtual void Close();
 public:
 
 	// Determine our role on the Gnutella2 network
@@ -75,27 +79,43 @@ public:
 protected:
 
 	// Member variables that tell our current role on the Gnutella and Gnutella2 networks
-	BOOL	m_bG2Leaf;			// True if we are a leaf to at least one computer on the Gnutella2 network
-	BOOL	m_bG2Hub;			// True if we are a hub to at least one computer on the Gnutella2 network
-	BOOL	m_bG1Leaf;			// True if we are a leaf to at least one computer on the Gnutella network
-	BOOL	m_bG1Ultrapeer;		// True if we are an ultrapeer to at least one computer on the Gnutella network
-	DWORD	m_tHubG2Promotion;	// Time we were promoted to a G2 hub(UTC Time in seconds)
-	DWORD	m_tModeCheck;		// Time we checked and decided network mode(UTC Time in seconds)
+	DWORD			m_tHubG2Promotion;		// Time we were promoted to a G2 hub(UTC Time in seconds)
+	DWORD			m_tModeCheck;			// Time we checked and decided network mode(UTC Time in seconds)
+
+	// Gnutella2 Bootstrap management.
+	DWORD			m_tG2Start;				// Time we enabled Gnutella2 network mode(UTC Time in seconds)
+	DWORD			m_nG2SentPacketCount;
+	DWORD			m_nG2RecvPacketCount;
+	HostAddrList	m_oG2LocalCache;
+
+	// Gnutella1 Bootstrap management.
+	DWORD			m_tG1Start;				// Time we enabled Gnutella1 network mode(UTC Time in seconds)
+	DWORD			m_nG1SentPacketCount;
+	DWORD			m_nG1RecvPacketCount;
+	HostAddrList	m_oG1LocalCache;
 
 public:
-	int		m_nCount[4][5];		// Number of Neighbours we currently connected with
-	int		m_nLimit[4][5];		// max number of neighbor connections we can connect.
+	// Members for maintaining connections.
+	PROTOCOLID		m_nLastManagedProtocol;
+	int				m_nCount[4][5];			// Number of Neighbours we currently connected with
+	int				m_nLimit[4][5];			// max number of neighbor connections we can connect.
+
+	// Hub(Ultrapeer)/Leaf status for Gnutella1/Gnutella2 (BOOLs only need 1Bit.)
+	BOOL			m_bG2Leaf		:1;		// True if we are a Leaf to at least one computer on the Gnutella2 network
+	BOOL			m_bG2Hub		:1;		// True if we are a Hub to at least one computer on the Gnutella2 network
+	BOOL			m_bG1Leaf		:1;		// True if we are a Leaf to at least one computer on the Gnutella network
+	BOOL			m_bG1Ultrapeer	:1;		// True if we are an Ultrapeer to at least one computer on the Gnutella network
 
 
 public:
 
-	// Methods implimented by several classes in the CNeighbours inheritance column
+	// Methods implemented by several classes in the CNeighbours inheritance column
 	virtual void OnRun(); // Call DoRun on each neighbour in the list, and maintain the network auto connection
 
 protected:
 
 	// Make new connections and close existing ones
-	void Maintain();						// Count how many connections we have, and initiate or close them to match the ideal numbers in settings
+	void Maintain(PROTOCOLID nProtocol);	// Count how many connections we have, and initiate or close them to match the ideal numbers in settings
 	void ModeCheck();						// Time to check Local Node mode for networks(Gnutella1/2 only)
 	void PeerPrune(PROTOCOLID nProtocol);	// Close hub to hub connections when we get demoted to the leaf role (do)
 
@@ -104,7 +124,8 @@ protected:
 	DWORD m_tPresent[8]; // The index is a protocol identifier, like 3 eDonkey2000, 2 Gnutella2, and 1 Gnutella
 
 public:
-	int GetCount(PROTOCOLID nProtocol, int nState, int nNodeType) const;
+	int		GetCount(PROTOCOLID nProtocol, int nState, int nNodeType) const;
+	void	StoreCache(PROTOCOLID nProtocol, SOCKADDR_IN& pHost);	// Store UDP Bootstrap Reply to LocalCache
 
 	virtual void ConnectG2();			// Connect to Gnutella2
 	virtual void DisconnectG2();		// Disconnect from Gnutella2

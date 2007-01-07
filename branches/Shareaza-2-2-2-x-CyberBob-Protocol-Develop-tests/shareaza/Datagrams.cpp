@@ -1508,9 +1508,15 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 								theApp.Message( MSG_DEBUG, _T("Got Gnutella hosts through UDP pong (%s:%i)"), 
 									(LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nIPPAddress ) ), nIPPPort ); 
 								pCachedHost = HostCache.Gnutella1.Add( (IN_ADDR*)&nIPPAddress, nIPPPort, 0, NULL );
-								// Add to separate cache to have a quick access only to GDNAs
-
-								if ( pCachedHost != NULL ) nCount++;
+								if ( pCachedHost != NULL )
+								{
+									SOCKADDR_IN pHostAddr;
+									pHostAddr.sin_addr.S_un.S_addr = nIPPAddress;
+									pHostAddr.sin_port = htons( nIPPPort );
+									pHostAddr.sin_family = PF_INET;
+									Neighbours.StoreCache( PROTOCOL_G1, pHostAddr );
+									nCount++;
+								}
 							}
 						}
 					}
@@ -2708,6 +2714,11 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 
 			if ( pCached != NULL )
 			{
+				SOCKADDR_IN pHostAddr;
+				pHostAddr.sin_addr.S_un.S_addr = nAddress;
+				pHostAddr.sin_port = htons( nPort );
+				pHostAddr.sin_family = PF_INET;
+				Neighbours.StoreCache( PROTOCOL_G2, pHostAddr );
 				nCount++;
 			}
 

@@ -1276,7 +1276,7 @@ CG1Packet* CHostCacheHost::ToG1Ping(int nTTL, const Hashes::Guid& oGUID)
 BOOL CHostCacheHost::UDPCacheQuery()
 {
 	DWORD nTime = static_cast<DWORD>( time(NULL) );
-	if ( CanConnect( nTime ) )
+	if ( CanQuery( nTime ) )
 	{
 		switch( m_nProtocol )
 		{
@@ -1289,7 +1289,7 @@ BOOL CHostCacheHost::UDPCacheQuery()
 			default:
 				return FALSE;
 		}
-		m_tConnect = nTime;
+		m_tQuery = nTime;
 		return TRUE;
 	}
 	return FALSE;
@@ -1386,6 +1386,27 @@ BOOL CHostCacheHost::CanQuery(DWORD tNow) const
 		// Don't query too fast
 		return ( tNow - m_tQuery ) >= max( Settings.Gnutella2.QueryHostThrottle, 90u );
 	}
+	else if ( m_nProtocol == PROTOCOL_G1 )
+	{
+		// Must support G1
+		if ( ! Settings.Gnutella1.EnableToday ) return FALSE;
+
+		// Must not be waiting for an ack
+		if ( 0 != m_tAck ) return FALSE;
+
+		// Get the time if not supplied
+		if ( 0 == tNow ) tNow = Network.m_nNetworkGlobalTime;
+
+		// Retry After
+		if ( 0 != m_tRetryAfter && tNow < m_tRetryAfter ) return FALSE;
+
+		// If haven't queried yet, its ok
+		if ( 0 == m_tQuery ) return TRUE;
+
+		// Don't query too fast
+		return ( tNow - m_tQuery ) >= max( Settings.Gnutella2.QueryHostThrottle, 90u );
+	}
+
 	
 	return FALSE;
 }

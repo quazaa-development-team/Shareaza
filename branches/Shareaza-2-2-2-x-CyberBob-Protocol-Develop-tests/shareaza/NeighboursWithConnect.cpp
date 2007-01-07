@@ -55,7 +55,16 @@ m_bG2Leaf(FALSE),
 m_bG1Ultrapeer(FALSE),
 m_bG1Leaf(FALSE),
 m_tHubG2Promotion(0),	// G2Hub promotion time (TIME)
-m_tModeCheck(0)			// Node state check for G2Hub/G2Leaf, G1Ultrapeer/G1Leaf (TickCount)
+m_tModeCheck(0),			// Node state check for G2Hub/G2Leaf, G1Ultrapeer/G1Leaf (TickCount)
+m_nLastManagedProtocol(PROTOCOL_G1),
+m_tG2Start(0),
+m_nG2SentPacketCount(0),
+m_nG2RecvPacketCount(0),
+m_oG2LocalCache(),
+m_tG1Start(0),
+m_nG1SentPacketCount(0),
+m_nG1RecvPacketCount(0),
+m_oG1LocalCache()
 {
 	// Zero the tick counts in m_tPresent, we haven't connected to a hub for any network yet
 	ZeroMemory( m_tPresent, sizeof(m_tPresent) );
@@ -1056,7 +1065,25 @@ void CNeighboursWithConnect::OnRun()
 		if ( Network.m_bEnabled && Network.m_bAutoConnect )
 		{
 			// Count how many connections of each type we have, calculate how many we should have, and close and open connections accordingly
-			Maintain(); // Makes new connections by getting IP addresses from the host caches for each network
+			// Makes new connections by getting IP addresses from the host caches for each network
+			switch (m_nLastManagedProtocol)
+			{
+				case PROTOCOL_G1:
+					Maintain(PROTOCOL_ED2K);
+					m_nLastManagedProtocol = PROTOCOL_ED2K;
+					break;
+				case PROTOCOL_G2:
+					Maintain(PROTOCOL_G1);
+					m_nLastManagedProtocol = PROTOCOL_G1;
+					break;
+				case PROTOCOL_ED2K:
+					Maintain(PROTOCOL_G2);
+					m_nLastManagedProtocol = PROTOCOL_G2;
+					break;
+				default:
+					m_nLastManagedProtocol = PROTOCOL_G1;
+					break;
+			}
 		}
 
 		// Release this thread's exclusive access to the network object
@@ -1177,21 +1204,10 @@ void CNeighboursWithConnect::ModeCheck()
 
 // As the program runs, CNetwork::OnRun calls this method periodically and repeatedly
 // Counts how many connections we have for each network and in each role, and connects to more from the host cache or disconnects from some
-void CNeighboursWithConnect::Maintain()
+void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 {
 
-	// Note: getting rid of these Local Count array to reduce Over head of Active count.
-	//		 Using class data member for array. Inclement and decrement of count is now controlled by
-	//		 constructors of Neighbour connections
-
-	// Make 4-by-3 arrays that count how many connections of each network and role we have and need
-	// int nCount[4][3], nLimit[4][3];
-
-	// modifying to 4 by 5 array in order to have extra connection types
-	//int nCount[4][5], nLimit[4][5];
-
 	// Get the time
-
 	DWORD tTimer = Network.m_nNetworkGlobalTickCount;		// The tick count (milliseconds)
 	DWORD tNow   = Network.m_nNetworkGlobalTime;			// The time (in seconds) 
 
@@ -1202,189 +1218,64 @@ void CNeighboursWithConnect::Maintain()
 		if ( tTimer - Network.m_tLastConnect < Settings.Connection.ConnectThrottle ) return;
 	}
 
-	// Set all the integers in both arrays to 0s
-	//ZeroMemory( nCount, sizeof nCount );
-	//ZeroMemory( nLimit, sizeof nLimit  );
 
-	/*
-	// Determine our node status
-	for ( POSITION pos = GetIterator() ; pos ; ) // Loop down the list of neighbours
+	// If we're connected to a hub of this protocol, store the tick count now in m_tPresent for this protocol
+	if ( m_nCount[ nProtocol ][ ntHub ] > 0 ) m_tPresent[ nProtocol ] = tNow;
+
+	// If we don't have enough hubs for this protocol
+	if ( m_nCount[ nProtocol ][ ntHub ] < m_nLimit[ nProtocol ][ ntNode ] )
 	{
-		// Get the neighbour at the position, and move the position forward
-		CNeighbour* pNeighbour = GetNext( pos );
-
-		// We're done with the handshake with this neighbour
-		if ( pNeighbour->m_nState == nrsConnected )
+		// Don't try to connect to G1 right away, wait a few seconds to reduce the number of connections
+		if ( ( nProtocol == PROTOCOL_G1 ) && ( Settings.Gnutella2.EnableToday == TRUE ) )
 		{
-			// We're connected to this neighbour and exchanging Gnutella2 packets
-			if ( pNeighbour->m_nProtocol == PROTOCOL_G2 )
-			{
-				// If our connection to this remote computer is up to a hub, we are a leaf, if it's down to a leaf, we are a hub
-				if ( pNeighbour->m_nNodeType == ntHub )  m_bG2Leaf = TRUE; // Save these results in the member variables
-				else if ( pNeighbour->m_nNodeType == ntLeaf ) m_bG2Hub  = TRUE;
-				else if ( pNeighbour->m_nNodeType == ntNode ) m_bG2Hub  = TRUE;
-
-			} // We're connected to this neighbours and exchanging Gnutella packets
-			else if ( pNeighbour->m_nProtocol == PROTOCOL_G1 )
-			{
-				// If our connection to this remote computer is up to a hub, we are a leaf, if it's down to a leaf, we are an ultrapeer
-				if ( pNeighbour->m_nNodeType == ntHub )  m_bG1Leaf      = TRUE; // Save these results in the member variables
-				else if ( pNeighbour->m_nNodeType == ntLeaf ) m_bG1Ultrapeer = TRUE;
-				else if ( pNeighbour->m_nNodeType == ntNode ) m_bG1Ultrapeer = TRUE;
-			}
+			// Wait 4 seconds before trying G1
+			if ( ! Network.ReadyToTransfer( tTimer ) ) return;
 		}
-	}
-	*/
 
-	// getting rid of this LOOP over head
+		// Get a pointer to the host cache for the given protocol
+		CHostCacheList* pCache = HostCache.ForProtocol( nProtocol );
 
-	/*
-	// Loop down the list of connected neighbours, sorting each by network and role and counting it
-	for ( POSITION pos = GetIterator() ; pos ; ) // We'll also prune leaf to leaf connections, which shouldn't happen
-	{
-		// Get the next neighbour in the list
-		CNeighbour* pNeighbour = GetNext( pos );
-
-		// We're done with the handshake and connected to this remote computer
-		if ( pNeighbour->m_nState == nrsConnected )
+		// We are going to try to connect to a computer running Gnutella or Gnutella2 software
+		int nAttempt;
+		if ( nProtocol != PROTOCOL_ED2K )
 		{
-			// We're both Gnutella2 leaves
-			if ( pNeighbour->m_nNodeType == ntLeaf && m_bG2Leaf && pNeighbour->m_nProtocol == PROTOCOL_G2 )
-			{
-				// Two leaves shouldn't connect, disconnect
-				pNeighbour->Close( IDS_CONNECTION_PEERPRUNE );
-
-			} // We're both Gnutella leaves
-			else if ( pNeighbour->m_nNodeType == ntLeaf && m_bG1Leaf && pNeighbour->m_nProtocol == PROTOCOL_G1 )
-			{
-				// Two leaves shouldn't connect, disconnect
-				pNeighbour->Close( IDS_CONNECTION_PEERPRUNE );
-
-			} // This connection is to a hub above us, or a hub just like us
-			else if ( pNeighbour->m_nNodeType != ntLeaf )
-			{
-				// If we've been connected for more than 8 seconds
-				if ( tNow - pNeighbour->m_tConnected > 8000 )
-				{
-					// Count one more hub for this connection's protocol
-					nCount[ pNeighbour->m_nProtocol ][ ntHub ]++;
-				}
-
-			} // We must be a hub, and this connection must be down to a leaf
-			else
-			{
-				// Count one more leaf for this connection's protocol
-				nCount[ pNeighbour->m_nProtocol ][ ntLeaf ]++;
-			}
-
-		} // We're still going through the handshake with this remote computer
-		else if ( pNeighbour->m_nState < nrsConnected )
-		{
-			// Count one more connection in the 0 column for this protocol
-			nCount[ pNeighbour->m_nProtocol ][ 0 ]++; // This is the same as ntNode, which is 0
+			// For Gnutella and Gnutella2, try connection to the number of free slots multiplied by the connect factor from settings
+			nAttempt = m_nLimit[ nProtocol ][ ntHub ] - m_nCount[ nProtocol ][ ntNode ];
+			nAttempt *=  Settings.Gnutella.ConnectFactor;
 		}
-	}
-	*/
-
-	// Add the count of connections where we don't know the network yet to the 0 column of both Gnutella and Gnutella2
-	//nCount[ PROTOCOL_G1 ][0] += nCount[ PROTOCOL_NULL ][0];
-	//nCount[ PROTOCOL_G2 ][0] += nCount[ PROTOCOL_NULL ][0];
-
-	// Connect to more computers or disconnect from some to get the connection counts where settings wants them to be
-	for ( PROTOCOLID nProtocol = PROTOCOL_ED2K ; nProtocol >= PROTOCOL_G1 ; --nProtocol ) // Loop once for each protocol, eDonkey2000, Gnutella2, then Gnutella
-	{
-		// If we're connected to a hub of this protocol, store the tick count now in m_tPresent for this protocol
-		if ( m_nCount[ nProtocol ][ ntHub ] > 0 ) m_tPresent[ nProtocol ] = tNow;
-
-		// If we don't have enough hubs for this protocol
-		if ( m_nCount[ nProtocol ][ ntHub ] < m_nLimit[ nProtocol ][ ntNode ] )
+		else
 		{
-			// Don't try to connect to G1 right away, wait a few seconds to reduce the number of connections
-			if ( ( nProtocol == PROTOCOL_G1 ) && ( Settings.Gnutella2.EnableToday == TRUE ) )
-			{
-				// Wait 4 seconds before trying G1
-				if ( ! Network.ReadyToTransfer( tTimer ) ) return;
-			}
-
-			// Get a pointer to the host cache for the given protocol
-			CHostCacheList* pCache = HostCache.ForProtocol( nProtocol );
-
-			// We are going to try to connect to a computer running Gnutella or Gnutella2 software
-			int nAttempt;
-			if ( nProtocol != PROTOCOL_ED2K )
-			{
-				// For Gnutella and Gnutella2, try connection to the number of free slots multiplied by the connect factor from settings
-				nAttempt = m_nLimit[ nProtocol ][ ntHub ] - m_nCount[ nProtocol ][ ntNode ];
-				nAttempt *=  Settings.Gnutella.ConnectFactor;
-			}
+			// For ed2k we try one attempt at a time to begin with, but we can step up to 
+			// 2 at a time after a few seconds if the FastConnect option is selected. 
+			if ( ( Settings.eDonkey.FastConnect ) && ( Network.ReadyToTransfer( tTimer ) ) )
+				nAttempt = 2;
 			else
+				nAttempt = 1;
+		}
+
+		// Lower the needed hub number to avoid hitting Windows XP Service Pack 2's half open connection limit
+		nAttempt = min(nAttempt, ( Settings.Downloads.MaxConnectingSources - 2 ) );
+
+		// In the loop for eDonkey2000, handle priority eDonkey2000 servers
+		if ( nProtocol == PROTOCOL_ED2K )
+		{
+			CHostCacheHost* pHost = pCache->GetNewest(); // Get the newest host from the eDonkey2000 host cache is network's host cache
+			if ( pHost != NULL ) // if there are any cache 
 			{
-				// For ed2k we try one attempt at a time to begin with, but we can step up to 
-				// 2 at a time after a few seconds if the FastConnect option is selected. 
-				if ( ( Settings.eDonkey.FastConnect ) && ( Network.ReadyToTransfer( tTimer ) ) )
-					nAttempt = 2;
-				else
-					nAttempt = 1;
-			}
-
-			// Lower the needed hub number to avoid hitting Windows XP Service Pack 2's half open connection limit
-			nAttempt = min(nAttempt, ( Settings.Downloads.MaxConnectingSources - 2 ) );
-
-			// In the loop for eDonkey2000, handle priority eDonkey2000 servers
-			if ( nProtocol == PROTOCOL_ED2K )
-			{
-				CHostCacheHost* pHost = pCache->GetNewest(); // Get the newest host from the eDonkey2000 host cache is network's host cache
-				if ( pHost != NULL ) // if there are any cache 
-				{
-					// Loop into the host cache until we have as many handshaking connections as we need hub connections
-					for ( ;pHost && m_nCount[ nProtocol ][ntHub] < nAttempt;  // Loop if we need more eDonkey2000 hubs than we have handshaking connections
-						pHost = pHost->m_pPrevTime )                 // At the end of the loop, move to the next youngest host cache entry
-					{
-						// If we can connect to this host, try it, if it works, move into this if block
-						if ( pHost->m_bPriority       && // This host in the host cache is marked as priority (do)
-							pHost->CanConnect( tNow ) && // We can connect to this host now (do)
-							pHost->ConnectTo( TRUE ) )   // Try to connect to this host now (do), if it works
-						{
-							// Make sure it's an eDonkey2000 computer we just connected to
-							ASSERT( pHost->m_nProtocol == nProtocol );
-
-							// Count that we now have one more eDonkey2000 connection, and we don't know if about its network role yet
-							// nCount[ nProtocol ][0]++;
-
-							// Prevent queries while we connect with this computer (do)
-							pHost->m_tQuery = tNow;
-
-							// If settings wants to limit how frequently this method can run
-							if ( Settings.Connection.ConnectThrottle != 0 )
-							{
-								// Save the time we last made a connection as now, and leave
-								Network.m_tLastConnect = tTimer;
-								Downloads.m_tLastConnect = tTimer;
-								return;
-							}
-						}
-					}
-				}
-				else if ( pCache->GetOldest() == NULL && !Settings.Discovery.DisableAutoQuery )
-				{
-					DiscoveryServices.Execute( TRUE, PROTOCOL_ED2K );
-				}
-			}
-			else
-			{
-				// If we need more connections for this network, get IP addresses from the host cache and try to connect to them
-				for ( CHostCacheHost* pHost = pCache->GetNewest(); // Get the newest entry in the host cache for this network
-					pHost && m_nCount[ nProtocol ][ntNull] < nAttempt;  // Loop if we need more hubs that we have handshaking connections
+				// Loop into the host cache until we have as many handshaking connections as we need hub connections
+				for ( ;pHost && m_nCount[ nProtocol ][ntHub] < nAttempt;  // Loop if we need more eDonkey2000 hubs than we have handshaking connections
 					pHost = pHost->m_pPrevTime )                 // At the end of the loop, move to the next youngest host cache entry
 				{
-					// If we can connect to this IP address from the host cache, try to make the connection
-					if ( pHost->CanConnect( tNow ) && pHost->ConnectTo( TRUE ) ) // Enter the if statement if the connection worked
+					// If we can connect to this host, try it, if it works, move into this if block
+					if ( pHost->m_bPriority       && // This host in the host cache is marked as priority (do)
+						pHost->CanConnect( tNow ) && // We can connect to this host now (do)
+						pHost->ConnectTo( TRUE ) )   // Try to connect to this host now (do), if it works
 					{
-						// Make sure the connection we just made matches the protocol we're looping for right now
+						// Make sure it's an eDonkey2000 computer we just connected to
 						ASSERT( pHost->m_nProtocol == nProtocol );
 
-						// Count that we now have one more handshaking connection for this network
-						//nCount[ nProtocol ][0]++;
+						// Prevent queries while we connect with this computer (do)
+						pHost->m_tQuery = tNow;
 
 						// If settings wants to limit how frequently this method can run
 						if ( Settings.Connection.ConnectThrottle != 0 )
@@ -1397,82 +1288,210 @@ void CNeighboursWithConnect::Maintain()
 					}
 				}
 			}
-			// If network autoconnet is on (do)
-			if ( Network.m_bAutoConnect )
+			else if ( pCache->GetOldest() == NULL && !Settings.Discovery.DisableAutoQuery )
 			{
-				// If we don't have any handshaking connections for this network, and we've been connected to a hub for more than 30 seconds
-				if ( m_nCount[ nProtocol ][ ntNull ] == 0          || // We don't have any handshaking connections for this network, or
-					 tNow - m_tPresent[ nProtocol ] >= 30 )    // We've been connected to a hub for more than 30 seconds
+				DiscoveryServices.Execute( TRUE, PROTOCOL_ED2K );
+			}
+		}
+		else if ( nProtocol == PROTOCOL_G2 )
+		{
+			// If we need more connections for this network, get IP addresses from the host cache and try to connect to them
+			for ( CHostCacheHost* pHost = pCache->GetNewest(); // Get the newest entry in the host cache for this network
+				pHost && m_nCount[ PROTOCOL_G2 ][ntNull] < nAttempt;  // Loop if we need more hubs that we have handshaking connections
+				pHost = pHost->m_pPrevTime )                 // At the end of the loop, move to the next youngest host cache entry
+			{
+				// if Local Storage of Host for this network is not empty.
+				if ( !m_oG2LocalCache.empty() )
 				{
-					// We're looping for Gnutella2 right now
-					if ( nProtocol == PROTOCOL_G2 && Settings.Gnutella2.EnableToday )
+					HostAddrPtr	iHostPtr = m_oG2LocalCache.begin();
+					// Make sure the connection we just made matches the protocol we're looping for right now
+					if ( ConnectTo( &(iHostPtr->sin_addr), ntohs( iHostPtr->sin_port ), PROTOCOL_G2, TRUE, FALSE, FALSE ) )
 					{
-						// If the Gnutella host cache is empty and Auto is not Disabled, execute discovery services (do)
-						if ( pCache->GetOldest() == NULL && !Settings.Discovery.DisableAutoQuery )
-							DiscoveryServices.Execute( TRUE, PROTOCOL_G2 );
-					} // We're looping for Gnutella right now
-					else if ( nProtocol == PROTOCOL_G1 && Settings.Gnutella1.EnableToday )
+						// If settings wants to limit how frequently this method can run
+						if ( Settings.Connection.ConnectThrottle != 0 )
+						{
+							m_oG2LocalCache.erase( iHostPtr );
+							// Save the time we last made a connection as now, and leave
+							Network.m_tLastConnect = tTimer;
+							Downloads.m_tLastConnect = tTimer;
+							return;
+						}
+					}
+					m_oG2LocalCache.erase( iHostPtr );
+				}
+				// If it is within 20Sec from start of this network, and UDP Cache Query has been done.
+				else if ( tNow - m_tG2Start <= 20 )
+				{
+					if ( pHost->UDPCacheQuery() )
 					{
-						// If the Gnutella host cache is empty and Auto is not Disabled, execute discovery services (do)
-						if ( pCache->GetOldest() == NULL && !Settings.Discovery.DisableAutoQuery )
-							DiscoveryServices.Execute( TRUE, PROTOCOL_G1 );
+						// Make sure the connection we just made matches the protocol we're looping for right now
+						ASSERT( pHost->m_nProtocol == nProtocol );
+
+						// If settings wants to limit how frequently this method can run
+						if ( Settings.Connection.ConnectThrottle != 0 )
+						{
+							// Save the time we last made a connection as now, and leave
+							Network.m_tLastConnect = tTimer;
+							Downloads.m_tLastConnect = tTimer;
+							return;
+						}
+					}
+				}
+				// If we can connect to this IP address from the host cache, try to make the connection
+				else if ( pHost->CanConnect( tNow ) && pHost->ConnectTo( TRUE ) )
+				{
+					// Make sure the connection we just made matches the protocol we're looping for right now
+					ASSERT( pHost->m_nProtocol == nProtocol );
+
+					// If settings wants to limit how frequently this method can run
+					if ( Settings.Connection.ConnectThrottle != 0 )
+					{
+						// Save the time we last made a connection as now, and leave
+						Network.m_tLastConnect = tTimer;
+						Downloads.m_tLastConnect = tTimer;
+						return;
 					}
 				}
 			}
-
-		} // We have too many hub connections for this protocol
-		else if ( m_nCount[ nProtocol ][ ntHub ] > m_nLimit[ nProtocol ][ ntHub ] ) // We're over the limit we just calculated
+		}
+		else if ( nProtocol == PROTOCOL_G1 )
 		{
-			// Find the hub we connected to most recently for this protocol
-			CNeighbour* pNewest = NULL;
-			for ( POSITION pos = GetIterator() ; pos ; )
+			// If we need more connections for this network, get IP addresses from the host cache and try to connect to them
+			for ( CHostCacheHost* pHost = pCache->GetNewest(); // Get the newest entry in the host cache for this network
+				pHost && m_nCount[ PROTOCOL_G1 ][ntNull] < nAttempt;  // Loop if we need more hubs that we have handshaking connections
+				pHost = pHost->m_pPrevTime )                 // At the end of the loop, move to the next youngest host cache entry
 			{
-				// Loop through the list of neighbours
-				CNeighbour* pNeighbour = GetNext( pos );
-
-				// If this is a hub connection that connected to us recently
-				if (
-					// If this connection isn't down to a leaf, and
-					( pNeighbour->m_nNodeType != ntLeaf ) &&
-					// This connection is for the protocol we're looping on right now, and
-					( pNeighbour->m_nProtocol == nProtocol ) &&
-					// If the neighbour connected to us
-					( pNeighbour->m_bAutomatic              || // The neighbour is automatic, or
-					  !pNeighbour->m_bInitiated             || // The neighbour connected to us, or
-					  m_nLimit[ nProtocol ][ ntHub ] == 0 ) )    // We're not supposed to be connected to this network at all
+				// if Local Storage of Host for this network is not empty.
+				if ( !m_oG1LocalCache.empty() )
 				{
-					// If this is the newest hub, remember it.
-					if ( pNewest == NULL || pNeighbour->m_tConnected > pNewest->m_tConnected ) 
-						pNewest = pNeighbour;
+					HostAddrPtr	iHostPtr = m_oG1LocalCache.begin();
+					// Make sure the connection we just made matches the protocol we're looping for right now
+					if ( ConnectTo( &(iHostPtr->sin_addr), ntohs( iHostPtr->sin_port ), PROTOCOL_G1, TRUE, FALSE, FALSE ) )
+					{
+						// If settings wants to limit how frequently this method can run
+						if ( Settings.Connection.ConnectThrottle != 0 )
+						{
+							m_oG1LocalCache.erase( iHostPtr );
+							// Save the time we last made a connection as now, and leave
+							Network.m_tLastConnect = tTimer;
+							Downloads.m_tLastConnect = tTimer;
+							return;
+						}
+					}
+					m_oG1LocalCache.erase( iHostPtr );
+				}
+				// If it is within 10Sec from start of this network, and UDP Cache Query has been done.
+				else if ( tNow - m_tG1Start <= 10 )
+				{
+					if ( pHost->UDPCacheQuery() )
+					{
+						// Make sure the connection we just made matches the protocol we're looping for right now
+						ASSERT( pHost->m_nProtocol == nProtocol );
+
+						// If settings wants to limit how frequently this method can run
+						if ( Settings.Connection.ConnectThrottle != 0 )
+						{
+							// Save the time we last made a connection as now, and leave
+							Network.m_tLastConnect = tTimer;
+							Downloads.m_tLastConnect = tTimer;
+							return;
+						}
+					}
+				}
+				// If we can connect to this IP address from the host cache, try to make the connection
+				else if ( pHost->CanConnect( tNow ) && pHost->ConnectTo( TRUE ) )
+				{
+					// Make sure the connection we just made matches the protocol we're looping for right now
+					ASSERT( pHost->m_nProtocol == nProtocol );
+
+					// If settings wants to limit how frequently this method can run
+					if ( Settings.Connection.ConnectThrottle != 0 )
+					{
+						// Save the time we last made a connection as now, and leave
+						Network.m_tLastConnect = tTimer;
+						Downloads.m_tLastConnect = tTimer;
+						return;
+					}
 				}
 			}
-
-			// Disconnect from one hub
-			if ( pNewest != NULL ) pNewest->Close(); // Close the connection
 		}
-
-		// If we're over our leaf connection limit for this network
-		if ( m_nCount[ nProtocol ][ ntLeaf ] > m_nLimit[ nProtocol ][ ntLeaf ] )
+		// If network autoconnet is on (do)
+		// this condition is very funny since it is not reachable unless m_bAutoConnect is TRUE anyway.
+		if ( Network.m_bAutoConnect )
 		{
-			// Find the leaf we most recently connected to
-			CNeighbour* pNewest = NULL;
-			for ( POSITION pos = GetIterator() ; pos ; )
+			// If we don't have any handshaking connections for this network, and we've been connected to a hub for more than 30 seconds
+			if ( m_nCount[ nProtocol ][ ntNull ] == 0          || // We don't have any handshaking connections for this network, or
+				tNow - m_tPresent[ nProtocol ] >= 30 )    // We've been connected to a hub for more than 30 seconds
 			{
-				// Loop for each neighbour in the list
-				CNeighbour* pNeighbour = GetNext( pos );
-
-				// This connection is down to a leaf and the protocol is correct
-				if ( pNeighbour->m_nNodeType == ntLeaf && pNeighbour->m_nProtocol == nProtocol )
+				// We're looping for Gnutella2 right now
+				if ( nProtocol == PROTOCOL_G2 && Settings.Gnutella2.EnableToday )
 				{
-					// If we haven't found the newest yet, or this connection is younger than the current newest, this is it
-					if ( pNewest == NULL || pNeighbour->m_tConnected > pNewest->m_tConnected ) pNewest = pNeighbour;
+					// If the Gnutella host cache is empty and Auto is not Disabled, execute discovery services (do)
+					if ( pCache->GetOldest() == NULL && !Settings.Discovery.DisableAutoQuery )
+						DiscoveryServices.Execute( TRUE, PROTOCOL_G2 );
+				} // We're looping for Gnutella right now
+				else if ( nProtocol == PROTOCOL_G1 && Settings.Gnutella1.EnableToday )
+				{
+					// If the Gnutella host cache is empty and Auto is not Disabled, execute discovery services (do)
+					if ( pCache->GetOldest() == NULL && !Settings.Discovery.DisableAutoQuery )
+						DiscoveryServices.Execute( TRUE, PROTOCOL_G1 );
 				}
 			}
-
-			// Disconnect from one leaf
-			if ( pNewest != NULL ) pNewest->Close(); // Close the connection
 		}
+
+	} // We have too many hub connections for this protocol
+	else if ( m_nCount[ nProtocol ][ ntHub ] > m_nLimit[ nProtocol ][ ntHub ] ) // We're over the limit we just calculated
+	{
+		// Find the hub we connected to most recently for this protocol
+		CNeighbour* pNewest = NULL;
+		for ( POSITION pos = GetIterator() ; pos ; )
+		{
+			// Loop through the list of neighbours
+			CNeighbour* pNeighbour = GetNext( pos );
+
+			// If this is a hub connection that connected to us recently
+			if (
+				// If this connection isn't down to a leaf, and
+				( pNeighbour->m_nNodeType != ntLeaf ) &&
+				// This connection is for the protocol we're looping on right now, and
+				( pNeighbour->m_nProtocol == nProtocol ) &&
+				// If the neighbour connected to us
+				( pNeighbour->m_bAutomatic              || // The neighbour is automatic, or
+				!pNeighbour->m_bInitiated             || // The neighbour connected to us, or
+				m_nLimit[ nProtocol ][ ntHub ] == 0 ) )    // We're not supposed to be connected to this network at all
+			{
+				// If this is the newest hub, remember it.
+				if ( pNewest == NULL || pNeighbour->m_tConnected > pNewest->m_tConnected ) 
+					pNewest = pNeighbour;
+			}
+		}
+
+		// Disconnect from one hub
+		if ( pNewest != NULL ) pNewest->Close(); // Close the connection
 	}
+
+	// If we're over our leaf connection limit for this network
+	if ( m_nCount[ nProtocol ][ ntLeaf ] > m_nLimit[ nProtocol ][ ntLeaf ] )
+	{
+		// Find the leaf we most recently connected to
+		CNeighbour* pNewest = NULL;
+		for ( POSITION pos = GetIterator() ; pos ; )
+		{
+			// Loop for each neighbour in the list
+			CNeighbour* pNeighbour = GetNext( pos );
+
+			// This connection is down to a leaf and the protocol is correct
+			if ( pNeighbour->m_nNodeType == ntLeaf && pNeighbour->m_nProtocol == nProtocol )
+			{
+				// If we haven't found the newest yet, or this connection is younger than the current newest, this is it
+				if ( pNewest == NULL || pNeighbour->m_tConnected > pNewest->m_tConnected ) pNewest = pNeighbour;
+			}
+		}
+
+		// Disconnect from one leaf
+		if ( pNewest != NULL ) pNewest->Close(); // Close the connection
+	}
+
 }
 
 int CNeighboursWithConnect::GetCount(PROTOCOLID nProtocol, int nState, int nNodeType) const
@@ -1522,36 +1541,54 @@ void CNeighboursWithConnect::Connect()
 	{
 		m_bG2Leaf	= FALSE;
 		m_bG2Hub	= TRUE;
+		m_tG2Start	= static_cast<DWORD>( time(NULL) );
 	}
 	else
 	{
 		m_bG2Leaf	= TRUE;
 		m_bG2Hub	= FALSE;
+		m_tG2Start	= static_cast<DWORD>( time(NULL) );
 	}
 
 	if ( !Settings.Gnutella1.EnableToday )
 	{
-		m_bG1Leaf      = FALSE;
-		m_bG1Ultrapeer = FALSE;
+		m_bG1Leaf		= FALSE;
+		m_bG1Ultrapeer	= FALSE;
 	}
 	else if ( Settings.Gnutella1.ClientMode == MODE_HUB )
 	{
-		m_bG1Leaf      = FALSE;
-		m_bG1Ultrapeer = TRUE;
+		m_bG1Leaf		= FALSE;
+		m_bG1Ultrapeer	= TRUE;
+		m_tG1Start		= static_cast<DWORD>( time(NULL) );
 	}
 	else
 	{
-		m_bG1Leaf      = TRUE;
-		m_bG1Ultrapeer = FALSE;
+		m_bG1Leaf		= TRUE;
+		m_bG1Ultrapeer	= FALSE;
+		m_tG1Start		= static_cast<DWORD>( time(NULL) );
 	}
 
 
 	CNeighboursWithRouting::Connect();
 }
 
+void CNeighboursWithConnect::Close()
+{
+	m_tModeCheck	= 0;		// Reset status
+	m_bG2Leaf		= FALSE;
+	m_bG2Hub		= FALSE;
+	m_bG1Leaf		= FALSE;
+	m_bG1Ultrapeer	= FALSE;
+	m_tG2Start		= 0;
+	m_tG1Start		= 0;
+
+	CNeighboursWithRouting::Close();
+}
+
 void CNeighboursWithConnect::ConnectG2()
 {
 	Settings.Gnutella2.EnableToday = TRUE;
+	m_tG2Start	= static_cast<DWORD>( time(NULL) );
 	if ( Settings.Gnutella2.ClientMode == MODE_HUB && !Network.IsFirewalled() && Datagrams.IsStable() )
 	{
 		// We're a hub on the Gnutella2 network
@@ -1589,12 +1626,14 @@ void CNeighboursWithConnect::DisconnectG2()
 	m_tHubG2Promotion = 0; // If we're not a hub, time promoted is 0
 
 	CNeighboursWithRouting::DisconnectG2();
+	m_tG1Start	= 0;
 	Settings.Gnutella2.EnableToday = FALSE;
 }
 
 void CNeighboursWithConnect::ConnectG1()
 {
 	Settings.Gnutella1.EnableToday = TRUE;
+	m_tG1Start	= static_cast<DWORD>( time(NULL) );
 	if ( Settings.Gnutella1.ClientMode == MODE_HUB && !Network.IsFirewalled() && Datagrams.IsStable() )
 	{
 		// We're a Ultrapeer on the Gnutella1 network
@@ -1627,6 +1666,7 @@ void CNeighboursWithConnect::DisconnectG1()
 	m_nLimit[ PROTOCOL_G1 ][ ntHub ] = m_nLimit[ PROTOCOL_G1 ][ ntLeaf ] = m_nLimit[ PROTOCOL_G1 ][ ntNode ] = 0;
 
 	CNeighboursWithRouting::DisconnectG1();
+	m_tG1Start	= 0;
 	Settings.Gnutella1.EnableToday = FALSE;
 }
 
@@ -1648,3 +1688,14 @@ void CNeighboursWithConnect::DisconnectED2K()
 	Settings.eDonkey.EnableToday = FALSE;
 }
 
+void CNeighboursWithConnect::StoreCache(PROTOCOLID nProtocol, SOCKADDR_IN& pHost)
+{
+	if ( nProtocol == PROTOCOL_G1 )
+	{
+		m_oG1LocalCache.push_back( pHost );
+	}
+	else if ( nProtocol == PROTOCOL_G2 )
+	{
+		m_oG2LocalCache.push_back( pHost );
+	}
+}
