@@ -32,7 +32,7 @@ static char THIS_FILE[] = __FILE__;
 
 BEGIN_MESSAGE_MAP(CConnectToDlg, CSkinDialog)
 	//{{AFX_MSG_MAP(CConnectToDlg)
-	ON_CBN_CLOSEUP(IDC_CONNECT_HOST, OnSelChangeConnectHost)
+	ON_CBN_SELCHANGE(IDC_CONNECT_HOST, OnSelChangeConnectHost)
 	ON_WM_MEASUREITEM()
 	ON_WM_DRAWITEM()
 	ON_CBN_CLOSEUP(IDC_CONNECT_PROTOCOL, OnCloseUpConnectProtocol)
@@ -111,6 +111,8 @@ BOOL CConnectToDlg::OnInitDialog()
 
 	m_nPort		= Settings.Connection.InPort;
 	m_nProtocol	= PROTOCOL_G1;
+
+	m_wndPort.SendMessage(EM_SETLIMITTEXT, 5);
 
 	UpdateData( FALSE );
 
