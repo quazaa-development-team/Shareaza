@@ -1030,7 +1030,7 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 			{
 				if ( nLength > 3 ) nValidCharacters = nLength;
 			}
-			else if ( nLength > 2 )
+			else if ( nLength > 3 )
 			{
 				nValidCharacters = nLength;
 			}
