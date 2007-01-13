@@ -382,7 +382,7 @@ CG2Packet* CNeighboursWithG2::CreateKHLPacket(CG2Neighbour* pOwner)
 	}
 	*/
 
-	if ( m_oHub.size() != 0 && !pOwner->m_bObsoleteClient )
+	if ( m_oHub.size() )
 	{
 		std::list<CG2Neighbour*>::iterator iIndex = m_oHub.begin();
 		std::list<CG2Neighbour*>::iterator iEnd = m_oHub.end();
@@ -417,12 +417,7 @@ CG2Packet* CNeighboursWithG2::CreateKHLPacket(CG2Neighbour* pOwner)
 		}
 	}
 
-	int nCount;
-
-	if ( !pOwner->m_bObsoleteClient )
-		nCount = Settings.Gnutella2.KHLHubCount;
-	else 
-		nCount = 0;
+	int nCount = Settings.Gnutella2.KHLHubCount;
 
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
 
@@ -497,7 +492,7 @@ BOOL CNeighboursWithG2::ParseKHLPacket(CG2Packet* pPacket, CG2Neighbour* pOwner)
 		DWORD nNext = pPacket->m_nPosition + nLength;
 
 		if (	nType == G2_PACKET_NEIGHBOUR_HUB ||
-			(	!pOwner->m_bObsoleteClient && nType == G2_PACKET_CACHED_HUB ) )
+			(	nType == G2_PACKET_CACHED_HUB ) )
 		{
 			DWORD nAddress = 0, nKey = 0, tSeen = tNow, nLeafCurrent = 0, nLeafLimit = 0;
 			WORD nPort = 0;
@@ -557,6 +552,7 @@ BOOL CNeighboursWithG2::ParseKHLPacket(CG2Packet* pPacket, CG2Neighbour* pOwner)
 			if ( nType == G2_PACKET_NEIGHBOUR_HUB )
 			{
 				pCached = HostCache.Gnutella2.Add( (IN_ADDR*)&nAddress, nPort, tSeen, strVendor );
+				if ( pCached ) pCached->m_bCheckedLocally = TRUE;
 			}
 			else if ( nType == G2_PACKET_CACHED_HUB )
 			{
