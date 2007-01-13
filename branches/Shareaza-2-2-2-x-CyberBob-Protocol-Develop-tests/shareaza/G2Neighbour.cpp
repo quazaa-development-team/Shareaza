@@ -963,8 +963,8 @@ BOOL CG2Neighbour::OnLNI(CG2Packet* pPacket)
 
 		if ( pCache != NULL )
 		{
-				pCache->m_nUserCount = m_nLeafCount;
-				pCache->m_nUserLimit = m_nLeafLimit;
+			pCache->m_nUserCount = m_nLeafCount;
+			pCache->m_nUserLimit = m_nLeafLimit;
 		}
 	}
 	else
