@@ -380,6 +380,7 @@ BOOL CShareazaApp::InitInstance()
 	EnableShellOpen();
 //	RegisterShellFileTypes();
 
+	Settings.General.GUIMode = -1;
 	ParseCommandLine( m_ocmdInfo );
 	if ( m_ocmdInfo.m_nShellCommand == CCommandLineInfo::AppUnregister )
 	{
@@ -479,8 +480,13 @@ BOOL CShareazaApp::InitInstance()
 		WSADATA wsaData;
 		if ( WSAStartup( 0x0101, &wsaData ) ) return FALSE;
 	
+	// Save GUI mode from the switches
+	int nGUIMode = Settings.General.GUIMode;
 	SplashStep( dlgSplash, L"Settings Database" );
 		Settings.Load();
+
+	if ( nGUIMode != -1 )
+		Settings.General.GUIMode = nGUIMode;
 
 	SplashStep( dlgSplash, L"Firewall/Router Setup" );
 	{

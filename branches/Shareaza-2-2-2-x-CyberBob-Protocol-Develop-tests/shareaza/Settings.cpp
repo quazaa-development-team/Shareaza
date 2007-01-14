@@ -54,10 +54,10 @@ void CSettings::Setup()
 	Add( _T("Settings.GUIMode"), &General.GUIMode, GUI_BASIC );
 	Add( _T("Settings.CloseMode"), &General.CloseMode, 0 );
 	Add( _T("Settings.TrayMinimise"), &General.TrayMinimise, FALSE );
-	Add( _T("Settings.VerboseMode"), &General.VerboseMode, TRUE );
+	Add( _T("Settings.VerboseMode"), &General.VerboseMode, FALSE );
 	Add( _T("Settings.ShowTimestamp"), &General.ShowTimestamp, TRUE );
 	Add( _T("Settings.SizeLists"), &General.SizeLists, FALSE );
-	Add( _T("Settings.RatesInBytes"), &General.RatesInBytes, FALSE );
+	Add( _T("Settings.RatesInBytes"), &General.RatesInBytes, TRUE );
 	Add( _T("Settings.RatesUnit"), &General.RatesUnit, 0 );
 	Add( _T("Settings.AlwaysOpenURLs"), &General.AlwaysOpenURLs, FALSE );
 	Add( _T("Settings.Language"), &General.Language, _T("en") );
@@ -466,7 +466,6 @@ CSettings::CSettings()
 	General.UserPath = General.Path;
 
 	// Reset 'live' values.
-
 	Live.DiskSpaceWarning	= FALSE;
 	Live.DiskWriteWarning	= FALSE;
 	Live.AdultWarning		= FALSE;
@@ -524,7 +523,7 @@ void CSettings::Add(LPCTSTR pszName, CString* pString, LPCTSTR pszDefault)
 //////////////////////////////////////////////////////////////////////
 // CSettings load
 
-#define SMART_VERSION	38
+#define SMART_VERSION	39
 
 void CSettings::Load()
 {
@@ -563,7 +562,9 @@ void CSettings::Load()
 
 	// Make sure some needed paths exist
 	CreateDirectory( General.Path + _T("\\Data"), NULL );
+	CreateDirectory( General.UserPath, NULL );
 	CreateDirectory( General.UserPath + _T("\\Data"), NULL );
+	CreateDirectory( Downloads.IncompletePath, NULL );
 
 	// Set interface
 	Interface.LowResMode		= ! ( GetSystemMetrics( SM_CYSCREEN ) > 600 );
@@ -588,7 +589,7 @@ void CSettings::Load()
 	Gnutella1.RequeryDelay		= max( Gnutella1.RequeryDelay, 45*60u );
 	Gnutella2.RequeryDelay		= max( Gnutella2.RequeryDelay, 60*60u );
 	Downloads.ConnectThrottle	= max( Downloads.ConnectThrottle, Connection.ConnectThrottle + 50 );
-	Downloads.MaxFiles			= min( Downloads.MaxFiles, 100 );
+	Downloads.MaxFiles			= min( Downloads.MaxFiles, 1024 );
 
 	// Set client links
 	Gnutella1.NumHubs			= min( Gnutella1.NumHubs, 5 );
@@ -726,8 +727,6 @@ void CSettings::SmartUpgrade()
 
 	if ( nVersion < 28 )
 	{
-		Library.VirtualFiles	= TRUE;		// Virtual files (stripping) on
-
 		BitTorrent.Endgame		= TRUE;		// Endgame on
 	}
 
@@ -785,6 +784,7 @@ void CSettings::SmartUpgrade()
 
 	if ( nVersion < 36 )
 	{
+		//Library.VirtualFiles	= TRUE;		// Virtual files (stripping) on
 		Library.VirtualFiles = FALSE;
 	}
 
@@ -798,6 +798,12 @@ void CSettings::SmartUpgrade()
 	if ( nVersion < 38 )
 	{
 		BitTorrent.AutoSeed = TRUE;
+	}
+
+	if ( nVersion < 39 )
+	{
+		General.RatesInBytes = TRUE;
+		General.VerboseMode = FALSE;
 	}
 }
 

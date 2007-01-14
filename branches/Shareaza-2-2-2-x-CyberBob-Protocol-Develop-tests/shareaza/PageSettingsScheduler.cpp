@@ -44,6 +44,7 @@ BEGIN_MESSAGE_MAP(CSchedulerSettingsPage, CSettingsPage)
 	ON_WM_RBUTTONDOWN()
 	ON_WM_RBUTTONUP()
 	//}}AFX_MSG_MAP
+	ON_WM_SETCURSOR()
 END_MESSAGE_MAP()
 
 
@@ -125,6 +126,7 @@ void CSchedulerSettingsPage::OnMouseMove(UINT /*nFlags*/, CPoint point)
 
 	GetClientRect( &rc );
 
+	// Use part of the heading as a zone for highlighting all days of a particular hour.
 	rc.top += HEADING_HEIGHT - 10;
 	rc.left += 4;
 
@@ -133,10 +135,10 @@ void CSchedulerSettingsPage::OnMouseMove(UINT /*nFlags*/, CPoint point)
 
 	if ( rc.PtInRect( point ) )
 	{
-		BOOL bAllHours = point.y - rc.top < 20;
-		BOOL bWholeDay = point.x - rc.left < 30;
-		int nHoverDay  = bAllHours ? 7 : ( point.y - ( rc.top + 20 ) ) / 16;
-		int nHoverHour = bWholeDay ? 24  : ( point.x - ( rc.left + 30 ) ) / 16;
+		BOOL bAllDays  = point.y - rc.top < 20;
+		BOOL bAllHours = point.x - rc.left < 30;
+		int nHoverDay  = bAllDays ? 7 : ( point.y - ( rc.top + 20 ) ) / 16;
+		int nHoverHour = bAllHours ? 24  : ( point.x - ( rc.left + 30 ) ) / 16;
 
 		if ( ( nHoverDay != m_nHoverDay ) || ( nHoverHour != m_nHoverHour ) )
 		{
@@ -149,25 +151,34 @@ void CSchedulerSettingsPage::OnMouseMove(UINT /*nFlags*/, CPoint point)
 				m_nHoverHour = BYTE( nHoverHour );
 			}
 
-			if ( m_nHoverHour < 24 )
+			if ( m_nHoverHour < 24 && m_nHoverDay == 7 )
 			{
 				strSliceDisplay.Format(_T("%s, %d:00 - %d:59"), m_sDayName[m_nHoverDay], m_nHoverHour, m_nHoverHour );
+				::SetCursor( AfxGetApp()->LoadCursor( IDC_DOWN ) );
 			}
 			else if ( m_nHoverHour == 24 && m_nHoverDay < 7 )
 			{
 				strSliceDisplay.Format(_T("%s, 0:00 - 23:59"), m_sDayName[m_nHoverDay] );
+				::SetCursor( AfxGetApp()->LoadCursor( theApp.m_bRTL ? IDC_LEFT : IDC_RIGHT ) );
+			}
+			else if ( m_nHoverHour < 24 && m_nHoverDay < 7 )
+			{
+				strSliceDisplay.Format(_T("%s, %d:00 - %d:59"), m_sDayName[m_nHoverDay], m_nHoverHour, m_nHoverHour );
+				::SetCursor( AfxGetApp()->LoadStandardCursor( IDC_ARROW ) );
 			}
 			else
 			{
-				strSliceDisplay = "";
+				strSliceDisplay = _T("");
+				::SetCursor( AfxGetApp()->LoadStandardCursor( IDC_ARROW ) );
 			}
 			m_wndDisplay.SetWindowText( strSliceDisplay );
 
-			Invalidate();
+			InvalidateSchedulerRect();
 		}
 	}
 	else
 	{
+		::SetCursor( AfxGetApp()->LoadStandardCursor( IDC_ARROW ) );
 		m_wndDisplay.SetWindowText( _T("") );
 
 		if ( ( m_nHoverDay != 0xFF ) || ( m_nHoverHour != 0xFF ) )
@@ -189,16 +200,12 @@ void CSchedulerSettingsPage::OnLButtonDown(UINT /*nFlags*/, CPoint /*point*/)
 	if ( ( m_nHoverDay == 0xFF ) || ( m_nHoverHour == 0xFF ) ) return;
 	m_nDownDay  = m_nHoverDay;
 	m_nDownHour = m_nHoverHour;
+	
 	SetCapture();
-	Invalidate();
+	InvalidateSchedulerRect();
 }
 
 void CSchedulerSettingsPage::OnLButtonUp(UINT /*nFlags*/, CPoint /*point*/)
-{
-	ToggleTimeBlocks(1);
-}
-
-void CSchedulerSettingsPage::OnLButtonDblClk(UINT /*nFlags*/, CPoint /*point*/)
 {
 	ToggleTimeBlocks(1);
 }
@@ -209,7 +216,7 @@ void CSchedulerSettingsPage::OnRButtonDown(UINT /*nFlags*/, CPoint /*point*/)
 	m_nDownDay		= m_nHoverDay;
 	m_nDownHour		= m_nHoverHour;
 	SetCapture();
-	Invalidate();
+	InvalidateSchedulerRect();
 }
 
 void CSchedulerSettingsPage::OnRButtonUp(UINT /*nFlags*/, CPoint /*point*/)
@@ -323,6 +330,27 @@ void CSchedulerSettingsPage::ToggleTimeBlocks(BYTE nDirection)
 	m_nDownHour	= 0xFF;
 
 	ReleaseCapture();
-	Invalidate();
+	InvalidateSchedulerRect();
 	UpdateWindow();
+}
+
+void CSchedulerSettingsPage::InvalidateSchedulerRect()
+{
+	CRect rc;
+
+	GetClientRect( &rc );
+
+	rc.top += HEADING_HEIGHT - 10;
+	rc.left += 4;
+
+	rc.bottom = rc.top + 20 + ( 7 * 16 );
+	rc.right = rc.left + 30 + ( 24 * 16 );
+	
+	InvalidateRect(rc);
+}
+
+BOOL CSchedulerSettingsPage::OnSetCursor(CWnd* /*pWnd*/, UINT /*nHitTest*/, UINT /*message*/)
+{
+	// Do not pass the event down, so cursor will be handled only here
+	return FALSE;
 }
