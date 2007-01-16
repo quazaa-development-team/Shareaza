@@ -1195,6 +1195,7 @@ BOOL CG2Neighbour::OnQuery(CG2Packet* pPacket)
 	if ( m_nNodeType == ntLeaf && m_bObsoleteClient )
 	{
 		Statistics.Current.Gnutella2.Dropped++;
+		m_nDropCount++;
 		return TRUE;
 	}
 
@@ -1334,9 +1335,12 @@ BOOL CG2Neighbour::OnQueryAck(CG2Packet* pPacket)
 
 BOOL CG2Neighbour::OnQueryKeyReq(CG2Packet* pPacket)
 {
-	if ( ! pPacket->m_bCompound ) return TRUE;
-	if ( m_nNodeType != ntLeaf ) return TRUE;
-	if ( m_bObsoleteClient ) return TRUE;
+	if ( ! pPacket->m_bCompound || m_nNodeType != ntLeaf || m_bObsoleteClient )
+	{
+		Statistics.Current.Gnutella2.Dropped++;
+		m_nDropCount++;
+		return TRUE;
+	}
 
 	DWORD nLength, nAddress = 0;
 	BOOL bCacheOkay = TRUE;

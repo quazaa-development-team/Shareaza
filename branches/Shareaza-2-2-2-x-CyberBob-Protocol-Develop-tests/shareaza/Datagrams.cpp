@@ -1128,9 +1128,12 @@ BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 					break;
 				}
 			}
-			if ( iIndex == iEnd ) return TRUE;
+			if ( iIndex == iEnd ) 
+			{
+				Statistics.Current.Gnutella2.Dropped++;
+				return TRUE;
+			}
 		}
-
 	}
 
 	pPacket->SmartDump( NULL, &pHost->sin_addr, FALSE );
