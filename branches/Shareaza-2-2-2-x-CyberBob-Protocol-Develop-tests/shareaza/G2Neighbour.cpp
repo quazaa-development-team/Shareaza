@@ -327,8 +327,6 @@ void CG2Neighbour::SendStartups()
 {
 	CG2Packet* pPing = CG2Packet::New( G2_PACKET_PING, TRUE );
 
-	pPing->WritePacket( G2_PACKET_VERSION, 6 );
-	pPing->WritePacket( G2_PACKET_SFL_DESC, 6 );
 	if ( Network.IsListening() && ( !Datagrams.IsStable() || Network.IsFirewalled() || Network.IsTestingUDPFW() ) )
 	{
 		pPing->WritePacket( G2_PACKET_UDP, 6 );
