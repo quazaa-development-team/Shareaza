@@ -1336,7 +1336,7 @@ BOOL CG2Neighbour::OnQueryKeyReq(CG2Packet* pPacket)
 {
 	if ( ! pPacket->m_bCompound ) return TRUE;
 	if ( m_nNodeType != ntLeaf ) return TRUE;
-	if ( !m_bObsoleteClient ) return TRUE;
+	if ( m_bObsoleteClient ) return TRUE;
 
 	DWORD nLength, nAddress = 0;
 	BOOL bCacheOkay = TRUE;
