@@ -525,7 +525,7 @@ BOOL CNeighbour::OnCommonHit(CPacket* pPacket)
 		return TRUE;
 	}
 	
-	Network.NodeRoute->Add( pHits->m_oClientID, this );
+	Network.NodeRoute->Add( pHits->m_oClientID, this, &m_pHost, 0 );
 	
 	if ( SearchManager.OnQueryHits( pHits ) )
 	{
