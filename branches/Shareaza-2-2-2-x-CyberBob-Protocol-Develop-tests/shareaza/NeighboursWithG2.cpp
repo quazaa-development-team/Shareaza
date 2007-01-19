@@ -90,6 +90,7 @@ void CNeighboursWithG2::ConnectG2()
 
 void CNeighboursWithG2::Close()
 {
+	CNeighboursWithG1::Close();
 	HubHorizonPool.Clear();
 }
 
