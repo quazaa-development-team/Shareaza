@@ -1566,7 +1566,6 @@ void CMainWnd::OnNetworkG2()
 		
 		if ( AfxMessageBox( strMessage, MB_ICONEXCLAMATION|MB_YESNO|MB_DEFBUTTON2 ) == IDYES )
 		{
-			Network.EndTestG2UDPFW();
 			Settings.Gnutella2.EnableToday = FALSE;
 			Neighbours.DisconnectG2();
 			//if ( !Settings.Gnutella1.EnableToday && !Settings.eDonkey.EnableToday &&
@@ -1579,7 +1578,6 @@ void CMainWnd::OnNetworkG2()
 		if ( Network.IsConnected() )
 		{
 			Settings.Gnutella2.EnableToday = TRUE;
-			Network.BeginTestG2UDPFW();
 			Neighbours.ConnectG2();
 		}
 		else

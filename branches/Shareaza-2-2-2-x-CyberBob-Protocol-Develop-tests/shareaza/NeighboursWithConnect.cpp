@@ -1570,10 +1570,12 @@ void CNeighboursWithConnect::Connect()
 
 
 	CNeighboursWithRouting::Connect();
+	Network.BeginTestG2UDPFW();
 }
 
 void CNeighboursWithConnect::Close()
 {
+	Network.EndTestG2UDPFW(TS_TRUE);
 	m_tModeCheck	= 0;		// Reset status
 	m_bG2Leaf		= FALSE;
 	m_bG2Hub		= FALSE;
@@ -1615,10 +1617,12 @@ void CNeighboursWithConnect::ConnectG2()
 
 
 	CNeighboursWithRouting::ConnectG2();
+	Network.BeginTestG2UDPFW();
 }
 
 void CNeighboursWithConnect::DisconnectG2()
 {
+	Network.EndTestG2UDPFW(TS_TRUE);
 	m_bG2Leaf	= FALSE;
 	m_bG2Hub	= FALSE;
 	// Set the limit as no Gnutella2 hub or leaf connections allowed at all
