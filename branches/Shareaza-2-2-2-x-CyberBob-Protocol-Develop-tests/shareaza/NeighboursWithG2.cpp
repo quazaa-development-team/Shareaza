@@ -122,17 +122,18 @@ CG2Packet* CNeighboursWithG2::CreateQueryWeb(const Hashes::Guid& oGUID, CNeighbo
 	pPacket->WritePacket( G2_PACKET_QUERY_DONE, 8 );
 	pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
 	pPacket->WriteShortBE( htons( Network.m_pHost.sin_port ) );
-	pPacket->WriteShortBE( WORD( GetCount( PROTOCOL_G2, nrsConnected, ntLeaf ) ) );
+	pPacket->WriteShortBE( WORD( m_oG2Hubs.size() ) );
 
 	// Loop through the connected computers
-	for ( POSITION pos = GetIterator() ; pos ; )
+	std::list<CG2Neighbour*>::iterator iIndex	= m_oG2Hubs.begin();
+	std::list<CG2Neighbour*>::iterator iEnd		= m_oG2Hubs.end();
+	for ( ; iIndex != iEnd ; )
 	{
 		// Get the neighbour object at this position, and move pos to the next one
-		CG2Neighbour* pNeighbour = (CG2Neighbour*)GetNext( pos );
+		CG2Neighbour* pNeighbour = *iIndex;
 
 		// If this neighbour is running Gnutella2 software
 		if ( pNeighbour->m_nProtocol == PROTOCOL_G2 && // The remote computer is running Gnutella2 software, and
-			 pNeighbour->m_nNodeType != ntLeaf      && // Our connection to it is not down to a leaf, and
 			 pNeighbour->m_nState >= nrsConnected   && // We've finished the handshake with it, and
 			 pNeighbour != pExcept )                   // This isn't the computer the caller warned us to except
 		{
