@@ -234,7 +234,10 @@ CRouteCacheItem* CRouteCacheTable::Add(const Hashes::Guid& oGUID, const CNeighbo
 	pItem->m_oGUID			= oGUID;
 	pItem->m_tAdded			= nTime ? nTime : GetTickCount();
 	pItem->m_pNeighbour		= pNeighbour;
-	if ( pEndpoint ) pItem->m_pEndpoint = *pEndpoint;
+	if ( pEndpoint )
+		pItem->m_pEndpoint = *pEndpoint;
+	else
+		ZeroMemory( &(pItem->m_pEndpoint), sizeof(SOCKADDR_IN) );
 
 	if ( ! m_nUsed++ )
 	{
@@ -262,10 +265,20 @@ void CRouteCacheTable::Remove(CNeighbour* pNeighbour)
 
 			if ( pItem->m_pNeighbour == pNeighbour )
 			{
-				*pLast = pNext;
-				pItem->m_pNext = m_pFree;
-				m_pFree = pItem;
-				m_nUsed--;
+				if ( pItem->m_pEndpoint.sin_family == PF_UNSPEC ||
+					pItem->m_pEndpoint.sin_addr.S_un.S_addr == 0 ||
+					pItem->m_pEndpoint.sin_port == 0 )
+				{
+					*pLast = pNext;
+					pItem->m_pNext = m_pFree;
+					m_pFree = pItem;
+					m_nUsed--;
+				}
+				else
+				{
+					pItem->m_pNeighbour = NULL;
+					pLast = &pItem->m_pNext;
+				}
 			}
 			else
 			{
