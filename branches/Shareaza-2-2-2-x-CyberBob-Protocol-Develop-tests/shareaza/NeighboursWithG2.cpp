@@ -155,8 +155,8 @@ CG2Packet* CNeighboursWithG2::CreateQueryWeb(const Hashes::Guid& oGUID, CNeighbo
 	{
 		// If this host cache entry is good
 		if ( pHost->CanQuote( tNow )                             && // If this host cache entry hasn't expired, and
-			 Get( &pHost->m_pAddress ) == NULL                   && // We're connected to that IP address right now, and
-			 HubHorizonPool.Find( &pHost->m_pAddress ) == NULL )    // The IP address is also in the hub horizon pool
+			 Get( &pHost->m_pAddress ) == NULL                   && // We're not connected to that IP address right now, and
+			 HubHorizonPool.Find( &pHost->m_pAddress ) == NULL )    // The IP address is also not in the hub horizon pool
 		{
 			// Add the IP address to the packet we're making
 			pPacket->WritePacket( G2_PACKET_QUERY_SEARCH, 10 );
