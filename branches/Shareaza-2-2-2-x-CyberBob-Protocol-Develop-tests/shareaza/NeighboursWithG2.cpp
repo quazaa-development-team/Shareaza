@@ -82,6 +82,7 @@ void CNeighboursWithG2::Connect()
 
 void CNeighboursWithG2::ConnectG2()
 {
+	CSingleLock pLock( &Network.m_pSection );
 	HubHorizonPool.Setup();
 }
 
@@ -96,6 +97,7 @@ void CNeighboursWithG2::Close()
 
 void CNeighboursWithG2::DisconnectG2()
 {
+	CSingleLock pLock( &Network.m_pSection );
 	HubHorizonPool.Clear();
 }
 
