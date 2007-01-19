@@ -955,15 +955,19 @@ void CNetwork::OnWinsock(WPARAM wParam, LPARAM lParam)
 
 	if ( WSAGETASYNCERROR(lParam) == 0 )
 	{
-		if ( pResolve->m_nCommand == 0 )
+		if ( pResolve->m_nCommand == 0 ) // Old Bootstrap
 		{
 			HostCache.ForProtocol( pResolve->m_nProtocol )->Add( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort );
 		}
-		else if ( pResolve->m_nCommand == 1 || pResolve->m_nCommand == 2 )
+		else if ( pResolve->m_nCommand == 1 ) // 1 = normal
 		{
-			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, pResolve->m_nCommand );
+			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, FALSE, FALSE, FALSE );
 		}
-		else if ( pResolve->m_nCommand == 3 )
+		else if ( pResolve->m_nCommand == 2 ) // 2 = No Ultrapeer
+		{
+			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, TRUE, FALSE, FALSE );
+		}
+		else if ( pResolve->m_nCommand == 3 ) // 3 = UHC/UKHL bootstraps.
 		{
 			// code to invoke UDPHC/UDPKHL Sender.
 			if ( pResolve->m_nProtocol == PROTOCOL_G1 )
