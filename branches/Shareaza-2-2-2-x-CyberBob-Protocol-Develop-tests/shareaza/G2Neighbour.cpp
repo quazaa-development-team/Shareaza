@@ -111,18 +111,18 @@ CG2Neighbour::CG2Neighbour(CNeighbour* pBase) :
 
 	InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][( (m_nNodeType != ntLeaf )? ntHub : ntLeaf )]) );
 	if ( m_nNodeType == ntHub || m_nNodeType == ntNode )
-		Neighbours.m_oHub.push_back(this);
+		Neighbours.m_oG2Hubs.push_back(this);
 	else if ( m_nNodeType == ntLeaf )
-		Neighbours.m_oLeaf.push_back(this);
+		Neighbours.m_oG2Leafs.push_back(this);
 	SendStartups();
 }
 
 CG2Neighbour::~CG2Neighbour()
 {
 	if ( m_nNodeType == ntHub || m_nNodeType == ntNode )
-		Neighbours.m_oHub.remove(this);
+		Neighbours.m_oG2Hubs.remove(this);
 	else if ( m_nNodeType == ntLeaf )
-		Neighbours.m_oLeaf.remove(this);
+		Neighbours.m_oG2Leafs.remove(this);
 
 	InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][( (m_nNodeType != ntLeaf )? ntHub : ntLeaf )]) );
 	delete m_pHubGroup;

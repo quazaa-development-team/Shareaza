@@ -53,8 +53,8 @@ static char THIS_FILE[]=__FILE__;
 CNeighboursWithG2::CNeighboursWithG2() :
 m_nG2FileCount(0),
 m_nG2FileVolume(0),
-m_oHub(),
-m_oLeaf()
+m_oG2Hubs(),
+m_oG2Leafs()
 {
 }
 
@@ -192,8 +192,8 @@ CG2Neighbour* CNeighboursWithG2::GetRandomHub(CG2Neighbour* pExcept, const Hashe
 	// Make a new local empty list that will hold pointers to neighbours
 	std::list<CG2Neighbour*> oRandom;
 
-	std::list<CG2Neighbour*>::iterator iIndex = m_oHub.begin();
-	std::list<CG2Neighbour*>::iterator iEnd = m_oHub.end();
+	std::list<CG2Neighbour*>::iterator iIndex = m_oG2Hubs.begin();
+	std::list<CG2Neighbour*>::iterator iEnd = m_oG2Hubs.end();
 
 	// Loop through each computer we're connected to
 	for (  ; iIndex != iEnd ; iIndex++ )
@@ -241,7 +241,7 @@ CG2Packet* CNeighboursWithG2::CreateLNIPacket(CG2Neighbour* pOwner)
 	LibraryMaps.GetStatistics( &nMyFiles, &nMyVolume );
 
 	//WORD nLeafs = (WORD)Neighbours.m_nCount[PROTOCOL_G2][ntLeaf];
-	WORD nLeafs = (WORD)m_oLeaf.size();
+	WORD nLeafs = (WORD)m_oG2Leafs.size();
 
 	/*
 	for ( POSITION pos = Neighbours.GetIterator() ; pos ; )
@@ -383,10 +383,10 @@ CG2Packet* CNeighboursWithG2::CreateKHLPacket(CG2Neighbour* pOwner)
 	}
 	*/
 
-	if ( m_oHub.size() )
+	if ( m_oG2Hubs.size() )
 	{
-		std::list<CG2Neighbour*>::iterator iIndex = m_oHub.begin();
-		std::list<CG2Neighbour*>::iterator iEnd = m_oHub.end();
+		std::list<CG2Neighbour*>::iterator iIndex = m_oG2Hubs.begin();
+		std::list<CG2Neighbour*>::iterator iEnd = m_oG2Hubs.end();
 		for ( ; iIndex != iEnd ; iIndex++ )
 		{
 			CG2Neighbour* pNeighbour = *iIndex;
