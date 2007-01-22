@@ -248,7 +248,6 @@ void CDatagrams::Disconnect()
 BOOL CDatagrams::IsStable()
 {
 	if ( m_hSocket == INVALID_SOCKET ) return FALSE;
-	if ( ! Network.IsListening() ) return FALSE;
 
 	if ( Settings.Connection.FirewallStatus == CONNECTION_FIREWALLED )
 		return FALSE;			// We know we are firewalled
