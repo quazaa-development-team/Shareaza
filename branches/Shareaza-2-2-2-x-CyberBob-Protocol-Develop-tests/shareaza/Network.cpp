@@ -964,11 +964,11 @@ void CNetwork::OnWinsock(WPARAM wParam, LPARAM lParam)
 		}
 		else if ( pResolve->m_nCommand == 1 ) // 1 = normal
 		{
-			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, FALSE, FALSE, FALSE );
+			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, FALSE, FALSE );
 		}
 		else if ( pResolve->m_nCommand == 2 ) // 2 = No Ultrapeer
 		{
-			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, TRUE, FALSE, FALSE );
+			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, TRUE, FALSE );
 		}
 		else if ( pResolve->m_nCommand == 3 ) // 3 = UHC/UKHL bootstraps.
 		{
