@@ -704,6 +704,7 @@ BOOL CUploadTransferHTTP::OnHeadersComplete()
 
 BOOL CUploadTransferHTTP::IsNetworkDisabled()
 {
+	if ( !Network.IsConnected() ) return TRUE;
 	if ( Settings.Connection.RequireForTransfers == FALSE ) return FALSE;
 
 	if ( m_nGnutella & 2 )
@@ -1927,7 +1928,7 @@ BOOL CUploadTransferHTTP::RequestPreview(CLibraryFile* pFile, CSingleLock& oLibr
 
 	StartSending( upsPreview );
 
-	theApp.Message( MSG_DEFAULT, IDS_UPLOAD_PREVIEW_SEND, (LPCTSTR)m_sFileName,
+	theApp.Message( MSG_SYSTEM, IDS_UPLOAD_PREVIEW_SEND, (LPCTSTR)m_sFileName,
 		(LPCTSTR)m_sAddress );
 
 	return TRUE;

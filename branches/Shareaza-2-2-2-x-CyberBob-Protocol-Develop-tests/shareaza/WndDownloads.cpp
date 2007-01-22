@@ -226,6 +226,7 @@ void CDownloadsWnd::OnSkinChange()
 	CPanelWnd::OnSkinChange();
 	Skin.Translate( _T("CDownloadCtrl"), &m_wndDownloads.m_wndHeader);
 	Skin.CreateToolBar( _T("CDownloadsWnd"), &m_wndToolBar );
+	m_wndDownloads.OnSkinChange();
 }
 
 void CDownloadsWnd::Update()

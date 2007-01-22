@@ -392,7 +392,7 @@ BOOL CEDNeighbour::OnIdChange(CEDPacket* pPacket)
 				// Try another server, but not more than once every 8 hours to avoid wasting server bandwidth
 				// If the user has messed up their settings somewhere.
 				Network.m_tLastED2KServerHop = tNow;
-				theApp.Message( MSG_ERROR, _T("ED2K server gave a low-id when we were expecting a high-id.") );
+				theApp.Message( MSG_DISPLAYED_ERROR, _T("ED2K server gave a low-id when we were expecting a high-id.") );
 				Close( IDS_CONNECTION_CLOSED );
 				return FALSE;
 			}
@@ -425,7 +425,7 @@ BOOL CEDNeighbour::OnServerList(CEDPacket* pPacket)
 	{
 		DWORD nAddress	= pPacket->ReadLongLE();
 		WORD nPort		= pPacket->ReadShortLE();
-		
+
 		theApp.Message( MSG_DEBUG, _T("CEDNeighbour::OnServerList(): %s: %s:%i"),
 			(LPCTSTR)m_sAddress,
 			(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)nAddress ) ), nPort );
@@ -435,19 +435,19 @@ BOOL CEDNeighbour::OnServerList(CEDPacket* pPacket)
 			HostCache.eDonkey.Add( (IN_ADDR*)&nAddress, nPort );
 		}
 	}
-	
+
 	HostCache.eDonkey.Add( &m_pHost.sin_addr, htons( m_pHost.sin_port ) );
-	
+
 	return TRUE;
 }
 
 BOOL CEDNeighbour::OnServerStatus(CEDPacket* pPacket)
 {
 	if ( pPacket->GetRemaining() < 8 ) return TRUE;
-	
+
 	m_nUserCount	= pPacket->ReadLongLE();
 	m_nFileCount	= pPacket->ReadLongLE();
-	
+
 	if ( CHostCacheHost* pHost = HostCache.eDonkey.Add( &m_pHost.sin_addr, htons( m_pHost.sin_port ) ) )
 	{
 		// pHost->m_nUserCount = max( pHost->m_nUserCount, m_nUserCount );
@@ -528,7 +528,7 @@ BOOL CEDNeighbour::OnServerIdent(CEDPacket* pPacket)
 
 	}
 	
-	theApp.Message( MSG_DEFAULT, IDS_ED2K_SERVER_IDENT, (LPCTSTR)m_sAddress, (LPCTSTR)m_sServerName );
+	theApp.Message( MSG_SYSTEM, IDS_ED2K_SERVER_IDENT, (LPCTSTR)m_sAddress, (LPCTSTR)m_sServerName );
 	
 	return TRUE;
 }

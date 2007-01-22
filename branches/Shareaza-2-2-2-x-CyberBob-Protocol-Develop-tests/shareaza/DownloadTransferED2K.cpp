@@ -175,7 +175,7 @@ BOOL CDownloadTransferED2K::OnRun()
 
 BOOL CDownloadTransferED2K::OnRunEx(DWORD tNow)
 {
-	if (  !Settings.eDonkey.EnableToday && Settings.Connection.RequireForTransfers )
+	if ( !Network.IsConnected() || ( !Settings.eDonkey.EnableToday && Settings.Connection.RequireForTransfers ) )
 	{
 		Close( TS_TRUE );
 		return FALSE;
@@ -822,7 +822,7 @@ BOOL CDownloadTransferED2K::SendFragmentRequests()
 		{
 			ChunkifyRequest( &nOffset, &nLength, Settings.eDonkey.RequestSize, FALSE );
 			
-			Fragments::Fragment Selected( nOffset, nOffset + nLength );
+			Fragments::Fragment Selected( nOffset, nOffset + nLength - 1 );
 			oPossible.erase( Selected );
 			
 			m_oRequested.push_back( Selected );
@@ -887,7 +887,7 @@ BOOL CDownloadTransferED2K::SendFragmentRequests()
 			Send( pPacket );
 		}
 
-		do
+		while ( nCount-- )
 		{
 			int nType = ( m_nDownloaded == 0 || ( nOffsetBegin[nCount] % ED2K_PART_SIZE ) == 0 )
 				? MSG_DEFAULT : MSG_DEBUG;
@@ -896,7 +896,6 @@ BOOL CDownloadTransferED2K::SendFragmentRequests()
 				nOffsetBegin[nCount], nOffsetEnd[nCount],
 				(LPCTSTR)m_pDownload->GetDisplayName(), (LPCTSTR)m_sAddress );
 		} 
-		while ( nCount-- );
 	}
 
 	// If there are no more possible chunks to request, and endgame is available but not active

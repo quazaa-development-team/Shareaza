@@ -542,6 +542,7 @@
 		<menu text="_Window">
 			<item id="ID_WINDOW_NAVBAR" text="Show _Navigation Bar"/>
 			<item id="ID_WINDOW_TOOLBAR" text="Show _Tool Bar"/>
+			<separator/>
 			<item id="ID_WINDOW_TABBAR" text="Show Tab _Bar"/>
 			<item id="ID_WINDOW_MONITOR" text="Show _Monitor"/>
 			<item id="ID_WINDOW_REMOTE" text="Show _Remote"/>
@@ -630,6 +631,7 @@
 			<separator/>
 			<item id="ID_WINDOW_NAVBAR" text="Show _Navigation Bar"/>
 			<item id="ID_WINDOW_TOOLBAR" text="Show _Tool Bar"/>
+			<separator/>
 			<item id="ID_WINDOW_TABBAR" text="Show Tab _Bar"/>
 			<item id="ID_WINDOW_MONITOR" text="Show _Monitor"/>
 			<item id="ID_WINDOW_REMOTE" text="Show _Remote"/>
@@ -2509,7 +2511,7 @@
 		<image id="ID_CHILD_CLOSE"/>
 	</bitmap>
 	<bitmap id="227">
-		<image/>
+		<image id="ID_NETWORK_NULL"/>
 		<image id="ID_NETWORK_G1"/>
 		<image id="ID_NETWORK_G2"/>
 		<image id="ID_NETWORK_ED2K"/>

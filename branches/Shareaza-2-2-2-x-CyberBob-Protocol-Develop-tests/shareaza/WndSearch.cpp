@@ -893,7 +893,7 @@ BOOL CSearchWnd::OnQueryHits(CQueryHit* pHits)
 				if ( ( m_pMatches->m_nED2KHits >= m_nMaxED2KResults ) && ( pManaged->m_tLastED2K != 0xFFFFFFFF ) )
 				{
 					if ( !pManaged->m_bAllowG2 ) //If G2 is not active, pause the search now.
-					{						
+					{
 						m_bWaitMore = TRUE;
 						pManaged->m_bActive = FALSE;
 					}

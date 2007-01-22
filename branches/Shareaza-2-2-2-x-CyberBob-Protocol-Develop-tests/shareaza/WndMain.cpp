@@ -1,7 +1,7 @@
 //
 // WndMain.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -267,9 +267,10 @@ CMainWnd::CMainWnd()
 	m_pSkin			= NULL;
 	m_pURLDialog	= NULL;
 	m_tURLTime		= 0;
-	
+	m_bNoNetWarningShowed = FALSE;
+
 	LoadFrame( IDR_MAINFRAME, WS_OVERLAPPEDWINDOW );
-	
+
 	theApp.m_pSafeWnd = this;
 }
 
@@ -494,7 +495,9 @@ void CMainWnd::OnDestroy()
 	if ( m_wndRemoteWnd.IsVisible() ) m_wndRemoteWnd.DestroyWindow();
 	
 	Network.Disconnect();
-	
+
+	m_brshDockbar.DeleteObject();
+
 	CMDIFrameWnd::OnDestroy();
 }
 
@@ -979,7 +982,7 @@ LRESULT CMainWnd::OnSkinChanged(WPARAM /*wParam*/, LPARAM /*lParam*/)
 	
 	if ( CMenu* pMenu = Skin.GetMenu( _T("CMainWnd") ) )
 	{
-		m_wndMenuBar.SetMenu( pMenu->Detach() );
+		m_wndMenuBar.SetMenu( pMenu->GetSafeHmenu() );
 	}
 	
 	Skin.CreateToolBar( _T("CMainWnd"), &m_wndToolBar );
@@ -990,10 +993,10 @@ LRESULT CMainWnd::OnSkinChanged(WPARAM /*wParam*/, LPARAM /*lParam*/)
 	
 	if ( CWnd* pDockBar = GetDlgItem( AFX_IDW_DOCKBAR_TOP ) )
 	{
-		LONG_PTR nBrush = GetClassLongPtr( pDockBar->GetSafeHwnd(), GCLP_HBRBACKGROUND );
-		if ( nBrush > 64 ) DeleteObject( (HBRUSH)nBrush );
-		nBrush = (LONG_PTR)CreateSolidBrush( CoolInterface.m_crMidtone );
-		SetClassLongPtr( pDockBar->GetSafeHwnd(), GCLP_HBRBACKGROUND, (ULONG_PTR_ARG)nBrush );
+		m_brshDockbar.DeleteObject();
+		m_brshDockbar.CreateSolidBrush( CoolInterface.m_crMidtone );
+		SetClassLongPtr( pDockBar->GetSafeHwnd(), GCLP_HBRBACKGROUND,
+			(ULONG_PTR_ARG)(HBRUSH)m_brshDockbar );
 	}
 	
 	m_pSkin = Skin.GetWindowSkin( this );
@@ -1250,14 +1253,25 @@ void CMainWnd::UpdateMessages()
 		}
 	}
 	else if ( Network.IsConnected() )
-	{	//Trying to connect
-		LoadString( strMessage, IDS_STATUS_BAR_CONNECTING );
+	{	// If G1, G2, eDonkey are disabled and only BitTorrent is enabled say connected
+		if( !Settings.Gnutella1.EnableToday && !Settings.Gnutella2.EnableToday && !Settings.eDonkey.EnableToday )
+		{
+			LoadString( strFormat, IDS_STATUS_BAR_CONNECTED );
+			if( !m_bNoNetWarningShowed )
+			{
+				m_bNoNetWarningShowed = TRUE;
+				AfxMessageBox( _T("All networks except BitTorrent are disabled."), MB_ICONEXCLAMATION|MB_OK );
+			}
+		}
+		else	//Trying to connect
+			LoadString( strMessage, IDS_STATUS_BAR_CONNECTING );
 		strMessage += Network.m_bAutoConnect ? _T(" (AutoConnect)") : _T(" (ManualConnect)");
 	}
 	else
 	{	//Idle
 		LoadString( strMessage, IDS_STATUS_BAR_DISCONNECTED );
 		strMessage += Network.m_bAutoConnect ? _T(" (AutoConnect)") : _T(" (ManualConnect)");
+		m_bNoNetWarningShowed = FALSE;
 	}
 
 	if ( VersionChecker.m_sQuote.GetLength() )
@@ -2546,8 +2560,8 @@ IMPLEMENT_DROP(CMainWnd,CMDIFrameWnd)
 
 BOOL CMainWnd::OnDrop(IDataObject* pDataObj, DWORD /* grfKeyState */, POINT /* ptScreen */, DWORD* pdwEffect, BOOL bDrop)
 {
-	if ( ! pDataObj )
-		return TRUE;
+	if ( ! pDataObj || ! pdwEffect )
+		return FALSE;
 
 	FORMATETC fmtcFiles = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 	FORMATETC fmtcURL = { (CLIPFORMAT) RegisterClipboardFormat( CFSTR_SHELLURL ), NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
@@ -2563,8 +2577,9 @@ BOOL CMainWnd::OnDrop(IDataObject* pDataObj, DWORD /* grfKeyState */, POINT /* p
 			{
 				bAccepted = CShareazaApp::Open( oFiles.GetNext( pos ), bDrop ) || bAccepted;
 			}
-
-			*pdwEffect = ( bAccepted && ! bDrop ) ? DROPEFFECT_COPY : DROPEFFECT_NONE;
+			if ( bAccepted )
+				*pdwEffect = DROPEFFECT_COPY;
+			return bAccepted;
 		}
 	}
 	else if ( SUCCEEDED ( pDataObj->QueryGetData( &fmtcURL ) ) )
@@ -2573,10 +2588,11 @@ BOOL CMainWnd::OnDrop(IDataObject* pDataObj, DWORD /* grfKeyState */, POINT /* p
 		if ( CShareazaDataSource::ObjectToURL( pDataObj, strURL ) == S_OK )
 		{
 			BOOL bAccepted = CShareazaApp::OpenURL( strURL, bDrop );
-			*pdwEffect = ( bAccepted && ! bDrop ) ? DROPEFFECT_COPY : DROPEFFECT_NONE;
+			if ( bAccepted )
+				*pdwEffect = DROPEFFECT_COPY;
+			return bAccepted;
 		}
 	}
-
 	return FALSE;
 }
 

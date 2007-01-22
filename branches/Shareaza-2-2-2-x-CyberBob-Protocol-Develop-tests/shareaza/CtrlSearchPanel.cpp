@@ -1,7 +1,7 @@
 //
 // CtrlSearchPanel.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2005.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -69,7 +69,6 @@ BEGIN_MESSAGE_MAP(CSearchAdvancedBox, CTaskBox)
 	ON_BN_CLICKED(IDC_SEARCH_GNUTELLA1, OnG1Clicked)
 	ON_BN_CLICKED(IDC_SEARCH_EDONKEY, OnED2KClicked)
 	ON_MESSAGE(WM_CTLCOLORSTATIC, OnCtlColorStatic)
-//	ON_BN_CLICKED(IDC_SEARCH_PARTIAL, OnPartialClicked)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -216,30 +215,9 @@ void CSearchPanel::ShowSearch(CManagedSearch* pSearch)
 
 	if ( m_bAdvanced )
 	{
-		if ( pSearch->m_bAllowG2 )
-		{
-			m_boxAdvanced.m_wndCheckBoxG2.SetCheck(BST_CHECKED);
-		}
-		else
-		{
-			m_boxAdvanced.m_wndCheckBoxG2.SetCheck(BST_UNCHECKED);
-		}
-		if ( pSearch->m_bAllowG1 )
-		{
-			m_boxAdvanced.m_wndCheckBoxG1.SetCheck(BST_CHECKED);
-		}
-		else
-		{
-			m_boxAdvanced.m_wndCheckBoxG1.SetCheck(BST_UNCHECKED);
-		}
-		if ( pSearch->m_bAllowED2K )
-		{
-			m_boxAdvanced.m_wndCheckBoxED2K.SetCheck(BST_CHECKED);
-		}
-		else
-		{
-			m_boxAdvanced.m_wndCheckBoxED2K.SetCheck(BST_UNCHECKED);
-		}
+		m_boxAdvanced.m_wndCheckBoxG2.SetCheck( pSearch->m_bAllowG2 ? BST_CHECKED : BST_UNCHECKED);
+		m_boxAdvanced.m_wndCheckBoxG1.SetCheck( pSearch->m_bAllowG1 ? BST_CHECKED : BST_UNCHECKED );
+		m_boxAdvanced.m_wndCheckBoxED2K.SetCheck( pSearch->m_bAllowED2K ? BST_CHECKED : BST_UNCHECKED );
 
 		CString strSize;
 		if ( pSearch->m_pSearch->m_nMinSize > 0 )
@@ -361,11 +339,11 @@ auto_ptr< CManagedSearch > CSearchPanel::GetSearch()
 		pSearch->m_bAllowG1			= m_boxAdvanced.m_wndCheckBoxG1.GetCheck();
 		pSearch->m_bAllowED2K		= m_boxAdvanced.m_wndCheckBoxED2K.GetCheck();
 
-		if (!pSearch->m_bAllowG2 && !pSearch->m_bAllowG1 && !pSearch->m_bAllowED2K)
+		if ( !pSearch->m_bAllowG2 && !pSearch->m_bAllowG1 && !pSearch->m_bAllowED2K )
 		{
-			m_boxAdvanced.m_wndCheckBoxG2.SetCheck(BST_CHECKED);
-			m_boxAdvanced.m_wndCheckBoxG1.SetCheck(BST_CHECKED);
-			m_boxAdvanced.m_wndCheckBoxED2K.SetCheck(BST_CHECKED);
+			m_boxAdvanced.m_wndCheckBoxG2.SetCheck( BST_CHECKED );
+			m_boxAdvanced.m_wndCheckBoxG1.SetCheck( BST_CHECKED );
+			m_boxAdvanced.m_wndCheckBoxED2K.SetCheck( BST_CHECKED );
 			pSearch->m_bAllowG2	=	TRUE;
 			pSearch->m_bAllowG1	=	TRUE;
 			pSearch->m_bAllowED2K	=	TRUE;
@@ -733,6 +711,11 @@ int CSearchAdvancedBox::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 void CSearchAdvancedBox::OnSkinChange()
 {
+	for ( int nImage = 1 ; nImage < 7 ; nImage++ )
+	{
+		HICON hIcon = CoolInterface.ExtractIcon( (UINT)protocolCmdMap[ nImage ].commandID );
+		m_gdiImageList.Replace( nImage, hIcon );
+	}
 }
 
 void CSearchAdvancedBox::OnSize(UINT nType, int cx, int cy) 

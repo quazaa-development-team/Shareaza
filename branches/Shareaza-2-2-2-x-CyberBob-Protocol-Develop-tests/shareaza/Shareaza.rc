@@ -237,6 +237,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Show &Nav Bar",               ID_WINDOW_NAVBAR
         MENUITEM "Show &Tool Bar",              ID_WINDOW_TOOLBAR
+        MENUITEM SEPARATOR
         MENUITEM "Show Tab &Bar",               ID_WINDOW_TABBAR
         MENUITEM "Show &Monitor",               ID_WINDOW_MONITOR
         MENUITEM "Show &Remote",                ID_WINDOW_REMOTE
@@ -4874,7 +4875,7 @@ BEGIN
     IDS_DOWNLOAD_CONNECT_ERROR "Unable to connect to download host %s."
     IDS_DOWNLOAD_CONNECTED  "Download connection to %s established."
     IDS_DOWNLOAD_FRAGMENT_REQUEST 
-                            "Requesting download fragment (%I64i-%I64i) of ""%s"" from %s."
+                            "Requesting download fragment (%I64u-%I64u) of ""%s"" from %s."
     IDS_DOWNLOAD_FRAGMENT_END 
                             "No more download fragments, closing connection to %s."
     IDS_DOWNLOAD_FRAGMENT_OVERLAP 

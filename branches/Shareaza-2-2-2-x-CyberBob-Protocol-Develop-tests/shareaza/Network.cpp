@@ -448,8 +448,11 @@ BOOL CNetwork::IsConnectedTo(IN_ADDR* pAddress)
 
 BOOL CNetwork::ReadyToTransfer(DWORD tNow) const
 {
+	if ( !Network.IsConnected() )
+		return FALSE;
+
 	// If a connection isn't needed for transfers, we can start any time
-	if ( ! Settings.Connection.RequireForTransfers )
+	if ( !Settings.Connection.RequireForTransfers )
 		return TRUE;
 
 	// If we have not started connecting, we're not ready to transfer.
@@ -503,10 +506,10 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 	}
 
 	Resolve( Settings.Connection.InHost, Settings.Connection.InPort, &m_pHost );
-	
+
 	if ( Settings.Connection.FirewallStatus == CONNECTION_FIREWALLED )
 		theApp.Message( MSG_DEFAULT, IDS_NETWORK_FIREWALLED );
-	
+
 	SOCKADDR_IN pOutgoing;
 
 	if ( Resolve( Settings.Connection.OutHost, 0, &pOutgoing ) )
@@ -520,14 +523,14 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 		theApp.Message( MSG_ERROR, IDS_NETWORK_CANT_OUTGOING,
 			(LPCTSTR)Settings.Connection.OutHost );
 	}
-	
+
 	Handshakes.Listen();
 	Datagrams.Listen();
 	Neighbours.Connect();
-	
+
 	NodeRoute->SetDuration( Settings.Gnutella.RouteCache );
 	QueryRoute->SetDuration( Settings.Gnutella.RouteCache );
-	
+
 	m_bEnabled				= TRUE;
 	m_tStartedConnecting	= GetTickCount();
 	CITMQueue::EnableITM( &(Network.m_pMessageQueue) );
@@ -536,7 +539,7 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 	CWinThread* pThread = AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_NORMAL );
 	m_hThread				= pThread->m_hThread;
 	SetThreadName( pThread->m_nThreadID, "Network" );
-	
+
 	if ( Settings.Gnutella1.EnableToday)
 		DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G1 );
 	if ( Settings.Gnutella2.EnableToday)
@@ -553,7 +556,7 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 void CNetwork::Disconnect()
 {
 	CSingleLock pLock( &m_pSection, TRUE );
-	
+
 	CITMQueue::DisableITM( &(Network.m_pMessageQueue) );
 	if ( Settings.Gnutella2.EnableToday ) EndTestG2UDPFW( TS_UNKNOWN );
 	if ( ! m_bEnabled ) return;
@@ -564,7 +567,7 @@ void CNetwork::Disconnect()
 
 	theApp.Message( MSG_DEFAULT, _T("") );
 	theApp.Message( MSG_SYSTEM, IDS_NETWORK_DISCONNECTING );
-	
+
 	m_bEnabled				= FALSE;
 	m_bAutoConnect			= FALSE;
 	m_tStartedConnecting	= 0;
@@ -572,14 +575,14 @@ void CNetwork::Disconnect()
 	Datagrams.SetStable(FALSE);
 
 	Neighbours.Close();
-	
+
 	pLock.Unlock();
-	
+
 	if ( m_hThread != NULL )
 	{
 		m_pWakeup.SetEvent();
-		
-        int nAttempt = 10;
+
+		int nAttempt = 10;
 		for ( ; nAttempt > 0 ; nAttempt-- )
 		{
 			DWORD nCode;
@@ -587,26 +590,26 @@ void CNetwork::Disconnect()
 			if ( nCode != STILL_ACTIVE ) break;
 			Sleep( 100 );
 		}
-		
+
 		if ( nAttempt == 0 )
 		{
 			TerminateThread( m_hThread, 0 );
 			theApp.Message( MSG_DEBUG, _T("WARNING: Terminating CNetwork thread.") );
 			Sleep( 100 );
 		}
-		
+
 		m_hThread = NULL;
 	}
-	
+
 	Handshakes.Disconnect();
 	pLock.Lock();
-	
+
 	Neighbours.Close();
 	Datagrams.Disconnect();
-	
+
 	NodeRoute->Clear();
 	QueryRoute->Clear();
-	
+
 	if ( TRUE )
 	{
 		for ( POSITION pos = m_pLookups.GetStartPosition() ; pos ; )
@@ -618,17 +621,17 @@ void CNetwork::Disconnect()
 			delete pBuffer->m_sAddress;
 			delete pBuffer;
 		}
-		
+
 		m_pLookups.RemoveAll();
 	}
-	
+
 	pLock.Unlock();
 
 	m_nNetworkGlobalTime = static_cast<DWORD>( time( NULL ) );
 	m_nNetworkGlobalTickCount = GetTickCount();
 
 	DiscoveryServices.Stop();
-	
+
 	theApp.Message( MSG_SYSTEM, IDS_NETWORK_DISCONNECTED ); 
 	theApp.Message( MSG_DEFAULT, _T("") );
 }

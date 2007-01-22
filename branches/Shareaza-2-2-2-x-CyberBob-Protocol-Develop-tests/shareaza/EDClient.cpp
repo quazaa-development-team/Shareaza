@@ -1,7 +1,7 @@
 //
 // EDClient.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -1276,32 +1276,37 @@ BOOL CEDClient::OnFileRequest(CEDPacket* pPacket)
 		return TRUE;
 	}
 	
-	CSingleLock oLock( &Library.m_pSection,TRUE );
-	CLibraryFile* pFile = LibraryMaps.LookupFileByED2K( m_oUpED2K, TRUE, TRUE );
-	if ( ( pFile ) && ( UploadQueues.CanUpload( PROTOCOL_ED2K, pFile, TRUE ) ) )
+	CSingleLock oLock( &Library.m_pSection );
+	if ( oLock.Lock( 1000 ) )
 	{
-		if ( Settings.eDonkey.EnableToday || !Settings.Connection.RequireForTransfers )
+		CLibraryFile* pFile = LibraryMaps.LookupFileByED2K( m_oUpED2K, TRUE, TRUE );
+		if ( ( pFile ) && ( UploadQueues.CanUpload( PROTOCOL_ED2K, pFile, TRUE ) ) )
 		{
-			// Create the reply packet
-			pReply->WriteEDString( pFile->m_sName, m_bEmUnicode );
-			// Get the comments/rating data
-			nRating = pFile->m_nRating;
-			strComments = pFile->m_sComments;
-			oLock.Unlock();
+			if ( Settings.eDonkey.EnableToday || !Settings.Connection.RequireForTransfers )
+			{
+				// Create the reply packet
+				pReply->WriteEDString( pFile->m_sName, m_bEmUnicode );
+				// Get the comments/rating data
+				nRating = pFile->m_nRating;
+				strComments = pFile->m_sComments;
+				oLock.Unlock();
 
-			// Send reply
-			Send( pReply );
-			// Send comments / rating (if required)
-			SendCommentsPacket( nRating, strComments );
+				// Send reply
+				Send( pReply );
+				// Send comments / rating (if required)
+				SendCommentsPacket( nRating, strComments );
+			}
+			else
+			{
+				oLock.Unlock();
+
+				pReply->m_nType = ED2K_C2C_FILENOTFOUND;
+				Send( pReply );
+			}
+			return TRUE;
 		}
-		else
-		{
-			pReply->m_nType = ED2K_C2C_FILENOTFOUND;
-			Send( pReply );
-		}
-		return TRUE;
+		oLock.Unlock();
 	}
-	oLock.Unlock();
 
 	if ( CDownload* pDownload = Downloads.FindByED2K( m_oUpED2K, TRUE ) )
 	{
@@ -1335,26 +1340,30 @@ BOOL CEDClient::OnFileStatusRequest(CEDPacket* pPacket)
 	pPacket->Read( m_oUpED2K );
 	pReply->Write( m_oUpED2K );
 	
-	CSingleLock oLock( &Library.m_pSection, TRUE );
-	if ( CLibraryFile* pFile = LibraryMaps.LookupFileByED2K( m_oUpED2K, TRUE, TRUE ) )
+	CSingleLock oLock( &Library.m_pSection );
+	if ( oLock.Lock( 1000 ) )
 	{
-		pReply->WriteShortLE( 0 );
-		pReply->WriteByte( 0 );
-		
-		m_nUpSize = pFile->GetSize();
-		if ( ! CEDPacket::IsLowID( m_nClientID ) )
-			pFile->AddAlternateSource( GetSourceURL() );
-		
+		if ( CLibraryFile* pFile = LibraryMaps.LookupFileByED2K( m_oUpED2K, TRUE, TRUE ) )
+		{
+			pReply->WriteShortLE( 0 );
+			pReply->WriteByte( 0 );
+
+			m_nUpSize = pFile->GetSize();
+			if ( ! CEDPacket::IsLowID( m_nClientID ) )
+				pFile->AddAlternateSource( GetSourceURL() );
+
+			oLock.Unlock();
+
+			Send( pReply );
+			return TRUE;
+		}
 		oLock.Unlock();
-		Send( pReply );
-		return TRUE;
 	}
-	oLock.Unlock();
 	if ( CDownload* pDownload = Downloads.FindByED2K( m_oUpED2K, TRUE ) )
 	{
 		WritePartStatus( pReply, pDownload );
 		m_nUpSize = pDownload->m_nSize;
-		
+
 		if ( ! pDownload->IsMoving() )
 			pDownload->AddSourceED2K( m_nClientID, htons( m_pHost.sin_port ), 
 			m_pServer.sin_addr.S_un.S_addr, htons( m_pServer.sin_port ), m_oGUID );
@@ -1392,27 +1401,29 @@ BOOL CEDClient::OnHashsetRequest(CEDPacket* pPacket)
 	BOOL bDelete = FALSE;
 	CString strName;
 	
-	CSingleLock oLock( &Library.m_pSection, TRUE );
-	if ( CLibraryFile* pFile = LibraryMaps.LookupFileByED2K( oHash, TRUE, TRUE ) )
+	CSingleLock oLock( &Library.m_pSection );
+	if ( oLock.Lock( 1000 ) )
 	{
-		strName		= pFile->m_sName;
-		pHashset	= pFile->GetED2K();
-		bDelete		= TRUE;
-		oLock.Unlock();
-	}
-	else
-	{
-		oLock.Unlock();
-		if ( CDownload* pDownload = Downloads.FindByED2K( oHash, TRUE ) )
+		if ( CLibraryFile* pFile = LibraryMaps.LookupFileByED2K( oHash, TRUE, TRUE ) )
 		{
-			if ( ( pHashset = pDownload->GetHashset() ) != NULL )
+			strName		= pFile->m_sName;
+			pHashset	= pFile->GetED2K();
+			bDelete		= TRUE;
+			oLock.Unlock();
+		}
+		else
+		{
+			oLock.Unlock();
+			if ( CDownload* pDownload = Downloads.FindByED2K( oHash, TRUE ) )
 			{
-				strName		= pDownload->m_sDisplayName;
-				bDelete		= FALSE;
+				if ( ( pHashset = pDownload->GetHashset() ) != NULL )
+				{
+					strName		= pDownload->m_sDisplayName;
+					bDelete		= FALSE;
+				}
 			}
 		}
 	}
-
 	if ( pHashset != NULL )
 	{
 		CEDPacket* pReply = CEDPacket::New( ED2K_C2C_HASHSETANSWER );
@@ -1538,14 +1549,16 @@ BOOL CEDClient::OnRequestPreview(CEDPacket* pPacket)
 	Hashes::Ed2kHash oHash;
 	pPacket->Read( oHash );
 
-	CSingleLock oLock( &Library.m_pSection, TRUE );
+	CSingleLock oLock( &Library.m_pSection );
+	if ( ! oLock.Lock( 1000 ) )
+		return TRUE;
 
 	CLibraryFile* pFile = LibraryMaps.LookupFileByED2K( oHash, TRUE, TRUE );
 
 	// We own this file and previews are enabled
 	if ( pFile && Settings.Uploads.SharePreviews )
 	{
-		if ( Settings.eDonkey.EnableToday || !Settings.Connection.RequireForTransfers )
+		if ( Network.IsConnected() && ( Settings.eDonkey.EnableToday || !Settings.Connection.RequireForTransfers ) )
 		{
 			CEDPacket* pReply = CEDPacket::New( ED2K_C2C_PREVIEWANWSER, ED2K_PROTOCOL_EMULE );
 			pReply->Write( oHash );
@@ -1588,12 +1601,8 @@ BOOL CEDClient::OnRequestPreview(CEDPacket* pPacket)
 
 			if ( ! pFile->m_bCachedPreview )
 			{
-				CQuickLock oLock( Library.m_pSection );
-				if ( ( pFile = Library.LookupFile( nIndex ) ) != NULL )
-				{
-					pFile->m_bCachedPreview = TRUE;
-					Library.Update();
-				}
+				pFile->m_bCachedPreview = TRUE;
+				Library.Update();
 			}
 
 			BYTE* pBuffer = NULL;
@@ -1617,13 +1626,12 @@ BOOL CEDClient::OnRequestPreview(CEDPacket* pPacket)
 
 			// Send reply
 			Send( pReply );
-			theApp.Message( MSG_DEFAULT, IDS_UPLOAD_PREVIEW_SEND, (LPCTSTR)pFile->m_sName,
+			theApp.Message( MSG_SYSTEM, IDS_UPLOAD_PREVIEW_SEND, (LPCTSTR)pFile->m_sName,
 				(LPCTSTR)m_sAddress );
 		}
 		else
 			return TRUE;
 	}
-	oLock.Unlock();
 
 	return TRUE;
 }
@@ -1690,16 +1698,16 @@ BOOL CEDClient::OnPreviewAnswer(CEDPacket* pPacket)
 		}
 		else
 		{
-			CSingleLock oLock( &Library.m_pSection, TRUE );
-
-			CLibraryFile* pFile = LibraryMaps.LookupFileByED2K( oHash );
-			if ( pFile == NULL )
+			CSingleLock oLock( &Library.m_pSection );
+			if ( oLock.Lock( 1000 ) )
 			{
-				// Someone tried to spam us with ads
-				Security.Ban( &m_pHost.sin_addr, banWeek, FALSE );
+				CLibraryFile* pFile = LibraryMaps.LookupFileByED2K( oHash );
+				if ( pFile == NULL )
+				{
+					// Someone tried to spam us with ads
+					Security.Ban( &m_pHost.sin_addr, banWeek, FALSE );
+				}
 			}
-			oLock.Unlock();
-			return TRUE;
 		}
 	}
 

@@ -3466,7 +3466,7 @@
 				RelativePath="Res\Computer.ico">
 			</File>
 			<File
-				RelativePath="Res\ComputerGray.ICO">
+				RelativePath="Res\ComputerGray.ico">
 			</File>
 			<File
 				RelativePath="Res\ContactAOL.ico">
@@ -3520,7 +3520,7 @@
 				RelativePath="Res\Firewalled.ico">
 			</File>
 			<File
-				RelativePath="Res\FlagEnglish.ICO">
+				RelativePath="Res\FlagEnglish.ico">
 			</File>
 			<File
 				RelativePath="Res\Hand.cur">
@@ -3562,22 +3562,22 @@
 				RelativePath="Res\LogoLarge.jpg">
 			</File>
 			<File
-				RelativePath="Res\mail.ico">
+				RelativePath="Res\Mail.ico">
 			</File>
 			<File
 				RelativePath="Res\Manifest.xml">
 			</File>
 			<File
-				RelativePath=".\Res\Manifest64.xml">
+				RelativePath="Res\Manifest64.xml">
 			</File>
 			<File
 				RelativePath="Res\Media.ico">
 			</File>
 			<File
-				RelativePath="Res\mediaStates.bmp">
+				RelativePath="Res\MediaStates.bmp">
 			</File>
 			<File
-				RelativePath="res\MenuBar.bmp">
+				RelativePath="Res\MenuBar.bmp">
 			</File>
 			<File
 				RelativePath="Res\Move.cur">
@@ -3601,7 +3601,7 @@
 				RelativePath="Res\Packets.ico">
 			</File>
 			<File
-				RelativePath="Res\Paintbrushes.ICO">
+				RelativePath="Res\Paintbrushes.ico">
 			</File>
 			<File
 				RelativePath="Res\PanelMark.bmp">
@@ -3614,6 +3614,15 @@
 			</File>
 			<File
 				RelativePath="Res\RemoteWnd.bmp">
+			</File>
+			<File
+				RelativePath="Res\sch-down.cur">
+			</File>
+			<File
+				RelativePath="Res\sch-left.cur">
+			</File>
+			<File
+				RelativePath="Res\sch-right.cur">
 			</File>
 			<File
 				RelativePath="Res\Scheduler.bmp">
@@ -3637,10 +3646,10 @@
 				RelativePath="Res\Security.ico">
 			</File>
 			<File
-				RelativePath="res\Shareaza.ico">
+				RelativePath="Res\Shareaza.ico">
 			</File>
 			<File
-				RelativePath="res\Shareaza.rc2">
+				RelativePath="Res\Shareaza.rc2">
 			</File>
 			<File
 				RelativePath="Res\ShareazaIcon.ico">
@@ -3695,9 +3704,6 @@
 			</File>
 			<File
 				RelativePath="Res\WizardDot.bmp">
-			</File>
-			<File
-				RelativePath="Res\WorkBanner.bmp">
 			</File>
 			<File
 				RelativePath="Res\World.ico">

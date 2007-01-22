@@ -1,7 +1,7 @@
 //
 // Shareaza.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2005.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -283,12 +283,14 @@ inline bool IsWord(LPCTSTR pszString, size_t nStart, size_t nLength)
 	return false;
 }
 
-#define MSG_DEFAULT		0
-#define MSG_SYSTEM		1
-#define MSG_ERROR		2
-#define MSG_DEBUG		3
-#define MSG_TEMP		4
-#define MSG_DOWNLOAD	1
+// To see the color of the message you must look at CTextCtrl::CTextCtrl() in CtrlText.cpp
+#define MSG_DEFAULT			0
+#define MSG_SYSTEM			1
+#define MSG_DOWNLOAD		1
+#define MSG_ERROR			2
+#define MSG_DEBUG			3
+#define MSG_TEMP			4
+#define MSG_DISPLAYED_ERROR	5	// It behave as MSG_ERROR but it is displayed also when VerboseMode is off
 
 #define WM_WINSOCK		(WM_USER+101)
 #define WM_VERSIONCHECK	(WM_USER+102)
@@ -300,6 +302,8 @@ inline bool IsWord(LPCTSTR pszString, size_t nStart, size_t nLength)
 #define WM_OPENSEARCH	(WM_USER+108)
 #define WM_LOG			(WM_USER+109)
 #define WM_LIBRARYSEARCH (WM_USER+110)
+#define WM_PLAYFILE		(WM_USER+111)
+#define WM_ENQUEUEFILE	(WM_USER+112)
 
 #define WM_AFX_SETMESSAGESTRING 0x0362
 #define WM_AFX_POPMESSAGESTRING 0x0375
@@ -371,3 +375,8 @@ inline bool IsWord(LPCTSTR pszString, size_t nStart, size_t nLength)
 #define BT_ID1				'S'
 #define BT_ID2				'~'
 
+// Drag-n-drop stuff
+
+#define MAX_DRAG_SIZE		256
+#define MAX_DRAG_SIZE_2		(MAX_DRAG_SIZE/2)
+#define DRAG_COLOR_KEY		(RGB(250,255,250))	// Light-green

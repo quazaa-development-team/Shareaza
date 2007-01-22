@@ -1,7 +1,7 @@
 //
 // ShareazaDataSource.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -44,13 +44,13 @@ public:
 	// pList - list item being dragged
 	// pImage - bitmap of item
 	// oGUID - GUID of parent folder ( only for albums )
-	static HRESULT DoDragDrop(const CLibraryList* pList, HBITMAP pImage, const Hashes::Guid& oGUID);
+	static HRESULT DoDragDrop(const CLibraryList* pList, HBITMAP pImage, const Hashes::Guid& oGUID, const CPoint& ptOffset);
 
 	// Perform CLibraryTreeItem drag operation
 	// pList - tree item being dragged
 	// pImage - bitmap of item
 	// oGUID - GUID of parent folder ( only for albums )
-	static HRESULT DoDragDrop(const CLibraryTreeItem* pList, HBITMAP pImage, const Hashes::Guid& oGUID);
+	static HRESULT DoDragDrop(const CLibraryTreeItem* pList, HBITMAP pImage, const Hashes::Guid& oGUID, const CPoint& ptOffset);
 
 	// Get CFSTR_SHELLURL as string from data object
 	static HRESULT ObjectToURL(IDataObject* pObject, CString& str);
@@ -126,13 +126,13 @@ protected:
 
 	// Perform universal drag operation
 	template < typename T > static UINT DragDropThread(LPVOID param);
-	template < typename T > static HRESULT DoDragDrop(const T* pList, HBITMAP pImage, const Hashes::Guid& oGUID);
+	template < typename T > static HRESULT DoDragDrop(const T* pList, HBITMAP pImage, const Hashes::Guid& oGUID, const CPoint& ptOffset);
 
 	// Add CF_SHAREAZA
 	static HRESULT	Add(IDataObject* pIDataObject);
 
 	// Add medias by IDragSourceHelper
-	static HRESULT	Add(IDataObject* pIDataObject, HBITMAP pImage);
+	static HRESULT	Add(IDataObject* pIDataObject, HBITMAP pImage, const CPoint& ptOffset);
 
 	// Add CF_HDROP/CF_SHAREAZA_ALBUMS/CF_SHAREAZA_FILES
 	template < typename T > static HRESULT AddFiles(IDataObject* pIDataObject, const T* pSelFirst, const Hashes::Guid& oGUID);
@@ -167,7 +167,6 @@ protected:
 public:\
 	virtual BOOL OnDrop(IDataObject* pDataObj, DWORD grfKeyState, POINT ptScreen, DWORD* pdwEffect, BOOL bDrop);\
 	BEGIN_INTERFACE_PART(DropTarget, IDropTarget) \
-		XDropTarget(); \
 		STDMETHOD(DragEnter)(IDataObject* pDataObj, DWORD grfKeyState, POINTL pt, DWORD* pdwEffect); \
 		STDMETHOD(DragOver)(DWORD grfKeyState, POINTL pt, DWORD* pdwEffect); \
 		STDMETHOD(DragLeave)(); \
@@ -183,14 +182,11 @@ public:\
 		INTERFACE_PART(class_name, IID_IDropTarget, DropTarget) \
 	END_INTERFACE_MAP() \
 	IMPLEMENT_UNKNOWN(class_name, DropTarget) \
-	class_name::XDropTarget::XDropTarget () \
-	{ \
-		CoCreateInstance( CLSID_DragDropHelper, NULL, CLSCTX_ALL, IID_IDropTargetHelper, (LPVOID*) &m_spdth ); \
-	} \
 	STDMETHODIMP class_name::XDropTarget::DragEnter(IDataObject* pDataObj, DWORD grfKeyState, POINTL ptl, DWORD* pdwEffect) \
 	{ \
 		METHOD_PROLOGUE( class_name, DropTarget ) \
 		m_pDataObj = pDataObj; \
+		CoCreateInstance( CLSID_DragDropHelper, NULL, CLSCTX_ALL, IID_IDropTargetHelper, (LPVOID*) &m_spdth ); \
 		POINT point = { ptl.x, ptl.y }; \
 		if ( ! pThis->OnDrop( m_pDataObj, grfKeyState, point, pdwEffect, FALSE ) ) \
 			*pdwEffect = DROPEFFECT_NONE; \
@@ -213,6 +209,7 @@ public:\
 		pThis->OnDrop( NULL, 0, point, 0, FALSE ); \
 		if ( m_spdth ) m_spdth->DragLeave(); \
 		m_pDataObj.Release(); \
+		m_spdth.Release(); \
 		return S_OK; \
 	} \
 	STDMETHODIMP class_name::XDropTarget::Drop(IDataObject* pDataObj, DWORD grfKeyState, POINTL ptl, DWORD* pdwEffect) \
@@ -223,6 +220,7 @@ public:\
 			*pdwEffect = DROPEFFECT_NONE; \
 		if (m_spdth) m_spdth->Drop( pDataObj, &point, *pdwEffect ); \
 		m_pDataObj.Release(); \
+		m_spdth.Release(); \
 		return S_OK; \
 	}
 

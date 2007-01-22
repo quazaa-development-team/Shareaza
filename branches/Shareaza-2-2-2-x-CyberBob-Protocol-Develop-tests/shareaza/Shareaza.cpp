@@ -1,7 +1,7 @@
 //
 // Shareaza.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -651,6 +651,10 @@ int CShareazaApp::ExitInstance()
 
 	WSACleanup();
 
+	if ( m_hGDI32 != NULL ) FreeLibrary( m_hGDI32 );
+
+	if ( m_hPowrProf != NULL ) FreeLibrary( m_hPowrProf );
+
 	if ( m_pMutex != NULL ) CloseHandle( m_pMutex );
 
 	return CWinApp::ExitInstance();
@@ -699,6 +703,7 @@ BOOL CShareazaApp::OpenTorrent(LPCTSTR lpszFileName, BOOL bDoIt)
 			if ( bDoIt )
 				return AfxGetMainWnd()->PostMessage( WM_URL, (WPARAM)pURL );
 			delete pURL;
+			pTorrent = NULL;	// Deleted inside CShareazaURL::Clear()
 		}
 	}
 	delete pTorrent;
@@ -860,7 +865,7 @@ void CShareazaApp::InitResources()
 	}
 	
 	//Get pointers to some functions that don't exist under 95/NT
-	if ( ( m_hUser32 = LoadLibrary( _T("User32.dll") ) ) != 0 )
+	if ( m_hUser32 != 0 )
 	{
 		(FARPROC&)m_pfnSetLayeredWindowAttributes = GetProcAddress(
 			m_hUser32, "SetLayeredWindowAttributes" );
