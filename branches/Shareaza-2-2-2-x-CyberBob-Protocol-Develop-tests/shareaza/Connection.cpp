@@ -244,7 +244,7 @@ BOOL CConnection::ConnectTo(IN_ADDR* pAddress, WORD nPort)
 // When WSAAccept accepted the connection, it created a new socket hSocket for it and wrote the remote IP in pHost
 void CConnection::AcceptFrom(SOCKET hSocket, SOCKADDR_IN* pHost)
 {
-	// Make sure the newly accepted socket is valid
+	// Make sure the socket on this connection is invalid (no socket has been attached yet.)
 	ASSERT( m_hSocket == INVALID_SOCKET );
 
 	// Record the connection information here
@@ -371,7 +371,7 @@ BOOL CConnection::DoRun()
 		m_bConnected = TRUE;
 		m_tConnected = m_mInput.tLast = m_mOutput.tLast = GetTickCount(); // Store the time 3 places
 
-		// Call CShakeNeighbour::OnConnected to start reading the handshake
+		// Call OnConnected() of derived class to invoke start up process of connection.
 		if ( ! OnConnected() ) return FALSE;
 	}
 
