@@ -129,14 +129,13 @@ CG2Packet* CNeighboursWithG2::CreateQueryWeb(const Hashes::Guid& oGUID, CNeighbo
 	// Loop through the connected computers
 	std::list<CG2Neighbour*>::iterator iIndex	= m_oG2Hubs.begin();
 	std::list<CG2Neighbour*>::iterator iEnd		= m_oG2Hubs.end();
-	for ( ; iIndex != iEnd ; )
+	for ( ; iIndex != iEnd ; iIndex++ )
 	{
 		// Get the neighbour object at this position, and move pos to the next one
 		CG2Neighbour* pNeighbour = *iIndex;
 
 		// If this neighbour is running Gnutella2 software
 		if ( pNeighbour->m_nProtocol == PROTOCOL_G2 && // The remote computer is running Gnutella2 software, and
-			 pNeighbour->m_nState >= nrsConnected   && // We've finished the handshake with it, and
 			 pNeighbour != pExcept )                   // This isn't the computer the caller warned us to except
 		{
 			// Write information about this connected computer into the packet
