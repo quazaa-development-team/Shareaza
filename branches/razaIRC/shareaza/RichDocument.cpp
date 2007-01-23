@@ -78,6 +78,17 @@ POSITION CRichDocument::Find(CRichElement* pElement) const
 	return m_pElements.Find( pElement );
 }
 
+CRichElement* CRichDocument::GetIndex(int nIndex) const
+{
+	for ( POSITION pos = m_pElements.GetHeadPosition() ; pos ; )
+	{
+		CRichElement* pItem = m_pElements.GetNext( pos );
+		if ( ! nIndex-- ) return pItem;
+	}
+
+	return NULL;
+}
+
 //////////////////////////////////////////////////////////////////////
 // CRichDocument element modification
 

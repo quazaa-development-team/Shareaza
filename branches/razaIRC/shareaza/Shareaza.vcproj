@@ -405,6 +405,9 @@
 				RelativePath="ComObject.cpp">
 			</File>
 			<File
+				RelativePath="ComRichBox.cpp">
+			</File>
+			<File
 				RelativePath="ComToolbar.cpp">
 			</File>
 			<File
@@ -2190,10 +2193,13 @@
 				RelativePath="ComMenu.h">
 			</File>
 			<File
-				RelativePath=".\CommonInclude.hpp">
+				RelativePath="CommonInclude.hpp">
 			</File>
 			<File
 				RelativePath="ComObject.h">
+			</File>
+			<File
+				RelativePath="ComRichBox.h">
 			</File>
 			<File
 				RelativePath="ComToolbar.h">

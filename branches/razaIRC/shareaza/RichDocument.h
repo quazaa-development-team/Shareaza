@@ -27,7 +27,6 @@
 class CRichElement;
 class CXMLElement;
 
-
 class CRichDocument  
 {
 // Construction
@@ -61,6 +60,7 @@ public:
 	CRichElement*	GetNext(POSITION& pos) const;
 	CRichElement*	GetPrev(POSITION& pos) const;
 	INT_PTR			GetCount() const;
+	CRichElement*	GetIndex(int nIndex) const;
 	POSITION		Find(CRichElement* pElement) const;
 public:
 	CRichElement*	Add(CRichElement* pElement, POSITION posBefore = NULL);
@@ -76,6 +76,8 @@ public:
 protected:
 	BOOL			LoadXMLStyles(CXMLElement* pParent);
 	BOOL			LoadXMLColour(CXMLElement* pXML, LPCTSTR pszName, COLORREF* pColour);
+
+	friend class CComRichBox;
 };
 
 #endif // !defined(AFX_RICHDOCUMENT_H__9D4A133E_6F29_4BF5_8CCF_2A02830663D5__INCLUDED_)
