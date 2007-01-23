@@ -19,11 +19,11 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
+import "ShObjIdl.idl";
+
 [ uuid(E3481FE3-E062-4E1C-A23A-62A6D13CBFB8), version(1.0) ]
 library Shareaza
 {
-	importlib("stdole32.tlb");
-
 	interface IApplication;
 
 	//
@@ -121,7 +121,7 @@ library Shareaza
 	//
 
 	[ uuid(D1B5D3A4-B890-470a-A3FF-9700F3C2A063) ]
-	interface IGeneralPlugin : IUnknown
+	interface IGeneralPlugin : stdole.IUnknown
 	{
 		HRESULT SetApplication( [in] IApplication* pApplication );
 		HRESULT QueryCapabilities( [out] DWORD* pnCaps );
@@ -134,11 +134,11 @@ library Shareaza
 	//
 
 	[ uuid(CB25DAED-D745-45db-994E-32639D2888A9) ]
-	interface ICommandPlugin : IUnknown
+	interface ICommandPlugin : stdole.IUnknown
 	{
 		HRESULT RegisterCommands();
 		HRESULT InsertCommands();
-		HRESULT OnUpdate( [in] UINT nCommandID, [in,out] STristate* pbVisible, [in,out] STristate* pbEnabled, [in,out] STristate* pbChecked );
+		HRESULT OnUpdate( [in] UINT nCommandID, [in,out] STRISTATE* pbVisible, [in,out] STRISTATE* pbEnabled, [in,out] STRISTATE* pbChecked );
 		HRESULT OnCommand( [in] UINT nCommandID );
 	};
 
@@ -147,7 +147,7 @@ library Shareaza
 	//
 
 	[ uuid(8E878640-37B5-44a3-A37C-FC3BF1CCF6B6) ]
-	interface IExecutePlugin : IUnknown
+	interface IExecutePlugin : stdole.IUnknown
 	{
 		HRESULT OnExecute( [in] BSTR sFilePath );
 		HRESULT OnEnqueue( [in] BSTR sFilePath );
@@ -160,7 +160,7 @@ library Shareaza
 	interface ISToolbar;
 
 	[ uuid(ADDB77AE-3483-4a15-B391-AE31563BD7E3) ]
-	interface IPluginWindow : IUnknown
+	interface IPluginWindow : stdole.IUnknown
 	{
 		HRESULT ListenForSingleMessage( [in] UINT nMessage );
 		HRESULT ListenForMultipleMessages( [in] SAFEARRAY* pMessages );
@@ -176,11 +176,11 @@ library Shareaza
 	};
 
 	[ uuid(C6631461-2654-4572-BB3C-54F52F0FF1B9) ]
-	interface IPluginWindowOwner : IUnknown
+	interface IPluginWindowOwner : stdole.IUnknown
 	{
 		HRESULT OnTranslate( [in] MSG* pMessage );
 		HRESULT OnMessage( [in] UINT nMessage, [in] WPARAM wParam, [in] LPARAM lParam, [out] LRESULT* plResult );
-		HRESULT OnUpdate( [in] UINT nCommandID, [in,out] STristate* pbVisible, [in,out] STristate* pbEnabled, [in,out] STristate* pbChecked );
+		HRESULT OnUpdate( [in] UINT nCommandID, [in,out] STRISTATE* pbVisible, [in,out] STRISTATE* pbEnabled, [in,out] STRISTATE* pbChecked );
 		HRESULT OnCommand( [in] UINT nCommandID );
 	};
 
@@ -189,7 +189,7 @@ library Shareaza
 	//
 
 	[ uuid(32496CEA-3B51-4f2f-9CE7-73D6AC942C34) ]
-	interface ILibraryBuilderPlugin : IUnknown
+	interface ILibraryBuilderPlugin : stdole.IUnknown
 	{
 		HRESULT Process( [in] HANDLE hFile, [in] BSTR sFile, [in] ISXMLElement* pXML );
 	};
@@ -216,7 +216,7 @@ library Shareaza
 	} IMAGESERVICEFLAGS;
 
 	[ uuid(AB0A7BF2-94C0-4daa-8256-2BB6C3648050) ]
-	interface IImageServicePlugin : IUnknown
+	interface IImageServicePlugin : stdole.IUnknown
 	{
 		HRESULT LoadFromFile( [in] BSTR sFile, [in,out] IMAGESERVICEDATA* pParams, [out] SAFEARRAY** ppImage );
 		HRESULT LoadFromMemory( [in] BSTR sType, [in] SAFEARRAY* pMemory, [in,out] IMAGESERVICEDATA* pParams, [out] SAFEARRAY** ppImage );
@@ -229,7 +229,7 @@ library Shareaza
 	//
 
 	[ uuid(52A97CBD-2B99-45e8-B6F9-41E9CD583960) ]
-	interface IDownloadPreviewSite : IUnknown
+	interface IDownloadPreviewSite : stdole.IUnknown
 	{
 		HRESULT GetSuggestedFilename( [out,retval] BSTR* psFile );
 		HRESULT GetAvailableRanges( [out,retval] SAFEARRAY **pArray );
@@ -241,7 +241,7 @@ library Shareaza
 	};
 
 	[ uuid(1182FCD9-9F14-4e4a-BD05-432422B5BFAF) ]
-	interface IDownloadPreviewPlugin : IUnknown
+	interface IDownloadPreviewPlugin : stdole.IUnknown
 	{
 		HRESULT SetSite( [in] IDownloadPreviewSite* pSite );
 		HRESULT Preview( [in] HANDLE hFile, [in] BSTR sFile );
@@ -266,7 +266,7 @@ library Shareaza
 	} MediaZoom;
 
 	[ uuid(59978299-C8AC-4818-83F4-C382BB611D5C), pointer_default(unique) ]
-	interface IMediaPlayer : IUnknown
+	interface IMediaPlayer : stdole.IUnknown
 	{
 		HRESULT Create( [in] HWND hWnd );
 		HRESULT Destroy();
@@ -312,7 +312,7 @@ library Shareaza
 	} SHAREAZAVISCHUNK;
 
 	[ uuid(E788D125-4D41-4a35-A436-D1A1FD0C8EC9) ]
-	interface IAudioVisPlugin : IUnknown
+	interface IAudioVisPlugin : stdole.IUnknown
 	{
 		HRESULT Configure();
 		HRESULT Create( [in] HWND hWnd );
@@ -327,7 +327,7 @@ library Shareaza
 	};
 
 	[ uuid(71045028-F95C-4c03-AB09-6D906DBFC731) ]
-	interface IWrappedPluginControl : IUnknown
+	interface IWrappedPluginControl : stdole.IUnknown
 	{
 		HRESULT Load( [in] BSTR sDLL, [in] LONG nIndex );
 		HRESULT Unload();
@@ -363,6 +363,12 @@ library Shareaza
 	interface ISToolbar;
 	interface ISToolbarItem;
 	interface IGenericView;
+	interface ISRichBox;
+
+	typedef enum
+	{
+		GuiWindowed, GuiTabbed, GuiBasic
+	} SGUIMode;
 
 	[ uuid(FCDE733E-DDA0-4849-AD83-D02B0F4D1DA3), dual, oleautomation ]
 	interface IUserInterface : IDispatch
@@ -381,7 +387,8 @@ library Shareaza
 
 		[id(31)] HRESULT GetMenu( [in] BSTR bsName, [in] VARIANT_BOOL bCreate, [out,retval] ISMenu** ppMenu );
 		[id(32)] HRESULT GetToolbar( [in] BSTR bsName, [in] VARIANT_BOOL bCreate, [out,retval] ISToolbar** ppToolbar );
-
+		[id(33),propget] HRESULT GUIMode( [out,retval] SGUIMode* pnMode);
+		[id(34)] HRESULT GetRichBox( [in] BSTR bsName, [in] VARIANT_BOOL bCreate, [out,retval] ISRichBox** ppRichBox );
 	};
 
 	typedef enum
@@ -460,6 +467,73 @@ library Shareaza
 		[id(-4),propget,restricted] HRESULT _NewEnum( [out,retval] IUnknown** ppEnum );
 	};
 
+	typedef enum
+	{
+		reNull, reNewline, reGap, reAlign,
+		reBitmap, reIcon, reAnchor, reCmdIcon, reEmoticon,
+		reText, reLink, reHeading
+	} RichElementType;
+
+	typedef enum
+	{
+		fNull		= 0x00,
+		fBold		= 0x01,
+		fItalic		= 0x02,
+		fUnderline	= 0x04,
+		fHeading	= 0x08,
+		fMiddle		= 0x10,
+		fColour		= 0x20,
+		fHidden		= 0x80
+	} RichElementFormat;
+
+	interface ISRichItem;
+	interface ISRichDocument;
+
+	[ uuid(0D432DEA-CAF6-4ED8-9BB8-29903B05AD71), dual, oleautomation ]
+	interface ISRichBox : IDispatch
+	{
+		[id(1),propget] HRESULT Application( [out,retval] IApplication** ppApplication );
+		[id(2),propget] HRESULT UserInterface( [out,retval] IUserInterface** ppUserInterface );
+
+		[id(3)] HRESULT Create( [in] HWND* phPanel, [in] BSTR bsCaption, [in] HICON hIcon );
+		[id(5),propget] HRESULT Document( [out,retval] ISRichDocument** ppDocument );
+		[id(5),propput] HRESULT Document( [in] ISRichDocument* pDocument );
+	};
+
+	[ uuid(6E824385-11C9-4FBB-9ABE-CEB47B7190AB), dual, oleautomation ]
+	interface ISRichDocument : IDispatch
+	{
+		[id(1),propget] HRESULT Application( [out,retval] IApplication** ppApplication );
+		[id(2),propget] HRESULT UserInterface( [out,retval] IUserInterface** ppUserInterface );
+
+		[id(-4),propget,restricted] HRESULT _NewEnum( [out,retval] IUnknown** ppEnum );
+		[id(0),propget] HRESULT Item( [in] VARIANT vIndex, [out,retval] ISRichItem** ppItem );
+		[id(3),propget] HRESULT Count( [out,retval] LONG* pnCount );
+
+		[id(4)] HRESULT Add( [in] INT nType, [in] BSTR strText, [in] BSTR strLink, [in] LONG nFlags, [in] INT nGroup, [out,retval] ISRichItem** ppItem );
+		[id(5)] HRESULT RemoveAll();
+		[id(6)] HRESULT ShowGroup( [in] INT nGroup, [in] VARIANT_BOOL bShow );
+		[id(7)] HRESULT ShowGroupRange( [in] INT nMin, [in] INT nMax, [in] VARIANT_BOOL bShow );
+		[id(9)] HRESULT CreateFonts( [in] BSTR strFaceName, [in] INT nSize );
+		[id(10)] HRESULT LoadXMLStyles( [in] ISXMLElement* pParent);
+		[id(11)] HRESULT LoadXMLColour( [in] ISXMLElement* pXML, [in] BSTR strName, [out,retval] LONG* pnColour );
+	};
+
+	[ uuid(A43EEAA3-4E04-4E81-B26E-D1F4191194E1), dual, oleautomation ]
+	interface ISRichItem : IDispatch
+	{
+		[id(1),propget] HRESULT Application( [out,retval] IApplication** ppApplication );
+		[id(2),propget] HRESULT UserInterface( [out,retval] IUserInterface** ppUserInterface );
+
+		[id(3),propget] HRESULT Document( [out,retval] ISRichDocument** ppDocument );
+		[id(4)] HRESULT Remove();
+		[id(5)] HRESULT Show( [in] VARIANT_BOOL bShow );
+		[id(6)] HRESULT SetText( [in] BSTR strText );
+		[id(7)] HRESULT SetFlags( [in] LONG nFlags, [in] LONG nMask );
+		[id(8),propget] HRESULT Size( [out,retval] LONG* pnSize );
+		[id(9),propget] HRESULT ItemType( [out,retval] RichElementType* pnType );
+	};
+
 	//
 	// Library Object Model
 	//
@@ -516,8 +590,8 @@ library Shareaza
 		[id(10),propget] HRESULT Parent( [out,retval] ILibraryFolder** ppFolder );
 		[id(11),propget] HRESULT Path( [out,retval] BSTR* psPath );
 		[id(12),propget] HRESULT Name( [out,retval] BSTR* psPath );
-		[id(13),propget] HRESULT Shared( [out,retval] STristate* pnValue );
-		[id(13),propput] HRESULT Shared( [in] STristate nValue );
+		[id(13),propget] HRESULT Shared( [out,retval] STRISTATE* pnValue );
+		[id(13),propput] HRESULT Shared( [in] STRISTATE nValue );
 		[id(14),propget] HRESULT EffectiveShared( [out,retval] VARIANT_BOOL* pbValue );
 
 		[id(20),propget] HRESULT Folders( [out,retval] ILibraryFolders** ppFolders );
@@ -533,8 +607,8 @@ library Shareaza
 		[id(10),propget] HRESULT Folder( [out,retval] ILibraryFolder** ppFolder );
 		[id(11),propget] HRESULT Path( [out,retval] BSTR* psPath );
 		[id(12),propget] HRESULT Name( [out,retval] BSTR* psPath );
-		[id(13),propget] HRESULT Shared( [out,retval] STristate* pnValue );
-		[id(13),propput] HRESULT Shared( [in] STristate nValue );
+		[id(13),propget] HRESULT Shared( [out,retval] STRISTATE* pnValue );
+		[id(13),propput] HRESULT Shared( [in] STRISTATE nValue );
 		[id(14),propget] HRESULT EffectiveShared( [out,retval] VARIANT_BOOL* pbValue );
 
 		[id(20),propget] HRESULT Size( [out,retval] LONG* pnSize );

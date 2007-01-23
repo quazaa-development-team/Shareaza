@@ -78,7 +78,7 @@ ISToolbarItem* CComToolbar::Wrap(CCoolBarCtrl* pBar, CCoolBarItem* pItem)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// CComToolbar ISMenu
+// CComToolbar ISToolbar
 
 IMPLEMENT_DISPATCH(CComToolbar, SToolbar)
 

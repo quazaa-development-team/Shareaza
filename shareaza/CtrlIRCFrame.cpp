@@ -2564,7 +2564,6 @@ BOOL CIRCTabCtrl::OnEraseBkgnd(CDC* pDC)
 
 void CIRCTabCtrl::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 {
-	CIRCFrame m_wndFrame;
 	if( lpDrawItemStruct->CtlType == ODT_TAB )
 	{
 		CRect rect = lpDrawItemStruct->rcItem;

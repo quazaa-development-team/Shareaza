@@ -77,6 +77,8 @@ protected:
 		STDMETHOD(AddFromXML)(ISXMLElement FAR* pXML);
 		STDMETHOD(GetMenu)(BSTR bsName, VARIANT_BOOL bCreate, ISMenu FAR* FAR* ppMenu);
 		STDMETHOD(GetToolbar)(BSTR bsName, VARIANT_BOOL bCreate, ISToolbar FAR* FAR* ppToolbar);
+		STDMETHOD(get_GUIMode)(SGUIMode FAR* pnMode);
+		STDMETHOD(GetRichBox)(BSTR bsName, VARIANT_BOOL bCreate, ISRichBox FAR* FAR* ppRichBox);
 	END_INTERFACE_PART(UserInterface)
 
 	DECLARE_INTERFACE_MAP()

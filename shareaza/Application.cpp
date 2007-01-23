@@ -29,6 +29,7 @@
 #include "Skin.h"
 #include "ComMenu.h"
 #include "ComToolbar.h"
+#include "ComRichBox.h"
 #include "WndMain.h"
 #include "WndChild.h"
 #include "WndPlugin.h"
@@ -282,4 +283,18 @@ STDMETHODIMP CApplication::XUserInterface::GetToolbar(BSTR bsName, VARIANT_BOOL 
 	*ppToolbar = CComToolbar::Wrap( pBar );
 
 	return S_OK;
+}
+
+STDMETHODIMP CApplication::XUserInterface::get_GUIMode(SGUIMode FAR* pnMode)
+{
+	METHOD_PROLOGUE( CApplication, UserInterface )
+	if ( pnMode == NULL ) return E_INVALIDARG;
+
+	*pnMode = (SGUIMode)Settings.General.GUIMode;
+	return S_OK;
+}
+
+STDMETHODIMP CApplication::XUserInterface::GetRichBox(BSTR /*bsName*/, VARIANT_BOOL /*bCreate*/, ISRichBox FAR* FAR* /*ppRichBox*/)
+{
+	return E_NOTIMPL;
 }
