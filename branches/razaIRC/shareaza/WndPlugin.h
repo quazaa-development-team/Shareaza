@@ -70,10 +70,10 @@ protected:
 // IPluginWindow
 protected:
 	BEGIN_INTERFACE_PART(PluginWindow, IPluginWindow)
-		STDMETHOD(ListenForSingleMessage)(UINT nMessage);
+		STDMETHOD(ListenForSingleMessage)(INT nMessage);
 		STDMETHOD(ListenForMultipleMessages)(SAFEARRAY FAR* pMessages);
 		STDMETHOD(Create1)(BSTR bsCaption, HICON hIcon, VARIANT_BOOL bPanel, VARIANT_BOOL bTabbed);
-		STDMETHOD(Create2)(UINT nCommandID, VARIANT_BOOL bPanel, VARIANT_BOOL bTabbed);
+		STDMETHOD(Create2)(INT nCommandID, VARIANT_BOOL bPanel, VARIANT_BOOL bTabbed);
 		STDMETHOD(GetHwnd)(HWND FAR* phWnd);
 		STDMETHOD(HandleMessage)(LRESULT* plResult);
 		STDMETHOD(LoadState)(VARIANT_BOOL bMaximise);

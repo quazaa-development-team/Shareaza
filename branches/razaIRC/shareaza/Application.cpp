@@ -208,7 +208,7 @@ STDMETHODIMP CApplication::XUserInterface::get_ActiveView(IGenericView FAR* FAR*
 	return pChildWnd->GetGenericView( ppView );
 }
 
-STDMETHODIMP CApplication::XUserInterface::RegisterCommand(BSTR bsName, HICON hIcon, UINT* pnCommandID)
+STDMETHODIMP CApplication::XUserInterface::RegisterCommand(BSTR bsName, HICON hIcon, INT* pnCommandID)
 {
 	METHOD_PROLOGUE( CApplication, UserInterface )
 	if ( pnCommandID == NULL ) return E_INVALIDARG;
@@ -225,7 +225,7 @@ STDMETHODIMP CApplication::XUserInterface::AddFromString(BSTR sXML)
 	return Skin.LoadFromString( CString( sXML ), Settings.General.Path + '\\' ) ? S_OK : E_FAIL;
 }
 
-STDMETHODIMP CApplication::XUserInterface::AddFromResource(HINSTANCE hInstance, UINT nID)
+STDMETHODIMP CApplication::XUserInterface::AddFromResource(HINSTANCE hInstance, INT nID)
 {
 	METHOD_PROLOGUE( CApplication, UserInterface )
 	if ( hInstance == NULL || nID == 0 ) return E_INVALIDARG;

@@ -395,7 +395,9 @@ BOOL CPlugin::Start()
 		(IApplication*)Application.GetInterface( IID_IApplication, FALSE ) );
 
 	m_nCapabilities = 0;
-	m_pPlugin->QueryCapabilities( &m_nCapabilities );
+	LONG nCapabilities = 0;
+	m_pPlugin->QueryCapabilities( &nCapabilities );
+	m_nCapabilities = nCapabilities;
 
 	m_pPlugin->QueryInterface( IID_ICommandPlugin, (void**)&m_pCommand );
 

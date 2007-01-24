@@ -71,9 +71,9 @@ protected:
 		STDMETHOD(NewWindow)(BSTR bsName, IPluginWindowOwner FAR* pOwner, IPluginWindow FAR* FAR* ppWindow);
 		STDMETHOD(get_MainWindowHwnd)(HWND FAR* phWnd);
 		STDMETHOD(get_ActiveView)(IGenericView FAR* FAR* ppView);
-		STDMETHOD(RegisterCommand)(BSTR bsName, HICON hIcon, UINT* pnCommandID);
+		STDMETHOD(RegisterCommand)(BSTR bsName, HICON hIcon, INT* pnCommandID);
 		STDMETHOD(AddFromString)(BSTR sXML);
-		STDMETHOD(AddFromResource)(HINSTANCE hInstance, UINT nID);
+		STDMETHOD(AddFromResource)(HINSTANCE hInstance, INT nID);
 		STDMETHOD(AddFromXML)(ISXMLElement FAR* pXML);
 		STDMETHOD(GetMenu)(BSTR bsName, VARIANT_BOOL bCreate, ISMenu FAR* FAR* ppMenu);
 		STDMETHOD(GetToolbar)(BSTR bsName, VARIANT_BOOL bCreate, ISToolbar FAR* FAR* ppToolbar);

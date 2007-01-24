@@ -559,17 +559,17 @@ STDMETHODIMP CFilePreviewDlg::XDownloadPreviewSite::GetAvailableRanges(SAFEARRAY
 	return S_OK;
 }
 
-STDMETHODIMP CFilePreviewDlg::XDownloadPreviewSite::SetProgressRange(DWORD nRange)
+STDMETHODIMP CFilePreviewDlg::XDownloadPreviewSite::SetProgressRange(LONG nRange)
 {
 	METHOD_PROLOGUE( CFilePreviewDlg, DownloadPreviewSite )
-	pThis->UpdateProgress( TRUE, nRange, FALSE, 0 );
+	pThis->UpdateProgress( TRUE, (DWORD)nRange, FALSE, 0 );
 	return S_OK;
 }
 
-STDMETHODIMP CFilePreviewDlg::XDownloadPreviewSite::SetProgressPosition(DWORD nPosition)
+STDMETHODIMP CFilePreviewDlg::XDownloadPreviewSite::SetProgressPosition(LONG nPosition)
 {
 	METHOD_PROLOGUE( CFilePreviewDlg, DownloadPreviewSite )
-	pThis->UpdateProgress( FALSE, 0, TRUE, nPosition );
+	pThis->UpdateProgress( FALSE, 0, TRUE, (DWORD)nPosition );
 	return S_OK;
 }
 

@@ -187,7 +187,7 @@ HRESULT CPluginWnd::GetGenericView(IGenericView** ppView)
 
 IMPLEMENT_UNKNOWN(CPluginWnd, PluginWindow)
 
-STDMETHODIMP CPluginWnd::XPluginWindow::ListenForSingleMessage(UINT nMessage)
+STDMETHODIMP CPluginWnd::XPluginWindow::ListenForSingleMessage(INT nMessage)
 {
 	METHOD_PROLOGUE( CPluginWnd, PluginWindow )
 
@@ -246,7 +246,7 @@ STDMETHODIMP CPluginWnd::XPluginWindow::Create1(BSTR bsCaption, HICON hIcon, VAR
 	return S_OK;
 }
 
-STDMETHODIMP CPluginWnd::XPluginWindow::Create2(UINT nCommandID, VARIANT_BOOL bPanel, VARIANT_BOOL bTabbed)
+STDMETHODIMP CPluginWnd::XPluginWindow::Create2(INT nCommandID, VARIANT_BOOL bPanel, VARIANT_BOOL bTabbed)
 {
 	METHOD_PROLOGUE( CPluginWnd, PluginWindow )
 
