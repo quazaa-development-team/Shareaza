@@ -849,8 +849,8 @@ BOOL CDownloadTransferED2K::SendFragmentRequests()
 			iIndex = oRequesting.begin();
 			nOffsetBegin[nCount] = QWORD((*iIndex).second.begin());
 			nOffsetEnd[nCount] = QWORD((*iIndex).second.end());
-			bI64Offset |= ( ( ( nOffsetBegin[nCount] & 0xffffffff00000000 ) >> 32 ) ||
-						( ( nOffsetEnd[nCount] & 0xffffffff00000000 ) >> 32 ) );
+			bI64Offset |= ( ( ( nOffsetBegin[nCount] & 0xffffffff00000000 ) ) ||
+						( ( nOffsetEnd[nCount] & 0xffffffff00000000 ) ) );
 			oRequesting.erase(iIndex);
 			nCount++;
 		}
@@ -859,6 +859,8 @@ BOOL CDownloadTransferED2K::SendFragmentRequests()
 		{
 			CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_REQUESTPARTS, ED2K_PROTOCOL_EMULE );
 			pPacket->Write( m_pDownload->m_oED2K );
+
+			/* this commented out code is for BigEndian, only needed when ported to different platform.
 			pPacket->WriteLongLE( (DWORD)( nOffsetBegin[0] & 0x00000000ffffffff ) );
 			pPacket->WriteLongLE( (DWORD)( ( nOffsetBegin[0] & 0xffffffff00000000 ) >> 32 ) );
 			pPacket->WriteLongLE( (DWORD)( nOffsetBegin[1] & 0x00000000ffffffff ) );
@@ -871,18 +873,37 @@ BOOL CDownloadTransferED2K::SendFragmentRequests()
 			pPacket->WriteLongLE( (DWORD)( ( nOffsetEnd[1] & 0xffffffff00000000 ) >> 32 ) );
 			pPacket->WriteLongLE( (DWORD)( nOffsetEnd[2] & 0x00000000ffffffff ) );
 			pPacket->WriteLongLE( (DWORD)( ( nOffsetEnd[2] & 0xffffffff00000000 ) >> 32 ) );
+			*/
+
+			// If little Endian, no need to use above code
+			pPacket->Write( &nOffsetBegin[0], 8 );
+			pPacket->Write( &nOffsetBegin[1], 8 );
+			pPacket->Write( &nOffsetBegin[2], 8 );
+			pPacket->Write( &nOffsetEnd[0], 8 );
+			pPacket->Write( &nOffsetEnd[1], 8 );
+			pPacket->Write( &nOffsetEnd[2], 8 );
 			Send( pPacket );
 		}
 		else
 		{
 			CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_REQUESTPARTS );
 			pPacket->Write( m_pDownload->m_oED2K );
+
+			/* this commented out code is for BigEndian, only needed when ported to different platform.
 			pPacket->WriteLongLE( (DWORD)( nOffsetBegin[0] & 0x00000000ffffffff ) );
 			pPacket->WriteLongLE( (DWORD)( nOffsetBegin[1] & 0x00000000ffffffff ) );
 			pPacket->WriteLongLE( (DWORD)( nOffsetBegin[2] & 0x00000000ffffffff ) );
 			pPacket->WriteLongLE( (DWORD)( nOffsetEnd[0] & 0x00000000ffffffff ) );
 			pPacket->WriteLongLE( (DWORD)( nOffsetEnd[1] & 0x00000000ffffffff ) );
 			pPacket->WriteLongLE( (DWORD)( nOffsetEnd[2] & 0x00000000ffffffff ) );
+			*/
+
+			pPacket->Write( &nOffsetBegin[0], 4 );
+			pPacket->Write( &nOffsetBegin[1], 4 );
+			pPacket->Write( &nOffsetBegin[2], 4 );
+			pPacket->Write( &nOffsetEnd[0], 4 );
+			pPacket->Write( &nOffsetEnd[1], 4 );
+			pPacket->Write( &nOffsetEnd[2], 4 );
 			Send( pPacket );
 		}
 
