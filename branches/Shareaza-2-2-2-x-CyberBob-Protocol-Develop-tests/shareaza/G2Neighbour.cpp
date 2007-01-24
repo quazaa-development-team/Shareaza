@@ -544,7 +544,8 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket, BOOL bTCP)
 			{
 				nAddress	= pPacket->ReadLongLE();
 				nPort		= pPacket->ReadShortBE();
-				if ( nAddress != 0 && nPort != 0 && !Network.IsFirewalledAddress( &nAddress, TRUE, TRUE ) )
+				if ( nAddress != 0 && nPort != 0 && !Network.IsFirewalledAddress( &nAddress, TRUE, TRUE ) &&
+					!Network.IsReserved( (IN_ADDR*)&nAddress ), false )
 					bUDP = TRUE;
 			}
 			else if ( nType == G2_PACKET_RELAY )
@@ -643,15 +644,10 @@ BOOL CG2Neighbour::OnPing(CG2Packet* pPacket, BOOL bTCP)
 		else
 		{
 			// This is a "/PI/RELAY without /PI/UDP" error packet
+			Statistics.Current.Gnutella2.Dropped++;
+			m_nDropCount++;
 			return TRUE;
 		}
-	}
-	else if ( ! nPort ||
-		Network.IsFirewalledAddress( &nAddress, TRUE, TRUE ) || 
-		Network.IsReserved( (IN_ADDR*)&nAddress ) )
-	{
-		// Invalid /PI/UDP address
-		return TRUE;
 	}
 	else if ( bRelay && bTCP ) // This is a TCP relayed ping packet
 	{
