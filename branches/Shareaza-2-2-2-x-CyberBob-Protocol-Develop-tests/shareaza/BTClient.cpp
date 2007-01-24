@@ -171,8 +171,11 @@ void CBTClient::Send(CBTPacket* pPacket, BOOL bRelease)
 
 BOOL CBTClient::OnRun()
 {
-	CTransfer::OnRun();
-	
+	if ( !CTransfer::OnRun() )
+	{
+		return FALSE;
+	}
+
 	DWORD tNow = GetTickCount();
 	
 	if ( ! m_bConnected )
