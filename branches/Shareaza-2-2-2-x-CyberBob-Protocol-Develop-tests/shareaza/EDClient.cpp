@@ -377,7 +377,10 @@ void CEDClient::DetachUpload()
 
 BOOL CEDClient::OnRun()
 {
-	// CTransfer::OnRun();
+	if ( !CTransfer::OnRun() )
+	{
+		return FALSE;
+	}
 
 	DWORD tNow = GetTickCount();
 	

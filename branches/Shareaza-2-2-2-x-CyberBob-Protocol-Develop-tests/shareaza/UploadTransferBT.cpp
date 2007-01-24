@@ -148,6 +148,11 @@ BOOL CUploadTransferBT::OnConnected()
 
 BOOL CUploadTransferBT::OnRun()
 {
+	if ( !CTransfer::OnRun() )
+	{
+		return FALSE;
+	}
+
 	if ( m_nState >= upsRequest && ! m_bChoked ) return ServeRequests();
 	return TRUE;
 }

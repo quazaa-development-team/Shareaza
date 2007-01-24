@@ -24,6 +24,7 @@
 #include "Settings.h"
 #include "Transfers.h"
 #include "Transfer.h"
+#include "Network.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -120,5 +121,15 @@ BOOL CTransfer::StrToSockaddr( LPCTSTR pszHost, SOCKADDR_IN & pHost )
 	pHost.sin_addr.S_un.S_addr = nAddress;
 	pHost.sin_port = htons((WORD)nPort);
 
+	return TRUE;
+}
+
+BOOL CTransfer::OnRun()
+{
+	if ( !Network.IsConnected() )
+	{
+		Close();
+		return FALSE;
+	}
 	return TRUE;
 }

@@ -175,9 +175,8 @@ BOOL CDownloadTransferED2K::OnRun()
 
 BOOL CDownloadTransferED2K::OnRunEx(DWORD tNow)
 {
-	if ( !Network.IsConnected() || ( !Settings.eDonkey.EnableToday && Settings.Connection.RequireForTransfers ) )
+	if ( !CDownloadTransfer::OnRun() )
 	{
-		Close( TS_TRUE );
 		return FALSE;
 	}
 

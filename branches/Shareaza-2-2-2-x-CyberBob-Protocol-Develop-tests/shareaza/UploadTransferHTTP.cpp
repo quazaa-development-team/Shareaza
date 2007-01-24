@@ -388,6 +388,7 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 			}
 		}
 		if ( nCount > 0 ) m_oHubList = oHubList;
+		m_nGnutella |= 2;
 	}
 
 	return CUploadTransfer::OnHeaderLine( strHeader, strValue );
@@ -427,7 +428,9 @@ BOOL CUploadTransferHTTP::OnHeadersComplete()
 	else if ( m_nGnutella & 2 )
 	{
 		// Check for clients spoofing a G2 header
-		if ( _tcsistr( m_sUserAgent, _T("phex") ) != NULL )
+		if ( _tcsistr( m_sUserAgent, _T("phex") ) != NULL ||
+			_tcsistr( m_sUserAgent, _T("limewire") ) != NULL ||
+			_tcsistr( m_sUserAgent, _T("gtk-gnutella") ) != NULL )
 		{
 			// This is actually a G1-only client sending a fake header, so they can download 
 			// from (but not upload to) clients that are only connected to G2. 
@@ -1462,7 +1465,30 @@ BOOL CUploadTransferHTTP::OnRun()
 		break;
 
 	case upsQueued:
-		//if ( tNow - m_tRequest > ( Settings.Uploads.QueuePollMax * m_nReaskMultiplier ) )
+		switch ( m_nGnutella )
+		{
+		case 1:
+			if ( !Settings.IsG1Allowed() )
+			{
+				Remove( FALSE );
+				return FALSE;
+			}
+			break;
+		case 2:
+			if ( !Settings.IsG2Allowed() )
+			{
+				Remove( FALSE );
+				return FALSE;
+			}
+			break;
+		default:
+			if ( !Settings.IsG1Allowed() || !Settings.IsG2Allowed() )
+			{
+				Remove( FALSE );
+				return FALSE;
+			}
+			break;
+		}
 		if ( tNow - m_tRequest > m_nTimeoutTraffic )
 		{
 			theApp.Message( MSG_ERROR, IDS_UPLOAD_REQUEST_TIMEOUT, (LPCTSTR)m_sAddress );
@@ -1478,12 +1504,36 @@ BOOL CUploadTransferHTTP::OnRun()
 	case upsMetadata:
 	case upsPreview:
 	case upsPreQueue:
+		switch ( m_nGnutella )
+		{
+		case 1:
+			if ( !Settings.IsG1Allowed() )
+			{
+				Remove( FALSE );
+				return FALSE;
+			}
+			break;
+		case 2:
+			if ( !Settings.IsG2Allowed() )
+			{
+				Remove( FALSE );
+				return FALSE;
+			}
+			break;
+		default:
+			if ( !Settings.IsG1Allowed() || !Settings.IsG2Allowed() )
+			{
+				Remove( FALSE );
+				return FALSE;
+			}
+			break;
+		}
 		if ( tNow - m_mOutput.tLast > Settings.Connection.TimeoutTraffic )
 		{
 			if ( tNow - m_tRequest > m_nTimeoutTraffic )
 			{
 				theApp.Message( MSG_SYSTEM, IDS_UPLOAD_TRAFFIC_TIMEOUT, (LPCTSTR)m_sAddress );
-				Close();
+				Remove( FALSE );
 				return FALSE;
 			}
 		}

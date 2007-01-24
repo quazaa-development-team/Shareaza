@@ -647,7 +647,10 @@ BOOL CDownloadTransferHTTP::SendRequest()
 
 BOOL CDownloadTransferHTTP::OnRun()
 {
-	CDownloadTransfer::OnRun();
+	if ( !CDownloadTransfer::OnRun() )
+	{
+		return FALSE;
+	}
 	
 	DWORD tNow = GetTickCount();
 	

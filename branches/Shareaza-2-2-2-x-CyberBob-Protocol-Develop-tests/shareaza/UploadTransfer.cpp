@@ -201,6 +201,33 @@ void CUploadTransfer::SetSpeedLimit(DWORD nLimit)
 
 BOOL CUploadTransfer::OnRun()
 {
+	switch ( m_nProtocol )
+	{
+	case PROTOCOL_G1:
+		if ( !Settings.IsG1Allowed() )
+		{
+			Close(TS_UNKNOWN);
+			return FALSE;
+		}
+		break;
+	case PROTOCOL_G2:
+		if ( !Settings.IsG2Allowed() )
+		{
+			Close(TS_UNKNOWN);
+			return FALSE;
+		}
+		break;
+	case PROTOCOL_ED2K:
+		if ( !Settings.IsEdAllowed() )
+		{
+			Close(TS_UNKNOWN);
+			return FALSE;
+		}
+		break;
+	default:
+		break;
+	}
+
 	DWORD tNow = GetTickCount();
 
 	LongTermAverage( tNow );
