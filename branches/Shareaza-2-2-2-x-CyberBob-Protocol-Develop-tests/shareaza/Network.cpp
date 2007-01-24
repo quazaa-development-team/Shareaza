@@ -212,7 +212,7 @@ BOOL CNetwork::CITMSendPush::OnProcess()
 			pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
 			pPacket->WriteShortLE( htons( Network.m_pHost.sin_port ) );
 			pPacket->WriteLongLE( m_nIndex );
-			bReqSucceed = Datagrams.Send( &m_pAddress, m_nPort + 4, pPacket ) ;
+			bReqSucceed = Datagrams.Send( &m_pAddress, m_nPort, pPacket ) ;
 		}
 
 		return bReqSucceed;
