@@ -325,18 +325,27 @@ BOOL CG2Neighbour::Send(CPacket* pPacket, BOOL bRelease, BOOL bBuffered)
 
 void CG2Neighbour::SendStartups()
 {
-	CG2Packet* pPing = CG2Packet::New( G2_PACKET_PING, TRUE );
 
-	if ( Network.IsListening() && ( !Network.IsFirewalled(CHECK_BOTH) || Network.IsTestingUDPFW() ) )
+	bool bIsListening = Network.IsListening() ? true : false;
+
+	if ( bIsListening )
 	{
-		pPing->WritePacket( G2_PACKET_UDP, 6 );
-		pPing->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
-		pPing->WriteShortBE( htons( Network.m_pHost.sin_port ) );
-		theApp.Message( MSG_DEBUG, _T("Sending a Firewall test request to %s."), m_sAddress );
-		pPing->WritePacket( G2_PACKET_TEST_FIREWALL, 0 );
+		if ( Network.IsFirewalled(CHECK_UDP) || Network.IsTestingUDPFW() )
+		{
+			CG2Packet* pPing = CG2Packet::New( G2_PACKET_PING, TRUE );
+			pPing->WritePacket( G2_PACKET_UDP, 6 );
+			pPing->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
+			pPing->WriteShortBE( htons( Network.m_pHost.sin_port ) );
+			//theApp.Message( MSG_DEBUG, _T("Sending a Firewall test request to %s."), m_sAddress );
+			//pPing->WritePacket( G2_PACKET_TEST_FIREWALL, 0 );
+			Send( pPing, TRUE, TRUE );
+		}
+		else
+		{
+			Send( CG2Packet::New( G2_PACKET_PING ), TRUE, TRUE );
+		}
 	}
 
-	Send( pPing, TRUE, TRUE );
 	m_tLastPingOut = GetTickCount();
 
 	Send( CG2Packet::New( G2_PACKET_PROFILE_CHALLENGE ), TRUE, TRUE );
