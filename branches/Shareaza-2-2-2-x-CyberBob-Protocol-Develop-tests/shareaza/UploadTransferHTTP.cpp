@@ -1049,7 +1049,7 @@ BOOL CUploadTransferHTTP::QueueRequest()
 				(LPCTSTR)m_sAddress, nPosition, m_pQueue->GetQueuedCount(),
 				(LPCTSTR)strName );
 
-			m_nTimeoutTraffic	= DWORD( Settings.Uploads.QueuePollMax / nTimeScale );
+			m_nTimeoutTraffic	= DWORD( Settings.Uploads.QueuePollMax * m_nReaskMultiplier );
 		}
 
 		pLock.Unlock();
