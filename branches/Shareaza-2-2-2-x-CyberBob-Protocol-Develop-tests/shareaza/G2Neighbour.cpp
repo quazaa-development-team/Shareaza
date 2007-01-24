@@ -352,6 +352,24 @@ void CG2Neighbour::SendStartups()
 
 	SendLNI();
 
+	if ( bIsListening )
+	{
+		if ( Network.IsFirewalled(CHECK_TCP) )	// (TODO)	there should be some way to find it is already known firewalled or
+		{										//			still checking state.
+			CG2Packet* pPush = CG2Packet::New( G2_PACKET_PUSH, TRUE );
+			// not known the GUID of connected node, but RAZA requires the packet to be compound
+			// so send some bogus data for work around
+			pPush->WritePacket( G2_PACKET_BOGUS, 1 );
+			pPush->WriteByte( 1 );						// just write 1
+			pPush->WriteByte( 0 );						// write 0 to mark "no more child packets"
+
+			pPush->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
+			pPush->WriteShortBE( htons( Network.m_pHost.sin_port ) );
+			theApp.Message( MSG_DEBUG, _T("Sending a Firewall test request to %s."), m_sAddress );
+			Send( pPush, TRUE, TRUE );
+		}
+	}
+
 	if ( !Network.IsTestingUDPFW() )
 		Datagrams.Send( &m_pHost, CG2Packet::New( G2_PACKET_PING ), TRUE, NULL, FALSE );
 }
