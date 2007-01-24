@@ -821,7 +821,7 @@ BOOL CDownloadTransferED2K::SendFragmentRequests()
 		{
 			ChunkifyRequest( &nOffset, &nLength, Settings.eDonkey.RequestSize, FALSE );
 			
-			Fragments::Fragment Selected( nOffset, nOffset + nLength - 1 );
+			Fragments::Fragment Selected( nOffset, nOffset + nLength );
 			oPossible.erase( Selected );
 			
 			m_oRequested.push_back( Selected );
