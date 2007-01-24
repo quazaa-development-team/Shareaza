@@ -51,6 +51,6 @@ public:
 protected:
 	void			ClearHeaders();
 	virtual BOOL	OnHeaderLine(CString& strHeader, CString& strValue);
-
+	virtual BOOL	OnRun();
 };
 
