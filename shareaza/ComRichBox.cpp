@@ -26,6 +26,7 @@
 #include "RichDocument.h"
 #include "RichElement.h"
 #include "ComRichBox.h"
+#include "CtrlTaskPanel.h"
 #include "XMLCOM.h"
 
 #ifdef _DEBUG
@@ -113,11 +114,12 @@ STDMETHODIMP CComRichBox::XSRichBox::get_UserInterface(IUserInterface FAR* FAR* 
 	return S_OK;
 }
 
-// Well, we have to make a new Interface for the panel Interface to get it skinned
-STDMETHODIMP CComRichBox::XSRichBox::Create(HWND* /*phPanel*/, BSTR /*bsCaption*/, HICON /*hIcon*/)
+STDMETHODIMP CComRichBox::XSRichBox::Create(HWND hPanel, BSTR bsCaption, INT nIcon)
 {
 	METHOD_PROLOGUE( CComRichBox, SRichBox )
-	if ( pThis->m_pTaskBox == NULL ) return E_UNEXPECTED;
+	if ( pThis->m_pTaskBox == NULL || hPanel == NULL ) return E_UNEXPECTED;
+	CTaskPanel* pPanel = reinterpret_cast< CTaskPanel* >(CWnd::FromHandle( hPanel ));
+	pThis->m_pTaskBox->Create( pPanel, bsCaption, nIcon );
 	return S_OK;
 }
 

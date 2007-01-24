@@ -111,8 +111,8 @@ protected:
 	BEGIN_INTERFACE_PART(DownloadPreviewSite, IDownloadPreviewSite)
 		STDMETHOD(GetSuggestedFilename)(BSTR FAR* psFile);
 		STDMETHOD(GetAvailableRanges)(SAFEARRAY FAR* FAR* ppArray);
-		STDMETHOD(SetProgressRange)(DWORD nRange);
-		STDMETHOD(SetProgressPosition)(DWORD nPosition);
+		STDMETHOD(SetProgressRange)(LONG nRange);
+		STDMETHOD(SetProgressPosition)(LONG nPosition);
 		STDMETHOD(SetProgressMessage)(BSTR sMessage);
 		STDMETHOD(QueueDeleteFile)(BSTR sTempFile);
 		STDMETHOD(ExecuteFile)(BSTR sFile);

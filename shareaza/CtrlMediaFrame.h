@@ -78,8 +78,8 @@ public:
 protected:
 	IMediaPlayer*	m_pPlayer;
 	MediaState		m_nState;
-	LONGLONG		m_nLength;
-	LONGLONG		m_nPosition;
+	LARGE_INTEGER	m_nLength;
+	LARGE_INTEGER	m_nPosition;
 	BOOL			m_bMute;
 	BOOL			m_bThumbPlay;
 	BOOL			m_bRepeat;

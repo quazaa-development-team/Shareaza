@@ -639,10 +639,10 @@ void CMediaFrame::PaintStatus(CDC& dc, CRect& rcBar)
 		if ( theApp.m_bRTL ) strFormat = _T("\x200F") + strFormat;
 
 		str.Format( strFormat,
-			(int)( ( m_nPosition / ONE_SECOND ) / 60 ),
-			(int)( ( m_nPosition / ONE_SECOND ) % 60 ),
-			(int)( ( m_nLength / ONE_SECOND ) / 60 ),
-			(int)( ( m_nLength / ONE_SECOND ) % 60 ) );
+			(int)( ( m_nPosition.QuadPart / ONE_SECOND ) / 60 ),
+			(int)( ( m_nPosition.QuadPart / ONE_SECOND ) % 60 ),
+			(int)( ( m_nLength.QuadPart / ONE_SECOND ) / 60 ),
+			(int)( ( m_nLength.QuadPart / ONE_SECOND ) % 60 ) );
 		
 		sz				= dc.GetTextExtent( str );
 		rcPart.right	= rcBar.right;
@@ -676,10 +676,10 @@ BOOL CMediaFrame::PaintStatusMicro(CDC& dc, CRect& rcBar)
 		if ( theApp.m_bRTL ) strFormat = _T("\x200F") + strFormat;
 
 		str.Format( strFormat,
-			(int)( ( m_nPosition / ONE_SECOND ) / 60 ),
-			(int)( ( m_nPosition / ONE_SECOND ) % 60 ),
-			(int)( ( m_nLength / ONE_SECOND ) / 60 ),
-			(int)( ( m_nLength / ONE_SECOND ) % 60 ) );
+			(int)( ( m_nPosition.QuadPart / ONE_SECOND ) / 60 ),
+			(int)( ( m_nPosition.QuadPart / ONE_SECOND ) % 60 ),
+			(int)( ( m_nLength.QuadPart / ONE_SECOND ) / 60 ),
+			(int)( ( m_nLength.QuadPart / ONE_SECOND ) % 60 ) );
 		
 		sz				= pMemDC->GetTextExtent( str );
 		rcPart.right	= rcStatus.right;
@@ -1047,27 +1047,27 @@ void CMediaFrame::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 	
 	if ( pScrollBar == (CScrollBar*)&m_wndPosition )
 	{
-		LONGLONG nLength = 0;
+		LARGE_INTEGER nLength = {};
 		if ( FAILED( m_pPlayer->GetLength( &nLength ) ) ) return;
-		nLength /= TIME_FACTOR;
+		nLength.QuadPart /= TIME_FACTOR;
 		
-		LONGLONG nPosition = 0;
+		LARGE_INTEGER nPosition = {};
 		if ( FAILED( m_pPlayer->GetPosition( &nPosition ) ) ) return;
-		nPosition /= TIME_FACTOR;
+		nPosition.QuadPart /= TIME_FACTOR;
 		
 		switch ( nSBCode )
 		{
 		case TB_TOP:
-			nPosition = 0;
+			nPosition.QuadPart = 0;
 			break;
 		case TB_BOTTOM:
-			nPosition = nLength;
+			nPosition.QuadPart = nLength.QuadPart;
 			break;
 		case TB_LINEUP:
-			nPosition -= 5;
+			nPosition.QuadPart -= 5;
 			break;
 		case TB_LINEDOWN:
-			nPosition += 5;
+			nPosition.QuadPart += 5;
 			break;
 		case TB_PAGEUP:
 		case TB_PAGEDOWN:
@@ -1084,23 +1084,24 @@ void CMediaFrame::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 				{
 					rc2.OffsetRect( rc1.left, rc1.top );
 					if ( pt.x <= rc2.left )
-						nPosition = 0;
+						nPosition.QuadPart = 0;
 					else if ( pt.x >= rc2.right )
-						nPosition = nLength;
+						nPosition.QuadPart = nLength.QuadPart;
 					else
-						nPosition = (LONGLONG)( (double)( pt.x - rc2.left ) / (double)rc2.Width() * (double)nLength );
+						nPosition.QuadPart = (LONGLONG)( (double)( pt.x - rc2.left ) / (double)rc2.Width() * (double)nLength.QuadPart );
 				}
 			}
 			break;
 		case TB_THUMBPOSITION:
 		case TB_THUMBTRACK:
-			nPosition = (int)nPos;
+			nPosition.QuadPart = (int)nPos;
 			break;
 		}
 		
-		if ( nState == smsOpen ) nPosition = 0;
-		if ( nPosition < 0 ) nPosition = 0;
-		if ( nPosition > nLength ) nPosition = nLength;
+		if ( nState == smsOpen ) nPosition.QuadPart = 0;
+		if ( nPosition.QuadPart < 0 ) nPosition.QuadPart = 0;
+		if ( nPosition.QuadPart > nLength.QuadPart ) 
+			nPosition.QuadPart = nLength.QuadPart;
 		
 		if ( nState == smsPlaying )
 		{
@@ -1108,8 +1109,10 @@ void CMediaFrame::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 			m_bThumbPlay = TRUE;
 		}
 		
-		m_pPlayer->SetPosition( nPosition * TIME_FACTOR );
-		m_wndPosition.SetPos( (int)nPosition );
+		LARGE_INTEGER nNewPos = {};
+		nNewPos.QuadPart = nPosition.QuadPart * TIME_FACTOR;
+		m_pPlayer->SetPosition( nNewPos );
+		m_wndPosition.SetPos( (int)nPosition.QuadPart );
 		
 		if ( m_bThumbPlay && nSBCode == TB_ENDTRACK )
 		{
@@ -1405,9 +1408,9 @@ void CMediaFrame::OnFileDelete(LPCTSTR pszFile)
 
 float CMediaFrame::GetPosition()
 {
-	if ( m_pPlayer != NULL && m_nState >= smsOpen && m_nLength > 0 )
+	if ( m_pPlayer != NULL && m_nState >= smsOpen && m_nLength.QuadPart > 0 )
 	{
-		return (float)m_nPosition / (float)m_nLength;
+		return (float)m_nPosition.QuadPart / (float)m_nLength.QuadPart;
 	}
 	else
 	{
@@ -1417,9 +1420,9 @@ float CMediaFrame::GetPosition()
 
 BOOL CMediaFrame::SeekTo(float nPosition)
 {
-	if ( m_pPlayer != NULL && m_nState >= smsPaused && m_nLength > 0 )
+	if ( m_pPlayer != NULL && m_nState >= smsPaused && m_nLength.QuadPart > 0 )
 	{
-		m_nPosition = (LONGLONG)( nPosition * (float)m_nLength );
+		m_nPosition.QuadPart = (LONGLONG)( nPosition * (float)m_nLength.QuadPart );
 		m_pPlayer->SetPosition( m_nPosition );
 		OnTimer( 1 );
 		return TRUE;
@@ -1688,13 +1691,13 @@ void CMediaFrame::UpdateState()
 	
 	if ( m_nState >= smsOpen )
 	{
-		m_nLength = 0;
+		m_nLength.QuadPart = 0;
 		m_pPlayer->GetLength( &m_nLength );
-		int nLength = (int)( m_nLength / TIME_FACTOR );
+		int nLength = (int)( m_nLength.QuadPart / TIME_FACTOR );
 		
-		m_nPosition = 0;
+		m_nPosition.QuadPart = 0;
 		m_pPlayer->GetPosition( &m_nPosition );
-		int nPosition = (int)( m_nPosition / TIME_FACTOR );
+		int nPosition = (int)( m_nPosition.QuadPart / TIME_FACTOR );
 		
 		m_wndPosition.EnableWindow( TRUE );
 		m_wndPosition.SetRangeMax( (int)nLength );

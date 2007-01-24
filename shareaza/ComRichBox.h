@@ -53,7 +53,7 @@ public:
 		DECLARE_DISPATCH()
 		STDMETHOD(get_Application)(IApplication FAR* FAR* ppApplication);
 		STDMETHOD(get_UserInterface)(IUserInterface FAR* FAR* ppUserInterface);
-		STDMETHOD(Create)(HWND* phPanel, BSTR bsCaption, HICON hIcon);
+		STDMETHOD(Create)(HWND hPanel, BSTR bsCaption, INT nIcon);
 		STDMETHOD(get_Document)(ISRichDocument FAR* FAR* ppDocument);
 		STDMETHOD(put_Document)(ISRichDocument FAR* pDocument);
 	END_INTERFACE_PART(SRichBox)

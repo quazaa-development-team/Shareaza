@@ -124,7 +124,7 @@ library Shareaza
 	interface IGeneralPlugin : stdole.IUnknown
 	{
 		HRESULT SetApplication( [in] IApplication* pApplication );
-		HRESULT QueryCapabilities( [out] DWORD* pnCaps );
+		HRESULT QueryCapabilities( [out] LONG* pnCaps );
 		HRESULT Configure();
 		HRESULT OnSkinChanged();
 	};
@@ -138,8 +138,8 @@ library Shareaza
 	{
 		HRESULT RegisterCommands();
 		HRESULT InsertCommands();
-		HRESULT OnUpdate( [in] UINT nCommandID, [in,out] STRISTATE* pbVisible, [in,out] STRISTATE* pbEnabled, [in,out] STRISTATE* pbChecked );
-		HRESULT OnCommand( [in] UINT nCommandID );
+		HRESULT OnUpdate( [in] INT nCommandID, [in,out] STRISTATE* pbVisible, [in,out] STRISTATE* pbEnabled, [in,out] STRISTATE* pbChecked );
+		HRESULT OnCommand( [in] INT nCommandID );
 	};
 
 	//
@@ -162,10 +162,10 @@ library Shareaza
 	[ uuid(ADDB77AE-3483-4a15-B391-AE31563BD7E3) ]
 	interface IPluginWindow : stdole.IUnknown
 	{
-		HRESULT ListenForSingleMessage( [in] UINT nMessage );
+		HRESULT ListenForSingleMessage( [in] INT nMessage );
 		HRESULT ListenForMultipleMessages( [in] SAFEARRAY* pMessages );
 		HRESULT Create1( [in] BSTR bsCaption, [in] HICON hIcon, [in] VARIANT_BOOL bPanel, [in] VARIANT_BOOL bTabbed );
-		HRESULT Create2( [in] UINT nCommandID, [in] VARIANT_BOOL bPanel, [in] VARIANT_BOOL bTabbed );
+		HRESULT Create2( [in] INT nCommandID, [in] VARIANT_BOOL bPanel, [in] VARIANT_BOOL bTabbed );
 		HRESULT GetHwnd( [out] HWND* phWnd );
 		HRESULT HandleMessage( [out] LRESULT* plResult );
 		HRESULT LoadState( [in] VARIANT_BOOL bMaximise );
@@ -179,9 +179,9 @@ library Shareaza
 	interface IPluginWindowOwner : stdole.IUnknown
 	{
 		HRESULT OnTranslate( [in] MSG* pMessage );
-		HRESULT OnMessage( [in] UINT nMessage, [in] WPARAM wParam, [in] LPARAM lParam, [out] LRESULT* plResult );
-		HRESULT OnUpdate( [in] UINT nCommandID, [in,out] STRISTATE* pbVisible, [in,out] STRISTATE* pbEnabled, [in,out] STRISTATE* pbChecked );
-		HRESULT OnCommand( [in] UINT nCommandID );
+		HRESULT OnMessage( [in] INT nMessage, [in] WPARAM wParam, [in] LPARAM lParam, [out] LRESULT* plResult );
+		HRESULT OnUpdate( [in] INT nCommandID, [in,out] STRISTATE* pbVisible, [in,out] STRISTATE* pbEnabled, [in,out] STRISTATE* pbChecked );
+		HRESULT OnCommand( [in] INT nCommandID );
 	};
 
 	//
@@ -233,8 +233,8 @@ library Shareaza
 	{
 		HRESULT GetSuggestedFilename( [out,retval] BSTR* psFile );
 		HRESULT GetAvailableRanges( [out,retval] SAFEARRAY **pArray );
-		HRESULT SetProgressRange( [in] DWORD nRange );
-		HRESULT SetProgressPosition( [in] DWORD nPosition );
+		HRESULT SetProgressRange( [in] LONG nRange );
+		HRESULT SetProgressPosition( [in] LONG nPosition );
 		HRESULT SetProgressMessage( [in] BSTR sMessage );
 		HRESULT QueueDeleteFile( [in] BSTR sTempFile );
 		HRESULT ExecuteFile( [in] BSTR sFile );
@@ -288,9 +288,9 @@ library Shareaza
 		HRESULT Stop();
 		HRESULT GetState( [out] MediaState* pnState );
 
-		HRESULT GetLength( [out] LONGLONG* pnLength );
-		HRESULT GetPosition( [out] LONGLONG* pnPosition );
-		HRESULT SetPosition( [in] LONGLONG nPosition );
+		HRESULT GetLength( [out] LARGE_INTEGER* pnLength );
+		HRESULT GetPosition( [out] LARGE_INTEGER* pnPosition );
+		HRESULT SetPosition( [in] LARGE_INTEGER nPosition );
 		HRESULT GetSpeed( [out] DOUBLE* pnSpeed );
 		HRESULT SetSpeed( [in] DOUBLE nSpeed );
 
@@ -319,7 +319,7 @@ library Shareaza
 		HRESULT Destroy();
 		HRESULT Reposition( [in] RECT* prcWnd );
 
-		HRESULT OnTrackOpen( [in] BSTR sName, [in] DWORD nLength );
+		HRESULT OnTrackOpen( [in] BSTR sName, [in] LONG nLength );
 		HRESULT OnTrackClose();
 		HRESULT OnPlayStart();
 		HRESULT OnPlayStop();
@@ -380,9 +380,9 @@ library Shareaza
 		[id(11),propget] HRESULT MainWindowHwnd( [out,retval] HWND* phWnd );
 		[id(12),propget] HRESULT ActiveView( [out,retval] IGenericView** ppView );
 
-		[id(20)] HRESULT RegisterCommand( [in] BSTR bsName, [in] HICON hIcon, [out,retval] UINT* pnCommand );
+		[id(20)] HRESULT RegisterCommand( [in] BSTR bsName, [in] HICON hIcon, [out,retval] INT* pnCommand );
 		[id(21)] HRESULT AddFromString( [in] BSTR sXML );
-		[id(22)] HRESULT AddFromResource( [in] HINSTANCE hInstance, [in] UINT nID );
+		[id(22)] HRESULT AddFromResource( [in] HINSTANCE hInstance, [in] INT nID );
 		[id(23)] HRESULT AddFromXML( [in] ISXMLElement* pXML );
 
 		[id(31)] HRESULT GetMenu( [in] BSTR bsName, [in] VARIANT_BOOL bCreate, [out,retval] ISMenu** ppMenu );
@@ -495,7 +495,7 @@ library Shareaza
 		[id(1),propget] HRESULT Application( [out,retval] IApplication** ppApplication );
 		[id(2),propget] HRESULT UserInterface( [out,retval] IUserInterface** ppUserInterface );
 
-		[id(3)] HRESULT Create( [in] HWND* phPanel, [in] BSTR bsCaption, [in] HICON hIcon );
+		[id(3)] HRESULT Create( [in] HWND hPanel, [in] BSTR bsCaption, [in] INT nIcon );
 		[id(5),propget] HRESULT Document( [out,retval] ISRichDocument** ppDocument );
 		[id(5),propput] HRESULT Document( [in] ISRichDocument* pDocument );
 	};
