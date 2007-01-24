@@ -1,7 +1,7 @@
 //
 // Network.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -35,6 +35,12 @@ class CQuerySearch;
 class CQueryHit;
 class CDownloadSource;
 
+enum // It is used from CNetwork::IsFirewalled
+{
+	CHECK_BOTH	= 0,
+	CHECK_TCP	= 1,
+	CHECK_UDP	= 2
+};
 
 class CNetwork;
 extern CNetwork Network;
@@ -56,13 +62,15 @@ public:
 	CRouteCache*	NodeRoute;
 	CRouteCache*	QueryRoute;
 	CQueryKeys*		QueryKeys;
-public:
+
 	CMutex			m_pSection;
 	CEvent			m_pWakeup;
 	SOCKADDR_IN		m_pHost;				// Structure (Windows Sockets) which holds address of the local machine
 	SOCKADDR_IN		m_pOutBind;				// Structure (Windows Sockets) which holds OutBind address.
 	BOOL			m_bEnabled;				// If the network "enabled" (Connected or trying)
 	BOOL			m_bAutoConnect;
+	BOOL			m_bTCPListeningReady;
+	BOOL			m_bUDPListeningReady;
 	DWORD			m_tStartedConnecting;	// The time Shareaza started trying to connect
 	DWORD			m_tLastConnect;			// The last time a neighbour connection attempt was made
 	DWORD			m_tLastED2KServerHop;	// The last time the ed2k server was changed
@@ -143,10 +151,10 @@ public:
 	BOOL		IsListening() const;
 	int			IsWellConnected() const;
 	BOOL		IsStable() const;
+	BOOL		IsFirewalled(int nCheck);
 	DWORD		GetStableTime() const;
 	BOOL		IsConnectedTo(IN_ADDR* pAddress);
 	BOOL		ReadyToTransfer(DWORD tNow) const;		// Are we ready to start downloading?
-	BOOL		IsFirewalled();
 	BOOL		IsTestingUDPFW();
 	void		BeginTestG2UDPFW();
 	void		EndTestG2UDPFW(TRISTATE bFirewalled = TS_UNKNOWN);
@@ -185,6 +193,5 @@ protected:
 };
 
 extern CNetwork Network;
-
 
 #endif // !defined(AFX_NETWORK_H__544414B1_3698_4C92_B0B0_1DC56AB48074__INCLUDED_)

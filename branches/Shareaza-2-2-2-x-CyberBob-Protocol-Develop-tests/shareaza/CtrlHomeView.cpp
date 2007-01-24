@@ -1,7 +1,7 @@
 //
 // CtrlHomeView.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2005.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -129,9 +129,12 @@ void CHomeViewCtrl::Update()
 	m_pDocument.ShowGroup( GROUP_CONNECTED, bConnected );
 
 	BOOL bOnG2 = bConnected && Settings.Gnutella2.EnableToday && ( Neighbours.GetCount( PROTOCOL_G2, nrsConnected, -1 ) >= Settings.Gnutella2.NumHubs );
-	m_pDocument.ShowGroup( GROUP_FIREWALLED, bOnG2 && ( ! Datagrams.IsStable() || Network.IsFirewalled() ) );
-	m_pDocument.ShowGroup( GROUP_FIREWALLED_TCP, bOnG2 && Network.IsFirewalled() );
-	m_pDocument.ShowGroup( GROUP_FIREWALLED_UDP, bOnG2 && ! Datagrams.IsStable() );
+	BOOL bTCPFirewalled = Network.IsFirewalled(CHECK_TCP);
+	BOOL bUDPFirewalled = Network.IsFirewalled(CHECK_UDP);
+
+	m_pDocument.ShowGroup( GROUP_FIREWALLED, bOnG2 && bTCPFirewalled && bUDPFirewalled );
+	m_pDocument.ShowGroup( GROUP_FIREWALLED_TCP, bOnG2 && bTCPFirewalled && !bUDPFirewalled );
+	m_pDocument.ShowGroup( GROUP_FIREWALLED_UDP, bOnG2 && !bTCPFirewalled && bUDPFirewalled );
 
 	if ( VersionChecker.m_bUpgrade )
 	{

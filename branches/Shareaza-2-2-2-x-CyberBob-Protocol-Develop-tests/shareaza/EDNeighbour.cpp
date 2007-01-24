@@ -1,7 +1,7 @@
 //
 // EDNeighbour.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2005.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -149,12 +149,11 @@ BOOL CEDNeighbour::OnRun()
 	}
 	else
 	{
-		// Temporary commenting out this code, because no PING/PONG on ed2k and can cause DROP without reason.
-		//if ( tNow - m_tLastPacket > 20 * 60 * 1000 )
-		//{
-		//	Close( IDS_CONNECTION_TIMEOUT_TRAFFIC );
-		//	return FALSE;
-		//}
+		if ( tNow - m_tLastPacket > 20 * 60 * 1000 )
+		{
+			Close( IDS_CONNECTION_TIMEOUT_TRAFFIC );
+			return FALSE;
+		}
 	}
 	
 	return TRUE;
@@ -340,20 +339,20 @@ BOOL CEDNeighbour::OnServerMessage(CEDPacket* pPacket)
 BOOL CEDNeighbour::OnIdChange(CEDPacket* pPacket)
 {
 	if ( pPacket->GetRemaining() < 4 ) return TRUE;
-	
+
 	DWORD nClientID = pPacket->ReadLongLE();
-	
+
 	if ( nClientID == 0 )
 	{
 		Close( IDS_ED2K_SERVER_REFUSED );
 		return FALSE;
 	}
-	
+
 	if ( pPacket->GetRemaining() >= 4 )
 	{
 		m_nTCPFlags = pPacket->ReadLongLE();
 	}
-	
+
 	if ( m_nClientID == 0 )
 	{
 		theApp.Message( MSG_DEFAULT, IDS_ED2K_SERVER_ONLINE, (LPCTSTR)m_sAddress, nClientID );
@@ -365,10 +364,10 @@ BOOL CEDNeighbour::OnIdChange(CEDPacket* pPacket)
 	{
 		theApp.Message( MSG_DEFAULT, IDS_ED2K_SERVER_IDCHANGE, (LPCTSTR)m_sAddress, m_nClientID, nClientID );
 	}
-	
+
 	m_nState	= nrsConnected;
 	m_nClientID	= nClientID;
-	
+
 	if ( ! CEDPacket::IsLowID( m_nClientID ) )
 	{
 		if ( Settings.Connection.InHost.IsEmpty() )
@@ -378,16 +377,16 @@ BOOL CEDNeighbour::OnIdChange(CEDPacket* pPacket)
 	}
 	else
 	{
-		if ( ( Settings.eDonkey.ForceHighID ) && ( Network.IsStable() ) && 
-			 !Network.IsFirewalled() )
-		{	
+		if ( Settings.eDonkey.ForceHighID && Network.IsStable() && !Network.IsFirewalled(CHECK_TCP) )
+		{
 			// We got a low ID when we should have gotten a high ID.
 			// Most likely, the user's router needs to get a few UDP packets before it opens up.
 			DWORD tNow = GetTickCount();
+			theApp.Message( MSG_DEBUG, _T("Fake low ID detected.") );
 
 			if ( Network.m_tLastED2KServerHop > tNow ) Network.m_tLastED2KServerHop = tNow;
 
-			if ( ( Network.m_tLastED2KServerHop + ( 8 * 60 * 60 * 1000 ) ) < tNow  )
+			if ( Network.m_tLastED2KServerHop == 0 || ( Network.m_tLastED2KServerHop + ( 8 * 60 * 60 * 1000 ) ) < tNow  )
 			{
 				// Try another server, but not more than once every 8 hours to avoid wasting server bandwidth
 				// If the user has messed up their settings somewhere.
@@ -417,10 +416,10 @@ BOOL CEDNeighbour::OnIdChange(CEDPacket* pPacket)
 BOOL CEDNeighbour::OnServerList(CEDPacket* pPacket)
 {
 	if ( pPacket->GetRemaining() < 1 ) return TRUE;
-	
+
 	int nCount = pPacket->ReadByte();
 	if ( pPacket->GetRemaining() < nCount * 6 ) return TRUE;
-	
+
 	while ( nCount-- > 0 )
 	{
 		DWORD nAddress	= pPacket->ReadLongLE();
@@ -429,7 +428,7 @@ BOOL CEDNeighbour::OnServerList(CEDPacket* pPacket)
 		theApp.Message( MSG_DEBUG, _T("CEDNeighbour::OnServerList(): %s: %s:%i"),
 			(LPCTSTR)m_sAddress,
 			(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)nAddress ) ), nPort );
-		
+
 		if ( Settings.eDonkey.LearnNewServers )
 		{
 			HostCache.eDonkey.Add( (IN_ADDR*)&nAddress, nPort );
@@ -454,7 +453,7 @@ BOOL CEDNeighbour::OnServerStatus(CEDPacket* pPacket)
 		pHost->m_nUserCount = m_nUserCount;
 		pHost->m_nUserLimit = max( pHost->m_nUserLimit, m_nUserCount );
 	}
-	
+
 	return TRUE;
 }
 
@@ -507,7 +506,7 @@ BOOL CEDNeighbour::OnServerIdent(CEDPacket* pPacket)
 		m_sUserAgent = _T("eFarm Server");
 	else
 		m_sUserAgent = _T("eDonkey2000 Server");
-	
+
 	if ( CHostCacheHost* pHost = HostCache.eDonkey.Add( &m_pHost.sin_addr, htons( m_pHost.sin_port ) ) )
 	{
 		pHost->m_sName			= m_sServerName;
@@ -536,14 +535,14 @@ BOOL CEDNeighbour::OnServerIdent(CEDPacket* pPacket)
 BOOL CEDNeighbour::OnCallbackRequest(CEDPacket* pPacket)
 {
 	if ( pPacket->GetRemaining() < 6 ) return TRUE;
-	
+
 	DWORD nAddress	= pPacket->ReadLongLE();
 	WORD nPort		= pPacket->ReadShortLE();
-	
+
 	if ( Network.IsFirewalledAddress( &nAddress ) ) return TRUE;
-	
+
 	EDClients.PushTo( nAddress, nPort );
-	
+
 	return TRUE;
 }
 

@@ -1,7 +1,7 @@
 //
 // PageSettingsTraffic.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -74,7 +74,7 @@ void CAdvancedSettingsPage::DoDataExchange(CDataExchange* pDX)
 BOOL CAdvancedSettingsPage::OnInitDialog() 
 {
 	CSettingsPage::OnInitDialog();
-	
+
 	CRect rc;
 	m_wndList.GetClientRect( &rc );
 	rc.right -= GetSystemMetrics( SM_CXVSCROLL ) + 1;
@@ -84,7 +84,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 
 	m_wndList.SendMessage( LVM_SETEXTENDEDLISTVIEWSTYLE,
 		LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT );
-	
+
 	AddSetting( &Settings.General.Debug, 1, 0, 1 );
 	AddSetting( &Settings.General.DebugLog, 1, 0, 1 );
 	AddSetting( &Settings.General.MaxDebugLogSize, 1024*1024, 0, 100, _T(" MB") );
@@ -96,7 +96,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.General.ShowFilesizeInByte, 1, 0, 1 );
 
 	AddSetting( &Settings.Community.ChatFilterED2K, 1, 0, 1 );
-	
+
 	AddSetting( &Settings.Connection.IgnoreOwnIP, 1, 0, 1 );
 	AddSetting( &Settings.Connection.SendBuffer, 1, 64, 10240 );
 	AddSetting( &Settings.Connection.TimeoutTraffic, 1000, 10, 60*60, _T(" s") );
@@ -122,7 +122,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Gnutella.HostCacheSize, 1, 32, 16384 );
 	AddSetting( &Settings.Gnutella.BlockBlankClients, 1, 0, 1 );
 	AddSetting( &Settings.Gnutella.SpecifyProtocol, 1, 0, 1 );
-	
+
 	AddSetting( &Settings.Gnutella1.PacketBufferSize, 1, 1, 1024 );
 	AddSetting( &Settings.Gnutella1.PacketBufferTime, 1000, 10, 180, _T(" s") );
 	AddSetting( &Settings.Gnutella1.DefaultTTL, 1, 1, 5 );
@@ -217,7 +217,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.BitTorrent.BandwidthPercentage, 1, 50, 95, _T("%") );
 	AddSetting( &Settings.BitTorrent.TrackerKey, 1, 0, 1 );
 	AddSetting( &Settings.BitTorrent.StandardPeerID, 1, 0, 1 );
-	
+
 	AddSetting( &Settings.Discovery.AccessThrottle, 60, 1, 180, _T(" m") );
 	AddSetting( &Settings.Discovery.Lowpoint, 1, 1, 512 );
 	AddSetting( &Settings.Discovery.FailureLimit, 1, 1, 512 );
@@ -229,7 +229,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Discovery.DisableService, 1, 0, 1 );
 	AddSetting( &Settings.Discovery.BootstrapCount, 1, 0, 20 );
 	AddSetting( &Settings.Discovery.CacheCount, 1, 1, 256 );
-	
+
 	AddSetting( &Settings.Search.HighlightNew, 1, 0, 1);
 	AddSetting( &Settings.Search.SchemaTypes, 1, 0, 1 );
 	AddSetting( &Settings.Search.ShowNames, 1, 0, 1 );
@@ -289,7 +289,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Uploads.RewardQueuePercentage, 1, 0, 99, _T("%") );
 
 	AddSetting( &Settings.Interface.LowResMode, 1, 0, 1 );
-	
+
 	AddSetting( &Settings.Library.SourceExpire, 60, 60, 604800, _T(" m") );
 	AddSetting( &Settings.Library.WatchFoldersTimeout, 1, 1, 60, _T(" s") );
 	AddSetting( &Settings.Library.SourceMesh, 1, 0, 1);
@@ -303,7 +303,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Library.LowPriorityHashing, 1, 1, 100, _T(" MB/s"));
 
 	AddSetting( &Settings.MediaPlayer.ShortPaths, 1, 0, 1 );
-	
+
 	AddSetting( &Settings.Bandwidth.Request, 128, 0, 8192, _T(" Kb/s") );
 	AddSetting( &Settings.Bandwidth.HubIn, 128, 0, 8192, _T(" Kb/s") );
 	AddSetting( &Settings.Bandwidth.HubOut, 128, 0, 8192, _T(" Kb/s") );
@@ -313,10 +313,10 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Bandwidth.PeerOut, 128, 0, 8192, _T(" Kb/s") );
 	AddSetting( &Settings.Bandwidth.UdpOut, 128, 0, 8192, _T(" Kb/s") );
 	AddSetting( &Settings.Bandwidth.HubUploads, 128, 0, 4096, _T(" Kb/s") );
-	
+
 	CLiveList::Sort( &m_wndList, 0 );
 	CLiveList::Sort( &m_wndList, 0 );
-	
+
 	Skin.Translate( _T("CAdvancedSettingsList"), m_wndList.GetHeaderCtrl() );
 	return TRUE;
 }

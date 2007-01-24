@@ -1,7 +1,7 @@
 //
 // NeighboursWithConnect.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -306,7 +306,7 @@ DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bDebug)
 	if ( bDebug ) theApp.Message( MSG_DEBUG, _T("IsHubCapable():") );
 
 	// We can't be a Gnutella2 hub if the user has not chosen to connect to Gnutella2 in the program settings
-	if ( !Settings.Gnutella2.EnableToday )
+	if ( !Network.IsConnected() || !Settings.Gnutella2.EnableToday )
 	{
 		// Finish the lines of debugging information, and report no, we can't be a hub
 		if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: G2 not enabled") );
@@ -433,7 +433,7 @@ DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bDebug)
 		}
 
 		// Make sure UDP is stable (do)
-		if ( !Datagrams.IsStable() )
+		if ( Network.IsFirewalled(CHECK_UDP) )
 		{
 			// Record this is why we can't be a hub, and return no
 			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: UDP not stable") );
@@ -447,7 +447,7 @@ DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bDebug)
 		}
 
 		// Make sure TCP is stable (do)
-		if ( Network.IsFirewalled() )
+		if ( Network.IsFirewalled(CHECK_TCP) )
 		{
 			// Record this is why we can't be a hub, and return no
 			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: TCP not stable") );
@@ -585,7 +585,7 @@ DWORD CNeighboursWithConnect::IsG1UltrapeerCapable(BOOL bDebug)
 	if ( bDebug ) theApp.Message( MSG_DEBUG, _T("IsUltrapeerCapable():") );
 
 	// We can't be a Gnutella ultrapeer if we're not connected to the Gnutella network
-	if ( ! Settings.Gnutella1.EnableToday )
+	if ( !Network.IsConnected() || !Settings.Gnutella1.EnableToday )
 	{
 		if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: Gnutella1 not enabled") );
 		return FALSE;
@@ -709,8 +709,20 @@ DWORD CNeighboursWithConnect::IsG1UltrapeerCapable(BOOL bDebug)
 			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("OK: stable for 4 hours") );
 		}
 
+		// Make sure the TCP is open
+		if ( Network.IsFirewalled(CHECK_TCP) )
+		{
+			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: TCP might be Firewalled") );
+			return FALSE;
+
+		} // The TCP is stable (do)
+		else
+		{
+			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("OK: TCP is not firewalled") );
+		}
+
 		// Make sure the datagram is stable (do)
-		if ( ! Datagrams.IsStable() &&  Network.IsFirewalled() )
+		if ( Network.IsFirewalled(CHECK_UDP) )
 		{
 			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: datagram not stable") );
 			return FALSE;

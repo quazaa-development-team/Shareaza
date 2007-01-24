@@ -1,7 +1,7 @@
 //
 // DownloadTransferED2K.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2005.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -700,8 +700,7 @@ BOOL CDownloadTransferED2K::SendPrimaryRequest()
 		m_pClient->WritePartStatus( pPacket, m_pDownload );
 	}
 
-	//We don't have any need to do this- it's not very useful (or accurate). 
-	// Raza only offers extended request V1 by default
+	//It's not very accurate
 	if ( Settings.eDonkey.ExtendedRequest >= 2 && m_pClient->m_bEmRequest >= 2 ) 
 	{
 		pPacket->WriteShortLE( (WORD) m_pDownload->GetED2KCompleteSourceCount() );
@@ -1002,7 +1001,7 @@ BOOL CDownloadTransferED2K::RunQueued(DWORD tNow)
 		return FALSE;
 	}
 	else if ( !( CEDPacket::IsLowID( m_pSource->m_pAddress.S_un.S_addr ) || m_pSource->m_bPushOnly ) &&
-				!Network.IsFirewalled() &&  Datagrams.IsStable() && m_pClient->m_nUDP > 0 && ! m_bUDP && tNow > m_tRequest &&
+				!Network.IsFirewalled(CHECK_BOTH) && m_pClient->m_nUDP > 0 && ! m_bUDP && tNow > m_tRequest &&
 				tNow - m_tRequest > Settings.eDonkey.ReAskTime * 1000 - 20000 )
 	{
 		CEDPacket* pPing = CEDPacket::New( ED2K_C2C_UDP_REASKFILEPING, ED2K_PROTOCOL_EMULE );

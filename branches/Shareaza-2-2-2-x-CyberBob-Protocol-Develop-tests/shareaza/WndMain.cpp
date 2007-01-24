@@ -1256,7 +1256,7 @@ void CMainWnd::UpdateMessages()
 	{	// If G1, G2, eDonkey are disabled and only BitTorrent is enabled say connected
 		if( !Settings.Gnutella1.EnableToday && !Settings.Gnutella2.EnableToday && !Settings.eDonkey.EnableToday )
 		{
-			LoadString( strFormat, IDS_STATUS_BAR_CONNECTED );
+			LoadString( strFormat, IDS_STATUS_BAR_CONNECTED_SIMPLE );
 			if( !m_bNoNetWarningShowed )
 			{
 				m_bNoNetWarningShowed = TRUE;
@@ -1492,10 +1492,11 @@ void CMainWnd::OnUpdateNetworkConnect(CCmdUI* pCmdUI)
 	pCmdUI->Enable( TRUE );
 
 	UINT nTextID = 0;
-	bool bNetworksEnabled = ( Settings.Gnutella1.EnableToday || 
-		Settings.Gnutella2.EnableToday || Settings.eDonkey.EnableToday );
+	bool bNetworksEnabled = ( Settings.Gnutella1.EnableToday || Settings.Gnutella2.EnableToday || Settings.eDonkey.EnableToday );
 
-	if ( Network.IsWellConnected() || !bNetworksEnabled && Network.IsConnected() )
+	if ( Network.IsConnected() &&
+		( Network.IsWellConnected() || !bNetworksEnabled )	// If Network.IsWellConnected() or G1, G2, eDonkey are disabled and only BitTorrent is enabled say connected
+	)
 	{
 		nTextID = IDS_NETWORK_CONNECTED;
 		pCmdUI->SetCheck( TRUE );
@@ -1928,8 +1929,11 @@ void CMainWnd::OnUpdateTabConnect(CCmdUI* /*pCmdUI*/)
 	
 	UINT nTextID = 0;
 	UINT nTipID = 0;
-	
-	if ( Network.IsWellConnected() )
+	bool bNetworksEnabled = ( Settings.Gnutella1.EnableToday || Settings.Gnutella2.EnableToday || Settings.eDonkey.EnableToday );
+
+	if ( Network.IsConnected() &&
+		( Network.IsWellConnected() || !bNetworksEnabled )	// If Network.IsWellConnected() or G1, G2, eDonkey are disabled and only BitTorrent is enabled say connected
+	)
 	{
 		if ( pItem ) pItem->SetCheck( FALSE );
 		if ( pItem ) pItem->SetTextColour( RGB( 255, 0, 0 ) );
@@ -1953,15 +1957,15 @@ void CMainWnd::OnUpdateTabConnect(CCmdUI* /*pCmdUI*/)
 		nTextID	= IDS_NETWORK_CONNECT;
 		nTipID	= ID_NETWORK_CONNECT;
 	}
-	
+
 	CString strText;
-	
+
 	LoadString( strText, nTextID );
 	if ( pItem ) pItem->SetText( strText );
-	
+
 	LoadString( strText, nTipID );
 	if ( pItem ) pItem->SetTip( strText );
-	
+
 	if ( pItem ) pItem->SetImage( nTipID );
 }
 

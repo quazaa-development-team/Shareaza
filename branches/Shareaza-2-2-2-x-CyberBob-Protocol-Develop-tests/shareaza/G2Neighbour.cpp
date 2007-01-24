@@ -1,7 +1,7 @@
 //
 // G2Neighbour.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -224,7 +224,7 @@ BOOL CG2Neighbour::OnRun()
 
 	// We are unsure in our UDP capabilities therefore
 	// we perform limited "two hop" ping ourself using this neighbour
-	if ( Network.IsListening() && ! Datagrams.IsStable() &&	
+	if ( Network.IsListening() && Network.IsFirewalled(CHECK_UDP) &&
 		m_nCountRelayPingOut < 3 &&
 		tNow - m_tLastRelayPingOut >= Settings.Gnutella1.PingRate )
 	{
@@ -327,7 +327,7 @@ void CG2Neighbour::SendStartups()
 {
 	CG2Packet* pPing = CG2Packet::New( G2_PACKET_PING, TRUE );
 
-	if ( Network.IsListening() && ( !Datagrams.IsStable() || Network.IsFirewalled() || Network.IsTestingUDPFW() ) )
+	if ( Network.IsListening() && ( !Network.IsFirewalled(CHECK_BOTH) || Network.IsTestingUDPFW() ) )
 	{
 		pPing->WritePacket( G2_PACKET_UDP, 6 );
 		pPing->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
@@ -1293,7 +1293,7 @@ BOOL CG2Neighbour::OnQuery(CG2Packet* pPacket)
 
 	Network.OnQuerySearch( pSearch );
 
-	if ( pSearch->m_bUDP && /* Network.IsStable() && Datagrams.IsStable() && !Network.IsFirewalled() && */
+	if ( pSearch->m_bUDP && /* !Network.IsFirewalled(CHECK_UDP) && */
 		 pSearch->m_pEndpoint.sin_addr.S_un.S_addr != m_pHost.sin_addr.S_un.S_addr )
 	{
 		CLocalSearch pLocal( pSearch, &pSearch->m_pEndpoint );

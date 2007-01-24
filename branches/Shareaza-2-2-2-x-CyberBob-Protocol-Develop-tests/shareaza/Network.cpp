@@ -1,7 +1,7 @@
 //
 // Network.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -311,9 +311,11 @@ CNetwork::CNetwork() : m_pMessageQueue()
 	NodeRoute				= new CRouteCache();
 	QueryRoute				= new CRouteCache();
 	QueryKeys				= new CQueryKeys();
-	
+
 	m_bEnabled				= FALSE;
 	m_bAutoConnect			= FALSE;
+	m_bTCPListeningReady	= FALSE;
+	m_bUDPListeningReady	= FALSE;
 	m_tStartedConnecting	= 0;
 	m_tLastConnect			= 0;
 	m_tLastED2KServerHop	= 0;
@@ -374,19 +376,27 @@ BOOL CNetwork::IsStable() const
 	return IsListening() && ( Handshakes.m_nStableCount > 0 );
 }
 
-BOOL CNetwork::IsFirewalled()
+BOOL CNetwork::IsFirewalled(int nCheck)
 {
-	//return !( Datagrams.IsStable() && IsStable() );
-	if ( ! IsListening() ) return FALSE;
+	if ( Settings.Connection.FirewallStatus == CONNECTION_OPEN )	// CHECK_BOTH, CHECK_TCP, CHECK_UDP
+		return FALSE;		// We know we are not firewalled on both TCP and UDP
+	else if ( Settings.Connection.FirewallStatus == CONNECTION_OPEN_TCPONLY && nCheck == CHECK_TCP )
+		return FALSE;		// We know we are not firewalled on TCP port
+	else if ( Settings.Connection.FirewallStatus == CONNECTION_OPEN_UDPONLY && nCheck == CHECK_UDP )
+		return FALSE;		// We know we are not firewalled on UDP port
+	else if ( Settings.Connection.FirewallStatus == CONNECTION_AUTO )
+	{
+		BOOL bTCPOpened = IsStable();
+		BOOL bUDPOpened = Datagrams.IsStable();
+		if( nCheck == CHECK_BOTH && bTCPOpened && bUDPOpened )
+			return FALSE;	// We know we are not firewalled on both TCP and UDP
+		else if ( nCheck == CHECK_TCP && bTCPOpened )
+			return FALSE;	// We know we are not firewalled on TCP port
+		else if ( nCheck == CHECK_UDP && bUDPOpened )
+			return FALSE;	// We know we are not firewalled on UDP port
+	}
 
-	if ( Settings.Connection.FirewallStatus == CONNECTION_FIREWALLED )
-		return TRUE;			// We know we are firewalled
-	else if ( Settings.Connection.FirewallStatus == CONNECTION_OPEN )
-		return FALSE;			// We know we are not firewalled
-	else if ( Settings.Connection.FirewallStatus == CONNECTION_OPEN_TCPONLY )
-		return FALSE;			// We know we are not firewalled
-	else // ( Settings.Connection.FirewallStatus == CONNECTION_AUTO )
-		return !IsStable();
+	return TRUE;			// We know we are firewalled
 }
 
 BOOL CNetwork::IsTestingUDPFW()
@@ -507,7 +517,7 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 
 	Resolve( Settings.Connection.InHost, Settings.Connection.InPort, &m_pHost );
 
-	if ( Settings.Connection.FirewallStatus == CONNECTION_FIREWALLED )
+	if ( IsFirewalled(CHECK_BOTH) )
 		theApp.Message( MSG_DEFAULT, IDS_NETWORK_FIREWALLED );
 
 	SOCKADDR_IN pOutgoing;
@@ -524,9 +534,12 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 			(LPCTSTR)Settings.Connection.OutHost );
 	}
 
-	Handshakes.Listen();
-	Datagrams.Listen();
+	m_bTCPListeningReady = Handshakes.Listen();
+	m_bUDPListeningReady = Datagrams.Listen();
 	Neighbours.Connect();
+
+	ASSERT(m_bTCPListeningReady);
+	ASSERT(m_bUDPListeningReady);
 
 	NodeRoute->SetDuration( Settings.Gnutella.RouteCache );
 	QueryRoute->SetDuration( Settings.Gnutella.RouteCache );
@@ -570,6 +583,8 @@ void CNetwork::Disconnect()
 
 	m_bEnabled				= FALSE;
 	m_bAutoConnect			= FALSE;
+	m_bTCPListeningReady	= FALSE;
+	m_bUDPListeningReady	= FALSE;
 	m_tStartedConnecting	= 0;
 	m_tStartTestingUDPFW	= 0;
 	Datagrams.SetStable(FALSE);
@@ -633,7 +648,7 @@ void CNetwork::Disconnect()
 	DiscoveryServices.Stop();
 
 	theApp.Message( MSG_SYSTEM, IDS_NETWORK_DISCONNECTED ); 
-	theApp.Message( MSG_DEFAULT, _T("") );
+	theApp.Message( MSG_SYSTEM, _T("") );
 }
 
 //////////////////////////////////////////////////////////////////////

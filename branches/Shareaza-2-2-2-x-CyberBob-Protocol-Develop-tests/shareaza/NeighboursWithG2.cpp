@@ -284,17 +284,17 @@ CG2Packet* CNeighboursWithG2::CreateLNIPacket(CG2Neighbour* pOwner)
 		pPacket->WritePacket( G2_PACKET_QUERY_KEY, 0 );
 	}
 
-	if ( Network.IsFirewalled() || !Datagrams.IsStable() ) //add
+	if ( Network.IsFirewalled(CHECK_BOTH) ) //add
 	{
 		if ( !Network.IsTestingUDPFW() )
 		{
 			pPacket->WritePacket( G2_PACKET_PEER_FIREWALLED, 0 );
-			if ( Network.IsFirewalled() )
+			if ( Network.IsFirewalled(CHECK_TCP) )
 				pPacket->WritePacket( G2_PACKET_TCP_FIREWALLED, 0 );
 			else
 				pPacket->WritePacket( G2_PACKET_TCP_NOT_FIREWALLED, 0 );
 
-			if ( !Datagrams.IsStable() )
+			if ( Network.IsFirewalled(CHECK_UDP) )
 				pPacket->WritePacket( G2_PACKET_UDP_FIREWALLED, 0 );
 			else
 				pPacket->WritePacket( G2_PACKET_UDP_NOT_FIREWALLED, 0 );
