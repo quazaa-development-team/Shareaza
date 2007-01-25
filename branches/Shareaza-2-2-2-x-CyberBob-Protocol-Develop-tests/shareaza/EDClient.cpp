@@ -647,18 +647,15 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 
 		// Extented Upload (64Bit LargeFile support)
 		case ED2K_C2C_REQUESTPARTS_I64:
-			// not yet implemented
-			if ( FALSE && m_pUpload != NULL ) m_pUpload->OnRequestParts64( pPacket );
+			if ( m_pUpload != NULL ) m_pUpload->OnRequestParts64( pPacket );
 			return TRUE;
 
 		// Extented Upload (64Bit LargeFile support)
 		case ED2K_C2C_SENDINGPART_I64:
-			// not yet implemented
-			if ( FALSE && m_pDownload != NULL ) m_pDownload->OnSendingPart64( pPacket );
+			if ( m_pDownload != NULL ) m_pDownload->OnSendingPart64( pPacket );
 			return TRUE;
 		case ED2K_C2C_COMPRESSEDPART_I64:
-			// not yet implemented
-			if ( FALSE && m_pDownload != NULL ) m_pDownload->OnCompressedPart64( pPacket );
+			if ( m_pDownload != NULL ) m_pDownload->OnCompressedPart64( pPacket );
 			return TRUE;
 
 		default:
