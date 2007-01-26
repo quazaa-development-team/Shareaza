@@ -1603,7 +1603,7 @@ void CNeighboursWithConnect::ConnectG2()
 {
 	Settings.Gnutella2.EnableToday = TRUE;
 	m_tG2Start	= static_cast<DWORD>( time(NULL) );
-	if ( Settings.Gnutella2.ClientMode == MODE_HUB && !Network.IsFirewalled() && Datagrams.IsStable() )
+	if ( Settings.Gnutella2.ClientMode == MODE_HUB && !Network.IsFirewalled(CHECK_BOTH) )
 	{
 		// We're a hub on the Gnutella2 network
 		m_bG2Leaf	= FALSE;
@@ -1650,7 +1650,7 @@ void CNeighboursWithConnect::ConnectG1()
 {
 	Settings.Gnutella1.EnableToday = TRUE;
 	m_tG1Start	= static_cast<DWORD>( time(NULL) );
-	if ( Settings.Gnutella1.ClientMode == MODE_HUB && !Network.IsFirewalled() && Datagrams.IsStable() )
+	if ( Settings.Gnutella1.ClientMode == MODE_HUB && !Network.IsFirewalled(CHECK_TCP) )
 	{
 		// We're a Ultrapeer on the Gnutella1 network
 		m_bG1Leaf		= FALSE;
