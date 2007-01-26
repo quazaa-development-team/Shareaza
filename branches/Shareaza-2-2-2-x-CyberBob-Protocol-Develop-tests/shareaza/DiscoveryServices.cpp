@@ -746,8 +746,8 @@ BOOL CDiscoveryServices::Execute(BOOL bDiscovery, PROTOCOLID nProtocol)
 		if ( tNow - m_tExecute < 10 ) return FALSE;
 
 		m_tExecute = tNow;
-		DWORD	nG1Hosts = HostCache.Gnutella1.CountHosts();
-		DWORD	nG2Hosts = HostCache.Gnutella2.CountHosts();
+		DWORD	nG1Hosts = HostCache.Gnutella1.CountHosts(TRUE);
+		DWORD	nG2Hosts = HostCache.Gnutella2.CountHosts(TRUE);
 		BOOL	bG1Required = Settings.Gnutella1.EnableToday && !( nG1Hosts > 0 ) && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_G1);
 		BOOL	bG2Required = Settings.Gnutella2.EnableToday && !( nG2Hosts > 0 ) && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_G2);
 
@@ -759,7 +759,7 @@ BOOL CDiscoveryServices::Execute(BOOL bDiscovery, PROTOCOLID nProtocol)
 
 		// Note: Do not enable MetAutoQuery until we have a MET file set up!
 		if ( Settings.eDonkey.EnableToday && ( Settings.eDonkey.MetAutoQuery ||
-			 HostCache.eDonkey.CountHosts() < 3 || m_tMetQueried == 0 ) &&
+			 HostCache.eDonkey.CountHosts(FALSE) < 3 || m_tMetQueried == 0 ) &&
 			 ( nProtocol == PROTOCOL_ED2K || nProtocol == PROTOCOL_NULL ) )
 		{
 			m_tMetQueried = tNow;					// Execute this once only. (Very important)

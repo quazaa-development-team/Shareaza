@@ -63,7 +63,7 @@ public:
 	CHostCacheHost*	OnSuccess(CHostCacheHost* pHost, bool bUpdate=true);
 	void			MoveToTop(CHostCacheHost* pHost);
 	void			MoveToBottom(CHostCacheHost* pHost);
-	DWORD			CountHosts() const;
+	DWORD			CountHosts(const BOOL bEffectiveOnly) const;
 	void			PruneByQueryAck();			// For G2
 	void			PruneOldHosts();			// For G1
 	void			Clear();

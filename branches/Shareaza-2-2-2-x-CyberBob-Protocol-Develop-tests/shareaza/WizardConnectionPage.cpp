@@ -358,14 +358,14 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 	}
 
 	// Update the G2 host cache (if necessary)
-	if ( HostCache.Gnutella2.CountHosts() < 25 )
+	if ( HostCache.Gnutella2.CountHosts(TRUE) < 25 )
 	{
 		m_bQueryDiscoveries = true;
 		m_nProgressSteps += 30;
 	}
 
 	// Load default ed2k server list (if necessary)
-	if ( HostCache.eDonkey.CountHosts() < 8 )
+	if ( HostCache.eDonkey.CountHosts(FALSE) < 8 )
 	{
 		m_bUpdateDonkeyServers = true;
 		m_nProgressSteps += 30;

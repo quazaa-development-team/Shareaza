@@ -1228,7 +1228,7 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 	if ( bSCP )
 	{
 		CGGEPItem* pItem = pGGEP.Add( _T("IPP") );
-		DWORD nCount = min( DWORD(50), HostCache.Gnutella1.CountHosts() );
+		DWORD nCount = min( DWORD(50), HostCache.Gnutella1.CountHosts(FALSE) );
 		WORD nPos = 0;
 		pItem->UnsetCOBS();
 		pItem->UnsetSmall();

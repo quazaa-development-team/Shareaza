@@ -190,7 +190,7 @@ CHostCacheHost* CHostCache::OnFailure(IN_ADDR* pAddress, WORD nPort, PROTOCOLID 
 	for ( POSITION pos = m_pList.GetHeadPosition() ; pos ; )
 	{
 		CHostCacheList* pCache = m_pList.GetNext( pos );
-		if ( nProtocol == PROTOCOL_NULL || nProtocol == pCache->m_nProtocol )
+		if ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_ANY || nProtocol == pCache->m_nProtocol )
 			return pCache->OnFailure( pAddress, nPort, bRemove );
 	}
 	return NULL;
@@ -201,7 +201,7 @@ CHostCacheHost* CHostCache::OnSuccess(IN_ADDR* pAddress, WORD nPort, PROTOCOLID 
 	for ( POSITION pos = m_pList.GetHeadPosition() ; pos ; )
 	{
 		CHostCacheList* pCache = m_pList.GetNext( pos );
-		if ( nProtocol == PROTOCOL_NULL || nProtocol == pCache->m_nProtocol )
+		if ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_ANY || nProtocol == pCache->m_nProtocol )
 			return pCache->OnSuccess( pAddress, nPort, bUpdate );
 	}
 	return NULL;
@@ -449,6 +449,9 @@ CHostCacheHost* CHostCacheList::AddInternal(IN_ADDR* pAddress, WORD nPort,
 			pHost->m_pNextTime->m_pPrevTime = pHost->m_pPrevTime;
 		else
 			m_pNewest = pHost->m_pPrevTime;
+
+		if ( Network.m_nNetworkGlobalTime - pHost->m_tFailure >= 120 * 60 )	// If Current time is 120Minute after last failure time
+			pHost->m_nFailures = 0;											// Set failure count to 0
 	}
 	else
 	{
@@ -764,21 +767,33 @@ void CHostCacheList::MoveToBottom(CHostCacheHost* pHost)
 //////////////////////////////////////////////////////////////////////
 // CHostCacheList count
 
-DWORD CHostCacheList::CountHosts() const
+DWORD CHostCacheList::CountHosts(const BOOL bEffectiveOnly) const
 {
-	/*
+	if ( !bEffectiveOnly ) return m_nHosts;
+
 	DWORD nCount = 0;
 
 	for ( CHostCacheHost* pHost = GetNewest() ; pHost ; pHost = pHost->m_pPrevTime )
 	{
-		if ( pHost->m_nFailures == 0 && pHost->m_bCheckedLocally )
+		switch ( pHost->m_nProtocol )
+		{
+		case PROTOCOL_G1:
+			if ( pHost->m_nFailures == 0 )
+				nCount++;
+			break;
+		case PROTOCOL_G2:
+			if ( pHost->m_nFailures == 0 )
+				nCount++;
+			break;
+		case PROTOCOL_ED2K:
 			nCount++;
+			break;
+		default:
+			break;
+		}
 	}
 
-	ASSERT( m_nHosts == nCount );
 	return ( nCount );
-	*/
-	return m_nHosts;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1109,8 +1124,12 @@ void CHostCacheHost::Serialize(CArchive& ar, int nVersion)
 			ar << m_nKeyHost;
 		}
 
-		ar << m_tFailure;
-		ar << m_nFailures;
+		// Failure-time/Failure-count should not be saved. storing 32bit Zero for compatibility
+		//ar << m_tFailure;
+		ar << (DWORD)0;
+		//ar << m_nFailures;
+		ar << (DWORD)0;
+
 		ar << m_bCheckedLocally;
 		ar << m_nDailyUptime;
 	}
@@ -1174,8 +1193,12 @@ void CHostCacheHost::Serialize(CArchive& ar, int nVersion)
 
 		if ( nVersion >= 11 )
 		{
-			ar >> m_tFailure;
-			ar >> m_nFailures;
+			DWORD nTemp;
+			// Failure-time/Failure-count should not be loaded. reading 32bit each for compatibility.
+			//ar >> m_tFailure;
+			ar >> nTemp;
+			//ar >> m_nFailures;
+			ar >> nTemp;
 		}
 
 		if ( nVersion >= 12 )
@@ -1323,7 +1346,9 @@ BOOL CHostCacheHost::CanConnect(DWORD tNow) const
 	if ( tNow - m_tFailure >= 300 ) return FALSE;
 
 	// Check is host expired
-	bool bShouldTry = tNow - m_tSeen < Settings.Gnutella1.HostExpire;
+	bool bShouldTry = ( ( m_nProtocol == PROTOCOL_G1 ) ? tNow - m_tSeen < Settings.Gnutella1.HostExpire :
+						( m_nProtocol == PROTOCOL_G2 ) ? tNow - m_tSeen < Settings.Gnutella2.HostExpire :
+						( m_nProtocol == PROTOCOL_ED2K ) ? TRUE : FALSE );
 	bShouldTry &= m_nFailures < 3;
 
 	return bShouldTry && tNow - m_tConnect >= Settings.Gnutella.ConnectThrottle;

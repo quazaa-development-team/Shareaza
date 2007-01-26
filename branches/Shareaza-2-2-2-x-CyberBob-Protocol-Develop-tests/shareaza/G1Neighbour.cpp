@@ -622,7 +622,7 @@ int CG1Neighbour::WriteRandomCache(CGGEPItem* pItem)
 	pItem->UnsetCOBS();
 	pItem->UnsetSmall();
 
-	DWORD nCount = min( DWORD(50), HostCache.Gnutella1.CountHosts() );
+	DWORD nCount = min( DWORD(50), HostCache.Gnutella1.CountHosts(FALSE) );
 	WORD nPos = 0;
 
 	// Create 5 random positions from 0 to 50 in the descending order
