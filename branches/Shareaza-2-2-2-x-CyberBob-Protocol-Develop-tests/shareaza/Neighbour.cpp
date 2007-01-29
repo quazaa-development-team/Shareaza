@@ -525,7 +525,14 @@ BOOL CNeighbour::OnCommonHit(CPacket* pPacket)
 		return TRUE;
 	}
 	
-	Network.NodeRoute->Add( pHits->m_oClientID, this, &m_pHost, 0 );
+	if ( pPacket->m_nProtocol == PROTOCOL_G1 )
+	{
+		Network.NodeRoute->Add( pHits->m_oClientID, this );
+	}
+	else if ( pPacket->m_nProtocol == PROTOCOL_G2 )
+	{
+		Network.NodeRoute->Add( pHits->m_oClientID, this, &m_pHost, 0 );
+	}
 	
 	if ( SearchManager.OnQueryHits( pHits ) )
 	{
