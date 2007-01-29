@@ -184,8 +184,8 @@ int CNeighboursWithG1::WriteCachedHosts(CGGEPItem* pItem)
 			theApp.Message( MSG_DEBUG, _T("Sending G1 host through pong (%s:%i)"), 
 				(LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&pHost->m_pAddress ) ), pHost->m_nPort ); 
 			nCount--;
-			pHost = pHost->m_pPrevTime;
 		}
+		pHost = pHost->m_pPrevTime;
 	}
 	return Settings.Gnutella1.MaxHostsInPongs - nCount;
 }
