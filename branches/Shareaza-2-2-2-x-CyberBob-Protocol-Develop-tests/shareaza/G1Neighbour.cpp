@@ -86,7 +86,19 @@ CG1Neighbour::CG1Neighbour(CNeighbour* pBase)
 	// Report that a Gnutella connection with the remote computer has been successfully established
 	theApp.Message( MSG_DEFAULT, IDS_HANDSHAKE_ONLINE, (LPCTSTR)m_sAddress, 0, 6, m_sUserAgent.IsEmpty() ? _T("Unknown") : (LPCTSTR)m_sUserAgent );
 
-	InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G1][( (m_nNodeType != ntLeaf )? ntHub : ntLeaf )]) );
+	if ( m_nNodeType == ntNode )
+	{
+		InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G1][ ntHub ]) );
+	}
+	else if ( m_nNodeType == ntHub )
+	{
+		InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G1][ ntHub ]) );
+	}
+	else if ( m_nNodeType == ntLeaf )
+	{
+		InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G1][ ntLeaf ]) );
+	}
+
 	// Send the remote computer a new Gnutella ping packet
 	Send( CG1Packet::New( G1_PACKET_PING ) );
 	Statistics.Current.Gnutella1.PingsSent++;
@@ -129,7 +141,19 @@ CG1Neighbour::CG1Neighbour(CNeighbour* pBase)
 // Delete this CG1Neighbour object
 CG1Neighbour::~CG1Neighbour()
 {
-	InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G1][( (m_nNodeType != ntLeaf )? ntHub : ntLeaf )]) );
+	if ( m_nNodeType == ntNode )
+	{
+		InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G1][ ntHub ]) );
+	}
+	else if ( m_nNodeType == ntHub )
+	{
+		InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G1][ ntHub ]) );
+	}
+	else if ( m_nNodeType == ntLeaf )
+	{
+		InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G1][ ntLeaf ]) );
+	}
+
 	// If we made an outbound packet buffer, delete it
 	if ( m_pOutbound ) delete m_pOutbound;
 }

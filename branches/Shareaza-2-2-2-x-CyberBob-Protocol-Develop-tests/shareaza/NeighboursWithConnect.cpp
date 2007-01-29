@@ -876,13 +876,13 @@ BOOL CNeighboursWithConnect::NeedMoreHubs(PROTOCOLID nProtocol, BOOL bWithMaxPee
 		//		   ( Settings.Gnutella2.EnableToday ) && ( ( nConnected[2] ) < ( IsG2Leaf() ? Settings.Gnutella2.NumHubs : Settings.Gnutella2.NumPeers ) ) );
 		if ( bWithMaxPeerSlot )
 		{
-			return ( ( ( Settings.Gnutella1.EnableToday ) && ( m_nCount[PROTOCOL_G1][ntHub] < m_nLimit[PROTOCOL_G1][ntNode] ) ) ||
-					 ( ( Settings.Gnutella2.EnableToday ) && ( m_nCount[PROTOCOL_G2][ntHub] < m_nLimit[PROTOCOL_G2][ntNode] ) ) );
+			return ( ( ( Settings.Gnutella1.EnableToday ) && ( m_nCount[PROTOCOL_G1][ntHub] + m_nCount[PROTOCOL_G1][ntNode] < m_nLimit[PROTOCOL_G1][ntNode] ) ) ||
+					 ( ( Settings.Gnutella2.EnableToday ) && ( m_nCount[PROTOCOL_G2][ntHub] + m_nCount[PROTOCOL_G2][ntNode] < m_nLimit[PROTOCOL_G2][ntNode] ) ) );
 		}
 		else
 		{
-			return ( ( ( Settings.Gnutella1.EnableToday ) && ( m_nCount[PROTOCOL_G1][ntHub] < m_nLimit[PROTOCOL_G1][ntHub] ) ) ||
-					 ( ( Settings.Gnutella2.EnableToday ) && ( m_nCount[PROTOCOL_G2][ntHub] < m_nLimit[PROTOCOL_G2][ntHub] ) ) );
+			return ( ( ( Settings.Gnutella1.EnableToday ) && ( m_nCount[PROTOCOL_G1][ntHub] + m_nCount[PROTOCOL_G1][ntNode] < m_nLimit[PROTOCOL_G1][ntHub] ) ) ||
+					 ( ( Settings.Gnutella2.EnableToday ) && ( m_nCount[PROTOCOL_G2][ntHub] + m_nCount[PROTOCOL_G2][ntNode] < m_nLimit[PROTOCOL_G2][ntHub] ) ) );
 		}
 
 	// Return true if we need more Gnutella ultrapeer connections
@@ -896,11 +896,11 @@ BOOL CNeighboursWithConnect::NeedMoreHubs(PROTOCOLID nProtocol, BOOL bWithMaxPee
 
 		if ( bWithMaxPeerSlot )
 		{
-			return ( m_nCount[PROTOCOL_G1][ntHub] < m_nLimit[PROTOCOL_G1][ntNode] ); // 2
+			return ( m_nCount[PROTOCOL_G1][ntHub] + m_nCount[PROTOCOL_G1][ntNode] < m_nLimit[PROTOCOL_G1][ntNode] ); // 2
 		}
 		else
 		{
-			return ( m_nCount[PROTOCOL_G1][ntHub] < m_nLimit[PROTOCOL_G1][ntHub] ); // 2
+			return ( m_nCount[PROTOCOL_G1][ntHub] + m_nCount[PROTOCOL_G1][ntNode] < m_nLimit[PROTOCOL_G1][ntHub] ); // 2
 		}
 
 	// Return true if we need more Gnutella2 hub connections
@@ -916,11 +916,11 @@ BOOL CNeighboursWithConnect::NeedMoreHubs(PROTOCOLID nProtocol, BOOL bWithMaxPee
 		// in Hub mode.
 		if ( bWithMaxPeerSlot )
 		{
-			return ( m_nCount[PROTOCOL_G2][ntHub] < m_nLimit[PROTOCOL_G2][ntNode] ); // 2
+			return ( m_nCount[PROTOCOL_G2][ntHub] + m_nCount[PROTOCOL_G2][ntNode] < m_nLimit[PROTOCOL_G2][ntNode] ); // 2
 		}
 		else
 		{
-			return ( m_nCount[PROTOCOL_G2][ntHub] < m_nLimit[PROTOCOL_G2][ntHub] ); // 2
+			return ( m_nCount[PROTOCOL_G2][ntHub] + m_nCount[PROTOCOL_G2][ntNode] < m_nLimit[PROTOCOL_G2][ntHub] ); // 2
 		}
 
 	// The caller specified some other network
@@ -1260,10 +1260,10 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 
 
 	// If we're connected to a hub of this protocol, store the tick count now in m_tPresent for this protocol
-	if ( m_nCount[ nProtocol ][ ntHub ] > 0 ) m_tPresent[ nProtocol ] = tNow;
+	if ( m_nCount[ nProtocol ][ ntHub ] + m_nCount[ nProtocol ][ntNode] > 0 ) m_tPresent[ nProtocol ] = tNow;
 
 	// If we don't have enough hubs for this protocol
-	if ( m_nCount[ nProtocol ][ ntHub ] < m_nLimit[ nProtocol ][ ntHub ] )
+	if ( m_nCount[ nProtocol ][ ntHub ] + m_nCount[ nProtocol ][ntNode] < m_nLimit[ nProtocol ][ ntHub ] )
 	{
 		// Don't try to connect to G1 right away, wait a few seconds to reduce the number of connections
 		if ( ( nProtocol == PROTOCOL_G1 ) && ( Settings.Gnutella2.EnableToday == TRUE ) )
@@ -1280,7 +1280,7 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 		if ( nProtocol != PROTOCOL_ED2K )
 		{
 			// For Gnutella and Gnutella2, try connection to the number of free slots multiplied by the connect factor from settings
-			nAttempt = m_nLimit[ nProtocol ][ ntHub ] - m_nCount[ nProtocol ][ ntHub ];
+			nAttempt = m_nLimit[ nProtocol ][ ntHub ] - ( m_nCount[ nProtocol ][ ntHub ] + m_nCount[ nProtocol ][ntNode] );
 			nAttempt *=  Settings.Gnutella.ConnectFactor;
 		}
 		else
@@ -1524,7 +1524,7 @@ void CNeighboursWithConnect::NetworkPrune(PROTOCOLID nProtocol)
 		if ( pNewest != NULL ) pNewest->Close(); // Close the connection
 	}
 	// We have too many hub connections for this protocol
-	else if ( m_nCount[ nProtocol ][ ntHub ] > m_nLimit[ nProtocol ][ ntNode ] ) // We're over the limit we just calculated
+	else if ( m_nCount[ nProtocol ][ ntHub ] + m_nCount[ nProtocol ][ntNode] > m_nLimit[ nProtocol ][ ntNode ] ) // We're over the limit we just calculated
 	{
 		// Find the hub we connected to most recently for this protocol
 		CNeighbour* pNewest = NULL;

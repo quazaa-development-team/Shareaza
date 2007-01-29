@@ -109,22 +109,47 @@ CG2Neighbour::CG2Neighbour(CNeighbour* pBase) :
 	theApp.Message( MSG_DEFAULT, IDS_HANDSHAKE_ONLINE_G2, (LPCTSTR)m_sAddress,
 		m_sUserAgent.IsEmpty() ? _T("Unknown") : (LPCTSTR)m_sUserAgent );
 
-	InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][( (m_nNodeType != ntLeaf )? ntHub : ntLeaf )]) );
-	if ( m_nNodeType == ntHub || m_nNodeType == ntNode )
+	switch ( m_nNodeType )
+	{
+	case ntNode:
 		Neighbours.m_oG2Hubs.push_back(this);
-	else if ( m_nNodeType == ntLeaf )
+		InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][ntNode]) );
+		break;
+	case ntHub:
+		Neighbours.m_oG2Hubs.push_back(this);
+		InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][ntHub]) );
+		break;
+	case ntLeaf:
 		Neighbours.m_oG2Leafs.push_back(this);
+		InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][ntLeaf]) );
+		break;
+	default:
+		break;
+	}
+
 	SendStartups();
 }
 
 CG2Neighbour::~CG2Neighbour()
 {
-	if ( m_nNodeType == ntHub || m_nNodeType == ntNode )
+	switch ( m_nNodeType )
+	{
+	case ntNode:
 		Neighbours.m_oG2Hubs.remove(this);
-	else if ( m_nNodeType == ntLeaf )
+		InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][ntNode]) );
+		break;
+	case ntHub:
+		Neighbours.m_oG2Hubs.remove(this);
+		InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][ntHub]) );
+		break;
+	case ntLeaf:
 		Neighbours.m_oG2Leafs.remove(this);
+		InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][ntLeaf]) );
+		break;
+	default:
+		break;
+	}
 
-	InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][( (m_nNodeType != ntLeaf )? ntHub : ntLeaf )]) );
 	delete m_pHubGroup;
 	delete m_pGUIDCache;
 
