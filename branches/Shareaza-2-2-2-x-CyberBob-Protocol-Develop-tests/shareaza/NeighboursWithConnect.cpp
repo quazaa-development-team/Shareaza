@@ -836,6 +836,8 @@ BOOL CNeighboursWithConnect::NeedMoreHubs(PROTOCOLID nProtocol, BOOL bWithMaxPee
 {
 	// Only continue if the network is connected (do)
 	if ( ! Network.IsConnected() ) return FALSE;
+
+	/*	Need something like Unlimited mode.
 	if ( ! Network.m_bAutoConnect )
 	{
 		if (bWithMaxPeerSlot)
@@ -843,6 +845,7 @@ BOOL CNeighboursWithConnect::NeedMoreHubs(PROTOCOLID nProtocol, BOOL bWithMaxPee
 		else
 			return FALSE;
 	}
+	*/
 
 	// Make an array to count the number of hub connections we have for each network
 	//int nConnected[4] = { 0, 0, 0, 0 }; // Unknown network, Gnutella, Gnutella2, eDonkey2000
@@ -937,7 +940,10 @@ BOOL CNeighboursWithConnect::NeedMoreLeafs(PROTOCOLID nProtocol)
 {
 	// Only continue if the network is connected (do)
 	if ( ! Network.IsConnected() ) return FALSE;
+
+	/* need something like Unlimited mode.
 	if ( ! Network.m_bAutoConnect ) return TRUE;
+	*/
 
 	// Make an array to count the number of leaf connections we have for each network
 	//int nConnected[4] = { 0, 0, 0, 0 }; // Unknown network, Gnutella, Gnutella2, eDonkey2000
@@ -1074,27 +1080,51 @@ void CNeighboursWithConnect::OnRun()
 	{
 		ModeCheck();
 		// Maintain the network (do)
-		if ( Network.m_bEnabled && Network.m_bAutoConnect )
+		if ( Network.m_bEnabled )
 		{
-			// Count how many connections of each type we have, calculate how many we should have, and close and open connections accordingly
-			// Makes new connections by getting IP addresses from the host caches for each network
-			switch (m_nLastManagedProtocol)
+			if (Network.m_bAutoConnect)
 			{
-				case PROTOCOL_G1:
-					Maintain(PROTOCOL_ED2K);
-					m_nLastManagedProtocol = PROTOCOL_ED2K;
+				// Count how many connections of each type we have, calculate how many we should have, and close and open connections accordingly
+				// Makes new connections by getting IP addresses from the host caches for each network
+				// Maintain on order of ED2K, G2, G1.
+				switch (m_nLastManagedProtocol)
+				{
+				case PROTOCOL_G1:								// Last one was G1
+					Maintain(PROTOCOL_ED2K);					// Connect to ED2K server if needed
+					NetworkPrune(PROTOCOL_ED2K);				// Disconnect from ED2K server if needed
+					m_nLastManagedProtocol = PROTOCOL_ED2K;		// Set ED2K as last checked
 					break;
-				case PROTOCOL_G2:
-					Maintain(PROTOCOL_G1);
-					m_nLastManagedProtocol = PROTOCOL_G1;
+				case PROTOCOL_G2:								// Last one was G2
+					Maintain(PROTOCOL_G1);						// Connect to G1 Ultrapeers if needed
+					NetworkPrune(PROTOCOL_G1);					// Disconnect from G1 nodes if needed
+					m_nLastManagedProtocol = PROTOCOL_G1;		// Set G1 as last checked
 					break;
-				case PROTOCOL_ED2K:
-					Maintain(PROTOCOL_G2);
-					m_nLastManagedProtocol = PROTOCOL_G2;
+				case PROTOCOL_ED2K:								// Last one was ED2K
+				default:										// or value was something else.
+					Maintain(PROTOCOL_G2);						// Connect to G2 Hubs if needed
+					NetworkPrune(PROTOCOL_G2);					// Disconnect from G2 nodes if needed
+					m_nLastManagedProtocol = PROTOCOL_G2;		// Set G2 as last checked
 					break;
-				default:
-					m_nLastManagedProtocol = PROTOCOL_G1;
+				}
+			}
+			else	// Auto is disabled, but should control excess connections.
+			{
+				switch (m_nLastManagedProtocol)
+				{
+				case PROTOCOL_G1:								// Last one was G1
+					NetworkPrune(PROTOCOL_ED2K);				// Disconnect from ED2K server if needed
+					m_nLastManagedProtocol = PROTOCOL_ED2K;		// Set ED2K as last checked
 					break;
+				case PROTOCOL_G2:								// Last one was G2
+					NetworkPrune(PROTOCOL_G1);					// Disconnect from G1 nodes if needed
+					m_nLastManagedProtocol = PROTOCOL_G1;		// Set G1 as last checked
+					break;
+				case PROTOCOL_ED2K:								// Last one was ED2K
+				default:										// or value was something else.
+					NetworkPrune(PROTOCOL_G2);					// Disconnect from G2 nodes if needed
+					m_nLastManagedProtocol = PROTOCOL_G2;		// Set G2 as last checked
+					break;
+				}
 			}
 		}
 
@@ -1450,8 +1480,33 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 				}
 			}
 		}
+	}
+}
 
-	} // We have too many hub connections for this protocol
+void CNeighboursWithConnect::NetworkPrune(PROTOCOLID nProtocol)
+{
+	// If we're over our leaf connection limit for this network
+	if ( m_nCount[ nProtocol ][ ntLeaf ] > m_nLimit[ nProtocol ][ ntLeaf ] )
+	{
+		// Find the leaf we most recently connected to
+		CNeighbour* pNewest = NULL;
+		for ( POSITION pos = GetIterator() ; pos ; )
+		{
+			// Loop for each neighbour in the list
+			CNeighbour* pNeighbour = GetNext( pos );
+
+			// This connection is down to a leaf and the protocol is correct
+			if ( pNeighbour->m_nNodeType == ntLeaf && pNeighbour->m_nProtocol == nProtocol )
+			{
+				// If we haven't found the newest yet, or this connection is younger than the current newest, this is it
+				if ( pNewest == NULL || pNeighbour->m_tConnected > pNewest->m_tConnected ) pNewest = pNeighbour;
+			}
+		}
+
+		// Disconnect from one leaf
+		if ( pNewest != NULL ) pNewest->Close(); // Close the connection
+	}
+	// We have too many hub connections for this protocol
 	else if ( m_nCount[ nProtocol ][ ntHub ] > m_nLimit[ nProtocol ][ ntHub ] ) // We're over the limit we just calculated
 	{
 		// Find the hub we connected to most recently for this protocol
@@ -1481,29 +1536,6 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 		// Disconnect from one hub
 		if ( pNewest != NULL ) pNewest->Close(); // Close the connection
 	}
-
-	// If we're over our leaf connection limit for this network
-	if ( m_nCount[ nProtocol ][ ntLeaf ] > m_nLimit[ nProtocol ][ ntLeaf ] )
-	{
-		// Find the leaf we most recently connected to
-		CNeighbour* pNewest = NULL;
-		for ( POSITION pos = GetIterator() ; pos ; )
-		{
-			// Loop for each neighbour in the list
-			CNeighbour* pNeighbour = GetNext( pos );
-
-			// This connection is down to a leaf and the protocol is correct
-			if ( pNeighbour->m_nNodeType == ntLeaf && pNeighbour->m_nProtocol == nProtocol )
-			{
-				// If we haven't found the newest yet, or this connection is younger than the current newest, this is it
-				if ( pNewest == NULL || pNeighbour->m_tConnected > pNewest->m_tConnected ) pNewest = pNeighbour;
-			}
-		}
-
-		// Disconnect from one leaf
-		if ( pNewest != NULL ) pNewest->Close(); // Close the connection
-	}
-
 }
 
 int CNeighboursWithConnect::GetCount(PROTOCOLID nProtocol, int nState, int nNodeType) const

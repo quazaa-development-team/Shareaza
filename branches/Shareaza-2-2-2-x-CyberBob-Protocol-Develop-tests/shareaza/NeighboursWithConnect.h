@@ -118,6 +118,7 @@ protected:
 	void Maintain(PROTOCOLID nProtocol);	// Count how many connections we have, and initiate or close them to match the ideal numbers in settings
 	void ModeCheck();						// Time to check Local Node mode for networks(Gnutella1/2 only)
 	void PeerPrune(PROTOCOLID nProtocol);	// Close hub to hub connections when we get demoted to the leaf role (do)
+	void NetworkPrune(PROTOCOLID nProtocol);// Close hub to hub connections when we get demoted to the leaf role (do)
 
 protected:
 	// The tick count when we last connected to a hub for each network
