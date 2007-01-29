@@ -58,12 +58,10 @@ m_tHubG2Promotion(0),	// G2Hub promotion time (TIME)
 m_tModeCheck(0),			// Node state check for G2Hub/G2Leaf, G1Ultrapeer/G1Leaf (TickCount)
 m_nLastManagedProtocol(PROTOCOL_G1),
 m_tG2Start(0),
-m_nG2SentPacketCount(0),
-m_nG2RecvPacketCount(0),
+m_tG2AttemptStart(0),
 m_oG2LocalCache(),
 m_tG1Start(0),
-m_nG1SentPacketCount(0),
-m_nG1RecvPacketCount(0),
+m_tG1AttemptStart(0),
 m_oG1LocalCache()
 {
 	// Zero the tick counts in m_tPresent, we haven't connected to a hub for any network yet
@@ -1362,7 +1360,7 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 					m_oG2LocalCache.erase( iHostPtr );
 				}
 				// If it is within 20Sec from start of this network, and UDP Cache Query has been done.
-				else if ( tNow - m_tG2Start <= 20 )
+				else if ( tNow - m_tG2AttemptStart <= 20 )
 				{
 					if ( pHost->UDPCacheQuery() )
 					{
@@ -1423,7 +1421,7 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 					m_oG1LocalCache.erase( iHostPtr );
 				}
 				// If it is within 10Sec from start of this network, and UDP Cache Query has been done.
-				else if ( tNow - m_tG1Start <= 10 )
+				else if ( tNow - m_tG1AttemptStart <= 10 )
 				{
 					if ( pHost->UDPCacheQuery() )
 					{
@@ -1479,6 +1477,25 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 						DiscoveryServices.Execute( TRUE, PROTOCOL_G1 );
 				}
 			}
+		}
+	}
+	else
+	{
+
+		switch ( nProtocol )
+		{
+		case PROTOCOL_G1:
+			m_tG1AttemptStart = tNow;
+			m_oG1LocalCache.clear();
+			break;
+		case PROTOCOL_G2:
+			m_tG2AttemptStart = tNow;
+			m_oG2LocalCache.clear();
+			break;
+		case PROTOCOL_ED2K:
+			break;
+		default:
+			break;
 		}
 	}
 }
@@ -1586,12 +1603,14 @@ void CNeighboursWithConnect::Connect()
 		m_bG2Leaf	= FALSE;
 		m_bG2Hub	= TRUE;
 		m_tG2Start	= static_cast<DWORD>( time(NULL) );
+		m_tG2AttemptStart = m_tG2Start;
 	}
 	else
 	{
 		m_bG2Leaf	= TRUE;
 		m_bG2Hub	= FALSE;
 		m_tG2Start	= static_cast<DWORD>( time(NULL) );
+		m_tG2AttemptStart = m_tG2Start;
 	}
 
 	if ( !Settings.Gnutella1.EnableToday )
@@ -1604,12 +1623,14 @@ void CNeighboursWithConnect::Connect()
 		m_bG1Leaf		= FALSE;
 		m_bG1Ultrapeer	= TRUE;
 		m_tG1Start		= static_cast<DWORD>( time(NULL) );
+		m_tG1AttemptStart = m_tG1Start;
 	}
 	else
 	{
 		m_bG1Leaf		= TRUE;
 		m_bG1Ultrapeer	= FALSE;
 		m_tG1Start		= static_cast<DWORD>( time(NULL) );
+		m_tG1AttemptStart = m_tG1Start;
 	}
 
 
@@ -1635,6 +1656,7 @@ void CNeighboursWithConnect::ConnectG2()
 {
 	Settings.Gnutella2.EnableToday = TRUE;
 	m_tG2Start	= static_cast<DWORD>( time(NULL) );
+	m_tG2AttemptStart = m_tG2Start;
 	if ( Settings.Gnutella2.ClientMode == MODE_HUB && !Network.IsFirewalled(CHECK_BOTH) )
 	{
 		// We're a hub on the Gnutella2 network
@@ -1674,7 +1696,8 @@ void CNeighboursWithConnect::DisconnectG2()
 	m_tHubG2Promotion = 0; // If we're not a hub, time promoted is 0
 
 	CNeighboursWithRouting::DisconnectG2();
-	m_tG1Start	= 0;
+	m_tG2Start	= 0;
+	m_tG2AttemptStart = m_tG2Start;
 	Settings.Gnutella2.EnableToday = FALSE;
 }
 
@@ -1682,6 +1705,7 @@ void CNeighboursWithConnect::ConnectG1()
 {
 	Settings.Gnutella1.EnableToday = TRUE;
 	m_tG1Start	= static_cast<DWORD>( time(NULL) );
+	m_tG1AttemptStart = m_tG1Start;
 	if ( Settings.Gnutella1.ClientMode == MODE_HUB && !Network.IsFirewalled(CHECK_TCP) )
 	{
 		// We're a Ultrapeer on the Gnutella1 network
@@ -1715,6 +1739,7 @@ void CNeighboursWithConnect::DisconnectG1()
 
 	CNeighboursWithRouting::DisconnectG1();
 	m_tG1Start	= 0;
+	m_tG1AttemptStart = m_tG1Start;
 	Settings.Gnutella1.EnableToday = FALSE;
 }
 

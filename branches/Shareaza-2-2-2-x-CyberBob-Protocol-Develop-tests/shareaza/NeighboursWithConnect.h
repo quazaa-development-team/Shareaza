@@ -84,14 +84,12 @@ protected:
 
 	// Gnutella2 Bootstrap management.
 	DWORD			m_tG2Start;				// Time we enabled Gnutella2 network mode(UTC Time in seconds)
-	DWORD			m_nG2SentPacketCount;
-	DWORD			m_nG2RecvPacketCount;
+	DWORD			m_tG2AttemptStart;		// Time we enabled Gnutella2 network mode(UTC Time in seconds)
 	HostAddrList	m_oG2LocalCache;
 
 	// Gnutella1 Bootstrap management.
 	DWORD			m_tG1Start;				// Time we enabled Gnutella1 network mode(UTC Time in seconds)
-	DWORD			m_nG1SentPacketCount;
-	DWORD			m_nG1RecvPacketCount;
+	DWORD			m_tG1AttemptStart;		// Time we enabled Gnutella1 network mode(UTC Time in seconds)
 	HostAddrList	m_oG1LocalCache;
 
 public:
