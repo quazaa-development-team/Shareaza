@@ -1461,7 +1461,7 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 		{
 			// If we don't have any handshaking connections for this network, and we've been connected to a hub for more than 30 seconds
 			if ( m_nCount[ nProtocol ][ ntNull ] == 0          || // We don't have any handshaking connections for this network, or
-				tNow - m_tPresent[ nProtocol ] >= 30 )    // We've been connected to a hub for more than 30 seconds
+				tNow - m_tPresent[ nProtocol ] >= 30 )    // We've not been connected to a hub for more than 30 seconds
 			{
 				// We're looping for Gnutella2 right now
 				if ( nProtocol == PROTOCOL_G2 && Settings.Gnutella2.EnableToday )
