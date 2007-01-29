@@ -66,23 +66,25 @@ CConnection::CConnection() :
 	m_nQueuedRun( 0 )				// DoRun sets it to 0, QueueRun sets it to 2 (do)
 {
 	ZeroMemory( &m_pHost, sizeof( m_pHost ) );
+	ZeroMemory( &m_pRealHost, sizeof( m_pRealHost ) );
 	ZeroMemory( &m_mInput, sizeof( m_mInput ) );
 	ZeroMemory( &m_mOutput, sizeof( m_mOutput ) );
 }
 
 // make a destructive copy (similar to AttachTo)
 CConnection::CConnection(CConnection& other)
-	: m_pHost(      other.m_pHost )
-	, m_sAddress(   other.m_sAddress )
+	: m_pHost( other.m_pHost )
+	, m_pRealHost( other.m_pRealHost )
+	, m_sAddress( other.m_sAddress )
 	, m_bInitiated( other.m_bInitiated )
 	, m_bConnected( other.m_bConnected )
 	, m_tConnected( other.m_tConnected )
-	, m_hSocket(    other.m_hSocket )
-	, m_pInput(     other.m_pInput )		// transfered
-	, m_pOutput(    other.m_pOutput )		// transfered
+	, m_hSocket( other.m_hSocket )
+	, m_pInput( other.m_pInput )		// transfered
+	, m_pOutput( other.m_pOutput )		// transfered
 	, m_sUserAgent( other.m_sUserAgent )
 	, m_sLastHeader()
-	, m_nQueuedRun( 0 )
+	, m_nQueuedRun(	0 )
 {
 	ZeroMemory( &m_mInput, sizeof( m_mInput ) );
 	ZeroMemory( &m_mOutput, sizeof( m_mOutput ) );
@@ -150,6 +152,8 @@ BOOL CConnection::ConnectTo(IN_ADDR* pAddress, WORD nPort)
 	m_pHost.sin_family	= PF_INET;							// PF_INET means just normal IPv4, not IPv6 yet
 	m_pHost.sin_port	= htons( nPort );					// Copy the port number into the m_pHost structure
 	m_sAddress			= inet_ntoa( m_pHost.sin_addr );	// Save the IP address as a string of text
+
+	CopyMemory( &m_pRealHost, &m_pHost, sizeof(m_pRealHost) );
 
 	// Create a socket and store it in m_hSocket
 	m_hSocket = socket(
@@ -244,12 +248,16 @@ BOOL CConnection::ConnectTo(IN_ADDR* pAddress, WORD nPort)
 // When WSAAccept accepted the connection, it created a new socket hSocket for it and wrote the remote IP in pHost
 void CConnection::AcceptFrom(SOCKET hSocket, SOCKADDR_IN* pHost)
 {
+	// Make sure the newly accepted socket is valid
+	ASSERT( hSocket != INVALID_SOCKET );
+
 	// Make sure the socket on this connection is invalid (no socket has been attached yet.)
 	ASSERT( m_hSocket == INVALID_SOCKET );
 
 	// Record the connection information here
 	m_hSocket		= hSocket;							// Keep the socket here
 	m_pHost			= *pHost;							// Copy the remote IP address into this object
+	m_pRealHost		= *pHost;							// Copy the remote IP address into this object
 	m_sAddress		= inet_ntoa( m_pHost.sin_addr );	// Store it as a string also
 
 	// Make new input and output buffer objects
@@ -283,6 +291,7 @@ void CConnection::AttachTo(CConnection* pConnection)
 
 	// Copy values from the given CConnection object to this one
 	m_pHost			= pConnection->m_pHost;
+	m_pRealHost		= pConnection->m_pRealHost;
 	m_sAddress		= pConnection->m_sAddress;
 	m_hSocket		= pConnection->m_hSocket;
 	m_bInitiated	= pConnection->m_bInitiated;
