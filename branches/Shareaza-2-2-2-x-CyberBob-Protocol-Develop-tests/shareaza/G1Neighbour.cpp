@@ -489,7 +489,7 @@ BOOL CG1Neighbour::OnPing(CG1Packet* pPacket)
 	CGGEPBlock pGGEP;
 	if ( bSCP && !Neighbours.NeedMoreHubs( PROTOCOL_G1, FALSE ) )
 	{
-		WriteRandomCache( pGGEP.Add( L"IPP" ) );
+		Neighbours.WriteCachedHosts( pGGEP.Add( L"IPP" ) );
 	}
 
 	// TEST: send out Pong with GGEP "GUE" to test if raza start recieving GUESS packets
@@ -614,49 +614,6 @@ BOOL CG1Neighbour::OnPing(CG1Packet* pPacket)
 
 	// This method only returns true
 	return TRUE;
-}
-
-int CG1Neighbour::WriteRandomCache(CGGEPItem* pItem)
-{
-	if ( !pItem ) return 0;
-	pItem->UnsetCOBS();
-	pItem->UnsetSmall();
-
-	DWORD nCount = min( DWORD(50), HostCache.Gnutella1.CountHosts(FALSE) );
-	WORD nPos = 0;
-
-	// Create 5 random positions from 0 to 50 in the descending order
-	std::vector< WORD > pList;
-	pList.reserve( Settings.Gnutella1.MaxHostsInPongs );
-	for ( WORD nNo = 0 ; nNo < Settings.Gnutella1.MaxHostsInPongs ; nNo++ )
-	{
-		pList.push_back( (WORD)( ( nCount + 1 ) * rand() / ( RAND_MAX + (float)nCount ) ) );
-	}
-	std::sort( pList.begin(), pList.end(), CompareNums() );
-
-	nCount = Settings.Gnutella1.MaxHostsInPongs;
-
-	CHostCacheHost* pHost = NULL;
-	pHost = HostCache.Gnutella1.GetNewest() ;
-
-	while ( pHost && nCount )
-	{
-		nPos = pList.back(); // take the smallest value;
-		pList.pop_back(); // remove it
-		for ( ; pHost && nPos-- ; pHost = pHost->m_pPrevTime );
-
-		// We won't provide Shareaza hosts for G1 cache, since users may disable
-		// G1 and it will pollute the host caches ( ??? )
-		if ( pHost && pHost->m_nFailures == 0 && pHost->m_bCheckedLocally )
-		{
-			pItem->Write( (void*)&pHost->m_pAddress, 4 );
-			pItem->Write( (void*)&pHost->m_nPort, 2 );
-			theApp.Message( MSG_DEBUG, _T("Sending G1 host through pong (%s:%i)"), 
-				(LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&pHost->m_pAddress ) ), pHost->m_nPort ); 
-			nCount--;
-		}
-	}
-	return Settings.Gnutella1.MaxHostsInPongs - nCount;
 }
 
 //////////////////////////////////////////////////////////////////////

@@ -1207,6 +1207,12 @@ BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 
 BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 {
+	if ( !Settings.Gnutella1.EnableToday )
+	{
+		Statistics.Current.Gnutella1.Dropped++;
+		return TRUE;
+	}
+
 	BOOL bSCP = FALSE;
 	// If this ping packet strangely has length, and the remote computer does GGEP blocks
 	if ( pPacket->m_nLength )
@@ -1225,43 +1231,9 @@ BOOL CDatagrams::OnPing(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 	CGGEPBlock pGGEP;
 	// Received SCP GGEP, send 5 random hosts from the cache
 	// Since we do not provide leaves, ignore the preference data
-	if ( bSCP )
+	if ( bSCP && !Neighbours.NeedMoreHubs( PROTOCOL_G1, FALSE ) )
 	{
-		CGGEPItem* pItem = pGGEP.Add( _T("IPP") );
-		DWORD nCount = min( DWORD(50), HostCache.Gnutella1.CountHosts(FALSE) );
-		WORD nPos = 0;
-		pItem->UnsetCOBS();
-		pItem->UnsetSmall();
-
-		// Create 5 random positions from 0 to 50 in the descending order
-		std::vector< WORD > pList;
-		pList.reserve( Settings.Gnutella1.MaxHostsInPongs );
-		for ( WORD nNo = 0 ; nNo < Settings.Gnutella1.MaxHostsInPongs ; nNo++ )
-		{
-			pList.push_back( (WORD)( ( nCount + 1 ) * rand() / ( RAND_MAX + (float)nCount ) ) );
-		}
-		std::sort( pList.begin(), pList.end(), CompareNums() );
-
-		nCount = Settings.Gnutella1.MaxHostsInPongs;
-		CHostCacheHost* pHost = HostCache.Gnutella1.GetNewest();
-		while ( pHost && nCount )
-		{
-			nPos = pList.back(); // take the smallest value;
-			pList.pop_back(); // remove it
-			for ( ; pHost && nPos-- ; pHost = pHost->m_pPrevTime );
-
-			if ( pHost && pHost->m_nFailures == 0 )
-			{
-				pItem->Write( (void*)&pHost->m_pAddress, 4 );
-				pItem->Write( (void*)&pHost->m_nPort, 2 );
-				theApp.Message( MSG_DEBUG, _T("Sending G1 host through pong (%s:%i)"), 
-					(LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&pHost->m_pAddress ) ), pHost->m_nPort ); 
-				nCount--;
-			}
-			if ( nCount == 0 ) break;
-		}
-
-		if ( nCount == (DWORD)Settings.Gnutella1.MaxHostsInPongs ) bSCP = FALSE; // the cache is empty
+		Neighbours.WriteCachedHosts( pGGEP.Add( L"IPP" ) );
 	}
 
 	// TEST: Try indicate GUESS supported Node.  (GGEP "GUE")

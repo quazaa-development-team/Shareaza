@@ -31,6 +31,7 @@
 
 // Copy in the contents of these files here before compiling
 #include "NeighboursBase.h"
+#include "GGEP.h"
 
 // Tell the compiler these classes exist, and it will find out more about them soon
 class CG1Neighbour;
@@ -69,6 +70,7 @@ public:
 	// Relay ping and pong packets to other neighbours
 	void OnG1Ping();
 	void OnG1Pong(CG1Neighbour* pFrom, IN_ADDR* pAddress, WORD nPort, BYTE nHops, DWORD nFiles, DWORD nVolume);
+	int WriteCachedHosts(CGGEPItem* pItem);
 };
 
 // End the group of lines to only include once, pragma once doesn't require an endif at the bottom

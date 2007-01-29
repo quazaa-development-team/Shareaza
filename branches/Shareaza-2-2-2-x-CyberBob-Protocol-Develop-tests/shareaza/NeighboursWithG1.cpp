@@ -32,6 +32,7 @@
 #include "G1Neighbour.h"
 #include "RouteCache.h"
 #include "PongCache.h"
+#include "HostCache.h"
 
 // If we are compiling in debug mode, replace the text "THIS_FILE" in the code with the name of this file
 #ifdef _DEBUG
@@ -159,4 +160,32 @@ void CNeighboursWithG1::OnG1Pong(CG1Neighbour* pFrom, IN_ADDR* pAddress, WORD nP
 			pNeighbour->OnNewPong( &pPong );
 		}
 	}
+}
+
+int CNeighboursWithG1::WriteCachedHosts(CGGEPItem* pItem)
+{
+	if ( !pItem ) return 0;
+	pItem->UnsetCOBS();
+	pItem->UnsetSmall();
+
+	DWORD nCount = min( DWORD(Settings.Gnutella1.MaxHostsInPongs), HostCache.Gnutella1.CountHosts(FALSE) );
+
+	CHostCacheHost* pHost = NULL;
+	pHost = HostCache.Gnutella1.GetNewest();
+
+	while ( pHost && nCount )
+	{
+		// We won't provide Shareaza hosts for G1 cache, since users may disable
+		// G1 and it will pollute the host caches ( ??? )
+		if ( pHost && pHost->CanQuote() )
+		{
+			pItem->Write( (void*)&pHost->m_pAddress, 4 );
+			pItem->Write( (void*)&pHost->m_nPort, 2 );
+			theApp.Message( MSG_DEBUG, _T("Sending G1 host through pong (%s:%i)"), 
+				(LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&pHost->m_pAddress ) ), pHost->m_nPort ); 
+			nCount--;
+			pHost = pHost->m_pPrevTime;
+		}
+	}
+	return Settings.Gnutella1.MaxHostsInPongs - nCount;
 }
