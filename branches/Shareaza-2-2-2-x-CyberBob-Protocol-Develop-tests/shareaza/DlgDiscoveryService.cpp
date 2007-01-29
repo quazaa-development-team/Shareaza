@@ -100,9 +100,30 @@ void CDiscoveryServiceDlg::OnChangeAddress()
 {
 	UpdateData();
 
-	m_wndOK.EnableWindow( m_nType ?
-		_tcsncmp( m_sAddress, _T("http://"), 7 ) == 0 :
-		_tcschr( m_sAddress, '.' ) != NULL );
+	switch (m_nType)
+	{
+		case 0:		// dsGnutella (Bootstrap)
+			m_wndOK.EnableWindow( _tcsncmp( m_sAddress, _T("gnutella1:host:"), 15 ) == 0 ||	// Gnutella1 bootstrap
+								_tcsncmp( m_sAddress, _T("gnutella2:host:"), 15 ) == 0 ||	// Gnutella2 bootstrap
+								_tcsncmp( m_sAddress, _T("uhc:"), 4 ) == 0 ||				// UHC servers
+								_tcsncmp( m_sAddress, _T("ukhl"), 5 ) == 0 ||				// UKHL servers
+								_tcschr( m_sAddress, '.' ) != NULL );						// Old Bootstrap - Should be deleted soon
+			break;
+		case 1:		// dsWebCache (Web Cache)
+			m_wndOK.EnableWindow( _tcsncmp( m_sAddress, _T("http://"), 7 ) == 0 );			// Web servers
+			break;
+		case 2:		// dsServerMet (Server.met)
+			m_wndOK.EnableWindow( _tcsncmp( m_sAddress, _T("http://"), 7 ) == 0 );			// Web servers
+			break;
+		case 3:		// dsBlocked (Block)
+			m_wndOK.EnableWindow( _tcsncmp( m_sAddress, _T("gnutella1:host:"), 15 ) == 0 ||	// Gnutella1 bootstrap
+								_tcsncmp( m_sAddress, _T("gnutella2:host:"), 15 ) == 0 ||	// Gnutella2 bootstrap
+								_tcsncmp( m_sAddress, _T("uhc:"), 4 ) == 0 ||				// UHC servers
+								_tcsncmp( m_sAddress, _T("ukhl"), 5 ) == 0 ||				// UKHL servers
+								_tcschr( m_sAddress, '.' ) != NULL ||						// Old Bootstrap - Should be deleted soon
+								_tcsncmp( m_sAddress, _T("http://"), 7 ) == 0 );			// Web servers
+			break;
+	}
 }
 
 void CDiscoveryServiceDlg::OnSelChangeServiceType()
@@ -129,25 +150,46 @@ void CDiscoveryServiceDlg::OnOK()
 			m_pService->m_bGnutella1 = TRUE;
 			m_pService->m_bGnutella2 = FALSE;
 			m_pService->m_nSubType = 1;
+			m_pService->m_nPort = 0;
+			m_pService->m_pAddress.S_un.S_addr = 0;
 		}
 		else if ( _tcsnicmp( m_sAddress, _T("gnutella2:host:"), 15 ) == 0 )
 		{
 			m_pService->m_bGnutella1 = FALSE;
 			m_pService->m_bGnutella2 = TRUE;
 			m_pService->m_nSubType = 2;
+			m_pService->m_nPort = 0;
+			m_pService->m_pAddress.S_un.S_addr = 0;
 		}
 		else if ( _tcsnicmp( m_sAddress, _T("uhc:"), 4 ) == 0 )
 		{
 			m_pService->m_bGnutella1 = TRUE;
 			m_pService->m_bGnutella2 = FALSE;
 			m_pService->m_nSubType = 3;
+			m_pService->m_nPort = 0;
+			m_pService->m_pAddress.S_un.S_addr = 0;
 		}
 		else if ( _tcsnicmp( m_sAddress, _T("ukhl:"), 5 ) == 0 )
 		{
 			m_pService->m_bGnutella1 = FALSE;
 			m_pService->m_bGnutella2 = TRUE;
 			m_pService->m_nSubType = 4;
+			m_pService->m_nPort = 0;
+			m_pService->m_pAddress.S_un.S_addr = 0;
 		}
+	}
+	else if ( m_pService->m_nType == CDiscoveryService::dsBlocked )
+	{
+		m_pService->m_bGnutella1 = FALSE;
+		m_pService->m_bGnutella2 = FALSE;
+		m_pService->m_nAccesses = 0;
+		m_pService->m_nFailures	= 0;
+		m_pService->m_nSubType = 0;
+		m_pService->m_nUpdates = 0;
+		m_pService->m_tAccessed = 0;
+		m_pService->m_tUpdated = 0;
+		m_pService->m_nPort = 0;
+		m_pService->m_pAddress.S_un.S_addr = 0;
 	}
 
 	DiscoveryServices.Add( m_pService );
