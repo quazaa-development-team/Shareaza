@@ -1071,11 +1071,14 @@ BOOL CDownloadTransferED2K::OnSendingPart64(CEDPacket* pPacket)
 		return TRUE;
 	}
 
-	QWORD	nOffset = pPacket->ReadLongLE();
-			nOffset = ( pPacket->ReadLongLE() << 32 ) | nOffset;
+	QWORD nOffset = 0;
+	QWORD nLength = 0;
+
+	nOffset = pPacket->ReadLongLE();
+	nOffset = ( (QWORD)pPacket->ReadLongLE() << 32 ) | nOffset;
 	
-	QWORD	nLength = pPacket->ReadLongLE();
-			nLength = ( pPacket->ReadLongLE() << 32 ) | nLength;
+	nLength = pPacket->ReadLongLE();
+	nLength = ( (QWORD)pPacket->ReadLongLE() << 32 ) | nLength;
 
 	if ( nLength <= nOffset )
 	{
@@ -1132,9 +1135,9 @@ BOOL CDownloadTransferED2K::OnCompressedPart64(CEDPacket* pPacket)
 	}
 
 	QWORD	nBaseOffset = pPacket->ReadLongLE();
-			nBaseOffset = ( pPacket->ReadLongLE() << 32 ) | nBaseOffset;
+			nBaseOffset = ( (QWORD)pPacket->ReadLongLE() << 32 ) | nBaseOffset;
 
-	QWORD	nBaseLength = pPacket->ReadLongLE();	// Length of compressed data is 32bit
+	QWORD	nBaseLength = (QWORD)pPacket->ReadLongLE();	// Length of compressed data is 32bit
 
 
 	z_streamp pStream = (z_streamp)m_pInflatePtr;
