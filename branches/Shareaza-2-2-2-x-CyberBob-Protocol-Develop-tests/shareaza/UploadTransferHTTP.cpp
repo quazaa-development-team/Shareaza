@@ -1481,7 +1481,7 @@ BOOL CUploadTransferHTTP::OnRun()
 			}
 			break;
 		default:
-			if ( !Settings.IsG1Allowed() || !Settings.IsG2Allowed() )
+			if ( !( Settings.IsG1Allowed() || Settings.IsG2Allowed() ) )
 			{
 				Remove( FALSE );
 				return FALSE;
@@ -1520,7 +1520,7 @@ BOOL CUploadTransferHTTP::OnRun()
 			}
 			break;
 		default:
-			if ( !Settings.IsG1Allowed() || !Settings.IsG2Allowed() )
+			if ( !( Settings.IsG1Allowed() || Settings.IsG2Allowed() ) )
 			{
 				Remove( FALSE );
 				return FALSE;
