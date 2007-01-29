@@ -47,7 +47,7 @@
 #include "ImageServices.h"
 #include "ThumbCache.h"
 #include "Neighbours.h"
-#include "Neighbour.h"
+#include "G2Neighbour.h"
 #include "G2Packet.h"
 #include "GProfile.h"
 #include "Security.h"
@@ -1093,7 +1093,7 @@ void CUploadTransferHTTP::SendDefaultHeaders()
 	}
 	else if ( Network.m_bEnabled && m_bInitiated && Settings.Gnutella2.EnableToday )
 	{
-		CNeighbour * NHubs;
+		CG2Neighbour * NHubs;
 		CString strPort;
 		int nHubCount = 0;
 		strLine = "X-G2NH: ";
@@ -1101,17 +1101,16 @@ void CUploadTransferHTTP::SendDefaultHeaders()
 		CSingleLock pNetLock( &Network.m_pSection );
 		if ( pNetLock.Lock( 50 ) )
 		{
-			for (POSITION pos = Neighbours.GetIterator() ;pos;)
+			std::list<CG2Neighbour*>::iterator iIndex = Neighbours.m_oG2Hubs.begin();
+			std::list<CG2Neighbour*>::iterator iEnd = Neighbours.m_oG2Hubs.end();
+			for (;iIndex != iEnd; iIndex++ )
 			{
-				NHubs = Neighbours.GetNext(pos);
-				if ( NHubs->m_nProtocol == PROTOCOL_G2 && NHubs->m_nNodeType != ntLeaf )
-				{
-					if ( nHubCount ) strLine	+= _T(",");
-					strLine	+= CString( inet_ntoa( NHubs->m_pHost.sin_addr ) ) + _T(':');
-					strPort.Format( _T("%hu") ,ntohs( NHubs->m_pHost.sin_port ) );
-					strLine += strPort;
-					nHubCount++;
-				}
+				NHubs = *iIndex;
+				if ( nHubCount ) strLine	+= _T(",");
+				strLine	+= CString( inet_ntoa( NHubs->m_pHost.sin_addr ) ) + _T(':');
+				strPort.Format( _T("%hu") ,ntohs( NHubs->m_pHost.sin_port ) );
+				strLine += strPort;
+				nHubCount++;
 			}
 		}
 
