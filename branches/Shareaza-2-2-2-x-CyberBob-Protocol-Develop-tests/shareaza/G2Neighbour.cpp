@@ -112,7 +112,7 @@ CG2Neighbour::CG2Neighbour(CNeighbour* pBase) :
 	switch ( m_nNodeType )
 	{
 	case ntNode:
-		Neighbours.m_oG2Hubs.push_back(this);
+		Neighbours.m_oG2Peers.push_back(this);
 		InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][ntNode]) );
 		break;
 	case ntHub:
@@ -135,7 +135,7 @@ CG2Neighbour::~CG2Neighbour()
 	switch ( m_nNodeType )
 	{
 	case ntNode:
-		Neighbours.m_oG2Hubs.remove(this);
+		Neighbours.m_oG2Peers.remove(this);
 		InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][ntNode]) );
 		break;
 	case ntHub:

@@ -50,7 +50,8 @@ public:
 
 	DWORD						m_nG2FileCount;		// Total File Count on Leafs
 	DWORD						m_nG2FileVolume;	// Total File Volume of Leafs
-	std::list<CG2Neighbour*>	m_oG2Hubs;			// list of Hub-to-Hub(PEER) or Leaf-to-Hub(HUB) connections
+	std::list<CG2Neighbour*>	m_oG2Peers;			// list of Hub-to-Hub(PEER) connections
+	std::list<CG2Neighbour*>	m_oG2Hubs;			// list of Leaf-to-Hub(HUB) connections
 	std::list<CG2Neighbour*>	m_oG2Leafs;			// list of Hub-to-Leaf(LEAF) connections
 
 

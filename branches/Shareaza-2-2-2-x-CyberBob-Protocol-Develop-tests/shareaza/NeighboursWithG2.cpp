@@ -53,6 +53,7 @@ static char THIS_FILE[]=__FILE__;
 CNeighboursWithG2::CNeighboursWithG2() :
 m_nG2FileCount(0),
 m_nG2FileVolume(0),
+m_oG2Peers(),
 m_oG2Hubs(),
 m_oG2Leafs()
 {
@@ -124,11 +125,11 @@ CG2Packet* CNeighboursWithG2::CreateQueryWeb(const Hashes::Guid& oGUID, CNeighbo
 	pPacket->WritePacket( G2_PACKET_QUERY_DONE, 8 );
 	pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
 	pPacket->WriteShortBE( htons( Network.m_pHost.sin_port ) );
-	pPacket->WriteShortBE( WORD( m_oG2Hubs.size() ) );
+	pPacket->WriteShortBE( WORD( m_oG2Peers.size() ) );
 
 	// Loop through the connected computers
-	std::list<CG2Neighbour*>::iterator iIndex	= m_oG2Hubs.begin();
-	std::list<CG2Neighbour*>::iterator iEnd		= m_oG2Hubs.end();
+	std::list<CG2Neighbour*>::iterator iIndex	= m_oG2Peers.begin();
+	std::list<CG2Neighbour*>::iterator iEnd		= m_oG2Peers.end();
 	for ( ; iIndex != iEnd ; iIndex++ )
 	{
 		// Get the neighbour object at this position, and move pos to the next one
@@ -196,6 +197,24 @@ CG2Neighbour* CNeighboursWithG2::GetRandomHub(CG2Neighbour* pExcept, const Hashe
 
 	std::list<CG2Neighbour*>::iterator iIndex = m_oG2Hubs.begin();
 	std::list<CG2Neighbour*>::iterator iEnd = m_oG2Hubs.end();
+
+	// Loop through each computer we're connected to
+	for (  ; iIndex != iEnd ; iIndex++ )
+	{
+		// If this is a Gnutella2 hub
+		if ( (*iIndex) != pExcept )                   // It's not the one the caller told us to avoid
+		{
+			// And, it doesn't know about the given GUID
+			if ( (*iIndex)->m_pGUIDCache->Lookup( oGUID ) == NULL )
+			{
+				// Add it to the random list
+				oRandom.push_back( *iIndex );
+			}
+		}
+	}
+
+	iIndex = m_oG2Peers.begin();
+	iEnd = m_oG2Peers.end();
 
 	// Loop through each computer we're connected to
 	for (  ; iIndex != iEnd ; iIndex++ )
@@ -416,6 +435,47 @@ CG2Packet* CNeighboursWithG2::CreateKHLPacket(CG2Neighbour* pOwner)
 
 				pPacket->WriteLongLE( pNeighbour->m_pHost.sin_addr.S_un.S_addr );	// 4
 				pPacket->WriteShortBE( htons( pNeighbour->m_pHost.sin_port ) );		// 2
+			}
+		}
+	}
+
+	if ( m_oG2Peers.size() )
+	{
+		std::list<CG2Neighbour*>::iterator iIndex = m_oG2Peers.begin();
+		std::list<CG2Neighbour*>::iterator iEnd = m_oG2Peers.end();
+		for ( ; iIndex != iEnd ; iIndex++ )
+		{
+			CG2Neighbour* pNeighbour = *iIndex;
+
+			if (pNeighbour != pOwner &&
+				pNeighbour->m_pHost.sin_addr.S_un.S_addr != Network.m_pHost.sin_addr.S_un.S_addr )
+			{
+				if ( pNeighbour->m_pVendor && pNeighbour->m_pVendor->m_sCode.GetLength() == 4 )
+				{
+					if ( pOwner->m_nNodeType == ntHub )
+						pPacket->WritePacket( G2_PACKET_CACHED_HUB, 16 + 6, TRUE );		// 4
+					else
+						pPacket->WritePacket( G2_PACKET_NEIGHBOUR_HUB, 16 + 6, TRUE );	// 4
+					pPacket->WritePacket( G2_PACKET_HUB_STATUS, 4 );					// 4
+					pPacket->WriteShortBE( (WORD)pNeighbour->m_nLeafCount );			// 2
+					pPacket->WriteShortBE( (WORD)pNeighbour->m_nLeafLimit );			// 2
+					pPacket->WritePacket( G2_PACKET_VENDOR, 4 );						// 3
+					pPacket->WriteString( pNeighbour->m_pVendor->m_sCode );				// 5
+				}
+				else
+				{
+					if ( pOwner->m_nNodeType == ntHub )
+						pPacket->WritePacket( G2_PACKET_CACHED_HUB, 9 + 6, TRUE );		// 4
+					else
+						pPacket->WritePacket( G2_PACKET_NEIGHBOUR_HUB, 9 + 6, TRUE );	// 4
+					pPacket->WritePacket( G2_PACKET_HUB_STATUS, 4 );					// 4
+					pPacket->WriteShortBE( (WORD)pNeighbour->m_nLeafCount );			// 2
+					pPacket->WriteShortBE( (WORD)pNeighbour->m_nLeafLimit );			// 2
+					pPacket->WriteByte( 0 );											// 1
+				}
+
+				pPacket->WriteLongLE( pNeighbour->m_pHost.sin_addr.S_un.S_addr );		// 4
+				pPacket->WriteShortBE( htons( pNeighbour->m_pHost.sin_port ) );			// 2
 			}
 		}
 	}
