@@ -663,7 +663,7 @@ BOOL CDownload::Load(LPCTSTR pszName)
 	m_bGotPreview = GetFileAttributes( m_sDiskName + L".png" ) != INVALID_FILE_ATTRIBUTES;
 	m_nSaveCookie = m_nCookie;
 	// only for debuging purpose
-	m_bTempPaused = Settings.General.Debug;
+	m_bTempPaused = m_bPaused ? TRUE : Settings.General.Debug;
 	
 	return bSuccess;
 }
