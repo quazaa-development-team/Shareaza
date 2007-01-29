@@ -65,12 +65,12 @@ public:
 	BOOL        	Rename(LPCTSTR pszName);
 	void        	SetStartTimer();
 	BOOL        	IsStarted() const;		//Has the download actually downloaded anything?
-	virtual BOOL	IsPaused( BOOL bRealState = FALSE ) const;
+	virtual BOOL	IsPaused(BOOL bRealState = FALSE) const;
 	virtual BOOL	IsDownloading() const;	//Is the download receiving data?
 	virtual BOOL	IsMoving() const;
 	virtual BOOL	IsCompleted() const;
 	BOOL        	IsBoosted() const;
-	BOOL        	IsShared(BOOL bSavedState = FALSE ) const;
+	BOOL        	IsShared(BOOL bSavedState = FALSE) const;
 	virtual BOOL	IsTrying() const;		//Is the download currently trying to download?
 	BOOL			Load(LPCTSTR pszPath);
 	BOOL			Save(BOOL bFlush = FALSE);
