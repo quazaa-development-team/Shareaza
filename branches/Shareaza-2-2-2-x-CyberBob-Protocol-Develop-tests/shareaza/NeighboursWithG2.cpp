@@ -73,6 +73,8 @@ void CNeighboursWithG2::Connect()
 {
 	if ( Settings.Gnutella2.EnableToday == TRUE )
 	{
+		m_nG2FileCount = 0;
+		m_nG2FileVolume = 0;
 		HubHorizonPool.Setup();
 	}
 
@@ -86,6 +88,8 @@ void CNeighboursWithG2::ConnectG2()
 {
 	CSingleLock pLock( &Network.m_pSection );
 	HubHorizonPool.Setup();
+	m_nG2FileCount = 0;
+	m_nG2FileVolume = 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -95,6 +99,8 @@ void CNeighboursWithG2::Close()
 {
 	CNeighboursWithG1::Close();
 	HubHorizonPool.Clear();
+	m_nG2FileCount = 0;
+	m_nG2FileVolume = 0;
 }
 
 void CNeighboursWithG2::DisconnectG2()
