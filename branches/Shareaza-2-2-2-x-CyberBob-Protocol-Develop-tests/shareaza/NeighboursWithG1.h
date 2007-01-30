@@ -53,6 +53,9 @@ public:
 	// The ping route and pong caches
 	CRouteCache* m_pPingRoute;
 	CPongCache*  m_pPongCache;
+	std::list<CG1Neighbour*>	m_oG1Peers;			// list of Ultrapeer-to-Ultrapeer(PEER) connections
+	std::list<CG1Neighbour*>	m_oG1Ultrapeers;	// list of Leaf-to-Ultrapeer(ULTRAPEER) connections
+	std::list<CG1Neighbour*>	m_oG1Leafs;			// list of Ultrapeer-to-Leaf(LEAF) connections
 
 public:
 

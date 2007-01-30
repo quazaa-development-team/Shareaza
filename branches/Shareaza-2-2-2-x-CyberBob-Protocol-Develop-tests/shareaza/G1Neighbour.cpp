@@ -88,14 +88,17 @@ CG1Neighbour::CG1Neighbour(CNeighbour* pBase)
 
 	if ( m_nNodeType == ntNode )
 	{
+		Neighbours.m_oG1Peers.push_back(this);
 		InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G1][ ntHub ]) );
 	}
 	else if ( m_nNodeType == ntHub )
 	{
+		Neighbours.m_oG1Ultrapeers.push_back(this);
 		InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G1][ ntHub ]) );
 	}
 	else if ( m_nNodeType == ntLeaf )
 	{
+		Neighbours.m_oG1Leafs.push_back(this);
 		InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G1][ ntLeaf ]) );
 	}
 
@@ -143,14 +146,17 @@ CG1Neighbour::~CG1Neighbour()
 {
 	if ( m_nNodeType == ntNode )
 	{
+		Neighbours.m_oG1Peers.remove(this);
 		InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G1][ ntHub ]) );
 	}
 	else if ( m_nNodeType == ntHub )
 	{
+		Neighbours.m_oG1Ultrapeers.remove(this);
 		InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G1][ ntHub ]) );
 	}
 	else if ( m_nNodeType == ntLeaf )
 	{
+		Neighbours.m_oG1Leafs.remove(this);
 		InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G1][ ntLeaf ]) );
 	}
 

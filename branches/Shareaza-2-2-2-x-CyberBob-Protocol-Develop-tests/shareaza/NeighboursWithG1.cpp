@@ -45,7 +45,10 @@ static char THIS_FILE[]=__FILE__;
 // CNeighboursWithG1 construction
 
 // When the program makes the single global CNeighbours object, this constructor runs to setup the Gnutella part of it
-CNeighboursWithG1::CNeighboursWithG1()
+CNeighboursWithG1::CNeighboursWithG1() :
+m_oG1Peers(),
+m_oG1Ultrapeers(),
+m_oG1Leafs()
 {
 	// Create the ping route and pong caches, and have the CNeighbours object point to them
 	m_pPingRoute = new CRouteCache();
