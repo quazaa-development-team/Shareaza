@@ -75,18 +75,18 @@ void CNeighboursWithG2::Connect()
 	{
 		m_nG2FileCount = 0;
 		m_nG2FileVolume = 0;
+		// Setup the Gnutella 2 hub horizon pool
 		HubHorizonPool.Setup();
 	}
 
 	// Set the ping route cache duration from the program settings for Gnutella
 	CNeighboursWithG1::Connect();
-
-	// Setup the Gnutella 2 hub horizon pool
 }
 
 void CNeighboursWithG2::ConnectG2()
 {
 	CSingleLock pLock( &Network.m_pSection );
+	// Setup the Gnutella 2 hub horizon pool
 	HubHorizonPool.Setup();
 	m_nG2FileCount = 0;
 	m_nG2FileVolume = 0;
@@ -98,6 +98,7 @@ void CNeighboursWithG2::ConnectG2()
 void CNeighboursWithG2::Close()
 {
 	CNeighboursWithG1::Close();
+	// Clear the Gnutella 2 hub horizon pool
 	HubHorizonPool.Clear();
 	m_nG2FileCount = 0;
 	m_nG2FileVolume = 0;
@@ -106,6 +107,7 @@ void CNeighboursWithG2::Close()
 void CNeighboursWithG2::DisconnectG2()
 {
 	CSingleLock pLock( &Network.m_pSection );
+	// Clear the Gnutella 2 hub horizon pool
 	HubHorizonPool.Clear();
 }
 
