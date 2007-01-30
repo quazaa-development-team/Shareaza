@@ -36,6 +36,7 @@
 #include "ShakeNeighbour.h"
 #include "EDNeighbour.h"
 #include "G2Neighbour.h"
+#include "G1Neighbour.h"
 #include "Neighbours.h"
 
 // If we are compiling in debug mode, replace the text "THIS_FILE" in the code with the name of this file
@@ -1527,17 +1528,28 @@ void CNeighboursWithConnect::NetworkPrune(PROTOCOLID nProtocol)
 	{
 		// Find the leaf we most recently connected to
 		CNeighbour* pNewest = NULL;
-		for ( POSITION pos = GetIterator() ; pos ; )
+		switch (nProtocol)
 		{
-			// Loop for each neighbour in the list
-			CNeighbour* pNeighbour = GetNext( pos );
-
-			// This connection is down to a leaf and the protocol is correct
-			if ( pNeighbour->m_nNodeType == ntLeaf && pNeighbour->m_nProtocol == nProtocol )
+		case PROTOCOL_G1:
+			pNewest = static_cast<CNeighbour*>( *m_oG1Leafs.rbegin() );
+			break;
+		case PROTOCOL_G2:
+			pNewest = static_cast<CNeighbour*>( *m_oG2Leafs.rbegin() );
+			break;
+		default:
+			for ( POSITION pos = GetIterator() ; pos ; )
 			{
-				// If we haven't found the newest yet, or this connection is younger than the current newest, this is it
-				if ( pNewest == NULL || pNeighbour->m_tConnected > pNewest->m_tConnected ) pNewest = pNeighbour;
+				// Loop through the list of neighbours
+				CNeighbour* pNeighbour = GetNext( pos );
+
+				if ( ( pNeighbour->m_nNodeType == ntLeaf ) && ( pNeighbour->m_nProtocol == nProtocol ) )
+				{
+					// If this is the newest hub, remember it.
+					if ( pNewest == NULL || pNeighbour->m_tConnected > pNewest->m_tConnected ) 
+						pNewest = pNeighbour;
+				}
 			}
+			break;
 		}
 
 		// Disconnect from one leaf
@@ -1548,26 +1560,55 @@ void CNeighboursWithConnect::NetworkPrune(PROTOCOLID nProtocol)
 	{
 		// Find the hub we connected to most recently for this protocol
 		CNeighbour* pNewest = NULL;
-		for ( POSITION pos = GetIterator() ; pos ; )
+		switch (nProtocol)
 		{
-			// Loop through the list of neighbours
-			CNeighbour* pNeighbour = GetNext( pos );
-
-			// If this is a hub connection that connected to us recently
-			if (
-				// If this connection isn't down to a leaf, and
-				( pNeighbour->m_nNodeType != ntLeaf ) &&
-				// This connection is for the protocol we're looping on right now, and
-				( pNeighbour->m_nProtocol == nProtocol ) &&
-				// If the neighbour connected to us
-				( pNeighbour->m_bAutomatic              || // The neighbour is automatic, or
-				!pNeighbour->m_bInitiated             || // The neighbour connected to us, or
-				m_nLimit[ nProtocol ][ ntHub ] == 0 ) )    // We're not supposed to be connected to this network at all
+		case PROTOCOL_G1:
+			if ( IsG1Ultrapeer() )
 			{
-				// If this is the newest hub, remember it.
-				if ( pNewest == NULL || pNeighbour->m_tConnected > pNewest->m_tConnected ) 
-					pNewest = pNeighbour;
+				if ( m_oG1Ultrapeers.size() ) pNewest = static_cast<CNeighbour*>( *m_oG1Ultrapeers.rbegin() );
+				else if ( m_oG1Peers.size() ) pNewest = static_cast<CNeighbour*>( *m_oG1Peers.rbegin() );
 			}
+			else
+			{
+				if ( m_oG1Peers.size() ) pNewest = static_cast<CNeighbour*>( *m_oG1Peers.rbegin() );
+				else if ( m_oG1Ultrapeers.size() ) pNewest = static_cast<CNeighbour*>( *m_oG1Ultrapeers.rbegin() );
+			}
+			break;
+		case PROTOCOL_G2:
+			if ( IsG2Hub() )
+			{
+				if ( m_oG2Hubs.size() ) pNewest = static_cast<CNeighbour*>( *m_oG2Hubs.rbegin() );
+				else if ( m_oG2Peers.size() ) pNewest = static_cast<CNeighbour*>( *m_oG2Peers.rbegin() );
+			}
+			else
+			{
+				if ( m_oG2Peers.size() ) pNewest = static_cast<CNeighbour*>( *m_oG2Peers.rbegin() );
+				else if ( m_oG2Hubs.size() ) pNewest = static_cast<CNeighbour*>( *m_oG2Hubs.rbegin() );
+			}
+			break;
+		default:
+			for ( POSITION pos = GetIterator() ; pos ; )
+			{
+				// Loop through the list of neighbours
+				CNeighbour* pNeighbour = GetNext( pos );
+
+				// If this is a hub connection that connected to us recently
+				if (
+					// If this connection isn't down to a leaf, and
+					( pNeighbour->m_nNodeType != ntLeaf ) &&
+					// This connection is for the protocol we're looping on right now, and
+					( pNeighbour->m_nProtocol == nProtocol ) &&
+					// If the neighbour connected to us
+					( pNeighbour->m_bAutomatic              || // The neighbour is automatic, or
+					!pNeighbour->m_bInitiated             || // The neighbour connected to us, or
+					m_nLimit[ nProtocol ][ ntNode ] == 0 ) )    // We're not supposed to be connected to this network at all
+				{
+					// If this is the newest hub, remember it.
+					if ( pNewest == NULL || pNeighbour->m_tConnected > pNewest->m_tConnected ) 
+						pNewest = pNeighbour;
+				}
+			}
+			break;
 		}
 
 		// Disconnect from one hub
