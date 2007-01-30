@@ -1507,11 +1507,11 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 		{
 		case PROTOCOL_G1:
 			m_tG1AttemptStart = tNow;
-			m_oG1LocalCache.clear();
+			if ( m_oG1LocalCache.size() ) m_oG1LocalCache.clear();
 			break;
 		case PROTOCOL_G2:
 			m_tG2AttemptStart = tNow;
-			m_oG2LocalCache.clear();
+			if ( m_oG2LocalCache.size() ) m_oG2LocalCache.clear();
 			break;
 		case PROTOCOL_ED2K:
 			break;
