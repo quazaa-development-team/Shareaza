@@ -1129,11 +1129,15 @@ void CNeighboursWithConnect::OnRun()
 					m_nLastManagedProtocol = PROTOCOL_ED2K;		// Set ED2K as last checked
 					break;
 				case PROTOCOL_G2:								// Last one was G2
+					m_tG1AttemptStart = Network.m_nNetworkGlobalTime;
+					if ( m_oG1LocalCache.size() ) m_oG1LocalCache.clear();
 					NetworkPrune(PROTOCOL_G1);					// Disconnect from G1 nodes if needed
 					m_nLastManagedProtocol = PROTOCOL_G1;		// Set G1 as last checked
 					break;
 				case PROTOCOL_ED2K:								// Last one was ED2K
 				default:										// or value was something else.
+					m_tG2AttemptStart = Network.m_nNetworkGlobalTime;
+					if ( m_oG2LocalCache.size() ) m_oG2LocalCache.clear();
 					NetworkPrune(PROTOCOL_G2);					// Disconnect from G2 nodes if needed
 					m_nLastManagedProtocol = PROTOCOL_G2;		// Set G2 as last checked
 					break;
