@@ -499,7 +499,7 @@ BOOL CDownloadTransferED2K::OnSendingPart(CEDPacket* pPacket)
 		return FALSE;
 	}
 
-    Hashes::Ed2kHash oED2K;
+	Hashes::Ed2kHash oED2K;
 	pPacket->Read( oED2K );
 
 	if ( oED2K != m_pDownload->m_oED2K )
@@ -510,10 +510,10 @@ BOOL CDownloadTransferED2K::OnSendingPart(CEDPacket* pPacket)
 		// return FALSE;
 		return TRUE;
 	}
-	
+
 	QWORD nOffset = pPacket->ReadLongLE();
 	QWORD nLength = pPacket->ReadLongLE();
-	
+
 	if ( nLength <= nOffset )
 	{
 		if ( nLength == nOffset ) return TRUE;
@@ -521,27 +521,26 @@ BOOL CDownloadTransferED2K::OnSendingPart(CEDPacket* pPacket)
 		Close( TS_FALSE );
 		return FALSE;
 	}
-	
+
 	nLength -= nOffset;
-	
+
 	if ( nLength > (QWORD)pPacket->GetRemaining() )
 	{
 		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
 		Close( TS_FALSE );
 		return FALSE;
 	}
-	
-	/*BOOL bUseful =*/ m_pDownload->SubmitData( nOffset,
-		pPacket->m_pBuffer + pPacket->m_nPosition, nLength );
-	
+
+	/*BOOL bUseful =*/ m_pDownload->SubmitData( nOffset, pPacket->m_pBuffer + pPacket->m_nPosition, nLength );
+
 	m_oRequested.erase( Fragments::Fragment( nOffset, nOffset + nLength ) );
-	
+
 	m_pSource->AddFragment( nOffset, nLength, ( nOffset % ED2K_PART_SIZE ) ? TRUE : FALSE );
-	
+
 	m_nDownloaded += nLength;
-	
+
 	m_pSource->SetValid();
-	
+
 	return SendFragmentRequests();
 }
 
@@ -554,9 +553,9 @@ BOOL CDownloadTransferED2K::OnCompressedPart(CEDPacket* pPacket)
 		return FALSE;
 	}
 
-    Hashes::Ed2kHash oED2K;
+	Hashes::Ed2kHash oED2K;
 	pPacket->Read( oED2K );
-	
+
 	if ( validAndUnequal( oED2K, m_pDownload->m_oED2K ) )
 	{
 		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_WRONG_HASH,
@@ -565,12 +564,12 @@ BOOL CDownloadTransferED2K::OnCompressedPart(CEDPacket* pPacket)
 		// return FALSE;
 		return TRUE;
 	}
-	
+
 	QWORD nBaseOffset = pPacket->ReadLongLE();
 	QWORD nBaseLength = pPacket->ReadLongLE();
-	
+
 	z_streamp pStream = (z_streamp)m_pInflatePtr;
-	
+
 	if ( m_pInflatePtr == NULL || m_nInflateOffset != nBaseOffset || m_nInflateLength != nBaseLength )
 	{
 		if ( pStream != NULL )
@@ -578,71 +577,71 @@ BOOL CDownloadTransferED2K::OnCompressedPart(CEDPacket* pPacket)
 			inflateEnd( pStream );
 			delete pStream;
 		}
-		
+
 		m_nInflateOffset	= nBaseOffset;
 		m_nInflateLength	= nBaseLength;
 		m_nInflateRead		= 0;
 		m_nInflateWritten	= 0;
 		m_pInflateBuffer->Clear();
-		
+
 		m_pInflatePtr = new z_stream;
 		pStream = (z_streamp)m_pInflatePtr;
 		ZeroMemory( pStream, sizeof(z_stream) );
-		
+
 		if ( inflateInit( pStream ) != Z_OK )
 		{
 			delete pStream;
 			m_pInflatePtr = NULL;
-			
+
 			theApp.Message( MSG_ERROR, IDS_DOWNLOAD_INFLATE_ERROR,
 				(LPCTSTR)m_pDownload->GetDisplayName() );
-			
+
 			Close( TS_FALSE );
 			return FALSE;
 		}
 	}
-	
+
 	m_pInflateBuffer->Add( pPacket->m_pBuffer + pPacket->m_nPosition, pPacket->GetRemaining() );
-	
+
 	BYTE pBuffer[ BUFFER_SIZE ];
-	
+
 	if ( m_pInflateBuffer->m_nLength > 0 && m_nInflateRead < m_nInflateLength )
 	{
 		pStream->next_in	= m_pInflateBuffer->m_pBuffer;
 		pStream->avail_in	= m_pInflateBuffer->m_nLength;
-		
+
 		do
 		{
 			pStream->next_out	= pBuffer;
 			pStream->avail_out	= BUFFER_SIZE;
-			
+
 			inflate( pStream, Z_SYNC_FLUSH );
-			
+
 			if ( pStream->avail_out < BUFFER_SIZE )
 			{
 				QWORD nOffset = m_nInflateOffset + m_nInflateWritten;
 				QWORD nLength = BUFFER_SIZE - pStream->avail_out;
-				
+
 				/*BOOL bUseful =*/ m_pDownload->SubmitData( nOffset, pBuffer, nLength );
-				
+
 				m_oRequested.erase( Fragments::Fragment( nOffset, nOffset + nLength ) );
-				
+
 				m_pSource->AddFragment( nOffset, nLength,
 					( nOffset % ED2K_PART_SIZE ) ? TRUE : FALSE );
-				
+
 				m_nDownloaded += nLength;
 				m_nInflateWritten += nLength;
 			}
 		}
 		while ( pStream->avail_out == 0 );
-		
+
 		if ( pStream->avail_in >= 0 && pStream->avail_in < m_pInflateBuffer->m_nLength )
 		{
 			m_nInflateRead += ( m_pInflateBuffer->m_nLength - pStream->avail_in );
 			m_pInflateBuffer->Remove( m_pInflateBuffer->m_nLength - pStream->avail_in );
 		}
 	}
-	
+
 	if ( m_nInflateRead >= m_nInflateLength )
 	{
 		inflateEnd( pStream );
@@ -650,9 +649,9 @@ BOOL CDownloadTransferED2K::OnCompressedPart(CEDPacket* pPacket)
 		m_pInflatePtr = NULL;
 		m_pInflateBuffer->Clear();
 	}
-	
+
 	m_pSource->SetValid();
-	
+
 	return SendFragmentRequests();
 }
 
@@ -815,14 +814,14 @@ BOOL CDownloadTransferED2K::SendFragmentRequests()
 	while ( m_oRequested.size() < (int)Settings.eDonkey.RequestPipe )
 	{
 		QWORD nOffset, nLength;
-		
+
 		if ( SelectFragment( oPossible, nOffset, nLength ) )
 		{
 			ChunkifyRequest( &nOffset, &nLength, Settings.eDonkey.RequestSize, FALSE );
 			
 			Fragments::Fragment Selected( nOffset, nOffset + nLength );
 			oPossible.erase( Selected );
-			
+
 			m_oRequested.push_back( Selected );
 
 			oRequesting.insert( _TRequest::value_type(nOffset, Selected) );
@@ -1097,8 +1096,7 @@ BOOL CDownloadTransferED2K::OnSendingPart64(CEDPacket* pPacket)
 		return FALSE;
 	}
 
-	/*BOOL bUseful =*/ m_pDownload->SubmitData( nOffset,
-	pPacket->m_pBuffer + pPacket->m_nPosition, nLength );
+	/*BOOL bUseful =*/ m_pDownload->SubmitData( nOffset, pPacket->m_pBuffer + pPacket->m_nPosition, nLength );
 
 	m_oRequested.erase( Fragments::Fragment( nOffset, nOffset + nLength ) );
 
@@ -1226,4 +1224,3 @@ BOOL CDownloadTransferED2K::OnCompressedPart64(CEDPacket* pPacket)
 
 	return SendFragmentRequests();
 }
-

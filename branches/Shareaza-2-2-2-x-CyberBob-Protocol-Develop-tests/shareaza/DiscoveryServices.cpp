@@ -259,11 +259,9 @@ void CDiscoveryServices::Remove(CDiscoveryService* pService, BOOL bCheck)
 {
 	if ( POSITION pos = m_pList.Find( pService ) ) m_pList.RemoveAt( pos );
 	delete pService;
-	
-	if ( bCheck && ! EnoughServices() )
-	{
-		AddDefaults();
-	}
+
+	if ( bCheck )
+		CheckMinimumServices();
 }
 
 
@@ -341,7 +339,7 @@ BOOL CDiscoveryServices::QueryForHosts( PROTOCOLID nProtocol )
 		if ( RequestRandomService( nProtocol ) )
 			return TRUE;
 	}
-	
+
 	return FALSE;
 }
 
@@ -509,7 +507,7 @@ BOOL CDiscoveryServices::EnoughServices() const
 {
 	int nWebCacheCount = 0, nServerMetCount = 0;	// Types of services
 	int nG1Count = 0, nG2Count = 0;					// Protocols
-	
+
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CDiscoveryService* pService = GetNext( pos );
@@ -547,7 +545,7 @@ void CDiscoveryServices::AddDefaults()
 
 	if (  pFile.Open( strFile, CFile::modeRead ) )			// Load default list from file if possible
 	{
-		theApp.Message( MSG_DEFAULT, _T("Loading default discovery service list") );
+		theApp.Message( MSG_SYSTEM, _T("Loading default discovery service list") );
 
 		try
 		{
@@ -593,11 +591,12 @@ void CDiscoveryServices::AddDefaults()
 			pException->Delete();
 		}
 	}
-	
+
 	// If file can't be used or didn't have enough services, drop back to the the in-built list
-	if ( ! EnoughServices() )
+	if ( !EnoughServices() )
 	{
-		theApp.Message( MSG_ERROR, _T("Default discovery service load failed- using application defined list.") );
+		theApp.Message( MSG_DISPLAYED_ERROR, _T("Default discovery service load failed") );
+
 		CString strServices;
 
 
@@ -621,7 +620,7 @@ void CDiscoveryServices::AddDefaults()
 		{
 			CString strService = strServices.SpanExcluding( _T("\r\n") );
 			strServices = strServices.Mid( strService.GetLength() + 1 );
-		
+
 			if ( strService.GetLength() > 0 )
 			{
 				TCHAR cType;
@@ -740,9 +739,7 @@ BOOL CDiscoveryServices::Execute(BOOL bDiscovery, PROTOCOLID nProtocol)
 
 	if ( bDiscovery ) // If this is a user-initiated manual query, or AutoStart with Cache empty
 	{
-
 		if ( m_hInternet ) return FALSE;
-		if ( tNow - m_tQueried < 60 ) return FALSE;
 		if ( tNow - m_tExecute < 10 ) return FALSE;
 
 		m_tExecute = tNow;
@@ -750,36 +747,36 @@ BOOL CDiscoveryServices::Execute(BOOL bDiscovery, PROTOCOLID nProtocol)
 		DWORD	nG2Hosts = HostCache.Gnutella2.CountHosts(TRUE);
 		BOOL	bG1Required = Settings.Gnutella1.EnableToday && !( nG1Hosts > 0 ) && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_G1);
 		BOOL	bG2Required = Settings.Gnutella2.EnableToday && !( nG2Hosts > 0 ) && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_G2);
+		BOOL	bEdRequired = Settings.eDonkey.EnableToday && !HostCache.eDonkey.EnoughED2KServers() && Settings.eDonkey.MetAutoQuery && ( m_tMetQueried == 0 || tNow - m_tQueried >= 60 ) && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_ED2K );
 
-		if ( ( bG2Required ) && ( nG2Hosts < 25 ) && RequestRandomService( PROTOCOL_G2 ) )
-			return TRUE;
-		
-		if ( ( bG1Required ) && ( nG1Hosts < 15 ) && RequestRandomService( PROTOCOL_G1 ) )
-			return TRUE;
+		if ( nProtocol == PROTOCOL_NULL )					// G1 + G2 + Ed hosts are wanted
+		{
+			BOOL bOK = TRUE;
 
+			if ( bG1Required )
+				bOK = bOK && RequestRandomService( PROTOCOL_G1 );
+			if ( bG2Required )
+				bOK = bOK && RequestRandomService( PROTOCOL_G2 );
+			if ( bEdRequired )
+			{
+				m_tMetQueried = tNow;					// Execute this once only or when the number of eDonkey servers is too low (Very important).
+				bOK = bOK && RequestRandomService( PROTOCOL_ED2K );
+			}
+
+			if ( bOK ) return TRUE;
+		}
+		else if ( bG1Required && RequestRandomService( PROTOCOL_G1 ) )		// Only G1
+			return TRUE;
+		else if ( bG2Required && RequestRandomService( PROTOCOL_G2 ) )		// Only G2
+			return TRUE;
+		else if ( bEdRequired && RequestRandomService( PROTOCOL_ED2K ) )	// Only Ed
 		// Note: Do not enable MetAutoQuery until we have a MET file set up!
 		if ( Settings.eDonkey.EnableToday && ( Settings.eDonkey.MetAutoQuery ||
 			 HostCache.eDonkey.CountHosts(FALSE) < 3 || m_tMetQueried == 0 ) &&
 			 ( nProtocol == PROTOCOL_ED2K || nProtocol == PROTOCOL_NULL ) )
 		{
-			m_tMetQueried = tNow;					// Execute this once only. (Very important)
-			if ( RequestRandomService( PROTOCOL_ED2K ) ) return TRUE;
-		}
-		
-		if ( bG1Required && bG2Required )					// G1 + G2 hosts are wanted
-		{
-			if ( ( bG1Required ) && ( m_nLastQueryProtocol == PROTOCOL_G2 ) )
-				return RequestRandomService( PROTOCOL_G1 );
-			else if ( ( bG2Required ) && ( m_nLastQueryProtocol == PROTOCOL_G1 ) )
-				return RequestRandomService( PROTOCOL_G2 );
-		}
-		else if ( bG2Required )								// Only G2
-		{
-			return RequestRandomService( PROTOCOL_G2 );	
-		}
-		else if ( bG1Required )								// Only G1
-		{
-			return RequestRandomService( PROTOCOL_G1 );	
+			m_tMetQueried = tNow;						// Execute this once only or when the number of eDonkey servers is too low (Very important).
+			return TRUE;
 		}
 	}
 	else

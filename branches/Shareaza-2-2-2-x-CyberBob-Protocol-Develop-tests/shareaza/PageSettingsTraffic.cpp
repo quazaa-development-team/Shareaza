@@ -100,8 +100,6 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Connection.IgnoreOwnIP, 1, 0, 1 );
 	AddSetting( &Settings.Connection.SendBuffer, 1, 64, 10240 );
 	AddSetting( &Settings.Connection.TimeoutTraffic, 1000, 10, 60*60, _T(" s") );
-	// AddSetting( &Settings.Connection.AsyncIO, 1, 0, 1 );
-	AddSetting( &Settings.Connection.RequireForTransfers, 1, 0, 1 );
 	AddSetting( &Settings.Connection.ConnectThrottle, 1, 0, 500, _T(" ms") );
 	AddSetting( &Settings.Connection.DetectConnectionLoss, 1, 0, 1 );
 	AddSetting( &Settings.Connection.DetectConnectionReset, 1, 0, 1 );

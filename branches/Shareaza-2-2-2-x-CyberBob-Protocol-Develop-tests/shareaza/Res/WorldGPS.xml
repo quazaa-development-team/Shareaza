@@ -1,4 +1,4 @@
-<world>
+﻿<world>
 	<country code="AF" name="Afghanistan">
 	</country>
 	<country code="AL" name="Albania">
@@ -907,7 +907,7 @@
 		<city name="Azzano Decimo" state="Pordenone" latitude="45.883056640625" longitude="12.7130556106567"/>
 		<city name="Badia Polesine" state="Rovigo" latitude="45.0833320617676" longitude="11.4833335876465"/>
 		<city name="Bagnacavallo" state="Ravenna" latitude="44.4166679382324" longitude="12"/>
-		<city name="Bagno di Romagna" state="Forli-Cesena" latitude="43.8333320617676" longitude="11.9499998092651"/>
+		<city name="Bagno di Romagna" state="Forlì-Cesena" latitude="43.8333320617676" longitude="11.9499998092651"/>
 		<city name="Bagnolo San Vito" state="Mantova" latitude="45.0833320617676" longitude="10.8833332061768"/>
 		<city name="Bagnone" state="Massa-Carrara" latitude="44.3166656494141" longitude="9.98333358764648"/>
 		<city name="Barge" state="Cuneo" latitude="44.716667175293" longitude="7.33333349227905"/>
@@ -925,7 +925,7 @@
 		<city name="Bergamo" state="Bergamo" latitude="45.6833343505859" longitude="9.71666717529297"/>
 		<city name="Bernalda" state="Matera" latitude="40.4000015258789" longitude="16.6833324432373"/>
 		<city name="Berra" state="Ferrara" latitude="44.9833335876465" longitude="11.966667175293"/>
-		<city name="Bertinoro" state="Forli-Cesena" latitude="44.1469459533691" longitude="12.1388893127441"/>
+		<city name="Bertinoro" state="Forlì-Cesena" latitude="44.1469459533691" longitude="12.1388893127441"/>
 		<city name="Biancavilla" state="Catania" latitude="37.6333351135254" longitude="14.8666667938232"/>
 		<city name="Bibbiena" state="Arezzo" latitude="43.7000007629395" longitude="11.8166666030884"/>
 		<city name="Biella" state="Biella" latitude="45.5666656494141" longitude="8.05000019073486"/>
@@ -979,7 +979,7 @@
 		<city name="Canosa di Puglia" state="Bari" latitude="41.216667175293" longitude="16.0666675567627"/>
 		<city name="Canossa" state="Reggio Emilia" latitude="44.5833320617676" longitude="10.4499998092651"/>
 		<city name="Cantagallo" state="Prato" latitude="44.0166664123535" longitude="11.0833330154419"/>
-		<city name="Cantu" state="Como" latitude="45.7333335876465" longitude="9.13333320617676"/>
+		<city name="Cantù" state="Como" latitude="45.7333335876465" longitude="9.13333320617676"/>
 		<city name="Caorle" state="Venezia" latitude="45.599723815918" longitude="12.8838891983032"/>
 		<city name="Capo d'Orlando" state="Messina" latitude="38.1666679382324" longitude="14.75"/>
 		<city name="Capoterra" state="Cagliari" latitude="39.174446105957" longitude="8.97111129760742"/>
@@ -1040,13 +1040,13 @@
 		<city name="Castiglione d'Adda" state="Lodi" latitude="45.216667175293" longitude="9.68333339691162"/>
 		<city name="Castiglione della Pescaia" state="Grosseto" latitude="42.7666664123535" longitude="10.8833332061768"/>
 		<city name="Castiglione delle Stiviere" state="Mantova" latitude="45.3833351135254" longitude="10.4833335876465"/>
-		<city name="Castrocaro Terme e Terra del Sole" state="Forli-Cesena" latitude="44.1500015258789" longitude="11.966667175293"/>
+		<city name="Castrocaro Terme e Terra del Sole" state="Forlì-Cesena" latitude="44.1500015258789" longitude="11.966667175293"/>
 		<city name="Catania" state="Catania" latitude="37.5" longitude="15.1000003814697"/>
 		<city name="Catanzaro" state="Catanzaro" latitude="38.9000015258789" longitude="16.5833339691162"/>
 		<city name="Cattolica" state="Rimini" latitude="43.966667175293" longitude="12.7333335876465"/>
 		<city name="Cava de' Tirreni" state="Salerno" latitude="40.7000007629395" longitude="14.6999998092651"/>
 		<city name="Cava Manara" state="Pavia" latitude="45.1333351135254" longitude="9.11666679382324"/>
-		<city name="Cavaglia" state="Biella" latitude="45.4000015258789" longitude="8.08333301544189"/>
+		<city name="Cavaglià" state="Biella" latitude="45.4000015258789" longitude="8.08333301544189"/>
 		<city name="Cavallino" state="Lecce" latitude="40.313611" longitude="18.201258"/>
 		<city name="Cavarzere" state="Venezia" latitude="45.135555267334" longitude="12.0816669464111"/>
 		<city name="Cavriglia" state="Arezzo" latitude="43.5166664123535" longitude="11.4833335876465"/>
@@ -1066,8 +1066,8 @@
 		<city name="Cervia" state="Ravenna" latitude="44.260078" longitude="12.351389"/>
 		<city name="Cervignano del Friuli" state="Udine" latitude="45.8211097717285" longitude="13.3380556106567"/>
 		<city name="Cesano Maderno" state="Monza e Brianza" latitude="45.6333351135254" longitude="9.13333320617676"/>
-		<city name="Cesena" state="Forli-Cesena" latitude="44.1433334350586" longitude="12.2497224807739"/>
-		<city name="Cesenatico" state="Forli-Cesena" latitude="44.1983337402344" longitude="12.4116668701172"/>
+		<city name="Cesena" state="Forlì-Cesena" latitude="44.1433334350586" longitude="12.2497224807739"/>
+		<city name="Cesenatico" state="Forlì-Cesena" latitude="44.1983337402344" longitude="12.4116668701172"/>
 		<city name="Cesiomaggiore" state="Belluno" latitude="46.0833320617676" longitude="11.9833335876465"/>
 		<city name="Cherasco" state="Cuneo" latitude="44.6500015258789" longitude="7.84999990463257"/>
 		<city name="Chianciano Terme" state="Siena" latitude="43.0499992370605" longitude="11.8333330154419"/>
@@ -1081,10 +1081,10 @@
 		<city name="Ciampino" state="Roma" latitude="41.7999992370605" longitude="12.6000003814697"/>
 		<city name="Cigliano" state="Vercelli" latitude="45.309389" longitude="8.022203"/>
 		<city name="Cilavegna" state="Pavia" latitude="45.3166656494141" longitude="8.73333358764648"/>
-		<city name="Ciro Marina" state="Crotone" latitude="39.3666648864746" longitude="17.1333332061768"/>
+		<city name="Cirò Marina" state="Crotone" latitude="39.3666648864746" longitude="17.1333332061768"/>
 		<city name="Cisterna di Latina" state="Latina" latitude="41.5833320617676" longitude="12.8166666030884"/>
 		<city name="Cisternino" state="Brindisi" latitude="40.7333335876465" longitude="17.4166660308838"/>
-		<city name="Citta Sant'Angelo" state="Pescara" latitude="42.5166664123535" longitude="14.0500001907349"/>
+		<city name="Città Sant'Angelo" state="Pescara" latitude="42.5166664123535" longitude="14.0500001907349"/>
 		<city name="Cittadella" state="Padova" latitude="45.648833" longitude="11.783636"/>
 		<city name="Cividale del Friuli" state="Udine" latitude="46.0930557250977" longitude="13.4274997711182"/>
 		<city name="Civita Castellana" state="Viterbo" latitude="42.283332824707" longitude="12.4166669845581"/>
@@ -1178,8 +1178,8 @@
 		<city name="Fontanafredda" state="Pordenone" latitude="45.9755554199219" longitude="12.5683336257935"/>
 		<city name="Fontanellato" state="Parma" latitude="44.8833351135254" longitude="10.1666669845581"/>
 		<city name="Fontevivo" state="Parma" latitude="44.8499984741211" longitude="10.1666669845581"/>
-		<city name="Forli" state="Forli-Cesena" latitude="44.2236099243164" longitude="12.0527782440186"/>
-		<city name="Forlimpopoli" state="Forli-Cesena" latitude="44.1941680908203" longitude="12.1411113739014"/>
+		<city name="Forlì" state="Forlì-Cesena" latitude="44.2236099243164" longitude="12.0527782440186"/>
+		<city name="Forlimpopoli" state="Forlì-Cesena" latitude="44.1941680908203" longitude="12.1411113739014"/>
 		<city name="Formia" state="Latina" latitude="41.25" longitude="13.6166667938232"/>
 		<city name="Formigine" state="Modena" latitude="44.5666656494141" longitude="10.8500003814697"/>
 		<city name="Fornovo di Taro" state="Parma" latitude="44.7000007629395" longitude="10.1000003814697"/>
@@ -1199,11 +1199,11 @@
 		<city name="Galbiate" state="Lecco" latitude="45.8166656494141" longitude="9.38333320617676"/>
 		<city name="Gallarate" state="Varese" latitude="45.6666679382324" longitude="8.78333282470703"/>
 		<city name="Gallipoli" state="Lecce" latitude="40.0555572509766" longitude="17.9763889312744"/>
-		<city name="Gambettola" state="Forli-Cesena" latitude="44.1227760314941" longitude="12.3430557250977"/>
-		<city name="Gambolo" state="Pavia" latitude="45.25" longitude="8.85000038146973"/>
+		<city name="Gambettola" state="Forlì-Cesena" latitude="44.1227760314941" longitude="12.3430557250977"/>
+		<city name="Gambolò" state="Pavia" latitude="45.25" longitude="8.85000038146973"/>
 		<city name="Gardone Val Trompia" state="Brescia" latitude="45.6833343505859" longitude="10.1833333969116"/>
 		<city name="Garlasco" state="Pavia" latitude="45.2000007629395" longitude="8.91666698455811"/>
-		<city name="Gatteo" state="Forli-Cesena" latitude="44.111946105957" longitude="12.3913888931274"/>
+		<city name="Gatteo" state="Forlì-Cesena" latitude="44.111946105957" longitude="12.3913888931274"/>
 		<city name="Gattinara" state="Vercelli" latitude="45.618925" longitude="8.368611"/>
 		<city name="Gavorrano" state="Grosseto" latitude="42.9166679382324" longitude="10.8999996185303"/>
 		<city name="Gela" state="Caltanissetta" latitude="37.0666656494141" longitude="14.25"/>
@@ -1272,7 +1272,7 @@
 		<city name="Lomazzo" state="Como" latitude="45.7000007629395" longitude="9.03333282470703"/>
 		<city name="Lonate Pozzolo" state="Varese" latitude="45.5999984741211" longitude="8.75"/>
 		<city name="Longarone" state="Belluno" latitude="46.2719459533691" longitude="12.2938890457153"/>
-		<city name="Longiano" state="Forli-Cesena" latitude="44.073055267334" longitude="12.3277778625488"/>
+		<city name="Longiano" state="Forlì-Cesena" latitude="44.073055267334" longitude="12.3277778625488"/>
 		<city name="Loreto Aprutino" state="Pescara" latitude="42.4333343505859" longitude="13.9833335876465"/>
 		<city name="Lucca" state="Lucca" latitude="43.8333320617676" longitude="10.4833335876465"/>
 		<city name="Lugo" state="Ravenna" latitude="44.429067" longitude="11.906992"/>
@@ -1311,11 +1311,11 @@
 		<city name="Medesano" state="Parma" latitude="44.75" longitude="10.1333332061768"/>
 		<city name="Medicina" state="Bologna" latitude="44.479703" longitude="11.639242"/>
 		<city name="Mel" state="Belluno" latitude="46.0647239685059" longitude="12.0822219848633"/>
-		<city name="Meldola" state="Forli-Cesena" latitude="44.1283340454102" longitude="12.0625"/>
+		<city name="Meldola" state="Forlì-Cesena" latitude="44.1283340454102" longitude="12.0625"/>
 		<city name="Melilli" state="Siracusa" latitude="37.1833343505859" longitude="15.1166667938232"/>
 		<city name="Mentana" state="Roma" latitude="42.033332824707" longitude="12.6333332061768"/>
 		<city name="Merate" state="Lecco" latitude="45.7000007629395" longitude="9.41666698455811"/>
-		<city name="Mercato Saraceno" state="Forli-Cesena" latitude="43.9500007629395" longitude="12.1999998092651"/>
+		<city name="Mercato Saraceno" state="Forlì-Cesena" latitude="43.9500007629395" longitude="12.1999998092651"/>
 		<city name="Mesagne" state="Brindisi" latitude="40.5666656494141" longitude="17.7999992370605"/>
 		<city name="Mesola" state="Ferrara" latitude="44.9233322143555" longitude="12.2455558776855"/>
 		<city name="Mesoraca" state="Crotone" latitude="39.0833320617676" longitude="16.7999992370605"/>
@@ -1341,7 +1341,7 @@
 		<city name="Molinella" state="Bologna" latitude="44.6166648864746" longitude="11.6666669845581"/>
 		<city name="Moncalieri" state="Torino" latitude="45" longitude="7.68333339691162"/>
 		<city name="Mondolfo" state="Pesaro e Urbino" latitude="43.75" longitude="13.1000003814697"/>
-		<city name="Mondovi" state="Cuneo" latitude="44.3833351135254" longitude="7.81666660308838"/>
+		<city name="Mondovì" state="Cuneo" latitude="44.3833351135254" longitude="7.81666660308838"/>
 		<city name="Mongrando" state="Biella" latitude="45.5166664123535" longitude="8"/>
 		<city name="Monopoli" state="Bari" latitude="40.9500007629395" longitude="17.2999992370605"/>
 		<city name="Monselice" state="Padova" latitude="45.2333335876465" longitude="11.75"/>
@@ -1384,7 +1384,7 @@
 		<city name="Musile di Piave" state="Venezia" latitude="45.6166648864746" longitude="12.5500001907349"/>
 		<city name="Mussomeli" state="Caltanissetta" latitude="37.5833320617676" longitude="13.75"/>
 		<city name="Napoli (Naples)" state="Napoli" latitude="40.851978" longitude="14.269275"/>
-		<city name="Nardo" state="Lecce" latitude="40.1833343505859" longitude="18.033332824707"/>
+		<city name="Nardò" state="Lecce" latitude="40.1833343505859" longitude="18.033332824707"/>
 		<city name="Narni" state="Terni" latitude="42.5166664123535" longitude="12.5166664123535"/>
 		<city name="Nembro" state="Bergamo" latitude="45.75" longitude="9.75"/>
 		<city name="Nepi" state="Viterbo" latitude="42.2333335876465" longitude="12.3500003814697"/>
@@ -1477,7 +1477,7 @@
 		<city name="Policoro" state="Matera" latitude="40.216667175293" longitude="16.6833324432373"/>
 		<city name="Polignano a Mare" state="Bari" latitude="41" longitude="17.216667175293"/>
 		<city name="Pomezia" state="Roma" latitude="41.6666679382324" longitude="12.5"/>
-		<city name="Ponte San Nicolo" state="Padova" latitude="45.3666648864746" longitude="11.6166667938232"/>
+		<city name="Ponte San Nicolò" state="Padova" latitude="45.3666648864746" longitude="11.6166667938232"/>
 		<city name="Ponte San Pietro" state="Bergamo" latitude="45.697369" longitude="9.585944"/>
 		<city name="Pontecorvo" state="Frosinone" latitude="41.4500007629395" longitude="13.6666669845581"/>
 		<city name="Pontenure" state="Piacenza" latitude="44.9833335876465" longitude="9.78333282470703"/>
@@ -1497,7 +1497,7 @@
 		<city name="Pozzuolo del Friuli" state="Udine" latitude="45.9877777099609" longitude="13.1955556869507"/>
 		<city name="Prata di Pordenone" state="Pordenone" latitude="45.9069442749023" longitude="12.5950002670288"/>
 		<city name="Prato" state="Prato" latitude="43.8797" longitude="11.096311"/>
-		<city name="Predappio" state="Forli-Cesena" latitude="44.0999984741211" longitude="11.9833335876465"/>
+		<city name="Predappio" state="Forlì-Cesena" latitude="44.0999984741211" longitude="11.9833335876465"/>
 		<city name="Preganziol" state="Treviso" latitude="45.6013870239258" longitude="12.2372226715088"/>
 		<city name="Priolo Gargallo" state="Siracusa" latitude="37.1500015258789" longitude="15.1833333969116"/>
 		<city name="Priverno" state="Latina" latitude="41.466667175293" longitude="13.1833333969116"/>
@@ -1554,7 +1554,7 @@
 		<city name="Sabaudia" state="Latina" latitude="41.2999992370605" longitude="13.0166664123535"/>
 		<city name="Sacile" state="Pordenone" latitude="45.9552764892578" longitude="12.5019445419312"/>
 		<city name="Salerno" state="Salerno" latitude="40.677958" longitude="14.765911"/>
-		<city name="Salo" state="Brescia" latitude="45.5999984741211" longitude="10.5166664123535"/>
+		<city name="Salò" state="Brescia" latitude="45.5999984741211" longitude="10.5166664123535"/>
 		<city name="Salsomaggiore Terme" state="Parma" latitude="44.8166656494141" longitude="9.98333358764648"/>
 		<city name="Saltara" state="Pesaro e Urbino" latitude="43.75" longitude="12.8999996185303"/>
 		<city name="Saluggia" state="Vercelli" latitude="45.2333335876465" longitude="8"/>
@@ -1565,7 +1565,7 @@
 		<city name="San Biagio di Callalta" state="Treviso" latitude="45.6836128234863" longitude="12.3772220611572"/>
 		<city name="San Cataldo" state="Caltanissetta" latitude="37.475839" longitude="13.980242"/>
 		<city name="San Daniele del Friuli" state="Udine" latitude="46.1613883972168" longitude="13.0141668319702"/>
-		<city name="San Dona di Piave" state="Venezia" latitude="45.6316680908203" longitude="12.5694446563721"/>
+		<city name="San Donà di Piave" state="Venezia" latitude="45.6316680908203" longitude="12.5694446563721"/>
 		<city name="San Donaci" state="Brindisi" latitude="40.4500007629395" longitude="17.9166660308838"/>
 		<city name="San Felice Circeo" state="Latina" latitude="41.2333335876465" longitude="13.0833330154419"/>
 		<city name="San Felice sul Panaro" state="Modena" latitude="44.8333320617676" longitude="11.1333332061768"/>
@@ -1580,7 +1580,7 @@
 		<city name="San Lorenzo Nuovo" state="Viterbo" latitude="42.6833343505859" longitude="11.8999996185303"/>
 		<city name="San Martino di Lupari" state="Padova" latitude="45.6500015258789" longitude="11.8500003814697"/>
 		<city name="San Martino Siccomario" state="Pavia" latitude="45.1633987426758" longitude="9.140625"/>
-		<city name="San Mauro Pascoli" state="Forli-Cesena" latitude="44.1097221374512" longitude="12.4227781295776"/>
+		<city name="San Mauro Pascoli" state="Forlì-Cesena" latitude="44.1097221374512" longitude="12.4227781295776"/>
 		<city name="San Mauro Torinese" state="Torino" latitude="45.0999984741211" longitude="7.76666688919067"/>
 		<city name="San Michele al Tagliamento" state="Venezia" latitude="45.7625007629395" longitude="12.9994440078735"/>
 		<city name="San Michele Salentino" state="Brindisi" latitude="40.6333351135254" longitude="17.6166667938232"/>
@@ -1607,7 +1607,7 @@
 		<city name="Sant'Egidio alla Vibrata" state="Teramo" latitude="42.8166656494141" longitude="13.6999998092651"/>
 		<city name="Sant'Elia Fiumerapido" state="Frosinone" latitude="41.533332824707" longitude="13.8666667938232"/>
 		<city name="Santeramo in Colle" state="Bari" latitude="40.7999992370605" longitude="16.75"/>
-		<city name="Santhia" state="Vercelli" latitude="45.3666648864746" longitude="8.16666698455811"/>
+		<city name="Santhià" state="Vercelli" latitude="45.3666648864746" longitude="8.16666698455811"/>
 		<city name="Santi Cosma e Damiano" state="Latina" latitude="41.2999992370605" longitude="13.8000001907349"/>
 		<city name="Santo Stino di Livenza" state="Venezia" latitude="45.7350006103516" longitude="12.680832862854"/>
 		<city name="Saronno" state="Varese" latitude="45.6333351135254" longitude="9.03333282470703"/>
@@ -1616,7 +1616,7 @@
 		<city name="Sasso Marconi" state="Bologna" latitude="44.4000015258789" longitude="11.25"/>
 		<city name="Sassuolo" state="Modena" latitude="44.5499992370605" longitude="10.783332824707"/>
 		<city name="Savigliano" state="Cuneo" latitude="44.6333351135254" longitude="7.66666650772095"/>
-		<city name="Savignano sul Rubicone" state="Forli-Cesena" latitude="44.0952796936035" longitude="12.4086112976074"/>
+		<city name="Savignano sul Rubicone" state="Forlì-Cesena" latitude="44.0952796936035" longitude="12.4086112976074"/>
 		<city name="Savona" state="Savona" latitude="44.283332824707" longitude="8.5"/>
 		<city name="Scandiano" state="Reggio Emilia" latitude="44.5999984741211" longitude="10.716667175293"/>
 		<city name="Scicli" state="Ragusa" latitude="36.783332824707" longitude="14.6999998092651"/>

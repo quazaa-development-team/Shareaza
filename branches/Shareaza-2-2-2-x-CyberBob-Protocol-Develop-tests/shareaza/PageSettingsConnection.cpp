@@ -114,6 +114,8 @@ BOOL CConnectionSettingsPage::OnInitDialog()
 
 	// Firewall status
 	CString str;
+	LoadString( str, IDS_GENERAL_AUTO );
+	m_wndCanAccept.AddString( str );
 	LoadString( str, IDS_GENERAL_NO );
 	m_wndCanAccept.AddString( str );
 	LoadString( str, IDS_GENERAL_YES );
@@ -123,7 +125,7 @@ BOOL CConnectionSettingsPage::OnInitDialog()
 	m_wndCanAccept.AddString( _T("TCP-Only") );
 	m_wndCanAccept.AddString( _T("UDP-Only") );
 
-	m_wndCanAccept.SetCurSel( Settings.Connection.FirewallStatus );
+	m_wndCanAccept.SetCurSel( Settings.Connection.FirewallState );
 
 	m_sInHost				= Settings.Connection.InHost;
 	m_bInRandom				= Settings.Connection.RandomPort;
@@ -279,7 +281,7 @@ void CConnectionSettingsPage::OnOK()
 	if ( m_sOutHost.CompareNoCase( strAutomatic ) == 0 )
 		m_sOutHost.Empty();
 
-	Settings.Connection.FirewallStatus		= m_wndCanAccept.GetCurSel();
+	Settings.Connection.FirewallState		= m_wndCanAccept.GetCurSel();
 	Settings.Connection.InHost				= m_sInHost;
 
 	bool bRandomForwarded = ( m_nInPort == 0 && 
@@ -370,10 +372,10 @@ void CConnectionSettingsPage::OnShowWindow(BOOL bShow, UINT nStatus)
 		// Dropdown
 		m_wndInSpeed.ResetContent();
 		m_wndOutSpeed.ResetContent();
-		const DWORD nSpeeds[] = { 28, 33, 56, 64, 128, 350, 576, 768, 1544, 3072, 45000, 100000, 155000, 0 };
+		const double nSpeeds[] = { 28.8, 33.6, 56, 64, 128, 256, 384, 512, 640, 768, 1024, 1536, 1544, 1550, 2048, 3072, 4096, 5120, 8192, 10240, 12288, 24576, 45000, 102400, 155000, 0 };
 		for ( int nSpeed = 0 ; nSpeeds[ nSpeed ] ; nSpeed++ )
 		{
-			CString str = FormatSpeed( nSpeeds[ nSpeed ] );
+			CString str = FormatSpeed( (DWORD)nSpeeds[ nSpeed ] );
 			m_wndInSpeed.AddString( str );
 			m_wndOutSpeed.AddString( str );
 		}

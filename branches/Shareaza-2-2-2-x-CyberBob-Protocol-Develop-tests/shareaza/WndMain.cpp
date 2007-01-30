@@ -1440,15 +1440,18 @@ void CMainWnd::LocalSystemChecks()
 			}
 		}
 
-
 		// Check we have donkey servers
+		if ( Settings.Live.DefaultED2KServersLoaded == FALSE )
+		{
+			Settings.Live.DefaultED2KServersLoaded  = TRUE;
+			HostCache.eDonkey.CheckMinimumED2KServers();
+		}
+
 		if ( ( Settings.Live.DonkeyServerWarning == FALSE ) && ( Settings.eDonkey.EnableToday ) )
 		{
+			Settings.Live.DonkeyServerWarning = TRUE;
 			if ( ( ! Settings.eDonkey.MetAutoQuery ) && ( HostCache.eDonkey.CountHosts(FALSE) < 1 ) )
-			{
-				Settings.Live.DonkeyServerWarning = TRUE;
 				PostMessage( WM_COMMAND, ID_HELP_DONKEYSERVERS );
-			}
 		}
 
 		// Check for duplicates if LibraryBuilder finished hashing during startup
@@ -1464,12 +1467,12 @@ void CMainWnd::LocalSystemChecks()
 /////////////////////////////////////////////////////////////////////////////
 // CMainWnd network menu
 
-void CMainWnd::OnUpdateNetworkSearch(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateNetworkSearch(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable( IsWindowEnabled() );
 }
 
-void CMainWnd::OnNetworkSearch() 
+void CMainWnd::OnNetworkSearch()
 {
 	if ( ! Network.IsWellConnected() ) Network.Connect( TRUE );
 	
@@ -1487,7 +1490,7 @@ void CMainWnd::OnNetworkSearch()
 	OpenFromTray();
 }
 
-void CMainWnd::OnUpdateNetworkConnect(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateNetworkConnect(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable( TRUE );
 
@@ -1529,12 +1532,12 @@ void CMainWnd::OnNetworkConnect()
 	//	DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_ED2K );
 }
 
-void CMainWnd::OnUpdateNetworkDisconnect(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateNetworkDisconnect(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable( Network.IsConnected() );
 }
 
-void CMainWnd::OnNetworkDisconnect() 
+void CMainWnd::OnNetworkDisconnect()
 {
 	Settings.Gnutella1.EnableToday = FALSE;
 	Settings.Gnutella2.EnableToday = FALSE;
@@ -1542,19 +1545,19 @@ void CMainWnd::OnNetworkDisconnect()
 	Network.Disconnect();
 }
 
-void CMainWnd::OnUpdateNetworkConnectTo(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateNetworkConnectTo(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable( TRUE );
 }
 
-void CMainWnd::OnNetworkConnectTo() 
+void CMainWnd::OnNetworkConnectTo()
 {
 	CConnectToDlg dlg;
 	if ( dlg.DoModal() != IDOK ) return;
 	Network.ConnectTo( dlg.m_sHost, dlg.m_nPort, PROTOCOLID( dlg.m_nProtocol + 1 ), dlg.m_bNoUltraPeer, dlg.m_bUDP );
 }
 
-void CMainWnd::OnNetworkBrowseTo() 
+void CMainWnd::OnNetworkBrowseTo()
 {
 	CConnectToDlg dlg( NULL, TRUE );
 	if ( dlg.DoModal() != IDOK ) return;
@@ -1567,12 +1570,12 @@ void CMainWnd::OnNetworkBrowseTo()
 	}
 }
 
-void CMainWnd::OnUpdateNetworkG2(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateNetworkG2(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck( Settings.Gnutella2.EnableToday );
 }
 
-void CMainWnd::OnNetworkG2() 
+void CMainWnd::OnNetworkG2()
 {
 	if ( Network.IsConnected() && Settings.Gnutella2.EnableToday )
 	{
@@ -1606,13 +1609,13 @@ void CMainWnd::OnNetworkG2()
 	}
 }
 
-void CMainWnd::OnUpdateNetworkG1(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateNetworkG1(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck( Settings.Gnutella1.EnableToday );
 	pCmdUI->Enable( Settings.GetOutgoingBandwidth() >= 2 );
 }
 
-void CMainWnd::OnNetworkG1() 
+void CMainWnd::OnNetworkG1()
 {
 	if ( Network.IsConnected() && Settings.Gnutella1.EnableToday )
 	{
@@ -1640,13 +1643,13 @@ void CMainWnd::OnNetworkG1()
 	}
 }
 
-void CMainWnd::OnUpdateNetworkED2K(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateNetworkED2K(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck( Settings.eDonkey.EnableToday );
 	pCmdUI->Enable( Settings.GetOutgoingBandwidth() >= 2 );
 }
 
-void CMainWnd::OnNetworkED2K() 
+void CMainWnd::OnNetworkED2K()
 {
 	if ( Network.IsConnected() && Settings.eDonkey.EnableToday )
 	{
@@ -1674,14 +1677,14 @@ void CMainWnd::OnNetworkED2K()
 	}
 }
 
-void CMainWnd::OnUpdateNetworkAutoClose(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateNetworkAutoClose(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable( Settings.Connection.RequireForTransfers && 
 					( Settings.Live.AutoClose || ( Transfers.GetActiveCount() > 0 ) ) );
 	pCmdUI->SetCheck( Settings.Connection.RequireForTransfers && Settings.Live.AutoClose );
 }
 
-void CMainWnd::OnNetworkAutoClose() 
+void CMainWnd::OnNetworkAutoClose()
 {
 	if ( Settings.Live.AutoClose )
 	{
@@ -1703,7 +1706,7 @@ void CMainWnd::OnNetworkAutoClose()
 	}
 }
 
-void CMainWnd::OnNetworkExit() 
+void CMainWnd::OnNetworkExit()
 {
 	PostMessage( WM_CLOSE );
 }
@@ -1711,12 +1714,12 @@ void CMainWnd::OnNetworkExit()
 /////////////////////////////////////////////////////////////////////////////
 // CMainWnd view menu
 
-void CMainWnd::OnUpdateViewBasic(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateViewBasic(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck( Settings.General.GUIMode == GUI_BASIC );
 }
 
-void CMainWnd::OnViewBasic() 
+void CMainWnd::OnViewBasic()
 {
 	if ( Settings.General.GUIMode == GUI_BASIC ) return;
 	CString strMessage;
@@ -1726,12 +1729,12 @@ void CMainWnd::OnViewBasic()
 	SetGUIMode( GUI_BASIC );
 }
 
-void CMainWnd::OnUpdateViewTabbed(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateViewTabbed(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck( Settings.General.GUIMode == GUI_TABBED );
 }
 
-void CMainWnd::OnViewTabbed() 
+void CMainWnd::OnViewTabbed()
 {
 	if ( Settings.General.GUIMode == GUI_TABBED ) return;
 	CString strMessage;
@@ -1741,7 +1744,7 @@ void CMainWnd::OnViewTabbed()
 	SetGUIMode( GUI_TABBED );
 }
 
-void CMainWnd::OnUpdateViewWindowed(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateViewWindowed(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck( Settings.General.GUIMode == GUI_WINDOWED );
 }

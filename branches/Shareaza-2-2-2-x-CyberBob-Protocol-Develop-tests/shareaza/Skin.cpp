@@ -226,27 +226,33 @@ BOOL CSkin::LoadFromFile(LPCTSTR pszFile)
 
 BOOL CSkin::LoadFromResource(HINSTANCE hInstance, UINT nResourceID)
 {
+	BOOL bRet = FALSE;
 	HMODULE hModule = hInstance != NULL ? (HMODULE)hInstance : GetModuleHandle( NULL );
 	HRSRC hRes = FindResource( hModule, MAKEINTRESOURCE( nResourceID ), MAKEINTRESOURCE( 23 ) );
-	
-	if ( hRes == NULL ) return FALSE;
-	
-	CString strBody;
-	
-	DWORD nSize			= SizeofResource( hModule, hRes );
-	HGLOBAL hMemory		= ::LoadResource( hModule, hRes );
-	LPTSTR pszOutput	= strBody.GetBuffer( nSize + 1 );
-	LPCSTR pszInput		= (LPCSTR)LockResource( hMemory );
-	
-	while ( nSize-- ) *pszOutput++ = *pszInput++;
-	*pszOutput++ = 0;
-	
-	strBody.ReleaseBuffer();
+	if ( hRes )
+	{
+		DWORD nSize			= SizeofResource( hModule, hRes );
+		HGLOBAL hMemory		= LoadResource( hModule, hRes );
+		if ( hMemory )
+		{
+			LPCSTR pszInput	= (LPCSTR)LockResource( hMemory );
+			if ( pszInput )
+			{
+				CString strBody;
+				LPTSTR pszOutput = strBody.GetBuffer( nSize + 1 );
+				while ( nSize-- ) *pszOutput++ = *pszInput++;
+				*pszOutput++ = 0;
+				strBody.ReleaseBuffer();
 
-	CString strPath;
-	strPath.Format( _T("%lu$"), (DWORD)hModule );
-	
-	return LoadFromString( strBody, strPath );
+				CString strPath;
+				strPath.Format( _T("%lu$"), (DWORD)hModule );
+
+				bRet = LoadFromString( strBody, strPath );
+			}
+			FreeResource( hMemory );
+		}
+	}
+	return bRet;
 }
 
 BOOL CSkin::LoadFromString(const CString& strXML, const CString& strPath)
@@ -435,12 +441,16 @@ BOOL CSkin::LoadControlTips(CXMLElement* pBase)
 
 CMenu* CSkin::GetMenu(LPCTSTR pszName, bool bChild)
 {
+	ASSERT( Settings.General.GUIMode == GUI_WINDOWED || 
+		Settings.General.GUIMode == GUI_TABBED ||
+		Settings.General.GUIMode == GUI_BASIC );
 	LPCTSTR* pszModeSuffix = m_pszModeSuffix[ Settings.General.GUIMode ];
+	ASSERT( pszName != NULL ); 
 	CString strName( pszName );
 	CMenu* pMenu = NULL;
 	CMenu* pWorkingMenu = bChild ? &m_mnuChild : &m_mnuDefault;
 
-	for ( int nModeTry = 0 ; pszModeSuffix[ nModeTry ] ; nModeTry++ )
+	for ( int nModeTry = 0 ; nModeTry < 3 && pszModeSuffix[ nModeTry ] ; nModeTry++ )
 	{
 		if ( m_pMenus.Lookup( strName + pszModeSuffix[ nModeTry ], pMenu ) )
 			return pMenu;
@@ -578,11 +588,14 @@ BOOL CSkin::CreateToolBar(LPCTSTR pszName, CCoolBarCtrl* pBar)
 	
 	pBar->Clear();
 	
+	ASSERT( Settings.General.GUIMode == GUI_WINDOWED || 
+		Settings.General.GUIMode == GUI_TABBED ||
+		Settings.General.GUIMode == GUI_BASIC );
 	LPCTSTR* pszModeSuffix = m_pszModeSuffix[ Settings.General.GUIMode ];
 	CCoolBarCtrl* pBase = NULL;
 	CString strName( pszName );
 	
-	for ( int nModeTry = 0 ; pszModeSuffix[ nModeTry ] ; nModeTry++ )
+	for ( int nModeTry = 0 ; nModeTry < 3 && pszModeSuffix[ nModeTry ] ; nModeTry++ )
 	{
 		if ( m_pToolbars.Lookup( strName + pszModeSuffix[ nModeTry ], pBase ) ) break;
 	}
@@ -1090,6 +1103,9 @@ CSkinWindow* CSkin::GetWindowSkin(LPCTSTR pszWindow, LPCTSTR pszAppend)
 
 CSkinWindow* CSkin::GetWindowSkin(CWnd* pWnd)
 {
+	ASSERT( Settings.General.GUIMode == GUI_WINDOWED || 
+		Settings.General.GUIMode == GUI_TABBED ||
+		Settings.General.GUIMode == GUI_BASIC );
 	LPCTSTR* pszModeSuffix = m_pszModeSuffix[ Settings.General.GUIMode ];
 	BOOL bPanel = FALSE;
 	
@@ -1112,7 +1128,7 @@ CSkinWindow* CSkin::GetWindowSkin(CWnd* pWnd)
 			if ( pSkin != NULL ) return pSkin;
 		}
 		
-		for ( int nSuffix = 0 ; pszModeSuffix[ nSuffix ] != NULL ; nSuffix ++ )
+		for ( int nSuffix = 0 ; nSuffix < 3 && pszModeSuffix[ nSuffix ] != NULL ; nSuffix ++ )
 		{
 			if ( pszModeSuffix[ nSuffix ][0] != 0 || ! bPanel )
 			{
@@ -1833,7 +1849,7 @@ HBITMAP CSkin::LoadBitmap(CString& strName)
 
 LPCTSTR CSkin::m_pszModeSuffix[3][4] =
 {
-	{ _T(".Windowed"), _T(""), NULL, NULL },			// Windowed
-	{ _T(".Tabbed"), _T(""), NULL, NULL },				// Tabbed
-	{ _T(".Basic"), _T(".Tabbed"), _T(""), NULL }		// Basic
+	{ _T(".Windowed"), _T(""), NULL, NULL },			// GUI_WINDOWED
+	{ _T(".Tabbed"), _T(""), NULL, NULL },				// GUI_TABBED
+	{ _T(".Basic"), _T(".Tabbed"), _T(""), NULL }		// GUI_BASIC
 };

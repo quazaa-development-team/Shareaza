@@ -49,7 +49,7 @@ protected:
 	CHostCacheHost*	m_pBuffer;
 	CHostCacheHost*	m_pFree;
 	CHostCacheHost*	m_pHash[256];
-	
+
 // Operations
 public:
 	CHostCacheHost*	Add(IN_ADDR* pAddress, WORD nPort, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0);
@@ -70,7 +70,13 @@ public:
 	void			Serialize(CArchive& ar, int nVersion);
 	int				Import(LPCTSTR pszFile);
 	int				ImportMET(CFile* pFile);
+	BOOL			CheckMinimumED2KServers();
+	BOOL			EnoughED2KServers();
+
+private:
 	int				LoadDefaultED2KServers();
+	void			DoED2KServersImport();
+
 protected:
 	CHostCacheHost*	AddInternal(IN_ADDR* pAddress, WORD nPort, DWORD tSeen, LPCTSTR pszVendor, DWORD nUptime = 0);
 	void			RemoveOldest();
@@ -92,19 +98,17 @@ public:
 
 class CHostCacheHost
 {
-// Construction
 public:
+// Construction
 	CHostCacheHost();
 	
 // Attributes : Linkage
-public:
 	CHostCacheHost*	m_pNextHash;
 	CHostCacheHost*	m_pPrevTime;
 	CHostCacheHost*	m_pNextTime;
 	CHostCacheList*	m_pContainer;
 
 // Attributes: Host Information
-public:
 	PROTOCOLID		m_nProtocol;
 	IN_ADDR			m_pAddress;
 	WORD			m_nPort;
@@ -120,7 +124,6 @@ public:
 	BOOL			m_bCheckedLocally;
 
 // Attributes: Contact Times
-public:
 	DWORD			m_tAdded;
 	DWORD			m_tSeen;
 	DWORD			m_tRetryAfter;
@@ -134,13 +137,11 @@ public:
 	DWORD			m_tCheckTime;
 
 // Attributes: Query Keys
-public:
 	DWORD			m_tKeyTime;
 	DWORD			m_nKeyValue;
 	DWORD			m_nKeyHost;
 
 // Operations
-public:
 	void			Update(WORD nPort, DWORD tSeen = 0, LPCTSTR pszVendor = NULL, DWORD nUptime = 0);
 	CNeighbour*		ConnectTo(BOOL bAutomatic = FALSE);
 	CG1Packet*		ToG1Ping(int nTTL, const Hashes::Guid& oGUID);
@@ -165,30 +166,29 @@ protected:
 
 class CHostCache
 {
-// Construction
 public:
+// Construction
 	CHostCache();
 
 // Attributes
-public:
 	CHostCacheList	Gnutella1;
 	CHostCacheList	Gnutella2;
 	CHostCacheList	eDonkey;
 	CList< CHostCacheList* > m_pList;
 
 // Operations
-public:
 	BOOL		Load();
 	BOOL		Save();
 	void		Clear();
-protected:
-	void		Serialize(CArchive& ar);
-public:
+
 	CHostCacheHost*	Find(IN_ADDR* pAddress) const;
 	BOOL			Check(CHostCacheHost* pHost) const;
 	void			Remove(CHostCacheHost* pHost);
 	CHostCacheHost* OnFailure(IN_ADDR* pAddress, WORD nPort, PROTOCOLID nProtocol=PROTOCOL_NULL, bool bRemove=false);
 	CHostCacheHost* OnSuccess(IN_ADDR* pAddress, WORD nPort, PROTOCOLID nProtocol=PROTOCOL_NULL, bool bUpdate=true);
+
+protected:
+	void		Serialize(CArchive& ar);
 
 // Inlines
 public:

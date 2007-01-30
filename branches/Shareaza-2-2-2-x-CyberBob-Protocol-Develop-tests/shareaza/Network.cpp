@@ -378,13 +378,13 @@ BOOL CNetwork::IsStable() const
 
 BOOL CNetwork::IsFirewalled(int nCheck)
 {
-	if ( Settings.Connection.FirewallStatus == CONNECTION_OPEN )	// CHECK_BOTH, CHECK_TCP, CHECK_UDP
+	if ( Settings.Connection.FirewallState == CONNECTION_OPEN )	// CHECK_BOTH, CHECK_TCP, CHECK_UDP
 		return FALSE;		// We know we are not firewalled on both TCP and UDP
-	else if ( Settings.Connection.FirewallStatus == CONNECTION_OPEN_TCPONLY && nCheck == CHECK_TCP )
+	else if ( Settings.Connection.FirewallState == CONNECTION_OPEN_TCPONLY && nCheck == CHECK_TCP )
 		return FALSE;		// We know we are not firewalled on TCP port
-	else if ( Settings.Connection.FirewallStatus == CONNECTION_OPEN_UDPONLY && nCheck == CHECK_UDP )
+	else if ( Settings.Connection.FirewallState == CONNECTION_OPEN_UDPONLY && nCheck == CHECK_UDP )
 		return FALSE;		// We know we are not firewalled on UDP port
-	else if ( Settings.Connection.FirewallStatus == CONNECTION_AUTO )
+	else if ( Settings.Connection.FirewallState == CONNECTION_AUTO )
 	{
 		BOOL bTCPOpened = IsStable();
 		BOOL bUDPOpened = Datagrams.IsStable();
@@ -494,9 +494,7 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 
 	// If we are already connected, skiping further initializations. 
 	if ( m_bEnabled )
-	{
 		return TRUE;
-	}
 
 	m_nNetworkGlobalTime = static_cast<DWORD>( time( NULL ) );
 	m_nNetworkGlobalTickCount = GetTickCount();
@@ -514,6 +512,10 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 		InternetSetOption( hInternet, INTERNET_OPTION_CONNECTED_STATE, &ici, sizeof(ici) );
 		InternetCloseHandle( hInternet );
 	}
+
+	// It will check if it is needed inside the function
+	if ( bAutoConnect )
+		DiscoveryServices.Execute(TRUE, PROTOCOL_NULL);
 
 	Resolve( Settings.Connection.InHost, Settings.Connection.InPort, &m_pHost );
 

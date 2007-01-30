@@ -1200,15 +1200,6 @@ BOOL CShakeNeighbour::OnHeadersComplete()
 		m_sTryUltrapeers.Empty();
 	}
 
-	if ( m_bDelayClose )
-	{
-		m_nState = nrsClosing;
-		m_pOutput->Print( "GNUTELLA/0.6 503 Sorry, you can not connect me. Please update to newer version or use different Software\r\n" );
-		SendMinimalHeaders();       // Tell the remote computer we're Shareaza and we can exchange Gnutella2 packets
-		m_pOutput->Print( "\r\n" ); // End the group of headers with a blank line
-		return FALSE;
-	}
-
 	// The remote computer called us and it hasn't said Ultrapeer or not.
 	if ( !m_bInitiated && m_bUltraPeerSet == TS_UNKNOWN )
 	{
@@ -1216,7 +1207,14 @@ BOOL CShakeNeighbour::OnHeadersComplete()
 		m_bUltraPeerSet = TS_FALSE;
 	}
 
-	if ( ( ( ! m_bInitiated && m_bG2Accept ) || ( m_bInitiated && m_bG2Send ) ) &&
+	if ( m_bDelayClose )
+	{
+		m_nState = nrsClosing;
+		m_pOutput->Print( "GNUTELLA/0.6 503 Sorry, you can not connect me. Please update to newer version or use different Software\r\n" );
+		SendMinimalHeaders();       // Tell the remote computer we're Shareaza and we can exchange Gnutella2 packets
+		m_pOutput->Print( "\r\n" ); // End the group of headers with a blank line
+	}
+	else if ( ( ( ! m_bInitiated && m_bG2Accept ) || ( m_bInitiated && m_bG2Send ) ) &&
 			Settings.Gnutella2.EnableToday && m_nProtocol != PROTOCOL_G1 )
 	{
 		// This is a G2 connection
