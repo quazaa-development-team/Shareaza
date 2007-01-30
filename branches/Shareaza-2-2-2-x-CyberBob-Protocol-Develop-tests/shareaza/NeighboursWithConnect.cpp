@@ -349,7 +349,7 @@ DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bDebug)
 	}
 
 	// We are running as a Gnutella2 leaf right now
-	if ( Settings.Gnutella2.ClientMode == MODE_LEAF )
+	if ( IsG2Leaf() )
 	{
 		// We can never be a hub because we are a leaf (do)
 		if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: leaf") );
@@ -624,7 +624,7 @@ DWORD CNeighboursWithConnect::IsG1UltrapeerCapable(BOOL bDebug)
 	}
 
 	// We are running as a Gnutella leaf right now
-	if ( Settings.Gnutella2.ClientMode == MODE_LEAF )
+	if ( IsG1Leaf() )
 	{
 		// We can never be an ultrapeer because we are a leaf (do)
 		if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: leaf") );
