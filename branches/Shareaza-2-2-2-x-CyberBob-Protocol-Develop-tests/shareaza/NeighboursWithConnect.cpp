@@ -1327,6 +1327,8 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 						}
 					}
 				}
+				if ( m_nCount[ nProtocol ][ntHub] < nAttempt && !Settings.Discovery.DisableAutoQuery )
+					DiscoveryServices.Execute( TRUE, PROTOCOL_ED2K );
 			}
 			else if ( pCache->GetOldest() == NULL && !Settings.Discovery.DisableAutoQuery )
 			{
@@ -1393,6 +1395,8 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 					}
 				}
 			}
+			if ( m_nCount[ nProtocol ][ntNull] < nAttempt && !Settings.Discovery.DisableAutoQuery )
+				DiscoveryServices.Execute( TRUE, PROTOCOL_G2 );
 		}
 		else if ( nProtocol == PROTOCOL_G1 )
 		{
@@ -1454,6 +1458,8 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 					}
 				}
 			}
+			if ( m_nCount[ nProtocol ][ntNull] < nAttempt && !Settings.Discovery.DisableAutoQuery )
+				DiscoveryServices.Execute( TRUE, PROTOCOL_G1 );
 		}
 		// If network autoconnet is on (do)
 		// this condition is very funny since it is not reachable unless m_bAutoConnect is TRUE anyway.
@@ -1467,13 +1473,13 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 				if ( nProtocol == PROTOCOL_G2 && Settings.Gnutella2.EnableToday )
 				{
 					// If the Gnutella host cache is empty and Auto is not Disabled, execute discovery services (do)
-					if ( pCache->GetOldest() == NULL && !Settings.Discovery.DisableAutoQuery )
+					if ( !Settings.Discovery.DisableAutoQuery )
 						DiscoveryServices.Execute( TRUE, PROTOCOL_G2 );
 				} // We're looping for Gnutella right now
 				else if ( nProtocol == PROTOCOL_G1 && Settings.Gnutella1.EnableToday )
 				{
 					// If the Gnutella host cache is empty and Auto is not Disabled, execute discovery services (do)
-					if ( pCache->GetOldest() == NULL && !Settings.Discovery.DisableAutoQuery )
+					if ( !Settings.Discovery.DisableAutoQuery )
 						DiscoveryServices.Execute( TRUE, PROTOCOL_G1 );
 				}
 			}
