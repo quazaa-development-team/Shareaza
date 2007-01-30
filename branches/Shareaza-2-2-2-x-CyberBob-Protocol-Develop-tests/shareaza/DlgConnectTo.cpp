@@ -53,6 +53,8 @@ CConnectToDlg::CConnectToDlg(CWnd* pParent, BOOL bBrowseHost) : CSkinDialog(CCon
 	m_nProtocol = PROTOCOL_ANY;
 	//}}AFX_DATA_INIT
 	m_bBrowseHost = bBrowseHost;
+
+	m_bUDP = FALSE;
 }
 
 void CConnectToDlg::DoDataExchange(CDataExchange* pDX)
@@ -63,11 +65,13 @@ void CConnectToDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CONNECT_ADVANCED, m_wndAdvanced);
 	DDX_Control(pDX, IDC_CONNECT_PROTOCOL, m_wndProtocol);
 	DDX_Control(pDX, IDC_CONNECT_ULTRAPEER, m_wndUltrapeer);
+	DDX_Control(pDX, IDC_CONNECT_UDP, m_wndUDP);
 	DDX_Control(pDX, IDC_CONNECT_PROMPT, m_wndPrompt);
 	DDX_Control(pDX, IDC_CONNECT_PORT, m_wndPort);
 	DDX_Control(pDX, IDC_CONNECT_HOST, m_wndHost);
 	DDX_CBString(pDX, IDC_CONNECT_HOST, m_sHost);
 	DDX_Check(pDX, IDC_CONNECT_ULTRAPEER, m_bNoUltraPeer);
+	DDX_Check(pDX, IDC_CONNECT_UDP, m_bUDP);
 	DDX_Text(pDX, IDC_CONNECT_PORT, m_nPort);
 	DDX_CBIndex(pDX, IDC_CONNECT_PROTOCOL, nProtocol);
 	//}}AFX_DATA_MAP
@@ -108,6 +112,9 @@ BOOL CConnectToDlg::OnInitDialog()
 	m_wndProtocol.ShowWindow( m_bBrowseHost ? SW_HIDE : SW_SHOW );
 	m_wndUltrapeer.ShowWindow( m_bBrowseHost ? SW_HIDE : SW_SHOW );
 	m_wndUltrapeer.EnableWindow( FALSE );
+
+	m_wndUDP.ShowWindow( m_bBrowseHost ? SW_HIDE : SW_SHOW );
+	m_wndUDP.EnableWindow( TRUE );
 
 	int nItem, nCount = theApp.GetProfileInt( _T("ConnectTo"), _T("Count"), 0 );
 
@@ -213,14 +220,17 @@ void CConnectToDlg::OnCloseUpConnectProtocol()
 	case PROTOCOL_G1:
 		nPort = GNUTELLA_DEFAULT_PORT;
 		m_wndUltrapeer.EnableWindow( TRUE );
+		m_wndUDP.EnableWindow( FALSE );
 		break;
 	case PROTOCOL_G2:
 		nPort = GNUTELLA_DEFAULT_PORT;
 		m_wndUltrapeer.EnableWindow( FALSE );
+		m_wndUDP.EnableWindow( TRUE );
 		break;
 	case PROTOCOL_ED2K:
 		nPort = ED2K_DEFAULT_PORT;
 		m_wndUltrapeer.EnableWindow( FALSE );
+		m_wndUDP.EnableWindow( FALSE );
 		break;
 	default:
 		return;

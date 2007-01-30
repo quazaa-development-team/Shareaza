@@ -654,7 +654,7 @@ void CNetwork::Disconnect()
 //////////////////////////////////////////////////////////////////////
 // CNetwork host connection
 
-BOOL CNetwork::ConnectTo(LPCTSTR pszAddress, int nPort, PROTOCOLID nProtocol, BOOL bNoUltraPeer)
+BOOL CNetwork::ConnectTo(LPCTSTR pszAddress, int nPort, PROTOCOLID nProtocol, BOOL bNoUltraPeer, BOOL bUDP)
 {
 	CSingleLock pLock( &m_pSection, TRUE );
 	
@@ -663,7 +663,7 @@ BOOL CNetwork::ConnectTo(LPCTSTR pszAddress, int nPort, PROTOCOLID nProtocol, BO
 	if ( nPort == 0 ) nPort = GNUTELLA_DEFAULT_PORT;
 	theApp.Message( MSG_DEFAULT, IDS_NETWORK_RESOLVING, pszAddress );
 	
-	if ( AsyncResolve( pszAddress, (WORD)nPort, nProtocol, bNoUltraPeer ? 2 : 1 ) ) return TRUE;
+	if ( AsyncResolve( pszAddress, (WORD)nPort, nProtocol, ( bUDP ? 4 : ( bNoUltraPeer ? 2 : 1 ) ) ) ) return TRUE;
 	
 	theApp.Message( MSG_ERROR, IDS_NETWORK_RESOLVE_FAIL, pszAddress );
 	
@@ -979,11 +979,15 @@ void CNetwork::OnWinsock(WPARAM wParam, LPARAM lParam)
 		}
 		else if ( pResolve->m_nCommand == 1 ) // 1 = normal
 		{
-			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, FALSE, FALSE );
+			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, FALSE, FALSE, FALSE );
 		}
 		else if ( pResolve->m_nCommand == 2 ) // 2 = No Ultrapeer
 		{
-			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, TRUE, FALSE );
+			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, TRUE, FALSE, FALSE );
+		}
+		else if ( pResolve->m_nCommand == 4 ) // 4 = UDP (ToDo) currently only for G2.
+		{
+			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, FALSE, FALSE, TRUE );
 		}
 		else if ( pResolve->m_nCommand == 3 ) // 3 = UHC/UKHL bootstraps.
 		{

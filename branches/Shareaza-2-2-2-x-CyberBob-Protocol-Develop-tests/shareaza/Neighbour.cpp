@@ -78,6 +78,7 @@ CNeighbour::CNeighbour(PROTOCOLID nProtocol) :
 	m_bGGEP( FALSE ),			// The remote computer hasn't told us it supports the GGEP block yet
 	m_bObsoleteClient( FALSE ),	//
 	m_bBadClient( FALSE ),		//
+	m_bUDP( FALSE ),			//
 	// Start out time variables as 0
 	m_tLastQuery( 0 ),			// We'll set these to the current tick or seconds count when we get a query or packet
 	m_tLastPacket( 0 ),			//
@@ -125,6 +126,7 @@ CNeighbour::CNeighbour(PROTOCOLID nProtocol, CNeighbour* pBase)
 	, m_bGGEP(             pBase->m_bGGEP )
 	, m_tLastQuery(        pBase->m_tLastQuery )
 	, m_bObsoleteClient(   pBase->m_bObsoleteClient )
+	, m_bUDP(			   pBase->m_bUDP )
 	, m_nInputCount(       pBase->m_nInputCount )
 	, m_nOutputCount(      pBase->m_nOutputCount )
 	, m_nDropCount(        pBase->m_nDropCount )
@@ -187,7 +189,7 @@ CNeighbour::~CNeighbour()
 void CNeighbour::Close(UINT nError)
 {
 	// Make sure that the socket stored in this CNeighbour object is valid
-	ASSERT( m_hSocket != INVALID_SOCKET );
+	ASSERT( m_hSocket != INVALID_SOCKET || m_bUDP );
 
 	// If nError is the default closed or a result of peer pruning, we're closing the connection voluntarily
 	BOOL bVoluntary = ( nError == IDS_CONNECTION_CLOSED || nError == IDS_CONNECTION_PEERPRUNE );

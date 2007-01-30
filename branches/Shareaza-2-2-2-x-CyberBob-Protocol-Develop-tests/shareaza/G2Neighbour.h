@@ -35,9 +35,11 @@ class CG2Neighbour : public CNeighbour
 {
 // Construction
 public:
+	CG2Neighbour();
 	CG2Neighbour(CNeighbour* pBase);
 	virtual ~CG2Neighbour();
 
+	virtual BOOL	ConnectTo(IN_ADDR* pAddress, WORD nPort, BOOL bAutomatic, BOOL bUDP);
 	virtual BOOL	Send(CPacket* pPacket, BOOL bRelease = TRUE, BOOL bBuffered = FALSE);
 	virtual BOOL	SendQuery(CQuerySearch* pSearch, CPacket* pPacket, BOOL bLocal);
 	virtual void	Close(UINT nError = IDS_CONNECTION_CLOSED);
@@ -45,7 +47,7 @@ public:
 
 	BOOL			OnPing(CG2Packet* pPacket, BOOL bTCP = TRUE);
 	BOOL			OnPong(CG2Packet* pPacket, BOOL bTCP = TRUE);
-	BOOL			OnPacket(CG2Packet* pPacket);
+	BOOL			OnPacket(CG2Packet* pPacket, SOCKADDR_IN* pHost);
 	void			SendLNI();
 	BOOL			OnLNI(CG2Packet* pPacket);
 	void			SendKHL();
@@ -63,6 +65,10 @@ public:
 	BOOL			OnModeChangeAck(CG2Packet* pPacket); //add
 	BOOL			OnPrivateMessage(CG2Packet* pPacket); //add
 	BOOL			OnClose(CG2Packet* pPacket); //add
+
+	BOOL			SendUDPConnect(DWORD tNow);
+	BOOL			OnConnect(SOCKADDR_IN* pHost, CG2Packet* pPacket); //add
+	BOOL			OnConnectAck(SOCKADDR_IN* pHost, CG2Packet* pPacket); //add
 
 public:
 	DWORD				m_nLeafCount;

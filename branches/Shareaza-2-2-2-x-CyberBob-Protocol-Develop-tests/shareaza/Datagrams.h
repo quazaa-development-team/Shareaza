@@ -183,6 +183,7 @@ protected:
 	BOOL	OnClose(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnJCT(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 
+	friend class CG2Neighbour;
 };
 
 extern CDatagrams Datagrams;

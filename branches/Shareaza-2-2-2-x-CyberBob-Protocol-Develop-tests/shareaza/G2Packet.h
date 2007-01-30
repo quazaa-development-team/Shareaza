@@ -203,6 +203,8 @@ const G2_PACKET G2_PACKET_TCP_NOT_FIREWALLED= MAKE_G2_PACKET( 'T', 'C', 'P', 'N'
 const G2_PACKET G2_PACKET_UDP_NOT_FIREWALLED= MAKE_G2_PACKET( 'U', 'D', 'P', 'N', 'F', 'W',  0 ,  0  );
 const G2_PACKET G2_PACKET_TCP_FIREWALLED	= MAKE_G2_PACKET( 'T', 'C', 'P', 'F', 'W',  0 ,  0 ,  0  );
 const G2_PACKET G2_PACKET_UDP_FIREWALLED	= MAKE_G2_PACKET( 'U', 'D', 'P', 'F', 'W',  0 ,  0 ,  0  );
+const G2_PACKET G2_PACKET_CONNECT			= MAKE_G2_PACKET( 'C', 'O', 'N', 'N', 'E', 'C', 'T',  0  );
+const G2_PACKET G2_PACKET_CONNECT_ACK		= MAKE_G2_PACKET( 'C', 'O', 'N', 'N', 'A', 'C', 'K',  0  );
 
 
 //

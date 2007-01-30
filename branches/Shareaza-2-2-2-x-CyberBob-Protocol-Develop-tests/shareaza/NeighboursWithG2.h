@@ -53,7 +53,7 @@ public:
 	std::list<CG2Neighbour*>	m_oG2Peers;			// list of Hub-to-Hub(PEER) connections
 	std::list<CG2Neighbour*>	m_oG2Hubs;			// list of Leaf-to-Hub(HUB) connections
 	std::list<CG2Neighbour*>	m_oG2Leafs;			// list of Hub-to-Leaf(LEAF) connections
-
+	std::list<CG2Neighbour*>	m_oG2Specials;		// list of any-to-any(Special) connections
 
 public:
 
@@ -78,6 +78,8 @@ public:
 	CG2Packet*		CreateLNIPacket(CG2Neighbour* pOwner = NULL);
 	CG2Packet*		CreateKHLPacket(CG2Neighbour* pOwner = NULL);
 	BOOL			ParseKHLPacket(CG2Packet* pPacket, CG2Neighbour* pOwner = NULL);
+	CG2Neighbour*	GetG2Node(IN_ADDR* pAddress) const;		// By the remote computer's IP address
+	CG2Neighbour*	GetG2Node(SOCKADDR_IN* pAddress) const;	// By the remote computer's SOCKET address
 };
 
 // End the group of lines to only include once, pragma once doesn't require an endif at the bottom

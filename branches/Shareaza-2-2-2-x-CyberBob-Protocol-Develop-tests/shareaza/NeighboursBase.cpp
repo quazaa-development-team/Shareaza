@@ -128,7 +128,29 @@ CNeighbour* CNeighboursBase::Get(IN_ADDR* pAddress) const // Saying const here m
 		CNeighbour* pNeighbour = GetNext( pos );
 
 		// If this neighbour object has the IP address we are looking for, return it
-		if ( pNeighbour->m_pHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) return pNeighbour;
+		//if ( pNeighbour->m_pHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) return pNeighbour;
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) return pNeighbour;
+	}
+
+	// None of the neighbour objects in the map had the IP address we are looking for
+	return NULL; // Not found
+}
+
+// Takes an SOCKADDR
+// Finds the neighbour object in the m_pUniques map that represents the remote computer with that address
+// Returns it, or null if not found
+CNeighbour* CNeighboursBase::Get(SOCKADDR_IN* pAddress) const // Saying const here means this method won't change any member variables
+{
+	// Loop through each neighbour in the m_pUniques map
+	for ( POSITION pos = GetIterator() ; pos ; ) // Get a POSITION iterator, and leave when calling GetNext made it null
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CNeighbour* pNeighbour = GetNext( pos );
+
+		// If this neighbour object has the SOCKADDR we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->sin_addr.S_un.S_addr &&
+			pNeighbour->m_pRealHost.sin_port == pAddress->sin_port &&
+			pNeighbour->m_pRealHost.sin_family == pAddress->sin_family ) return pNeighbour;
 	}
 
 	// None of the neighbour objects in the map had the IP address we are looking for

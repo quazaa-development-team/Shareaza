@@ -35,6 +35,7 @@
 #include "NeighboursWithConnect.h"
 #include "ShakeNeighbour.h"
 #include "EDNeighbour.h"
+#include "G2Neighbour.h"
 #include "Neighbours.h"
 
 // If we are compiling in debug mode, replace the text "THIS_FILE" in the code with the name of this file
@@ -88,7 +89,8 @@ CNeighbour* CNeighboursWithConnect::ConnectTo(
 	PROTOCOLID		nProtocol,		// Protocol name, like PROTOCOL_G1 for Gnutella
 	BOOL			bAutomatic,		// True to (do)
 	BOOL			bNoUltraPeer,	// By default, false to not (do)
-	BOOL			bFirewallTest)	// Making Connection to test if the remote node's TCP is firewalled or not.
+	BOOL			bFirewallTest,	// Making Connection to test if the remote node's TCP is firewalled or not.
+	BOOL			bUDP)
 {
 	// Get this thread exclusive access to the network (do) while this method runs 
 	CSingleLock pLock( &Network.m_pSection, TRUE ); // When control leaves the method, pLock will go out of scope and release access
@@ -175,6 +177,18 @@ CNeighbour* CNeighboursWithConnect::ConnectTo(
 		delete pNeighbour;
 
 	} // The computer at the IP address we have is running Gnutella or Gnutella2 software
+	else if ( nProtocol == PROTOCOL_G2 && bUDP )
+	{
+		// Make a new CEDNeighbour object, connect it to the IP address, and return a pointer to it
+		CG2Neighbour* pNeighbour = new CG2Neighbour();
+		if ( pNeighbour->ConnectTo( pAddress, nPort, bAutomatic, TRUE ) ) 
+		{
+			// Started connecting to an ed2k neighbour
+			return pNeighbour;
+		}
+		delete pNeighbour;
+
+	} // The computer at the IP address we have is running Gnutella or Gnutella2 software
 	else
 	{
 		// Make a new CShakeNeighbour object, connect it to the IP address, and return a pointer to it
@@ -251,7 +265,7 @@ void CNeighboursWithConnect::PeerPrune(PROTOCOLID nProtocol)
 		if ( pNeighbour->m_nProtocol == nProtocol )
 		{
 			// Our connection to this neighbour is not up to a hub, and
-			if ( pNeighbour->m_nNodeType != ntHub )
+			if ( pNeighbour->m_nNodeType == ntNode || pNeighbour->m_nNodeType == ntLeaf )
 			{
 				// Either we don't need any more hubs, or we're done with the handshake so we know it wont' be a hub, then
 				if ( ! bNeedMore || pNeighbour->m_nState == nrsConnected )

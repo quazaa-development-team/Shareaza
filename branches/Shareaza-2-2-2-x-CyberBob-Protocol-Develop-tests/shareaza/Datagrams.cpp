@@ -1133,16 +1133,19 @@ BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		}
 	}
 
-	pPacket->SmartDump( NULL, &pHost->sin_addr, FALSE );
+	// Is it neigbour's packet or stranger's packet?
+	//CNeighbour* pNeighbour = Neighbours.Get( (SOCKADDR_IN*)pHost );
+	//CG2Neighbour* pNeighbour2 = static_cast< CG2Neighbour* >
+	//	( ( pNeighbour && pNeighbour->m_nProtocol == PROTOCOL_G2 ) ? pNeighbour : NULL );
+	CG2Neighbour* pNeighbour = Neighbours.GetG2Node( (SOCKADDR_IN*)pHost );
 
+	pPacket->SmartDump( NULL, &pHost->sin_addr, FALSE );
 	m_nInPackets++;
 
-	// Is it neigbour's packet or stranger's packet?
-	CNeighbour* pNeighbour = Neighbours.Get( &( pHost->sin_addr ) );
-//	CG1Neighbour* pNeighbour1 = static_cast< CG1Neighbour* >
-//		( ( pNeighbour && pNeighbour->m_nProtocol == PROTOCOL_G1 ) ? pNeighbour : NULL );
-	CG2Neighbour* pNeighbour2 = static_cast< CG2Neighbour* >
-		( ( pNeighbour && pNeighbour->m_nProtocol == PROTOCOL_G2 ) ? pNeighbour : NULL );
+	if ( pNeighbour && pNeighbour->m_bUDP )
+	{
+		return pNeighbour->OnPacket( pPacket, pHost );
+	}
 
 	if ( Network.RoutePacket( pPacket ) ) return TRUE;
 
@@ -1166,10 +1169,10 @@ BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		return OnQueryKeyAnswer( pHost, pPacket );
 	case G2_PACKET_PING:
 		// Pass packet handling to neighbour if any
-		return pNeighbour2 ? pNeighbour2->OnPing( pPacket, FALSE ) : OnPing( pHost, pPacket );
+		return pNeighbour ? pNeighbour->OnPing( pPacket, FALSE ) : OnPing( pHost, pPacket );
 	case G2_PACKET_PONG:
 		// Pass packet handling to neighbour if any
-		return pNeighbour2 ? pNeighbour2->OnPong( pPacket, FALSE ) : OnPong( pHost, pPacket );
+		return pNeighbour ? pNeighbour->OnPong( pPacket, FALSE ) : OnPong( pHost, pPacket );
 	case G2_PACKET_PUSH:
 		return OnPush( pHost, pPacket );
 	case G2_PACKET_CRAWL_REQ:
@@ -1194,6 +1197,12 @@ BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 		return OnClose( pHost, pPacket );
 	case G2_PACKET_WEB_FW_CHECK:
 		return OnJCT( pHost, pPacket );
+	case G2_PACKET_CONNECT:
+		if ( pNeighbour ) return FALSE;
+		pNeighbour = new CG2Neighbour();
+		return pNeighbour->OnConnect( pHost, pPacket );
+	case G2_PACKET_CONNECT_ACK:
+		if ( pNeighbour ) return FALSE;
 	default:
 		theApp.Message( MSG_DEBUG, _T("UDP: Received unexpected packet %s from %s"),
 			pPacket->GetType(), (LPCTSTR)CString( inet_ntoa( pHost->sin_addr ) ) );

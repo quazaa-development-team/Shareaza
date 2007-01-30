@@ -189,6 +189,7 @@
 #define IDI_COMPUTER                    1006
 #define IDC_CONNECT_ULTRAPEER           1007
 #define IDI_CONTACT_MSN                 1007
+#define IDC_CONNECT_UDP                 1008
 #define IDC_FILE_SHA1                   1009
 #define IDC_FILE_TYPE                   1010
 #define IDC_FILE_SIZE                   1011

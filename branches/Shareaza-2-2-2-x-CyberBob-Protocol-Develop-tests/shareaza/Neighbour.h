@@ -97,16 +97,18 @@ public:
 // Attributes: Capabilities
 public:
 
-	BOOL    m_bAutomatic;
-	BOOL    m_bShareaza;		// True if the remote computer is running Shareaza also
 	NrsNode m_nNodeType;		// This connection is to a hub above us, ntHub, a leaf below us, ntLeaf, or a hub just like us, ntNode
-	BOOL    m_bQueryRouting;
-	BOOL    m_bPongCaching;
-	BOOL    m_bVendorMsg;		// True if the remote computer told us it supports vendor-specific messages
-	BOOL    m_bGGEP;
 	DWORD   m_tLastQuery;		// The time we last got a query packet, recorded as the number of seconds since 1970
-	BOOL    m_bObsoleteClient;	// Is the remote client running an 'old' version of software. (An old beta, etc)
-	BOOL    m_bBadClient;		// Is the remote client running a 'bad' client- GPL rip, buggy, etc. (not banned, though)
+	// no need to have 32bit for BOOLs.
+	BOOL    m_bAutomatic		:1;
+	BOOL    m_bShareaza			:1;		// True if the remote computer is running Shareaza also
+	BOOL    m_bQueryRouting		:1;
+	BOOL    m_bPongCaching		:1;
+	BOOL    m_bVendorMsg		:1;		// True if the remote computer told us it supports vendor-specific messages
+	BOOL    m_bGGEP				:1;
+	BOOL    m_bObsoleteClient	:1;		// Is the remote client running an 'old' version of software. (An old beta, etc)
+	BOOL    m_bBadClient		:1;		// Is the remote client running a 'bad' client- GPL rip, buggy, etc. (not banned, though)
+	BOOL    m_bUDP				:1;
 
 // Attributes: Statistics
 public:

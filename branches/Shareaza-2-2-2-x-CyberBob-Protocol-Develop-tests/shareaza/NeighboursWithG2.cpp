@@ -55,7 +55,8 @@ m_nG2FileCount(0),
 m_nG2FileVolume(0),
 m_oG2Peers(),
 m_oG2Hubs(),
-m_oG2Leafs()
+m_oG2Leafs(),
+m_oG2Specials()
 {
 }
 
@@ -679,3 +680,130 @@ BOOL CNeighboursWithG2::ParseKHLPacket(CG2Packet* pPacket, CG2Neighbour* pOwner)
 	return TRUE;
 }
 
+// Takes an IP address
+// Finds the neighbour object in the m_pUniques map that represents the remote computer with that address
+// Returns it, or null if not found
+CG2Neighbour* CNeighboursWithG2::GetG2Node(IN_ADDR* pAddress) const // Saying const here means this method won't change any member variables
+{
+	std::list<CG2Neighbour*>::const_iterator iIndex;
+	std::list<CG2Neighbour*>::const_iterator iEnd;
+
+	iIndex = m_oG2Specials.begin();
+	iEnd = m_oG2Specials.end();
+	// Loop through each neighbour in the m_oG2Specials
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG2Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the IP address we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) return pNeighbour;
+	}
+
+	iIndex = m_oG2Peers.begin();
+	iEnd = m_oG2Peers.end();
+	// Loop through each neighbour in the m_oG2Peers
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG2Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the IP address we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) return pNeighbour;
+	}
+
+	iIndex = m_oG2Hubs.begin();
+	iEnd = m_oG2Hubs.end();
+	// Loop through each neighbour in the m_oG2Hubs
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG2Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the IP address we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) return pNeighbour;
+	}
+
+	iIndex = m_oG2Leafs.begin();
+	iEnd = m_oG2Leafs.end();
+	// Loop through each neighbour in the m_oG2Leafs
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG2Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the IP address we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) return pNeighbour;
+	}
+
+	// None of the neighbour objects in the map had the IP address we are looking for
+	return NULL; // Not found
+}
+
+// Takes an SOCKADDR
+// Finds the neighbour object in the m_pUniques map that represents the remote computer with that address
+// Returns it, or null if not found
+CG2Neighbour* CNeighboursWithG2::GetG2Node(SOCKADDR_IN* pAddress) const // Saying const here means this method won't change any member variables
+{
+	std::list<CG2Neighbour*>::const_iterator iIndex;
+	std::list<CG2Neighbour*>::const_iterator iEnd;
+
+	iIndex = m_oG2Specials.begin();
+	iEnd = m_oG2Specials.end();
+	// Loop through each neighbour in the m_oG2Specials
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG2Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the SOCKADDR we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->sin_addr.S_un.S_addr &&
+			pNeighbour->m_pRealHost.sin_port == pAddress->sin_port &&
+			pNeighbour->m_pRealHost.sin_family == pAddress->sin_family ) return pNeighbour;
+	}
+
+	iIndex = m_oG2Peers.begin();
+	iEnd = m_oG2Peers.end();
+	// Loop through each neighbour in the m_oG2Peers
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG2Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the SOCKADDR we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->sin_addr.S_un.S_addr &&
+			pNeighbour->m_pRealHost.sin_port == pAddress->sin_port &&
+			pNeighbour->m_pRealHost.sin_family == pAddress->sin_family ) return pNeighbour;
+	}
+
+	iIndex = m_oG2Hubs.begin();
+	iEnd = m_oG2Hubs.end();
+	// Loop through each neighbour in the m_oG2Hubs
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG2Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the SOCKADDR we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->sin_addr.S_un.S_addr &&
+			pNeighbour->m_pRealHost.sin_port == pAddress->sin_port &&
+			pNeighbour->m_pRealHost.sin_family == pAddress->sin_family ) return pNeighbour;
+	}
+
+	iIndex = m_oG2Leafs.begin();
+	iEnd = m_oG2Leafs.end();
+	// Loop through each neighbour in the m_oG2Leafs
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG2Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the SOCKADDR we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->sin_addr.S_un.S_addr &&
+			pNeighbour->m_pRealHost.sin_port == pAddress->sin_port &&
+			pNeighbour->m_pRealHost.sin_family == pAddress->sin_family ) return pNeighbour;
+	}
+
+	// None of the neighbour objects in the map had the IP address we are looking for
+	return NULL; // Not found
+}

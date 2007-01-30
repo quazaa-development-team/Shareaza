@@ -65,8 +65,9 @@ public:
 	CNeighbour* GetNext(POSITION& pos) const; // Give the POSITION to GetNext to get the neighbour beneath it and move to the next one
 
 	// Lookup a neighbour in the list
-	CNeighbour* Get(DWORD_PTR nUnique)     const; // By its unique number, like 2, 3, 4, and so on
-	CNeighbour* Get(IN_ADDR* pAddress) const; // By the remote computer's IP address
+	CNeighbour*	Get(DWORD_PTR nUnique)	const;	// By its unique number, like 2, 3, 4, and so on
+	CNeighbour*	Get(IN_ADDR* pAddress)	const;	// By the remote computer's IP address
+	CNeighbour*	Get(SOCKADDR_IN* pAddress)	const;	// By the remote computer's SOCKET address
 
 	// Count how many computers we are connected to, specifying various filtering characteristics
 	int  GetCount(PROTOCOLID nProtocol, int nState, int nNodeType)        const; // Pass -1 to not filter by protocol, state, or node type
@@ -97,6 +98,7 @@ protected:
 	friend class CNeighbour;
 	friend class CShakeNeighbour;
 	friend class CEDNeighbour;
+	friend class CG2Neighbour;
 };
 
 // End the group of lines to only include once, pragma once doesn't require an endif at the bottom
