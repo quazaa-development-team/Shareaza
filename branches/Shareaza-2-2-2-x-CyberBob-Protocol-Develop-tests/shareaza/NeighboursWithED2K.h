@@ -58,13 +58,18 @@ public:
 	// Send eDonkey2000 packets
 	BOOL PushDonkey(DWORD nClientID, IN_ADDR* pServerAddress, WORD nServerPort); // Send a callback request packet
     BOOL FindDonkeySources(const Hashes::Ed2kHash& oED2K, IN_ADDR* pServerAddress, WORD nServerPort);
+	CEDNeighbour* GetEDNode(IN_ADDR* pAddress) const;
+	CEDNeighbour* GetEDNode(SOCKADDR_IN* pAddress) const;
 
 // Classes that inherit from this one can get to protected members, but unrelated classes can't
 protected:
 
 	// Hash arrays used by FindDonkeySources
-	DWORD            m_tEDSources[256]; // 256 MD4 hashes
-    Hashes::Ed2kHash m_oEDSources[256];
+	DWORD						m_tEDSources[256]; // 256 MD4 hashes
+    Hashes::Ed2kHash			m_oEDSources[256];
+	std::list<CEDNeighbour*>	m_oEDServers;
+
+	friend class CEDNeighbour;
 };
 
 // End the group of lines to only include once, pragma once doesn't require an endif at the bottom

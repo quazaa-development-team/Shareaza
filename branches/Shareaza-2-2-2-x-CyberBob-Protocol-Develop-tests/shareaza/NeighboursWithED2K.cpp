@@ -46,6 +46,7 @@ static char THIS_FILE[]=__FILE__;
 CNeighboursWithED2K::CNeighboursWithED2K()
 // Zero the memory of the sources array
 : m_tEDSources()
+, m_oEDServers()
 {
 }
 
@@ -61,12 +62,15 @@ CNeighboursWithED2K::~CNeighboursWithED2K()
 // Returns a pointer to the first one found, or null if none found in the list
 CEDNeighbour* CNeighboursWithED2K::GetDonkeyServer() const // Here, const means this method doesn't change the value of any member variables
 {
-	// Loop through the list of neighbours
-	for ( POSITION pos = GetIterator() ; pos ; )
+	std::list<CEDNeighbour*>::const_iterator iIndex = m_oEDServers.begin();
+	std::list<CEDNeighbour*>::const_iterator iEnd = m_oEDServers.end();
+
+	// Loop through each neighbour in the m_oEDServers
+	for ( ; iIndex != iEnd ; iIndex++ )
 	{
-		// Get the neighbour under the current position, and move to the next position
-		CEDNeighbour* pNeighbour = (CEDNeighbour*)GetNext( pos );
-		
+		// Get the neighbour object at the current position, and move pos to the next position
+		CEDNeighbour* pNeighbour = *iIndex;
+
 		// This neighbour really is running eDonkey2000
 		if ( pNeighbour->m_nProtocol == PROTOCOL_ED2K )
 		{
@@ -90,11 +94,11 @@ CEDNeighbour* CNeighboursWithED2K::GetDonkeyServer() const // Here, const means 
 // Calls Close() on all the eDonkey2000 computers in the list of neighbours we're connected to
 void CNeighboursWithED2K::CloseDonkeys()
 {
-	// Loop through the list of neighbours
-	for ( POSITION pos = GetIterator() ; pos ; )
+	// Loop through each neighbour in the m_oEDServers
+	for ( ; m_oEDServers.size() ; )
 	{
-		// Get the neighbour under the current position, and move to the next position
-		CEDNeighbour* pNeighbour = (CEDNeighbour*)GetNext( pos );
+		// Get the neighbour object at the current position, and move pos to the next position
+		CEDNeighbour* pNeighbour = *m_oEDServers.begin();
 
 		// If this neighbour really is running eDonkey2000, close our connection to it
 		if ( pNeighbour->m_nProtocol == PROTOCOL_ED2K ) pNeighbour->Close();
@@ -108,11 +112,14 @@ void CNeighboursWithED2K::CloseDonkeys()
 // Tells all the eDonkey2000 computers we're connected to about it
 void CNeighboursWithED2K::SendDonkeyDownload(CDownload* pDownload)
 {
-	// Loop through the list of neighbours
-	for ( POSITION pos = GetIterator() ; pos ; )
+	std::list<CEDNeighbour*>::const_iterator iIndex = m_oEDServers.begin();
+	std::list<CEDNeighbour*>::const_iterator iEnd = m_oEDServers.end();
+
+	// Loop through each neighbour in the m_oEDServers
+	for ( ; iIndex != iEnd ; iIndex++ )
 	{
-		// Get the neighbour under the current position, and move to the next position
-		CEDNeighbour* pNeighbour = (CEDNeighbour*)GetNext( pos );
+		// Get the neighbour object at the current position, and move pos to the next position
+		CEDNeighbour* pNeighbour = *iIndex;
 
 		// If this neighbour is running eDonkey2000 software
 		if ( pNeighbour->m_nProtocol == PROTOCOL_ED2K )
@@ -213,4 +220,50 @@ BOOL CNeighboursWithED2K::FindDonkeySources(const Hashes::Ed2kHash& oED2K, IN_AD
 
 	// Report that we sent a packet
 	return TRUE;
+}
+
+// Takes an IP address
+// Finds the G1neighbour object in the m_pUniques map that represents the remote computer with that address
+// Returns it, or null if not found
+CEDNeighbour* CNeighboursWithED2K::GetEDNode(IN_ADDR* pAddress) const // Saying const here means this method won't change any member variables
+{
+	std::list<CEDNeighbour*>::const_iterator iIndex = m_oEDServers.begin();
+	std::list<CEDNeighbour*>::const_iterator iEnd = m_oEDServers.end();
+
+	// Loop through each neighbour in the m_oEDServers
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CEDNeighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the IP address we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) return pNeighbour;
+	}
+
+	// None of the neighbour objects in the map had the IP address we are looking for
+	return NULL; // Not found
+}
+
+// Takes an SOCKADDR
+// Finds the EDNeighbour object in the m_pUniques map that represents the remote computer with that address
+// Returns it, or null if not found
+CEDNeighbour* CNeighboursWithED2K::GetEDNode(SOCKADDR_IN* pAddress) const // Saying const here means this method won't change any member variables
+{
+	std::list<CEDNeighbour*>::const_iterator iIndex = m_oEDServers.begin();
+	std::list<CEDNeighbour*>::const_iterator iEnd = m_oEDServers.end();
+
+	// Loop through each neighbour in the m_oEDServers
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CEDNeighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the SOCKADDR we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->sin_addr.S_un.S_addr &&
+			pNeighbour->m_pRealHost.sin_port == pAddress->sin_port &&
+			pNeighbour->m_pRealHost.sin_family == pAddress->sin_family ) return pNeighbour;
+	}
+
+	// None of the neighbour objects in the map had the IP address we are looking for
+	return NULL; // Not found
 }

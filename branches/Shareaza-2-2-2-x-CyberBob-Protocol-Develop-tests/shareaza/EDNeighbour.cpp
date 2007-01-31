@@ -65,11 +65,13 @@ CEDNeighbour::CEDNeighbour() : CNeighbour( PROTOCOL_ED2K )
 	m_nUDPFlags		= 0;
 	m_nFilesSent	= 0;
 	InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_ED2K][ntHub]) );
+	Neighbours.m_oEDServers.push_back(this);
 }
 
 CEDNeighbour::~CEDNeighbour()
 {
 	InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_ED2K][ntHub]) );
+	Neighbours.m_oEDServers.remove(this);
 }
 
 //////////////////////////////////////////////////////////////////////
