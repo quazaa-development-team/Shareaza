@@ -690,7 +690,7 @@ BOOL CNeighboursWithG2::ParseKHLPacket(CG2Packet* pPacket, CG2Neighbour* pOwner)
 }
 
 // Takes an IP address
-// Finds the neighbour object in the m_pUniques map that represents the remote computer with that address
+// Finds the CG2Neighbour object in the m_pUniques map that represents the remote computer with that address
 // Returns it, or null if not found
 CG2Neighbour* CNeighboursWithG2::GetG2Node(IN_ADDR* pAddress) const // Saying const here means this method won't change any member variables
 {
@@ -750,7 +750,7 @@ CG2Neighbour* CNeighboursWithG2::GetG2Node(IN_ADDR* pAddress) const // Saying co
 }
 
 // Takes an SOCKADDR
-// Finds the neighbour object in the m_pUniques map that represents the remote computer with that address
+// Finds the CG2Neighbour object in the m_pUniques map that represents the remote computer with that address
 // Returns it, or null if not found
 CG2Neighbour* CNeighboursWithG2::GetG2Node(SOCKADDR_IN* pAddress) const // Saying const here means this method won't change any member variables
 {
