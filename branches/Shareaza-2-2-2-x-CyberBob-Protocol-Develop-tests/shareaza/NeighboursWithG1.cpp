@@ -192,3 +192,105 @@ int CNeighboursWithG1::WriteCachedHosts(CGGEPItem* pItem)
 	}
 	return Settings.Gnutella1.MaxHostsInPongs - nCount;
 }
+
+// Takes an IP address
+// Finds the CG1Neighbour object in the m_pUniques map that represents the remote computer with that address
+// Returns it, or null if not found
+CG1Neighbour* CNeighboursWithG1::GetG1Node(IN_ADDR* pAddress) const // Saying const here means this method won't change any member variables
+{
+	std::list<CG1Neighbour*>::const_iterator iIndex;
+	std::list<CG1Neighbour*>::const_iterator iEnd;
+
+	iIndex = m_oG1Peers.begin();
+	iEnd = m_oG1Peers.end();
+	// Loop through each neighbour in the m_oG1Peers
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG1Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the IP address we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) return pNeighbour;
+	}
+
+	iIndex = m_oG1Ultrapeers.begin();
+	iEnd = m_oG1Ultrapeers.end();
+	// Loop through each neighbour in the m_oG1Ultrapeers
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG1Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the IP address we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) return pNeighbour;
+	}
+
+	iIndex = m_oG1Leafs.begin();
+	iEnd = m_oG1Leafs.end();
+	// Loop through each neighbour in the m_oG1Leafs
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG1Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the IP address we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) return pNeighbour;
+	}
+
+	// None of the neighbour objects in the map had the IP address we are looking for
+	return NULL; // Not found
+}
+
+// Takes an SOCKADDR
+// Finds the CG1Neighbour object in the m_pUniques map that represents the remote computer with that address
+// Returns it, or null if not found
+CG1Neighbour* CNeighboursWithG1::GetG1Node(SOCKADDR_IN* pAddress) const // Saying const here means this method won't change any member variables
+{
+	std::list<CG1Neighbour*>::const_iterator iIndex;
+	std::list<CG1Neighbour*>::const_iterator iEnd;
+
+	iIndex = m_oG1Peers.begin();
+	iEnd = m_oG1Peers.end();
+	// Loop through each neighbour in the m_oG1Peers
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG1Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the SOCKADDR we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->sin_addr.S_un.S_addr &&
+			pNeighbour->m_pRealHost.sin_port == pAddress->sin_port &&
+			pNeighbour->m_pRealHost.sin_family == pAddress->sin_family ) return pNeighbour;
+	}
+
+	iIndex = m_oG1Ultrapeers.begin();
+	iEnd = m_oG1Ultrapeers.end();
+	// Loop through each neighbour in the m_oG1Ultrapeers
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG1Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the SOCKADDR we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->sin_addr.S_un.S_addr &&
+			pNeighbour->m_pRealHost.sin_port == pAddress->sin_port &&
+			pNeighbour->m_pRealHost.sin_family == pAddress->sin_family ) return pNeighbour;
+	}
+
+	iIndex = m_oG1Leafs.begin();
+	iEnd = m_oG1Leafs.end();
+	// Loop through each neighbour in the m_oG1Leafs
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG1Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the SOCKADDR we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->sin_addr.S_un.S_addr &&
+			pNeighbour->m_pRealHost.sin_port == pAddress->sin_port &&
+			pNeighbour->m_pRealHost.sin_family == pAddress->sin_family ) return pNeighbour;
+	}
+
+	// None of the neighbour objects in the map had the IP address we are looking for
+	return NULL; // Not found
+}

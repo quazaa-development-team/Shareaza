@@ -74,6 +74,8 @@ public:
 	void OnG1Ping();
 	void OnG1Pong(CG1Neighbour* pFrom, IN_ADDR* pAddress, WORD nPort, BYTE nHops, DWORD nFiles, DWORD nVolume);
 	int WriteCachedHosts(CGGEPItem* pItem);
+	CG1Neighbour*	GetG1Node(IN_ADDR* pAddress) const;		// By the remote computer's IP address
+	CG1Neighbour*	GetG1Node(SOCKADDR_IN* pAddress) const;	// By the remote computer's SOCKET address
 };
 
 // End the group of lines to only include once, pragma once doesn't require an endif at the bottom
