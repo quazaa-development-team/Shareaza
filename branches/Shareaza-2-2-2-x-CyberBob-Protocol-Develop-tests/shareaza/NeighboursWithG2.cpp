@@ -264,6 +264,7 @@ CG2Neighbour* CNeighboursWithG2::GetRandomHub(CG2Neighbour* pExcept, const Hashe
 
 CG2Packet* CNeighboursWithG2::CreateLNIPacket(CG2Neighbour* pOwner)
 {
+	UNUSED_ALWAYS(pOwner);
 	CG2Packet* pPacket = CG2Packet::New( G2_PACKET_LNI, TRUE );
 
 	QWORD nMyVolume = 0;
