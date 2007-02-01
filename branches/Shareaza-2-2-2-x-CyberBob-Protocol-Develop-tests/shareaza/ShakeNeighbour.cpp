@@ -937,7 +937,7 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			theApp.Message( MSG_ERROR, IDS_HANDSHAKE_REJECTED, (LPCTSTR)m_sAddress, (LPCTSTR)m_sUserAgent );
 			m_nState = nrsRejected;
 			// Ban them and ignore anything else in the headers
-			CSecureRule* pRule = Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+			CSecureRule* pRule = Security.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
 			pRule->m_sComment.Format( _T("Banned Agent: %s"), (LPCTSTR)m_sUserAgent );
 			theApp.Message( MSG_ERROR, _T("Banning hostile client %s"), (LPCTSTR)m_sUserAgent );
 			m_bBadClient = TRUE;
@@ -951,7 +951,7 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			// Record that we're rejecting this handshake, and set the state to rejected
 			theApp.Message( MSG_ERROR, IDS_HANDSHAKE_REJECTED, (LPCTSTR)m_sAddress, (LPCTSTR)m_sUserAgent );
 			m_nState = nrsRejected;
-			CSecureRule* pRule = Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE );
+			CSecureRule* pRule = Security.Ban( &m_pHost.sin_addr, ban5Mins, FALSE );
 			pRule->m_sComment.Format( _T("Blocked Agent: %s"), (LPCTSTR)m_sUserAgent );
 			theApp.Message( MSG_ERROR, _T("Banning hostile client %s"), (LPCTSTR)m_sUserAgent );
 			m_bBadClient = TRUE;
