@@ -1242,19 +1242,24 @@ void CNeighboursWithConnect::ModeCheck()
 		}
 		else
 		{
-			if ( m_nCount[PROTOCOL_G2][ntLeaf] || IsG2Hub() )
+			if ( m_nCount[PROTOCOL_G2][ntLeaf] ||		// have some Leaf node connected
+				( IsG2Hub() &&							// running in G2Hub mode already
+				m_nCount[PROTOCOL_G2][ntNode] ) )		// have some peer nodes connected
 			{
 				// We're a hub on the Gnutella2 network
 				m_bG2Leaf	= FALSE;
 				m_bG2Hub	= TRUE;
 			}
-			else if ( m_nCount[PROTOCOL_G2][ntHub] )
+			else if ( m_nCount[PROTOCOL_G2][ntHub] == m_nLimit[PROTOCOL_G2][ntHub] &&	// have enough Hub connections
+					IsG2Leaf() )														// running in G2Leaf mode right now
 			{
 				// We're a leaf on the Gnutella2 network
 				m_bG2Leaf	= TRUE;
 				m_bG2Hub	= FALSE;
 			}
-			else if ( IsG2HubCapable() )
+			else if ( tNow - m_tG2AttemptStart < 5 * 60 &&	// has been more than 5minute since connection attempt started
+															// same meaning as not having enough Hub/Peer connections for 5minutes
+				IsG2HubCapable() )							// capable to be G2Hub node
 			{
 				// We're a hub on the Gnutella2 network
 				m_bG2Leaf	= FALSE;
