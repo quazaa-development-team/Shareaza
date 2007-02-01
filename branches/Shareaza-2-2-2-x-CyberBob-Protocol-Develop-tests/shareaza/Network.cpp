@@ -763,7 +763,7 @@ BOOL CNetwork::IsFirewalledAddress(LPVOID pAddress, BOOL bIncludeSelf, BOOL bFor
 	if ( ( nAddress & 0xFF ) == 0x0A ) return TRUE;
 	if ( ( nAddress & 0xFF ) == 0x7F ) return TRUE;		// 127.*
 	
-	if ( bIncludeSelf && nAddress == *(DWORD*)(&m_pHost.sin_addr) ) return TRUE;
+	if ( ( bIncludeSelf || bForceCheck ) && nAddress == *(DWORD*)(&m_pHost.sin_addr) ) return TRUE;
 	
 	return FALSE;
 }
