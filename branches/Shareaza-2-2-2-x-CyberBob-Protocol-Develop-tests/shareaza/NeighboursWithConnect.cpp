@@ -1115,53 +1115,56 @@ void CNeighboursWithConnect::OnRun()
 		// Maintain the network (do)
 		if ( Network.m_bEnabled )
 		{
-			if (Network.m_bAutoConnect)
+			switch (m_nLastManagedProtocol)
 			{
-				// Count how many connections of each type we have, calculate how many we should have, and close and open connections accordingly
-				// Makes new connections by getting IP addresses from the host caches for each network
-				// Maintain on order of ED2K, G2, G1.
-				switch (m_nLastManagedProtocol)
+			case PROTOCOL_G1:								// Last one was G1
+				if (Network.m_bAutoConnect)
 				{
-				case PROTOCOL_G1:								// Last one was G1
+					// Count how many connections, calculate how many we should have, and close and open connections accordingly
+					// Makes new connections by getting IP addresses from the host caches for the network
 					Maintain(PROTOCOL_ED2K);					// Connect to ED2K server if needed
-					NetworkPrune(PROTOCOL_ED2K);				// Disconnect from ED2K server if needed
-					m_nLastManagedProtocol = PROTOCOL_ED2K;		// Set ED2K as last checked
-					break;
-				case PROTOCOL_G2:								// Last one was G2
-					Maintain(PROTOCOL_G1);						// Connect to G1 Ultrapeers if needed
-					NetworkPrune(PROTOCOL_G1);					// Disconnect from G1 nodes if needed
-					m_nLastManagedProtocol = PROTOCOL_G1;		// Set G1 as last checked
-					break;
-				case PROTOCOL_ED2K:								// Last one was ED2K
-				default:										// or value was something else.
-					Maintain(PROTOCOL_G2);						// Connect to G2 Hubs if needed
-					NetworkPrune(PROTOCOL_G2);					// Disconnect from G2 nodes if needed
-					m_nLastManagedProtocol = PROTOCOL_G2;		// Set G2 as last checked
-					break;
 				}
-			}
-			else	// Auto is disabled, but should control excess connections.
-			{
-				switch (m_nLastManagedProtocol)
+				// control excess connections.
+				NetworkPrune(PROTOCOL_ED2K);				// Disconnect from ED2K server if needed
+				m_nLastManagedProtocol = PROTOCOL_ED2K;		// Set ED2K as last checked
+				break;
+			case PROTOCOL_G2:								// Last one was G2
+				if (Network.m_bAutoConnect)
 				{
-				case PROTOCOL_G1:								// Last one was G1
-					NetworkPrune(PROTOCOL_ED2K);				// Disconnect from ED2K server if needed
-					m_nLastManagedProtocol = PROTOCOL_ED2K;		// Set ED2K as last checked
-					break;
-				case PROTOCOL_G2:								// Last one was G2
+					// Count how many connections, calculate how many we should have, and close and open connections accordingly
+					// Makes new connections by getting IP addresses from the host caches for the network
+					Maintain(PROTOCOL_G1);						// Connect to G1 Ultrapeers if needed
+				}
+				else
+				{
+					// Auto is disabled, so clear LocalCache if there, and set current time as time the network
+					// started to Attempting to connect.
 					m_tG1AttemptStart = Network.m_nNetworkGlobalTime;
 					if ( m_oG1LocalCache.size() ) m_oG1LocalCache.clear();
-					NetworkPrune(PROTOCOL_G1);					// Disconnect from G1 nodes if needed
-					m_nLastManagedProtocol = PROTOCOL_G1;		// Set G1 as last checked
-					break;
-				case PROTOCOL_ED2K:								// Last one was ED2K
-				default:										// or value was something else.
+				}
+				// control excess connections.
+				NetworkPrune(PROTOCOL_G1);					// Disconnect from G1 nodes if needed
+				m_nLastManagedProtocol = PROTOCOL_G1;		// Set G1 as last checked
+				break;
+			case PROTOCOL_ED2K:								// Last one was ED2K
+			default:										// or value was something else.
+				if (Network.m_bAutoConnect)
+				{
+					// Count how many connections, calculate how many we should have, and close and open connections accordingly
+					// Makes new connections by getting IP addresses from the host caches for the network
+					Maintain(PROTOCOL_G2);						// Connect to G2 Hubs if needed
+				}
+				else
+				{
+					// Auto is disabled, so clear LocalCache if there, and set current time as time the network
+					// started to Attempting to connect.
 					m_tG2AttemptStart = Network.m_nNetworkGlobalTime;
 					if ( m_oG2LocalCache.size() ) m_oG2LocalCache.clear();
-					NetworkPrune(PROTOCOL_G2);					// Disconnect from G2 nodes if needed
-					m_nLastManagedProtocol = PROTOCOL_G2;		// Set G2 as last checked
-					break;
 				}
+				// control excess connections.
+				NetworkPrune(PROTOCOL_G2);					// Disconnect from G2 nodes if needed
+				m_nLastManagedProtocol = PROTOCOL_G2;		// Set G2 as last checked
+				break;
 			}
 		}
 
