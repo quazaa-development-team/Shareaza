@@ -379,16 +379,23 @@ BOOL CNetwork::IsStable() const
 
 TRISTATE CNetwork::IsFirewalled(int nCheck)
 {
-	if ( Settings.Connection.FirewallState == CONNECTION_OPEN )	// CHECK_BOTH, CHECK_TCP, CHECK_UDP
-		return TS_FALSE;		// We know we are not firewalled on both TCP and UDP
+	if ( !IsConnected() ) return TS_UNKNOWN;	// Not connected, so how the hell I know if it is or not.
+	else if ( Settings.Connection.FirewallState == CONNECTION_OPEN )	// CHECK_BOTH, CHECK_TCP, CHECK_UDP
+		return ( m_bTCPListeningReady && m_bUDPListeningReady ) ? TS_FALSE : TS_TRUE;		// We know we are not firewalled on both TCP and UDP unless failed to bind on port
 	else if ( Settings.Connection.FirewallState == CONNECTION_OPEN_TCPONLY && nCheck == CHECK_TCP )
-		return TS_FALSE;		// We know we are not firewalled on TCP port
+		return ( m_bTCPListeningReady ) ? TS_FALSE : TS_TRUE;		// We know we are not firewalled on TCP port unless failed to bind on port
 	else if ( Settings.Connection.FirewallState == CONNECTION_OPEN_UDPONLY && nCheck == CHECK_UDP )
-		return TS_FALSE;		// We know we are not firewalled on UDP port
+		return ( m_bUDPListeningReady ) ? TS_FALSE : TS_TRUE;		// We know we are not firewalled on UDP port unless failed to bind on port
 	else if ( Settings.Connection.FirewallState == CONNECTION_AUTO )
 	{
-		TRISTATE tsTCPOpened = IsStable() ? TS_TRUE : ( Uploads.IsStable() ? TS_FALSE : TS_UNKNOWN );
-		TRISTATE tsUDPOpened = Datagrams.IsStable() ? TS_TRUE : ( IsTestingUDPFW() ? TS_UNKNOWN : TS_FALSE );
+		TRISTATE tsTCPOpened = !m_bTCPListeningReady ? TS_FALSE // port could not be opened so same as firewalled.
+			: IsStable() ? TS_TRUE								// port is Stable, so the port is Opened.
+			: ( Uploads.IsStable() ? TS_FALSE					// Upload is stable, without port is stable, so must be firewalled
+			: TS_UNKNOWN );										// not yet known if firewalled ot not.
+		TRISTATE tsUDPOpened = !m_bUDPListeningReady ? TS_FALSE	// port could not be opened so same as firewalled.
+			: Datagrams.IsStable() ? TS_TRUE					// port is Stable, so the port is Opened.
+			: ( ( IsTestingUDPFW() || !Settings.Gnutella2.EnableToday )? TS_UNKNOWN	// is still testing or G2 is not enabled so do not know if UDP is opened or not
+			: TS_FALSE );										// none of above, means UDP is firewalled
 		if( nCheck == CHECK_BOTH )
 		{
 			if ( tsTCPOpened == TS_TRUE && tsUDPOpened == TS_TRUE )
