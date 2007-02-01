@@ -1565,6 +1565,7 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 			if ( m_nCount[ nProtocol ][ntNull] < nAttempt && !Settings.Discovery.DisableAutoQuery )
 				DiscoveryServices.Execute( TRUE, PROTOCOL_G1 );
 		}
+/*
 		// If network autoconnet is on (do)
 		// this condition is very funny since it is not reachable unless m_bAutoConnect is TRUE anyway.
 		if ( Network.m_bAutoConnect )
@@ -1588,6 +1589,7 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 				}
 			}
 		}
+*/
 	}
 	else
 	{
@@ -1625,7 +1627,8 @@ void CNeighboursWithConnect::NetworkPrune(PROTOCOLID nProtocol)
 			pNewest = static_cast<CNeighbour*>( *m_oG2Leafs.rbegin() );
 			break;
 		case PROTOCOL_ED2K:
-			pNewest = static_cast<CNeighbour*>( *m_oEDServers.rbegin() );
+			// There should be no LEAF for ED2K. thus the line below should not be here, unless the type added in Future.
+			//pNewest = static_cast<CNeighbour*>( *m_oEDServers.rbegin() );
 			break;
 		default:
 			for ( POSITION pos = GetIterator() ; pos ; )
