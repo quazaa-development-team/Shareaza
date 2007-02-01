@@ -1974,6 +1974,7 @@ BOOL CG2Neighbour::OnConnect(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 
 BOOL CG2Neighbour::OnConnectAck(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
+	UNUSED_ALWAYS(pHost);
 	if ( m_hSocket == INVALID_SOCKET || m_bUDP )
 	{
 		CString strVendorCode;
