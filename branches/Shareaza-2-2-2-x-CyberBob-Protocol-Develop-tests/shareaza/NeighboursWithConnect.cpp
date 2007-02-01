@@ -97,14 +97,34 @@ CNeighbour* CNeighboursWithConnect::ConnectTo(
 	CSingleLock pLock( &Network.m_pSection, TRUE ); // When control leaves the method, pLock will go out of scope and release access
 
 	// If the list of connected computers already has this IP address and not testing firewall
-	if ( !bFirewallTest && Get( pAddress ) )
+	if ( !bFirewallTest )
 	{
-		// If automatic (do) leave without making a note of the error
-		if ( bAutomatic ) return NULL;
+		bool bExist = false;
+		switch ( nProtocol )
+		{
+		case PROTOCOL_G1:
+			bExist = GetG1Node( pAddress ) ? true : false;
+			break;
+		case PROTOCOL_G2:
+			bExist = GetG2Node( pAddress ) ? true : false;
+			break;
+		case PROTOCOL_ED2K:
+			bExist = GetEDNode( pAddress ) ? true : false;
+			break;
+		default:
+			bExist = Get( pAddress ) ? true : false;
+			break;
+		}
 
-		// Report that we're already connected to that computer, and return no new connection made
-		theApp.Message( MSG_ERROR, IDS_CONNECTION_ALREADY_ABORT, (LPCTSTR)CString( inet_ntoa( *pAddress ) ) );
-		return NULL;
+		if ( bExist )
+		{
+			// If automatic (do) leave without making a note of the error
+			if ( bAutomatic ) return NULL;
+
+			// Report that we're already connected to that computer, and return no new connection made
+			theApp.Message( MSG_ERROR, IDS_CONNECTION_ALREADY_ABORT, (LPCTSTR)CString( inet_ntoa( *pAddress ) ) );
+			return NULL;
+		}
 	}
 
 	// Don't connect to self
@@ -1579,6 +1599,9 @@ void CNeighboursWithConnect::NetworkPrune(PROTOCOLID nProtocol)
 		case PROTOCOL_G2:
 			pNewest = static_cast<CNeighbour*>( *m_oG2Leafs.rbegin() );
 			break;
+		case PROTOCOL_ED2K:
+			pNewest = static_cast<CNeighbour*>( *m_oEDServers.rbegin() );
+			break;
 		default:
 			for ( POSITION pos = GetIterator() ; pos ; )
 			{
@@ -1628,6 +1651,9 @@ void CNeighboursWithConnect::NetworkPrune(PROTOCOLID nProtocol)
 				if ( m_oG2Peers.size() ) pNewest = static_cast<CNeighbour*>( *m_oG2Peers.rbegin() );
 				else if ( m_oG2Hubs.size() ) pNewest = static_cast<CNeighbour*>( *m_oG2Hubs.rbegin() );
 			}
+			break;
+		case PROTOCOL_ED2K:
+			pNewest = static_cast<CNeighbour*>( *m_oEDServers.rbegin() );
 			break;
 		default:
 			for ( POSITION pos = GetIterator() ; pos ; )
