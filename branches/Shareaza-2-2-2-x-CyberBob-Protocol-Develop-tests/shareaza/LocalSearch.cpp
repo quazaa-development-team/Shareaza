@@ -822,7 +822,7 @@ void CLocalSearch::CreatePacketG2()
 	pPacket->WritePacket( G2_PACKET_VENDOR, 4 );
 	pPacket->WriteString( SHAREAZA_VENDOR_A, FALSE );
 
-	if ( Network.IsFirewalled(CHECK_TCP) )
+	if ( Network.IsFirewalled(CHECK_TCP) == TS_TRUE )
 	{
 		pPacket->WritePacket( G2_PACKET_PEER_FIREWALLED, 0 );
 	}
@@ -965,7 +965,7 @@ void CLocalSearch::WriteTrailerG1()
 	nFlags[0] |= G1_QHD_BUSY|G1_QHD_STABLE|G1_QHD_SPEED;
 	nFlags[1] |= G1_QHD_PUSH;
 
-	if ( Network.IsFirewalled(CHECK_TCP) ) nFlags[0] |= G1_QHD_PUSH;
+	if ( Network.IsFirewalled(CHECK_TCP) == TS_TRUE ) nFlags[0] |= G1_QHD_PUSH;
 	if ( Uploads.m_bStable ) nFlags[1] |= G1_QHD_STABLE;
 	if ( Uploads.m_bStable ) nFlags[1] |= G1_QHD_SPEED;
 	if ( ! UploadQueues.IsTransferAvailable() ) nFlags[1] |= G1_QHD_BUSY;

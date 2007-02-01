@@ -313,23 +313,20 @@ CG2Packet* CNeighboursWithG2::CreateLNIPacket(CG2Neighbour* pOwner)
 		pPacket->WritePacket( G2_PACKET_QUERY_KEY, 0 );
 	}
 
-	if ( Network.IsFirewalled(CHECK_BOTH) ) //add
+	if ( Network.IsFirewalled(CHECK_BOTH) != TS_FALSE ) //add
 	{
-		if ( !Network.IsTestingUDPFW() )
-		{
-			pPacket->WritePacket( G2_PACKET_PEER_FIREWALLED, 0 );
-			if ( Network.IsFirewalled(CHECK_TCP) )
-				pPacket->WritePacket( G2_PACKET_TCP_FIREWALLED, 0 );
-			else
-				pPacket->WritePacket( G2_PACKET_TCP_NOT_FIREWALLED, 0 );
+		pPacket->WritePacket( G2_PACKET_PEER_FIREWALLED, 0 );
+		if ( Network.IsFirewalled(CHECK_TCP) == TS_TRUE )
+			pPacket->WritePacket( G2_PACKET_TCP_FIREWALLED, 0 );
+		else if ( Network.IsFirewalled(CHECK_TCP) == TS_FALSE )
+			pPacket->WritePacket( G2_PACKET_TCP_NOT_FIREWALLED, 0 );
 
-			if ( Network.IsFirewalled(CHECK_UDP) )
-				pPacket->WritePacket( G2_PACKET_UDP_FIREWALLED, 0 );
-			else
-				pPacket->WritePacket( G2_PACKET_UDP_NOT_FIREWALLED, 0 );
-		}
+		if ( Network.IsFirewalled(CHECK_UDP) == TS_TRUE )
+			pPacket->WritePacket( G2_PACKET_UDP_FIREWALLED, 0 );
+		else if ( Network.IsFirewalled(CHECK_UDP) == TS_FALSE )
+			pPacket->WritePacket( G2_PACKET_UDP_NOT_FIREWALLED, 0 );
 	}
-	else if ( IsG2Hub() && IsG2HubCapable() ) //add
+	else if ( IsG2Hub() || IsG2HubCapable() ) //add
 	{
 		pPacket->WritePacket( G2_PACKET_HUB_ABLE, 0 );			// Hubable - Not used on shareaza yet but used on Gnucleaus
 		//	This might be useful sometime.

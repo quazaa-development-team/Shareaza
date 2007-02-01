@@ -466,7 +466,7 @@ DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bDebug)
 		}
 
 		// Make sure UDP is stable (do)
-		if ( Network.IsFirewalled(CHECK_UDP) )
+		if ( Network.IsFirewalled(CHECK_UDP) != TS_FALSE )
 		{
 			// Record this is why we can't be a hub, and return no
 			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: UDP not stable") );
@@ -480,7 +480,7 @@ DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bDebug)
 		}
 
 		// Make sure TCP is stable (do)
-		if ( Network.IsFirewalled(CHECK_TCP) )
+		if ( Network.IsFirewalled(CHECK_TCP) != TS_FALSE )
 		{
 			// Record this is why we can't be a hub, and return no
 			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: TCP not stable") );
@@ -743,7 +743,7 @@ DWORD CNeighboursWithConnect::IsG1UltrapeerCapable(BOOL bDebug)
 		}
 
 		// Make sure the TCP is open
-		if ( Network.IsFirewalled(CHECK_TCP) )
+		if ( Network.IsFirewalled(CHECK_TCP) != TS_FALSE )
 		{
 			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: TCP might be Firewalled") );
 			return FALSE;
@@ -755,7 +755,7 @@ DWORD CNeighboursWithConnect::IsG1UltrapeerCapable(BOOL bDebug)
 		}
 
 		// Make sure the datagram is stable (do)
-		if ( Network.IsFirewalled(CHECK_UDP) )
+		if ( Network.IsFirewalled(CHECK_UDP) != TS_FALSE )
 		{
 			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: datagram not stable") );
 			return FALSE;
@@ -1277,7 +1277,7 @@ void CNeighboursWithConnect::ModeCheck()
 			}
 			else
 			{
-				if ( tNow - m_tG2Start > 60 * 60 * 2 && Network.IsFirewalled( CHECK_BOTH ) ) // if it seems like firewalled after 2hours from G2Enabled time
+				if ( Network.IsFirewalled( CHECK_BOTH ) == TS_TRUE )
 				{
 					// Set the limit for Gnutella2 hub connections fixed to 3
 					// currently this might not for PUSH because of CRouteCache, but in future when X-G2NH or similar become
@@ -1809,7 +1809,7 @@ void CNeighboursWithConnect::ConnectG2()
 	Settings.Gnutella2.EnableToday = TRUE;
 	m_tG2Start	= static_cast<DWORD>( time(NULL) );
 	m_tG2AttemptStart = m_tG2Start;
-	if ( Settings.Gnutella2.ClientMode == MODE_HUB && !Network.IsFirewalled(CHECK_BOTH) )
+	if ( Settings.Gnutella2.ClientMode == MODE_HUB && Network.IsFirewalled(CHECK_BOTH) == TS_FALSE )
 	{
 		// We're a hub on the Gnutella2 network
 		m_bG2Leaf	= FALSE;
@@ -1858,7 +1858,7 @@ void CNeighboursWithConnect::ConnectG1()
 	Settings.Gnutella1.EnableToday = TRUE;
 	m_tG1Start	= static_cast<DWORD>( time(NULL) );
 	m_tG1AttemptStart = m_tG1Start;
-	if ( Settings.Gnutella1.ClientMode == MODE_HUB && !Network.IsFirewalled(CHECK_TCP) )
+	if ( Settings.Gnutella1.ClientMode == MODE_HUB && Network.IsFirewalled(CHECK_TCP) == TS_FALSE )
 	{
 		// We're a Ultrapeer on the Gnutella1 network
 		m_bG1Leaf		= FALSE;

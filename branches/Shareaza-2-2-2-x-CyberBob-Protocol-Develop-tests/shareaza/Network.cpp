@@ -57,6 +57,7 @@
 #include "WndChild.h"
 #include "WndSearchMonitor.h"
 #include "WndHitMonitor.h"
+#include "Uploads.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -376,27 +377,54 @@ BOOL CNetwork::IsStable() const
 	return IsListening() && ( Handshakes.m_nStableCount > 0 );
 }
 
-BOOL CNetwork::IsFirewalled(int nCheck)
+TRISTATE CNetwork::IsFirewalled(int nCheck)
 {
 	if ( Settings.Connection.FirewallState == CONNECTION_OPEN )	// CHECK_BOTH, CHECK_TCP, CHECK_UDP
-		return FALSE;		// We know we are not firewalled on both TCP and UDP
+		return TS_FALSE;		// We know we are not firewalled on both TCP and UDP
 	else if ( Settings.Connection.FirewallState == CONNECTION_OPEN_TCPONLY && nCheck == CHECK_TCP )
-		return FALSE;		// We know we are not firewalled on TCP port
+		return TS_FALSE;		// We know we are not firewalled on TCP port
 	else if ( Settings.Connection.FirewallState == CONNECTION_OPEN_UDPONLY && nCheck == CHECK_UDP )
-		return FALSE;		// We know we are not firewalled on UDP port
+		return TS_FALSE;		// We know we are not firewalled on UDP port
 	else if ( Settings.Connection.FirewallState == CONNECTION_AUTO )
 	{
-		BOOL bTCPOpened = IsStable();
-		BOOL bUDPOpened = Datagrams.IsStable();
-		if( nCheck == CHECK_BOTH && bTCPOpened && bUDPOpened )
-			return FALSE;	// We know we are not firewalled on both TCP and UDP
-		else if ( nCheck == CHECK_TCP && bTCPOpened )
-			return FALSE;	// We know we are not firewalled on TCP port
-		else if ( nCheck == CHECK_UDP && bUDPOpened )
-			return FALSE;	// We know we are not firewalled on UDP port
+		TRISTATE tsTCPOpened = IsStable() ? TS_TRUE : ( Uploads.IsStable() ? TS_FALSE : TS_UNKNOWN );
+		TRISTATE tsUDPOpened = Datagrams.IsStable() ? TS_TRUE : ( IsTestingUDPFW() ? TS_UNKNOWN : TS_FALSE );
+		if( nCheck == CHECK_BOTH )
+		{
+			if ( tsTCPOpened == TS_TRUE && tsUDPOpened == TS_TRUE )
+				return TS_FALSE;	// We know we are not firewalled on both TCP and UDP
+			else if ( tsTCPOpened == TS_FALSE || tsUDPOpened == TS_FALSE )
+				return TS_TRUE;	// We know we are not firewalled on both TCP and UDP
+			else
+				return TS_UNKNOWN;
+		}
+		else if ( nCheck == CHECK_TCP )
+		{
+			switch ( tsTCPOpened )
+			{
+			case TS_UNKNOWN:
+				return TS_UNKNOWN;
+			case TS_FALSE:
+				return TS_TRUE;			// We know we are firewalled on TCP
+			case TS_TRUE:
+				return TS_FALSE;	// We know we are not firewalled on TCP port
+			}
+		}
+		else if ( nCheck == CHECK_UDP )
+		{
+			switch ( tsUDPOpened )
+			{
+			case TS_UNKNOWN:
+				return TS_UNKNOWN;
+			case TS_FALSE:
+				return TS_TRUE;			// We know we are firewalled on UDP
+			case TS_TRUE:
+				return TS_FALSE;	// We know we are not firewalled on UDP port
+			}
+		}
 	}
 
-	return TRUE;			// We know we are firewalled
+	return TS_TRUE;			// We know we are firewalled
 }
 
 BOOL CNetwork::IsTestingUDPFW()
@@ -519,9 +547,6 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 
 	Resolve( Settings.Connection.InHost, Settings.Connection.InPort, &m_pHost );
 
-	if ( IsFirewalled(CHECK_BOTH) )
-		theApp.Message( MSG_DEFAULT, IDS_NETWORK_FIREWALLED );
-
 	SOCKADDR_IN pOutgoing;
 
 	if ( Resolve( Settings.Connection.OutHost, 0, &pOutgoing ) )
@@ -540,11 +565,16 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 	m_bUDPListeningReady = Datagrams.Listen();
 	Neighbours.Connect();
 
+	Uploads.SetStable( 0 );
+
 	ASSERT(m_bTCPListeningReady);
 	ASSERT(m_bUDPListeningReady);
 
 	NodeRoute->SetDuration( Settings.Gnutella.RouteCache );
 	QueryRoute->SetDuration( Settings.Gnutella.RouteCache );
+
+	if ( IsFirewalled(CHECK_BOTH) == TS_TRUE )
+		theApp.Message( MSG_DEFAULT, IDS_NETWORK_FIREWALLED );
 
 	m_bEnabled				= TRUE;
 	m_tStartedConnecting	= GetTickCount();
@@ -648,6 +678,8 @@ void CNetwork::Disconnect()
 	m_nNetworkGlobalTickCount = GetTickCount();
 
 	DiscoveryServices.Stop();
+
+	Uploads.SetStable( 0 );
 
 	theApp.Message( MSG_SYSTEM, IDS_NETWORK_DISCONNECTED ); 
 	theApp.Message( MSG_SYSTEM, _T("") );

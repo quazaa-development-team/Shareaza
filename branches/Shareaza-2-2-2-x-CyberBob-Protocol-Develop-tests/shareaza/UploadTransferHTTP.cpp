@@ -1422,7 +1422,7 @@ BOOL CUploadTransferHTTP::OnWrite()
 
 void CUploadTransferHTTP::OnCompleted()
 {
-	Uploads.SetStable( GetAverageSpeed() );
+	if ( Network.IsFirewalledAddress( &m_pRealHost, TRUE, TRUE ) ) Uploads.SetStable( GetAverageSpeed() );
 
 	m_pDiskFile->Release( FALSE );
 	m_pDiskFile	= NULL;

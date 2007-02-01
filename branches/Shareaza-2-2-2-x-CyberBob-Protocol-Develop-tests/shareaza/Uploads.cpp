@@ -147,8 +147,16 @@ int CUploads::GetTorrentCount(int nState) const
 
 void CUploads::SetStable(DWORD nSpeed)
 {
-	m_bStable		= TRUE;
-	m_nBestSpeed	= max( m_nBestSpeed, nSpeed );
+	if ( nSpeed )
+	{
+		m_bStable		= TRUE;
+		m_nBestSpeed	= max( m_nBestSpeed, nSpeed );
+	}
+	else
+	{
+		m_bStable		= FALSE;
+		m_nBestSpeed	= 0;
+	}
 }
 
 DWORD CUploads::GetBandwidth() const

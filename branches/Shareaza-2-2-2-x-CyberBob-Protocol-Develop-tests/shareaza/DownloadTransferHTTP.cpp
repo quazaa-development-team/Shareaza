@@ -542,7 +542,7 @@ BOOL CDownloadTransferHTTP::SendRequest()
 			strURN = m_pDownload->m_oMD5.toUrn();
 		}
 
-		if ( m_pDownload->IsShared() && m_pDownload->IsStarted() && !Network.IsFirewalled(CHECK_TCP) && m_nRequests > 0)
+		if ( m_pDownload->IsShared() && m_pDownload->IsStarted() && Network.IsFirewalled(CHECK_TCP) != TS_TRUE && m_nRequests > 0)
 		{
 			if ( strURN.GetLength() )
 			{

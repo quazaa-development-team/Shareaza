@@ -318,11 +318,12 @@ int CMainWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	
 	// Status Bar
 	
-	UINT wID[2] = { ID_SEPARATOR, ID_SEPARATOR };
+	UINT wID[3] = { ID_SEPARATOR, ID_SEPARATOR, ID_SEPARATOR };
 	if ( ! m_wndStatusBar.Create( this ) ) return -1;
-	m_wndStatusBar.SetIndicators( wID, 2 );
+	m_wndStatusBar.SetIndicators( wID, 3 );
 	m_wndStatusBar.SetPaneInfo( 0, ID_SEPARATOR, SBPS_STRETCH, 0 );
 	m_wndStatusBar.SetPaneInfo( 1, ID_SEPARATOR, SBPS_NORMAL, 210 );
+	m_wndStatusBar.SetPaneInfo( 2, ID_SEPARATOR, SBPS_NORMAL, 210 );
 	
 	EnableDocking( CBRS_ALIGN_ANY );
 	
@@ -1295,8 +1296,14 @@ void CMainWnd::UpdateMessages()
 		(int)CGraphItem::GetValue( GRC_DOWNLOADS_TRANSFERS, 0 ),
 		(int)CGraphItem::GetValue( GRC_UPLOADS_TRANSFERS, 0 ) );
 
-	m_wndStatusBar.GetPaneText( 1, strOld );
+	m_wndStatusBar.GetPaneText( 2, strOld );
 	if ( strOld != strMessage ) m_wndStatusBar.SetPaneText( 1, strMessage );
+	
+	TRISTATE tsTCP = Network.IsFirewalled(CHECK_TCP);
+	TRISTATE tsUDP = Network.IsFirewalled(CHECK_UDP);
+	strMessage.Format( _T("TCP : %s  /  UDP : %s"), ( tsTCP == TS_TRUE ) ? _T("Firewalled") : ( ( tsTCP == TS_UNKNOWN ) ? _T("Unknown") : _T("No Problem") ),
+											( tsUDP == TS_TRUE ) ? _T("Firewalled") : ( ( tsUDP == TS_UNKNOWN ) ? _T("Unknown") : _T("No Problem") ) );
+	m_wndStatusBar.SetPaneText( 1, strMessage );
 
 	if ( m_bTrayIcon )
 	{

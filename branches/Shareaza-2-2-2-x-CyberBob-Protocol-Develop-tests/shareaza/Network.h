@@ -151,7 +151,7 @@ public:
 	BOOL		IsListening() const;
 	int			IsWellConnected() const;
 	BOOL		IsStable() const;
-	BOOL		IsFirewalled(int nCheck);
+	TRISTATE	IsFirewalled(int nCheck);
 	DWORD		GetStableTime() const;
 	BOOL		IsConnectedTo(IN_ADDR* pAddress);
 	BOOL		ReadyToTransfer(DWORD tNow) const;		// Are we ready to start downloading?

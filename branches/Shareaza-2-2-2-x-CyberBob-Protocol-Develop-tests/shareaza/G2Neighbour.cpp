@@ -419,7 +419,7 @@ BOOL CG2Neighbour::OnRun()
 
 	// We are unsure in our UDP capabilities therefore
 	// we perform limited "two hop" ping ourself using this neighbour
-	if ( !m_bUDP && Network.IsListening() && Network.IsFirewalled(CHECK_UDP) &&
+	if ( !m_bUDP && Network.IsListening() && Network.IsFirewalled(CHECK_UDP) == TS_UNKNOWN &&
 		m_nCountRelayPingOut < 3 &&
 		tNow - m_tLastRelayPingOut >= Settings.Gnutella1.PingRate )
 	{
@@ -531,7 +531,7 @@ void CG2Neighbour::SendStartups()
 
 	if ( bIsListening )
 	{
-		if ( Network.IsFirewalled(CHECK_UDP) || Network.IsTestingUDPFW() )
+		if ( Network.IsFirewalled(CHECK_UDP) == TS_UNKNOWN )
 		{
 			CG2Packet* pPing = CG2Packet::New( G2_PACKET_PING, TRUE );
 			pPing->WritePacket( G2_PACKET_UDP, 6 );
@@ -555,7 +555,7 @@ void CG2Neighbour::SendStartups()
 
 	if ( bIsListening )
 	{
-		if ( Network.IsFirewalled(CHECK_TCP) )	// (TODO)	there should be some way to find it is already known firewalled or
+		if ( Network.IsFirewalled(CHECK_TCP) == TS_UNKNOWN )	// (TODO)	there should be some way to find it is already known firewalled or
 		{										//			still checking state.
 			CG2Packet* pPush = CG2Packet::New( G2_PACKET_PUSH, TRUE );
 			// not known the GUID of connected node, but RAZA requires the packet to be compound

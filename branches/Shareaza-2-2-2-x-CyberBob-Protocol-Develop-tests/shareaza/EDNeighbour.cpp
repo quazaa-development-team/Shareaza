@@ -379,7 +379,7 @@ BOOL CEDNeighbour::OnIdChange(CEDPacket* pPacket)
 	}
 	else
 	{
-		if ( Settings.eDonkey.ForceHighID && Network.IsStable() && !Network.IsFirewalled(CHECK_TCP) )
+		if ( Settings.eDonkey.ForceHighID && Network.IsStable() && Network.IsFirewalled(CHECK_TCP) == TS_FALSE )
 		{
 			// We got a low ID when we should have gotten a high ID.
 			// Most likely, the user's router needs to get a few UDP packets before it opens up.
