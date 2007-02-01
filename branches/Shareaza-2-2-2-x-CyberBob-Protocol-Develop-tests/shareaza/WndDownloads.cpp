@@ -777,6 +777,7 @@ void CDownloadsWnd::OnUpdateDownloadsClearComplete(CCmdUI *pCmdUI)
 
 void CDownloadsWnd::OnDownloadsClearComplete()
 {
+	CSingleLock pLock( &Transfers.m_pSection, TRUE );
 	for ( POSITION pos = Downloads.GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = Downloads.GetNext( pos );
