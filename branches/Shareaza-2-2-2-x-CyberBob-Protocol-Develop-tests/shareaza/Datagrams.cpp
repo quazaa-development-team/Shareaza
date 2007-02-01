@@ -2145,7 +2145,7 @@ BOOL CDatagrams::OnCrawlRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	BOOL bWantNames		= FALSE;
 	BOOL bWantGPS		= FALSE;
 	BOOL bWantREXT		= FALSE;
-	BOOL bIsHub			= ( ! Neighbours.IsG2Leaf() ) && ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable(Settings.General.Debug) );
+	BOOL bIsHub			= ( ! Neighbours.IsG2Leaf() ) && ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable( FALSE, Settings.General.Debug) );
 
 	G2_PACKET nType;
 	DWORD nLength;

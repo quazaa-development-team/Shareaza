@@ -2367,8 +2367,8 @@ void CMainWnd::OnHelpAbout()
 {
 	CAboutDlg dlg;
 	dlg.DoModal();
-	Neighbours.IsG1UltrapeerCapable( TRUE );
-	Neighbours.IsG2HubCapable( TRUE );
+	Neighbours.IsG1UltrapeerCapable( TRUE, Settings.General.Debug );
+	Neighbours.IsG2HubCapable( TRUE, Settings.General.Debug );
 }
 
 void CMainWnd::OnHelpHomepage() 

@@ -63,12 +63,12 @@ public:
 	// Determine our role on the Gnutella2 network
 	virtual BOOL  IsG2Leaf();                          // Returns true if we are acting as a Gnutella2 leaf on at least one connection
 	virtual BOOL  IsG2Hub();                           // Returns true if we are acting as a Gnutella2 hub on at least one connection
-	virtual DWORD IsG2HubCapable(BOOL bDebug = FALSE); // Returns true if we have a computer and Internet connection powerful enough to become a Gnutella2 hub
+	virtual DWORD IsG2HubCapable(BOOL bIgnoreCurrentMode, BOOL bDebug); // Returns true if we have a computer and Internet connection powerful enough to become a Gnutella2 hub
 
 	// Determine our role on the Gnutella network
 	virtual BOOL  IsG1Leaf();                                // Returns true if we are acting as a Gnutella leaf on at least one connection
 	virtual BOOL  IsG1Ultrapeer();                           // Returns true if we are acting as a Gnutella ultrapeer on at least one connection
-	virtual DWORD IsG1UltrapeerCapable(BOOL bDebug = FALSE); // Returns true if we have a computer and Internet connection powerful enough to become a Gnutella ultrapeer
+	virtual DWORD IsG1UltrapeerCapable(BOOL bIgnoreCurrentMode, BOOL bDebug); // Returns true if we have a computer and Internet connection powerful enough to become a Gnutella ultrapeer
 
 	// Determine our needs on the given network, Gnutella or Gnutella2
 	virtual BOOL NeedMoreHubs(PROTOCOLID nProtocol, BOOL bMaxPeerSlot = FALSE);		// Returns true if we need more hub connections on 

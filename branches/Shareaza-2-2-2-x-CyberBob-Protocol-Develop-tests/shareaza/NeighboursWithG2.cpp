@@ -326,7 +326,7 @@ CG2Packet* CNeighboursWithG2::CreateLNIPacket(CG2Neighbour* pOwner)
 		else if ( Network.IsFirewalled(CHECK_UDP) == TS_FALSE )
 			pPacket->WritePacket( G2_PACKET_UDP_NOT_FIREWALLED, 0 );
 	}
-	else if ( IsG2Hub() || IsG2HubCapable() ) //add
+	else if ( IsG2Hub() || IsG2HubCapable( FALSE, FALSE ) ) //add
 	{
 		pPacket->WritePacket( G2_PACKET_HUB_ABLE, 0 );			// Hubable - Not used on shareaza yet but used on Gnucleaus
 		//	This might be useful sometime.

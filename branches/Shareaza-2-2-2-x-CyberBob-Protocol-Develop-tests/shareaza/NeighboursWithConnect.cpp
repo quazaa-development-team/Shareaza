@@ -328,12 +328,10 @@ BOOL CNeighboursWithConnect::IsG2Hub()
 // Takes true if we are running the program in debug mode, and this method should write out debug information
 // Determines if the computer and Internet connection here are strong enough for this program to run as a Gnutella2 hub
 // Returns false, which is 0, if we can't be a hub, or a number 1+ that is higher the better hub we'd be
-DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bDebug)
+DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bIgnoreCurrentMode, BOOL bDebug)
 {
 	// Start the rating at 0, which means we can't be a hub
 	DWORD nRating = 0; // We'll make this number bigger if we find signs we can be a hub
-
-	bDebug = Settings.General.Debug ? TRUE : bDebug;
 
 	// If the caller wants us to report debugging information, start out with a header line
 	if ( bDebug ) theApp.Message( MSG_DEBUG, _T("IsHubCapable():") );
@@ -368,18 +366,20 @@ DWORD CNeighboursWithConnect::IsG2HubCapable(BOOL bDebug)
 		return FALSE;
 	}
 
-	// We are running as a Gnutella2 leaf right now
-	if ( IsG2Leaf() )
+	if ( !bIgnoreCurrentMode )
 	{
-		// We can never be a hub because we are a leaf (do)
-		if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: leaf") );
-		return FALSE;
-
-	} // We are not running as a Gnutella2 leaf right now (do)
-	else
-	{
-		// Note this and keep going
-		if ( bDebug ) theApp.Message( MSG_DEBUG, _T("OK: not a leaf") );
+		// We are running as a Gnutella2 leaf right now
+		if ( IsG2Leaf() )
+		{
+			// We can never be a hub because we are a leaf (do)
+			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: leaf") );
+			return FALSE;
+		} // We are not running as a Gnutella2 leaf right now (do)
+		else
+		{
+			// Note this and keep going
+			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("OK: not a leaf") );
+		}
 	}
 
 	// Make sure the connection limits for Gnutella2 in settings aren't too low
@@ -607,12 +607,10 @@ BOOL CNeighboursWithConnect::IsG1Ultrapeer()
 // Takes true if we are running the program in debug mode, and this method should write out debug information
 // Determines if the computer and Internet connection here are strong enough for this program to run as a Gnutella ultrapeer
 // Returns false, which is 0, if we can't be an ultrapeer, or a number 1+ that is higher the better ultrapeer we'd be
-DWORD CNeighboursWithConnect::IsG1UltrapeerCapable(BOOL bDebug)
+DWORD CNeighboursWithConnect::IsG1UltrapeerCapable(BOOL bIgnoreCurrentMode, BOOL bDebug)
 {
 	// Start out the rating as 0, meaning we can't be a Gnutella ultrapeer
 	DWORD nRating = 0; // If we can be an ultrapeer, we'll set this to 1, and then make it higher if we'd be an even better ultrapeer
-
-	bDebug = Settings.General.Debug ? TRUE : bDebug;
 
 	// If the caller requested we write out debugging information, start out by titling that the messages that follow come from this method
 	if ( bDebug ) theApp.Message( MSG_DEBUG, _T("IsUltrapeerCapable():") );
@@ -643,17 +641,19 @@ DWORD CNeighboursWithConnect::IsG1UltrapeerCapable(BOOL bDebug)
 		return FALSE;
 	}
 
-	// We are running as a Gnutella leaf right now
-	if ( IsG1Leaf() )
+	if ( !bIgnoreCurrentMode )
 	{
-		// We can never be an ultrapeer because we are a leaf (do)
-		if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: leaf") );
-		return FALSE;
-
-	} // We are running as a Gnutella ultrapeer already (do)
-	else
-	{
-		if ( bDebug ) theApp.Message( MSG_DEBUG, _T("OK: not a leaf") );
+		// We are running as a Gnutella leaf right now
+		if ( IsG1Leaf() )
+		{
+			// We can never be an ultrapeer because we are a leaf (do)
+			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("NO: leaf") );
+			return FALSE;
+		} // We are running as a Gnutella ultrapeer already (do)
+		else
+		{
+			if ( bDebug ) theApp.Message( MSG_DEBUG, _T("OK: not a leaf") );
+		}
 	}
 
 	// The user can check a box in settings to let the program become an ultrapeer without passing the additional tests below
@@ -1205,7 +1205,7 @@ void CNeighboursWithConnect::ModeCheck()
 				m_bG1Leaf      = TRUE;
 				m_bG1Ultrapeer = FALSE;
 			}
-			else if ( IsG1UltrapeerCapable() )
+			else if ( IsG1UltrapeerCapable( FALSE, FALSE ) )
 			{
 				m_bG1Leaf      = FALSE;
 				m_bG1Ultrapeer = TRUE;
@@ -1259,7 +1259,7 @@ void CNeighboursWithConnect::ModeCheck()
 			}
 			else if ( tNow - m_tG2AttemptStart < 5 * 60 &&	// has been more than 5minute since connection attempt started
 															// same meaning as not having enough Hub/Peer connections for 5minutes
-				IsG2HubCapable() )							// capable to be G2Hub node
+					IsG2HubCapable( FALSE, FALSE ) )			// capable to be G2Hub node
 			{
 				// We're a hub on the Gnutella2 network
 				m_bG2Leaf	= FALSE;

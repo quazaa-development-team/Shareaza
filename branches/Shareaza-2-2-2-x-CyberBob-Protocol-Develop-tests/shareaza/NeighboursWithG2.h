@@ -65,7 +65,7 @@ public:
 	// Pure virtual memombers.
 	virtual BOOL	IsG2Leaf() = 0;							// Returns true if we are acting as a Gnutella2 leaf on at least one connection
 	virtual BOOL	IsG2Hub() = 0;							// Returns true if we are acting as a Gnutella2 hub on at least one connection
-	virtual DWORD	IsG2HubCapable(BOOL bDebug = FALSE) = 0;// Returns true if we have a computer and Internet connection powerful enough to become a Gnutella2 hub
+	virtual DWORD	IsG2HubCapable(BOOL bIgnoreCurrentMode, BOOL bDebug) = 0;// Returns true if we have a computer and Internet connection powerful enough to become a Gnutella2 hub
 
 public:
 

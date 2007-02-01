@@ -519,7 +519,7 @@ void CShakeNeighbour::SendPublicHeaders()
 	if ( m_nProtocol == PROTOCOL_G1 ) // This protocol ID this method got passed is Gnutella1
 	{
 		// Find out if we are an ultrapeer or at least eligible to become one soon
-		if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() )
+		if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable( FALSE, Settings.General.Debug ) )
 		{
 			// Tell the remote computer that we are an ultrapeer
 			m_pOutput->Print( "X-Ultrapeer: True\r\n" );
@@ -534,7 +534,7 @@ void CShakeNeighbour::SendPublicHeaders()
 	else if ( m_nProtocol == PROTOCOL_G2 ) // This protocol ID this method got passed is Gnutella2
 	{
 		// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
-		if ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() )
+		if ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable( FALSE, Settings.General.Debug ) )
 		{
 			// Tell the remote computer that we are a hub
 			m_pOutput->Print( "X-Ultrapeer: True\r\n" );
@@ -557,8 +557,8 @@ void CShakeNeighbour::SendPublicHeaders()
 			if ( Settings.Gnutella1.EnableToday && Settings.Gnutella2.EnableToday )
 			{
 				// Find out if we are a Gnutella1 Ultrapeer or Gnutella2 hub already, or at least eligible to become one soon
-				if ( ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() ) &&
-					 ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() ) )
+				if ( ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable( FALSE, Settings.General.Debug ) ) &&
+					 ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable( FALSE, Settings.General.Debug ) ) )
 				{
 					// Tell the remote computer that we are a hub
 					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
@@ -577,7 +577,7 @@ void CShakeNeighbour::SendPublicHeaders()
 			else if ( Settings.Gnutella1.EnableToday )
 			{
 				// Find out if we are a Gnutella1 Ultrapeer, or at least eligible to become one soon
-				if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() )
+				if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable( FALSE, Settings.General.Debug ) )
 				{
 					// Tell the remote computer that we are a hub
 					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
@@ -596,7 +596,7 @@ void CShakeNeighbour::SendPublicHeaders()
 			else if ( Settings.Gnutella2.EnableToday )
 			{
 				// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
-				if ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() )
+				if ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable( FALSE, Settings.General.Debug ) )
 				{
 					// Tell the remote computer that we are a hub
 					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
@@ -624,8 +624,8 @@ void CShakeNeighbour::SendPublicHeaders()
 				( m_bG2Send || m_bG2Accept) && ( m_bG1Send || m_bG1Accept) )
 			{
 				// Find out if we are a Gnutella1 Ultrapeer or Gnutella2 hub already, or at least eligible to become one soon
-				if ( ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() ) &&
-					( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() ) )
+				if ( ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable( FALSE, Settings.General.Debug ) ) &&
+					( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable( FALSE, Settings.General.Debug ) ) )
 				{
 					// Tell the remote computer that we are a hub
 					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
@@ -636,7 +636,7 @@ void CShakeNeighbour::SendPublicHeaders()
 					// Tell the remote computer that we are a leaf
 					m_pOutput->Print( "X-Ultrapeer: False\r\n" );
 				}
-				if ( Neighbours.NeedMoreHubs( PROTOCOL_G1, TRUE  ) && Neighbours.NeedMoreHubs( PROTOCOL_G2, TRUE  ) )
+				if ( Neighbours.NeedMoreHubs( PROTOCOL_G1, TRUE ) && Neighbours.NeedMoreHubs( PROTOCOL_G2, TRUE ) )
 					m_pOutput->Print( "X-Ultrapeer-Needed: True\r\n" );
 				else
 					m_pOutput->Print( "X-Ultrapeer-Needed: False\r\n" );
@@ -644,7 +644,7 @@ void CShakeNeighbour::SendPublicHeaders()
 			else if ( Settings.Gnutella1.EnableToday && ( m_bG1Send || m_bG1Accept) )
 			{
 				// Find out if we are a Gnutella1 Ultrapeer, or at least eligible to become one soon
-				if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() )
+				if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable( FALSE, Settings.General.Debug ) )
 				{
 					// Tell the remote computer that we are a hub
 					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
@@ -663,7 +663,7 @@ void CShakeNeighbour::SendPublicHeaders()
 			else if ( Settings.Gnutella2.EnableToday && ( m_bG2Send || m_bG2Accept) )
 			{
 				// Find out if we are a Gnutella2 hub, or at least eligible to become one soon
-				if ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() )
+				if ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable( FALSE, Settings.General.Debug ) )
 				{
 					// Tell the remote computer that we are a hub
 					m_pOutput->Print( "X-Ultrapeer: True\r\n" );
@@ -1261,7 +1261,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 	{
 		// (do)
 		if ( m_bUltraPeerSet == TS_FALSE                                 // The remote computer told us it's a leaf
-			&& ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() ) ) // And we're either a hub or capable of becoming one
+			&& ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable( FALSE, Settings.General.Debug ) ) ) // And we're either a hub or capable of becoming one
 		{
 			// Report this case
 			theApp.Message( MSG_DEFAULT, IDS_HANDSHAKE_BACK2LEAF, (LPCTSTR)m_sAddress );
@@ -1281,7 +1281,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 		BOOL bFallback = FALSE;
 
 		// We are a Gnutella2 hub, or at least we are capable of becomming one
-		if ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() )
+		if ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable( FALSE, Settings.General.Debug ) )
 		{
 			// The remote computer sent us a header like "X-Ultrapeer: False"
 			if ( m_bUltraPeerSet == TS_FALSE )
@@ -1383,7 +1383,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 			return FALSE; // Return false all the way back to CHandshakes::RunHandshakes, which will delete this object
 
 		} // We are a Gnutella2 hub, or at least we are capable of becomming one
-		else if ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable() )
+		else if ( Neighbours.IsG2Hub() || Neighbours.IsG2HubCapable( FALSE, Settings.General.Debug ) )
 		{
 			// The remote computer sent us the header "X-Ultrapeer: False"
 			if ( m_bUltraPeerSet == TS_FALSE )
@@ -1566,7 +1566,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG1()
 	{
 		// If we're both leaves, and yet somehow we're also either an ultrapeer or can become one (do)
 		if ( m_bUltraPeerSet == TS_FALSE && m_nNodeType == ntNode &&               // The remote computer is a hub and so are we
-			 ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() ) ) // And, we're either a Gnutella ultrapeer or we could become one
+			 ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable( FALSE, Settings.General.Debug ) ) ) // And, we're either a Gnutella ultrapeer or we could become one
 		{
 			// Report that the handshake is back to a leaf (do), and consider this connection to be to a leaf below us
 			theApp.Message( MSG_DEFAULT, IDS_HANDSHAKE_BACK2LEAF, (LPCTSTR)m_sAddress );
@@ -1584,7 +1584,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG1()
 		BOOL bFallback = FALSE;
 
 		// We are an ultrapeer or at least we are capable of becoming one
-		if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() )
+		if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable( FALSE, Settings.General.Debug ) )
 		{
 			// The remote computer told us "X-Ultrapeer: False"
 			if ( m_bUltraPeerSet == TS_FALSE )
@@ -1678,7 +1678,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG1()
 			return FALSE; // Return false all the way back to CHandshakes::RunHandshakes, which will delete this object
 
 		} // We are an ultrapeer, or at least we are capable of becoming one
-		else if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable() )
+		else if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable( FALSE, Settings.General.Debug ) )
 		{
 			// The remote computer told us it is a leaf
 			if ( m_bUltraPeerSet == TS_FALSE )
