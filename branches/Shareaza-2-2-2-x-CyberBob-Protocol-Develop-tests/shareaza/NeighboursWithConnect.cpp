@@ -1416,61 +1416,72 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 		}
 		else if ( nProtocol == PROTOCOL_G2 )
 		{
-			// If we need more connections for this network, get IP addresses from the host cache and try to connect to them
-			for ( CHostCacheHost* pHost = pCache->GetNewest(); // Get the newest entry in the host cache for this network
-				pHost && m_nCount[ PROTOCOL_G2 ][ntNull] < nAttempt;  // Loop if we need more hubs that we have handshaking connections
-				pHost = pHost->m_pPrevTime )                 // At the end of the loop, move to the next youngest host cache entry
+			CHostCacheHost* pHost = pCache->GetNewest();
+			if ( !m_oG2LocalCache.empty() && m_nCount[ PROTOCOL_G2 ][ntNull] < nAttempt )
 			{
-				// if Local Storage of Host for this network is not empty.
-				if ( !m_oG2LocalCache.empty() )
+				m_tG2AttemptStart = tNow;
+				HostAddrPtr	iHostPtr = m_oG2LocalCache.begin();
+				// Make sure the connection we just made matches the protocol we're looping for right now
+				if ( ConnectTo( &(iHostPtr->sin_addr), ntohs( iHostPtr->sin_port ), PROTOCOL_G2, TRUE, FALSE, FALSE ) )
 				{
-					HostAddrPtr	iHostPtr = m_oG2LocalCache.begin();
-					// Make sure the connection we just made matches the protocol we're looping for right now
-					if ( ConnectTo( &(iHostPtr->sin_addr), ntohs( iHostPtr->sin_port ), PROTOCOL_G2, TRUE, FALSE, FALSE ) )
-					{
-						// If settings wants to limit how frequently this method can run
-						if ( Settings.Connection.ConnectThrottle != 0 )
-						{
-							m_oG2LocalCache.erase( iHostPtr );
-							// Save the time we last made a connection as now, and leave
-							Network.m_tLastConnect = tTimer;
-							Downloads.m_tLastConnect = tTimer;
-							return;
-						}
-					}
-					m_oG2LocalCache.erase( iHostPtr );
-				}
-				// If it is within 20Sec from start of this network, and UDP Cache Query has been done.
-				else if ( tNow - m_tG2AttemptStart <= 20 )
-				{
-					if ( pHost->UDPCacheQuery() )
-					{
-						// Make sure the connection we just made matches the protocol we're looping for right now
-						ASSERT( pHost->m_nProtocol == nProtocol );
-
-						// If settings wants to limit how frequently this method can run
-						if ( Settings.Connection.ConnectThrottle != 0 )
-						{
-							// Save the time we last made a connection as now, and leave
-							Network.m_tLastConnect = tTimer;
-							Downloads.m_tLastConnect = tTimer;
-							return;
-						}
-					}
-				}
-				// If we can connect to this IP address from the host cache, try to make the connection
-				else if ( pHost->CanConnect( tNow ) && pHost->ConnectTo( TRUE ) )
-				{
-					// Make sure the connection we just made matches the protocol we're looping for right now
-					ASSERT( pHost->m_nProtocol == nProtocol );
-
+					m_tG2AttemptStart = tNow;
 					// If settings wants to limit how frequently this method can run
 					if ( Settings.Connection.ConnectThrottle != 0 )
 					{
+						m_oG2LocalCache.erase( iHostPtr );
 						// Save the time we last made a connection as now, and leave
 						Network.m_tLastConnect = tTimer;
 						Downloads.m_tLastConnect = tTimer;
 						return;
+					}
+				}
+				m_oG2LocalCache.erase( iHostPtr );
+			}
+			// If it is within 20Sec from start of this network, and UDP Cache Query has been done.
+			else if ( pHost )// Get the newest entry in the host cache for this network
+			{
+				if ( Network.m_bUDPListeningReady && tNow - m_tG2AttemptStart <= 20 )
+				{
+					for (; pHost ; pHost = pHost->m_pPrevTime ) // At the end of the loop, move to the next youngest host cache entry
+					{
+						if ( pHost->UDPCacheQuery() )
+						{
+							// Make sure the connection we just made matches the protocol we're looping for right now
+							ASSERT( pHost->m_nProtocol == nProtocol );
+
+							// If settings wants to limit how frequently this method can run
+							if ( Settings.Connection.ConnectThrottle != 0 )
+							{
+								// Save the time we last made a connection as now, and leave
+								Network.m_tLastConnect = tTimer;
+								Downloads.m_tLastConnect = tTimer;
+							}
+							return;
+						}
+					}
+				}
+				else
+				{
+					// If we need more connections for this network, get IP addresses from the host cache and try to connect to them
+					for (; pHost ;  // Loop if we need more hubs that we have handshaking connections
+						pHost = pHost->m_pPrevTime )                 // At the end of the loop, move to the next youngest host cache entry
+					{
+						// if Local Storage of Host for this network is not empty.
+						// If we can connect to this IP address from the host cache, try to make the connection
+						if ( pHost->CanConnect( tNow ) && pHost->ConnectTo( TRUE ) )
+						{
+							// Make sure the connection we just made matches the protocol we're looping for right now
+							ASSERT( pHost->m_nProtocol == nProtocol );
+
+							// If settings wants to limit how frequently this method can run
+							if ( Settings.Connection.ConnectThrottle != 0 )
+							{
+								// Save the time we last made a connection as now, and leave
+								Network.m_tLastConnect = tTimer;
+								Downloads.m_tLastConnect = tTimer;
+							}
+							return;
+						}
 					}
 				}
 			}
@@ -1479,61 +1490,72 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 		}
 		else if ( nProtocol == PROTOCOL_G1 )
 		{
-			// If we need more connections for this network, get IP addresses from the host cache and try to connect to them
-			for ( CHostCacheHost* pHost = pCache->GetNewest(); // Get the newest entry in the host cache for this network
-				pHost && m_nCount[ PROTOCOL_G1 ][ntNull] < nAttempt;  // Loop if we need more hubs that we have handshaking connections
-				pHost = pHost->m_pPrevTime )                 // At the end of the loop, move to the next youngest host cache entry
+			CHostCacheHost* pHost = pCache->GetNewest();
+			if ( !m_oG1LocalCache.empty() && m_nCount[ PROTOCOL_G1 ][ntNull] < nAttempt )
+			{
+				m_tG1AttemptStart = tNow;
+				HostAddrPtr	iHostPtr = m_oG1LocalCache.begin();
+				// Make sure the connection we just made matches the protocol we're looping for right now
+				if ( ConnectTo( &(iHostPtr->sin_addr), ntohs( iHostPtr->sin_port ), PROTOCOL_G1, TRUE, FALSE, FALSE ) )
+				{
+					m_tG1AttemptStart = tNow;
+					// If settings wants to limit how frequently this method can run
+					if ( Settings.Connection.ConnectThrottle != 0 )
+					{
+						m_oG1LocalCache.erase( iHostPtr );
+						// Save the time we last made a connection as now, and leave
+						Network.m_tLastConnect = tTimer;
+						Downloads.m_tLastConnect = tTimer;
+						return;
+					}
+				}
+				m_oG1LocalCache.erase( iHostPtr );
+			}
+			else if ( pHost )// Get the newest entry in the host cache for this network
 			{
 				// if Local Storage of Host for this network is not empty.
-				if ( !m_oG1LocalCache.empty() )
+				// If it is within 20Sec from start of this network, and UDP Cache Query has been done.
+				if (  Network.m_bUDPListeningReady && tNow - m_tG1AttemptStart <= 20 )
 				{
-					HostAddrPtr	iHostPtr = m_oG1LocalCache.begin();
-					// Make sure the connection we just made matches the protocol we're looping for right now
-					if ( ConnectTo( &(iHostPtr->sin_addr), ntohs( iHostPtr->sin_port ), PROTOCOL_G1, TRUE, FALSE, FALSE ) )
+					// If we need more connections for this network, get IP addresses from the host cache and try to connect to them
+					for (;	pHost ;	pHost = pHost->m_pPrevTime ) // At the end of the loop, move to the next youngest host cache entry
 					{
-						// If settings wants to limit how frequently this method can run
-						if ( Settings.Connection.ConnectThrottle != 0 )
+						if ( pHost->UDPCacheQuery() )
 						{
-							m_oG1LocalCache.erase( iHostPtr );
-							// Save the time we last made a connection as now, and leave
-							Network.m_tLastConnect = tTimer;
-							Downloads.m_tLastConnect = tTimer;
-							return;
-						}
-					}
-					m_oG1LocalCache.erase( iHostPtr );
-				}
-				// If it is within 10Sec from start of this network, and UDP Cache Query has been done.
-				else if ( tNow - m_tG1AttemptStart <= 10 )
-				{
-					if ( pHost->UDPCacheQuery() )
-					{
-						// Make sure the connection we just made matches the protocol we're looping for right now
-						ASSERT( pHost->m_nProtocol == nProtocol );
+							// Make sure the connection we just made matches the protocol we're looping for right now
+							ASSERT( pHost->m_nProtocol == nProtocol );
 
-						// If settings wants to limit how frequently this method can run
-						if ( Settings.Connection.ConnectThrottle != 0 )
-						{
-							// Save the time we last made a connection as now, and leave
-							Network.m_tLastConnect = tTimer;
-							Downloads.m_tLastConnect = tTimer;
+							// If settings wants to limit how frequently this method can run
+							if ( Settings.Connection.ConnectThrottle != 0 )
+							{
+								// Save the time we last made a connection as now, and leave
+								Network.m_tLastConnect = tTimer;
+								Downloads.m_tLastConnect = tTimer;
+							}
 							return;
 						}
 					}
 				}
 				// If we can connect to this IP address from the host cache, try to make the connection
-				else if ( pHost->CanConnect( tNow ) && pHost->ConnectTo( TRUE ) )
+				else
 				{
-					// Make sure the connection we just made matches the protocol we're looping for right now
-					ASSERT( pHost->m_nProtocol == nProtocol );
-
-					// If settings wants to limit how frequently this method can run
-					if ( Settings.Connection.ConnectThrottle != 0 )
+					// If we need more connections for this network, get IP addresses from the host cache and try to connect to them
+					for (; pHost ; pHost = pHost->m_pPrevTime ) // At the end of the loop, move to the next youngest host cache entry
 					{
-						// Save the time we last made a connection as now, and leave
-						Network.m_tLastConnect = tTimer;
-						Downloads.m_tLastConnect = tTimer;
-						return;
+						if ( pHost->CanConnect( tNow ) && pHost->ConnectTo( TRUE ) )
+						{
+							// Make sure the connection we just made matches the protocol we're looping for right now
+							ASSERT( pHost->m_nProtocol == nProtocol );
+
+							// If settings wants to limit how frequently this method can run
+							if ( Settings.Connection.ConnectThrottle != 0 )
+							{
+								// Save the time we last made a connection as now, and leave
+								Network.m_tLastConnect = tTimer;
+								Downloads.m_tLastConnect = tTimer;
+							}
+							return;
+						}
 					}
 				}
 			}
