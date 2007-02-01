@@ -428,21 +428,33 @@ BOOL CUploadTransferHTTP::OnHeadersComplete()
 	else if ( m_nGnutella & 2 )
 	{
 		// Check for clients spoofing a G2 header
-		if ( _tcsistr( m_sUserAgent, _T("phex") ) != NULL ||
-			_tcsistr( m_sUserAgent, _T("limewire") ) != NULL ||
-			_tcsistr( m_sUserAgent, _T("gtk-gnutella") ) != NULL )
+		if ( _tcsistr( m_sUserAgent, _T("phex") ) != NULL) 
 		{
 			// This is actually a G1-only client sending a fake header, so they can download 
 			// from (but not upload to) clients that are only connected to G2. 
 			m_nGnutella = 1;
 
-			if ( ! Settings.Gnutella1.EnableToday )
+			if ( ! Settings.IsG1Allowed() )
 			{
 				// Terminate the connection and do not try to download from them.
 				SendResponse( IDR_HTML_FILENOTFOUND );
 				theApp.Message( MSG_ERROR, _T("Client %s has a fake G2 header, banning"), (LPCTSTR)m_sAddress );
 
 				Security.Ban( &m_pHost.sin_addr, banWeek, FALSE );
+				Remove( FALSE );
+				return FALSE;
+			}
+		}
+		else if ( _tcsistr( m_sUserAgent, _T("limewire") ) != NULL ||
+				_tcsistr( m_sUserAgent, _T("gtk-gnutella") ) != NULL )
+		{
+			// This is actually a G1-only client somehow recognised as G2 (dont know why it happens, but)
+			m_nGnutella = 1;
+
+			if ( ! Settings.IsG1Allowed() )
+			{
+				// Terminate the connection and do not try to download from them.
+				SendResponse( IDR_HTML_FILENOTFOUND );
 				Remove( FALSE );
 				return FALSE;
 			}
