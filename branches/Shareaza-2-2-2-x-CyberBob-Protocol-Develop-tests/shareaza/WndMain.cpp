@@ -1297,7 +1297,7 @@ void CMainWnd::UpdateMessages()
 		(int)CGraphItem::GetValue( GRC_UPLOADS_TRANSFERS, 0 ) );
 
 	m_wndStatusBar.GetPaneText( 2, strOld );
-	if ( strOld != strMessage ) m_wndStatusBar.SetPaneText( 1, strMessage );
+	if ( strOld != strMessage ) m_wndStatusBar.SetPaneText( 2, strMessage );
 	
 	TRISTATE tsTCP = Network.IsFirewalled(CHECK_TCP);
 	TRISTATE tsUDP = Network.IsFirewalled(CHECK_UDP);
