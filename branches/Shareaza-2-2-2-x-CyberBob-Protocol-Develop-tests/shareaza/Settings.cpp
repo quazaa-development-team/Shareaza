@@ -359,7 +359,7 @@ void CSettings::Setup()
 	Add( _T("BitTorrent.Endgame"), &BitTorrent.Endgame, TRUE );
 	Add( _T("BitTorrent.AutoClear"), &BitTorrent.AutoClear, FALSE );
 	Add( _T("BitTorrent.ClearRatio"), &BitTorrent.ClearRatio, 120 );
-	Add( _T("BitTorrent.AutoSeed"), &BitTorrent.AutoSeed, FALSE );
+	Add( _T("BitTorrent.AutoSeed"), &BitTorrent.AutoSeed, TRUE );
 	Add( _T("BitTorrent.BandwidthPercentage"), &BitTorrent.BandwidthPercentage, 80 );
 	Add( _T("BitTorrent.TrackerKey"), &BitTorrent.TrackerKey, TRUE );
 	Add( _T("BitTorrent.StandardPeerID"), &BitTorrent.StandardPeerID, TRUE );
@@ -448,6 +448,8 @@ void CSettings::Setup()
 	Add( _T("Scheduler.LimitedBandwidth"), &Scheduler.LimitedBandwidth, 50 );
 	Add( _T("Scheduler.LimitedNetworks"), &Scheduler.LimitedNetworks, TRUE );
 	Add( _T("Scheduler.AllowHub"), &Scheduler.AllowHub, TRUE );
+
+	Add( _T("Experimental.EnableDIPPSupport"), &Experimental.EnableDIPPSupport, FALSE );
 }
 
 
@@ -457,8 +459,8 @@ void CSettings::Setup()
 
 CSettings::CSettings()
 {
-	TCHAR szPath[512];
-	GetModuleFileName( NULL, szPath, 512 );
+	TCHAR szPath[260];
+	GetModuleFileName( NULL, szPath, 260 );
 
 	// Set default program and user paths
 	General.Path = szPath;
@@ -525,7 +527,7 @@ void CSettings::Add(LPCTSTR pszName, CString* pString, LPCTSTR pszDefault)
 //////////////////////////////////////////////////////////////////////
 // CSettings load
 
-#define SMART_VERSION	43
+#define SMART_VERSION	44
 
 void CSettings::Load()
 {
@@ -788,11 +790,6 @@ void CSettings::SmartUpgrade()
 		Search.FilterMask = Search.FilterMask | 0x140; // Turn on DRM and Suspicious filters
 	}
 
-	if ( nVersion < 38 )
-	{
-		BitTorrent.AutoSeed = TRUE;
-	}
-
 	if ( nVersion < 39 )
 	{
 		General.RatesInBytes = TRUE;
@@ -822,6 +819,11 @@ void CSettings::SmartUpgrade()
 	if ( nVersion < 43 )
 	{	
 		eDonkey.MetAutoQuery = TRUE;
+	}
+
+	if ( nVersion < 44 )
+	{	
+		BitTorrent.AutoSeed = TRUE;
 	}
 }
 

@@ -308,21 +308,14 @@ void CWizardConnectionPage::OnRun()
 		LoadString( strMessage, IDS_WIZARD_UPNP_SETUP );
 		m_wndStatus.SetWindowText( strMessage );
 
-		DWORD tStart = GetTickCount();
-
 		while ( theApp.m_pUPnPFinder && 
 				theApp.m_pUPnPFinder->IsAsyncFindRunning() )
 		{
 			Sleep( 1000 );
-			if ( GetTickCount() - tStart > 30000 )
-			{
-				theApp.m_pUPnPFinder->StopAsyncFind();
-				Settings.Connection.EnableUPnP = TS_FALSE;
-				break;
-			}
 			if ( nCurrentStep < 30  )
 				nCurrentStep++;
-
+			else if ( nCurrentStep == 30 )
+				nCurrentStep = 0;
 			m_wndProgress.PostMessage( PBM_SETPOS, nCurrentStep );
 		}
 

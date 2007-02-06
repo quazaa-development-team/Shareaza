@@ -134,8 +134,8 @@ IDR_DEFAULTSERVICES     FILE                    "res\\DefaultServices.dat"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,2,4,2
- PRODUCTVERSION 2,2,4,2
+ FILEVERSION 2,2,5,0
+ PRODUCTVERSION 2,2,5,0
  FILEFLAGSMASK 0x1fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -153,12 +153,12 @@ BEGIN
             VALUE "Comments", "Shareaza Ultimate File Sharing"
             VALUE "CompanyName", "Shareaza Development Team"
             VALUE "FileDescription", "Shareaza Ultimate File Sharing"
-            VALUE "FileVersion", "2, 2, 4, 2"
+            VALUE "FileVersion", "2, 2, 5, 0"
             VALUE "InternalName", "Shareaza"
-            VALUE "LegalCopyright", "Copyright © Shareaza Development Team, 2002-2006."
+            VALUE "LegalCopyright", "Copyright © Shareaza Development Team, 2002-2007."
             VALUE "OriginalFilename", "Shareaza.exe"
             VALUE "ProductName", "Shareaza"
-            VALUE "ProductVersion", "2, 2, 4, 2"
+            VALUE "ProductVersion", "2, 2, 5, 0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1466,19 +1466,21 @@ STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Welcome to Shareaza"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
+    LTEXT           "For optimum performance, Shareaza needs to know a little bit about your connection to the Internet.",
+                    IDC_STATIC,7,10,263,18
     LTEXT           "Choose the type of your Internet connection:",
-                    IDC_STATIC,7,15,260,12
-    COMBOBOX        IDC_CONNECTION_TYPE,26,31,100,178,CBS_DROPDOWNLIST | 
+                    IDC_STATIC,7,30,260,12
+    COMBOBOX        IDC_CONNECTION_TYPE,26,44,100,178,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Or choose the download speed:",IDC_STATIC,7,54,130,12
-    COMBOBOX        IDC_WIZARD_DOWNLOAD_SPEED,26,70,75,178,CBS_DROPDOWN | 
+    LTEXT           "Or choose the download speed:",IDC_STATIC,7,64,130,12
+    COMBOBOX        IDC_WIZARD_DOWNLOAD_SPEED,26,78,75,178,CBS_DROPDOWN | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "and the upload speed:",IDC_STATIC,165,54,100,12
-    COMBOBOX        IDC_WIZARD_UPLOAD_SPEED,166,70,75,178,CBS_DROPDOWN | 
+    LTEXT           "and the upload speed:",IDC_STATIC,165,64,100,12
+    COMBOBOX        IDC_WIZARD_UPLOAD_SPEED,166,78,75,178,CBS_DROPDOWN | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Do you want to automatically setup port-forwarding by using UPnP?",
-                    IDC_STATIC,7,93,240,12
-    COMBOBOX        IDC_WIZARD_UPNP,26,109,75,178,CBS_DROPDOWNLIST | 
+                    IDC_STATIC,7,98,240,12
+    COMBOBOX        IDC_WIZARD_UPNP,26,112,75,178,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Status:",IDC_CONNECTION_STATUS,9,132,261,8
     CONTROL         "",IDC_CONNECTION_PROGRESS,"msctls_progress32",WS_BORDER,
@@ -4701,7 +4703,7 @@ END
 STRINGTABLE 
 BEGIN
     IDS_NETWORK_SEARCH_SENT "Sending query for ""%s"" to %s."
-    IDS_NETWORK_FORCE_HUB   "Forcing your PC into hub mode may have adverse effects on performance and the P2P network  It is generally better to allow Shareaza to decide whether or not hub mode should be used.\n\nHub mode does NOT produce better search results, or have any other advantages for you.\n\nDo you really want to do this, despite these disadvantages?"
+    IDS_NETWORK_FORCE_HUB   "Forcing your PC into hub mode may have adverse effects on performance and the P2P network. It is generally better to allow Shareaza to decide whether or not hub mode should be used.\n\nHub mode does NOT produce better search results, or have any other advantages for you.\n\nDo you really want to do this, despite these disadvantages?"
     IDS_NETWORK_DISABLE_G1  "Disabling support for Gnutella-1 protocols may limit your search results, and if you are acting as a hub it may also impact upon the results of other users.  Are you sure you want to do this?"
     IDS_NETWORK_DISABLE_G2  "Gnutella2 is Shareaza's premiere network.  Disabling support for it may severely limit both the number and quality of your search results.  Are you SURE you want to do this?"
     IDS_NETWORK_BANDWIDTH_LOW 
@@ -5113,7 +5115,7 @@ BEGIN
                             "The folder you are sharing is already shared as part of another shared folder:\n\n%s"
     IDS_PROFILE_NO_NICK     "You haven't entered a screen name in your user profile."
     IDS_PROFILE_NO_LOCATION "You haven't entered your location in your user profile.\n\nIt's a good idea to enter your location so that other users can see which country you are from.  Note that entering a location does not reveal any compromising information.\n\nAre you sure you want to continue without entering your location?"
-    IDS_WIZARD_PORT_FORWARD "You have indicated that you want to set up port-forwarding on your NAT router or firewall.\n\nPlease configure your network to forward TCP and UDP ports %i to your local PC."
+    IDS_WIZARD_PORT_FORWARD "Shareaza was unable to set up port-forwarding on your NAT router or firewall.\n\nPlease configure your network to forward TCP and UDP ports %i to your local PC."
     IDS_SETTINGS_NEED_BANDWIDTH 
                             "Please type the bandwidth limit you wish to set in the form ""123 kb/s"" for kilobits per second, or ""123 KB/s"" for kilobytes per second."
     IDS_PROFILE_NO_VITALS   "You have not selected your age and gender.  Are you sure you want to continue without doing this?"

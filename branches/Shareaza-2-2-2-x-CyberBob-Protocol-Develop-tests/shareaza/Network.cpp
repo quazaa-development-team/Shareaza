@@ -570,12 +570,21 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 
 	m_bTCPListeningReady = Handshakes.Listen();
 	m_bUDPListeningReady = Datagrams.Listen();
-	Neighbours.Connect();
 
 	Uploads.SetStable( 0 );
 
 	ASSERT(m_bTCPListeningReady);
 	ASSERT(m_bUDPListeningReady);
+
+	if ( !m_bTCPListeningReady || !m_bUDPListeningReady )
+	{
+		theApp.Message( MSG_DISPLAYED_ERROR, _T("The connection process is failed.") );
+		Handshakes.Disconnect();
+		Datagrams.Disconnect();
+		return FALSE;
+	}
+
+	Neighbours.Connect();
 
 	NodeRoute->SetDuration( Settings.Gnutella.RouteCache );
 	QueryRoute->SetDuration( Settings.Gnutella.RouteCache );
@@ -944,7 +953,6 @@ UINT CNetwork::ThreadStart(LPVOID pParam)
 
 void CNetwork::OnRun()
 {
-	DWORD m_tUPnP = GetTickCount();
 	while ( m_bEnabled )
 	{
 		Sleep(50);
@@ -955,17 +963,7 @@ void CNetwork::OnRun()
 
 		if ( ! theApp.m_bLive ) continue;
 		if ( theApp.m_pUPnPFinder && theApp.m_pUPnPFinder->IsAsyncFindRunning() )
-		{
-			// If the UPnP device host service hangs we can do nothing.
-			// In this situation only reboot helps since network thread stucks
-			// when we try to kill or reset the finder.
-			if ( m_nNetworkGlobalTickCount - m_tUPnP < 30000 )
-				continue;
-			else
-			{
-				theApp.m_bUPnPPortsForwarded = TS_FALSE;
-			}
-		}
+			continue;
 
 		if ( m_bEnabled && m_pSection.Lock() )
 		{

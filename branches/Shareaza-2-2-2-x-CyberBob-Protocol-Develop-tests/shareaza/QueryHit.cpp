@@ -1485,7 +1485,7 @@ void CQueryHit::Resolve()
 			(LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort,
 			(LPCTSTR)m_oSHA1.toUrn() );
 	}
-	
+
 	if ( m_sURL.GetLength() )
 	{
 		m_nSources ++;
@@ -1495,7 +1495,7 @@ void CQueryHit::Resolve()
 		return;
 	
 	m_nSources++;
-	
+
 	if ( m_nProtocol == PROTOCOL_ED2K )
 	{
 		if ( m_bPush == TS_TRUE )

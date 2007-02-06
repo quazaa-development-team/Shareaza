@@ -492,6 +492,9 @@ BOOL CShareazaApp::InitInstance()
 	if ( m_ocmdInfo.m_nGUIMode != -1 )
 		Settings.General.GUIMode = m_ocmdInfo.m_nGUIMode;
 
+	if ( Settings.General.GUIMode != GUI_WINDOWED && Settings.General.GUIMode != GUI_TABBED && Settings.General.GUIMode != GUI_BASIC )
+		Settings.General.GUIMode = GUI_BASIC;
+
 	SplashStep( dlgSplash, L"Firewall/Router Setup" );
 	{
 		CFirewall firewall;
@@ -952,6 +955,9 @@ TCHAR CShareazaApp::szMessageBuffer[16384];
 void CShareazaApp::Message(int nType, UINT nID, ...) throw()
 {
 	if ( nType == MSG_DEBUG && ! Settings.General.Debug ) return;
+#ifdef NDEBUG
+	if ( nType == MSG_TEMP ) return;
+#endif
 	if ( nType == MSG_TEMP && ! Settings.General.DebugLog ) return;
 	
 	CSingleLock pLock( &m_csMessage, TRUE );
@@ -985,6 +991,9 @@ void CShareazaApp::Message(int nType, UINT nID, ...) throw()
 void CShareazaApp::Message(int nType, LPCTSTR pszFormat, ...) throw()
 {
 	if ( nType == MSG_DEBUG && ! Settings.General.Debug ) return;
+#ifdef NDEBUG
+	if ( nType == MSG_TEMP ) return;
+#endif
 	if ( nType == MSG_TEMP && ! Settings.General.DebugLog ) return;
 	
 	CSingleLock pLock( &m_csMessage, TRUE );
