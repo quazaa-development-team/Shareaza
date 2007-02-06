@@ -1073,11 +1073,9 @@ BOOL CDownloadTransferED2K::OnSendingPart64(CEDPacket* pPacket)
 	QWORD nOffset = 0;
 	QWORD nLength = 0;
 
-	nOffset = pPacket->ReadLongLE();
-	nOffset = ( (QWORD)pPacket->ReadLongLE() << 32 ) | nOffset;
-	
-	nLength = pPacket->ReadLongLE();
-	nLength = ( (QWORD)pPacket->ReadLongLE() << 32 ) | nLength;
+	// Tiny optimization of code: RAZA is only working on Little endian Platform at the moment.
+	pPacket->Read(&nOffset, 8);
+	pPacket->Read(&nLength, 8);
 
 	if ( nLength <= nOffset )
 	{
@@ -1132,10 +1130,12 @@ BOOL CDownloadTransferED2K::OnCompressedPart64(CEDPacket* pPacket)
 		return TRUE;
 	}
 
-	QWORD	nBaseOffset = pPacket->ReadLongLE();
-			nBaseOffset = ( (QWORD)pPacket->ReadLongLE() << 32 ) | nBaseOffset;
+	QWORD nBaseOffset = 0;
+	QWORD nBaseLength = 0;
 
-	QWORD	nBaseLength = (QWORD)pPacket->ReadLongLE();	// Length of compressed data is 32bit
+	// Tiny optimization of code: RAZA is only working on Little endian Platform at the moment.
+	pPacket->Read(&nBaseOffset, 8);
+	pPacket->Read(&nBaseLength, 4);	// Length of compressed data is 32bit
 
 
 	z_streamp pStream = (z_streamp)m_pInflatePtr;
