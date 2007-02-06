@@ -951,7 +951,7 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 		LPCSTR pszSep = strchr( pszData, 0x1C );
 		size_t nLength = pszSep ? pszSep - pszData : strlen( pszData );
 		
-		if ( strnicmp( pszData, "urn:", 4 ) == 0 )
+		if ( _strnicmp( pszData, "urn:", 4 ) == 0 )
 		{
 			CString strUrn(pszData);
 			if ( !m_oSHA1 ) m_oSHA1.fromUrn( strUrn );

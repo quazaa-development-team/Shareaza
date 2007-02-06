@@ -268,8 +268,10 @@ BOOL CHostBrowser::OnRun()
 BOOL CHostBrowser::SendPush(BOOL bMessage)
 {
 	if ( ! m_bCanPush ) return FALSE;
-	
-	if ( Network.SendPush( m_oClientID, 0 ) )
+
+	CNetwork::HubList m_oDefaultEmptyList;
+
+	if ( Network.SendPush( m_oClientID, 0, PROTOCOL_NULL, IN_ADDR(), 0, m_oDefaultEmptyList, m_oDefaultEmptyList ) )
 	{
 		CTransfer::Close();
 		m_tPushed = GetTickCount();

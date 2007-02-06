@@ -198,8 +198,10 @@ BOOL CChatSession::SendPush(BOOL /*bAutomatic*/)
 	if ( ! m_oGUID ) return FALSE;
 
 	if ( m_nProtocol == PROTOCOL_ED2K ) return FALSE;
-	
-	if ( Network.SendPush( m_oGUID, 0 ) )
+
+	CNetwork::HubList m_oDefaultEmptyList;
+
+	if ( Network.SendPush( m_oGUID, 0, PROTOCOL_NULL, IN_ADDR(), 0, m_oDefaultEmptyList, m_oDefaultEmptyList ) )
 	{
 		m_nState = cssNull;
 		CConnection::Close();

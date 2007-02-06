@@ -174,8 +174,8 @@ public:
 public:
 	BOOL		GetNodeRoute(const Hashes::Guid& oGUID, CNeighbour** ppNeighbour, SOCKADDR_IN* pEndpoint);
 	BOOL		RoutePacket(CG2Packet* pPacket);
-	BOOL		SendPush(const Hashes::Guid& oGUID, DWORD nIndex, PROTOCOLID nProtocol = PROTOCOL_HTTP, IN_ADDR pAddress = IN_ADDR(),
-						WORD nPort = 0,	HubList& oPushProxyList = HubList(), HubList& oHubList = HubList());
+	BOOL		SendPush(const Hashes::Guid& oGUID, DWORD nIndex, PROTOCOLID nProtocol /* = PROTOCOL_HTTP */, IN_ADDR pAddress /*= IN_ADDR()*/,
+						WORD nPort /*= 0*/,	HubList& oPushProxyList /*= HubList()*/, HubList& oHubList /*= HubList()*/);
 	//BOOL		SendPush(const Hashes::Guid& oGUID, DWORD nIndex = 0);
 	BOOL		SendPush( CDownloadSource * pSource );
 	BOOL		RouteHits(CQueryHit* pHits, CPacket* pPacket);

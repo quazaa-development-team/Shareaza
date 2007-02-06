@@ -1094,8 +1094,10 @@ BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 		case G1_PACKET_PUSH:		return OnPush( pHost, pPacket );			// Push open a connection
 		case G1_PACKET_RUDP:		return OnRUDP( pHost, pPacket );				// Push open a connection
 		case G1_PACKET_QUERY:		return OnQuery( pHost, pPacket );			// Search query
-		case G1_PACKET_HIT:			return OnHit( pHost, pPacket );				// Hit, a search result
-		default:					return FALSE;
+		//case G1_PACKET_HIT:		return OnHit( pHost, pPacket );				// Hit, a search result
+		case G1_PACKET_HIT:			return OnCommonHit( pHost, pPacket );		// Hit, a search result
+		default:
+			break;
 	}
 	return FALSE;
 }
