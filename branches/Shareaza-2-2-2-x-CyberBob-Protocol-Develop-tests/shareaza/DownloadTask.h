@@ -35,6 +35,7 @@ class CDownloadTask : public CWinThread
 public:
 	CDownloadTask(CDownload* pDownload, int nTask);
 	CDownloadTask(CDownload* pDownload, const CString& strPreviewURL);
+	CDownloadTask(CDownload* pDownload, HANDLE hSelectedFile);
 	virtual ~CDownloadTask();
 
 	DECLARE_DYNAMIC(CDownloadTask)
@@ -55,10 +56,11 @@ public:
 	CHttpRequest m_pRequest;
 protected:
 	CEvent*		m_pEvent;
+	HANDLE		m_hSelectedFile;
 
 // Enumerations
 public:
-	enum { dtaskAllocate, dtaskCopySimple, dtaskCopyTorrent, dtaskPreviewRequest };
+	enum { dtaskAllocate, dtaskCopySimple, dtaskCopyTorrent, dtaskPreviewRequest, dtaskCheckHash, dtaskMergeFile };
 
 // Operations
 public:
@@ -68,6 +70,7 @@ protected:
 	void	RunAllocate();
 	void	RunCopySimple();
 	void	RunCopyTorrent();
+	void	RunMerge();
 	BOOL	CopyFile(HANDLE hSource, LPCTSTR pszTarget, QWORD nLength);
 	void	CreatePathForFile(const CString& strBase, const CString& strPath);
 private:

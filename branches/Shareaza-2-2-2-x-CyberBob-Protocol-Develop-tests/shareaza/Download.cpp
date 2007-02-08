@@ -512,6 +512,10 @@ void CDownload::OnTaskComplete(CDownloadTask* pTask)
 	{
 		OnPreviewRequestComplete( pTask );
 	}
+	else if ( pTask->m_nTask == CDownloadTask::dtaskMergeFile )
+	{
+		// Merge Complete.
+	}
 	else
 	{
 		OnMoved( pTask );
