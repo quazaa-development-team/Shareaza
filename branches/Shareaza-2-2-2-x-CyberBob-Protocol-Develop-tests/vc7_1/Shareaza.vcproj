@@ -2982,9 +2982,6 @@
 				RelativePath="..\shareaza\Res\File.ico">
 			</File>
 			<File
-				RelativePath="..\shareaza\Res\file1.bin">
-			</File>
-			<File
 				RelativePath="..\shareaza\Res\FileNotFound.htm">
 			</File>
 			<File
