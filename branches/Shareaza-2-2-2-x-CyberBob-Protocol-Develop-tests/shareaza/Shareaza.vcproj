@@ -3495,6 +3495,9 @@
 				RelativePath="Res\Default.xml">
 			</File>
 			<File
+				RelativePath="Res\DefaultServices.dat">
+			</File>
+			<File
 				RelativePath="Res\Definitions.xml">
 			</File>
 			<File
