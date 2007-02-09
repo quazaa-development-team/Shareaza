@@ -340,7 +340,7 @@ void CWizardConnectionPage::OnRun()
 		DiscoveryServices.CheckMinimumServices();
 
 		// It will check if it is needed inside the function
-		DiscoveryServices.Execute(TRUE, PROTOCOL_NULL);
+		for ( int i = 0; i < 3 && !DiscoveryServices.Execute(TRUE, PROTOCOL_NULL, FALSE); i++ );
 
 		nCurrentStep +=30;
 		m_wndProgress.PostMessage( PBM_SETPOS, nCurrentStep );
@@ -370,27 +370,7 @@ void CWizardConnectionPage::OnTimer(UINT_PTR nIDEvent)
 {
 	if ( nIDEvent != 1 ) return;
 
-	if ( m_hThread != NULL )
-	{
-        int nAttempt = 5;
-		for ( ; nAttempt > 0 ; nAttempt-- )
-		{
-			DWORD nCode;
-
-			if ( ! GetExitCodeThread( m_hThread, &nCode ) ) break;
-			if ( nCode != STILL_ACTIVE ) break;
-			Sleep( 100 );
-		}
-
-		if ( nAttempt == 0 )
-		{
-			TerminateThread( m_hThread, 0 );
-			theApp.Message( MSG_DEBUG, _T("WARNING: Terminating CWizardConnectionPage thread.") );
-			Sleep( 100 );
-		}
-
-		m_hThread = NULL;
-	}
+	CloseThread( &m_hThread, _T("CWizardConnectionPage"), 500 );
 
 	if ( theApp.m_bUPnPPortsForwarded != TS_TRUE && m_bUPnPForward )
 	{

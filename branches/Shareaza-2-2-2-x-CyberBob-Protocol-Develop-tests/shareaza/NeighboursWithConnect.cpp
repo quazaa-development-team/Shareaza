@@ -1415,11 +1415,11 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 					}
 				}
 				if ( m_nCount[ nProtocol ][ntHub] < nAttempt && !Settings.Discovery.DisableAutoQuery )
-					DiscoveryServices.Execute( TRUE, PROTOCOL_ED2K );
+					DiscoveryServices.Execute( TRUE, PROTOCOL_ED2K, TRUE );
 			}
 			else if ( pCache->GetOldest() == NULL && !Settings.Discovery.DisableAutoQuery )
 			{
-				DiscoveryServices.Execute( TRUE, PROTOCOL_ED2K );
+				DiscoveryServices.Execute( TRUE, PROTOCOL_ED2K, TRUE );
 			}
 		}
 		else if ( nProtocol == PROTOCOL_G2 )
@@ -1496,7 +1496,7 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 				}
 			}
 			if ( m_nCount[ nProtocol ][ntNull] < nAttempt && !Settings.Discovery.DisableAutoQuery )
-				DiscoveryServices.Execute( TRUE, PROTOCOL_G2 );
+				DiscoveryServices.Execute( TRUE, PROTOCOL_G2, TRUE );
 		}
 		else if ( nProtocol == PROTOCOL_G1 )
 		{
@@ -1574,7 +1574,7 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 				}
 			}
 			if ( m_nCount[ nProtocol ][ntNull] < nAttempt && !Settings.Discovery.DisableAutoQuery )
-				DiscoveryServices.Execute( TRUE, PROTOCOL_G1 );
+				DiscoveryServices.Execute( TRUE, PROTOCOL_G1, TRUE );
 		}
 /*
 		// If network autoconnet is on (do)

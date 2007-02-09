@@ -26,6 +26,7 @@
 #include "Plugins.h"
 #include "Library.h"
 #include "SharedFile.h"
+#include "Registry.h"
 
 #include "Skin.h"
 #include "ShellIcons.h"
@@ -126,7 +127,7 @@ CMediaFrame* CMediaFrame::g_pMediaFrame = NULL;
 CMediaFrame::CMediaFrame()
 {
 	if ( g_pMediaFrame == NULL ) g_pMediaFrame = this;
-	
+
 	m_pPlayer		= NULL;
 	m_nState		= smsNull;
 	m_bMute			= FALSE;
@@ -138,7 +139,7 @@ CMediaFrame::CMediaFrame()
 	m_bEnqueue		= FALSE;
 	m_tLastPlay		= 0;
 	m_tMetadata		= 0;
-	
+
 	m_bFullScreen		= FALSE;
 	m_bListWasVisible   = Settings.MediaPlayer.ListVisible;
 	m_bListVisible		= Settings.MediaPlayer.ListVisible;
@@ -152,10 +153,14 @@ CMediaFrame::CMediaFrame()
 	m_nScreenSaverTime = 0;
 	ZeroMemory( &m_CurrentGP, sizeof(GLOBAL_POWER_POLICY) );
 	ZeroMemory( &m_CurrentPP, sizeof(POWER_POLICY) );
+
+	UpdateNowPlaying(TRUE);
 }
 
 CMediaFrame::~CMediaFrame()
 {
+	UpdateNowPlaying(TRUE);
+
 	if ( g_pMediaFrame == this ) g_pMediaFrame = NULL;
 }
 
@@ -1171,6 +1176,8 @@ void CMediaFrame::OnMediaPlay()
 		if ( m_pPlayer != NULL ) m_pPlayer->Play();
 		UpdateState();
 	}
+
+	UpdateNowPlaying();
 }
 
 void CMediaFrame::OnUpdateMediaPause(CCmdUI* pCmdUI) 
@@ -1187,6 +1194,8 @@ void CMediaFrame::OnMediaPause()
 	if ( m_pPlayer ) m_pPlayer->Pause();
 	UpdateState();
 	if ( ! m_bScreenSaverEnabled ) EnableScreenSaver();
+
+	UpdateNowPlaying(TRUE);
 }
 
 void CMediaFrame::OnUpdateMediaStop(CCmdUI* pCmdUI) 
@@ -1200,6 +1209,8 @@ void CMediaFrame::OnMediaStop()
 	m_bStopFlag = TRUE;
 	m_wndList.Reset();
 	EnableScreenSaver();
+
+	UpdateNowPlaying(TRUE);
 }
 
 void CMediaFrame::OnUpdateMediaFullScreen(CCmdUI* pCmdUI) 
@@ -1544,7 +1555,7 @@ BOOL CMediaFrame::PrepareVis()
 BOOL CMediaFrame::OpenFile(LPCTSTR pszFile)
 {
 	if ( ! Prepare() ) return FALSE;
-	
+
 	if ( m_sFile == pszFile )
 	{
 		m_pPlayer->Stop();
@@ -1612,7 +1623,7 @@ BOOL CMediaFrame::OpenFile(LPCTSTR pszFile)
 		LoadString( strMessage, IDS_MEDIA_PARTIAL_RENDER );
 		m_pMetadata.Add( _T("Warning"), strMessage );
 	}
-	
+
 	return TRUE;
 }
 
@@ -1630,6 +1641,7 @@ HRESULT CMediaFrame::PluginPlay(BSTR bsFilePath)
 		Cleanup(); 
 		return EXCEPTION_CONTINUE_EXECUTION;
 	}
+
 	return hr;
 }
 
@@ -1764,7 +1776,7 @@ void CMediaFrame::OnNewCurrent(NMHDR* /*pNotify*/, LRESULT* pResult)
 			if ( ! m_bRepeat && m_bLastNotPlayed && ! m_bLastMedia )
 			{
 				if ( m_nState != smsPlaying )
-                	bPlayIt = FALSE;
+					bPlayIt = FALSE;
 				else // New file was clicked, clear the flag
 					m_bLastNotPlayed = FALSE;
 			}
@@ -1820,6 +1832,8 @@ void CMediaFrame::OnNewCurrent(NMHDR* /*pNotify*/, LRESULT* pResult)
 		Cleanup();
 
 	*pResult = 0;
+
+	UpdateNowPlaying();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1890,4 +1904,40 @@ void CMediaFrame::UpdateScreenSaverStatus(BOOL bWindowActive)
 		if ( ! m_bScreenSaverEnabled ) 
 			EnableScreenSaver();
 	}
+}
+
+CString CMediaFrame::GetNowPlaying()
+{
+	return m_sNowPlaying;
+}
+
+void CMediaFrame::UpdateNowPlaying(BOOL bEmpty)
+{
+	if(bEmpty)
+		m_sNowPlaying = _T("");
+	else
+	{
+		m_sNowPlaying = m_sFile;
+
+		// Strip path
+		LPCTSTR pszFileName = _tcsrchr( m_sNowPlaying, '\\' );
+		if ( pszFileName )
+		{
+			int nFileNameLen = static_cast< int >( _tcslen( pszFileName ) );
+			m_sNowPlaying = m_sNowPlaying.Right( nFileNameLen - 1 );
+		}
+
+		// Strip extension
+		LPCTSTR pszExt = _tcsrchr( m_sNowPlaying, '.' );
+		if ( pszExt )
+		{
+			int nFileNameLen = static_cast< int >( pszExt - m_sNowPlaying );
+			m_sNowPlaying = m_sNowPlaying.Left( nFileNameLen );
+		}
+	}
+
+	CRegistry pRegistry;
+	pRegistry.SetString( _T("MediaPlayer"), _T("NowPlaying"), m_sNowPlaying );
+
+	//Plugins.OnEvent(EVENT_CHANGEDSONG);	// ToDO: Maybe plug-ins can be alerted in some way
 }

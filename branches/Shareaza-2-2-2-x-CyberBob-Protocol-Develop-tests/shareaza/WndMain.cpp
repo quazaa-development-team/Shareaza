@@ -1612,7 +1612,7 @@ void CMainWnd::OnNetworkG2()
 			Settings.eDonkey.EnableToday = FALSE;
 			Network.Connect( TRUE );
 		}
-		DiscoveryServices.Execute( FALSE, PROTOCOL_G2 );
+		DiscoveryServices.Execute( FALSE, PROTOCOL_G2, FALSE );
 	}
 }
 
@@ -1646,7 +1646,7 @@ void CMainWnd::OnNetworkG1()
 			Settings.eDonkey.EnableToday = FALSE;
 			Network.Connect( TRUE );
 		}
-		DiscoveryServices.Execute( FALSE, PROTOCOL_G1 );
+		DiscoveryServices.Execute( FALSE, PROTOCOL_G1, FALSE );
 	}
 }
 
@@ -1680,7 +1680,7 @@ void CMainWnd::OnNetworkED2K()
 			Settings.eDonkey.EnableToday = TRUE;
 			Network.Connect( TRUE );
 		}
-		DiscoveryServices.Execute( FALSE, PROTOCOL_ED2K );
+		DiscoveryServices.Execute( FALSE, PROTOCOL_ED2K, FALSE );
 	}
 }
 

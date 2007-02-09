@@ -822,7 +822,6 @@ BOOL CBTInfo::LoadTorrentTree(CBENode* pRoot)
 			else if ( m_oDataSHA1 )
 			{
 				m_pFiles[0].m_oSHA1 = m_oDataSHA1;
-
 			}
 			if ( m_pFiles[0].m_oED2K )
 			{

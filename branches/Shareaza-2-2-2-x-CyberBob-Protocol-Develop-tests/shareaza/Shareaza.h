@@ -180,7 +180,7 @@ protected:
 
 	void				GetVersionNumber();
 	void				InitResources();
-	void				SplashStep(CSplashDlg*& dlg, LPCTSTR pszMessage);
+	void				SplashStep(CSplashDlg*& dlg, LPCTSTR pszMessage, bool bClosing = false);
 
 	DECLARE_MESSAGE_MAP()
 };
@@ -208,6 +208,8 @@ CString	TimeToString(FILETIME* pTime);
 void	RecalcDropWidth(CComboBox* pWnd);
 HICON	CreateMirroredIcon(HICON hIconOrig);
 HBITMAP	CreateMirroredBitmap(HBITMAP hbmOrig);
+
+void CloseThread(HANDLE* phThread, LPCTSTR pszName, DWORD dwTimeout = 5000);
 
 #ifdef _DEBUG
 #define MLOG(x) theApp.Message( MSG_DEBUG, x )

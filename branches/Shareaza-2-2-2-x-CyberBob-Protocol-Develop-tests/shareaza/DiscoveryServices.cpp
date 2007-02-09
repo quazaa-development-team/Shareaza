@@ -348,6 +348,11 @@ DWORD CDiscoveryServices::MetQueried() const
 	return m_tMetQueried;
 }
 
+DWORD CDiscoveryServices::LastExecute() const
+{
+	return m_tExecute;
+}
+
 CDiscoveryService* CDiscoveryServices::GetByAddress(LPCTSTR pszAddress) const
 {
 	for ( POSITION pos = GetIterator() ; pos ; )
@@ -717,7 +722,7 @@ BOOL CDiscoveryServices::Update()
 // You should never query server.met files, because of the load it would create.
 // This is public, and will be called quite regularly.
 
-BOOL CDiscoveryServices::Execute(BOOL bDiscovery, PROTOCOLID nProtocol)
+BOOL CDiscoveryServices::Execute(BOOL bDiscovery, PROTOCOLID nProtocol, BOOL bForceDiscovery)
 {
 	/*
 		bDiscovery:
@@ -735,19 +740,19 @@ BOOL CDiscoveryServices::Execute(BOOL bDiscovery, PROTOCOLID nProtocol)
 
 	CSingleLock pLock( &Network.m_pSection );
 	if ( ! pLock.Lock( 250 ) ) return FALSE;
-	DWORD tNow = static_cast< DWORD >( time( NULL ) );
+	DWORD tNow = static_cast< DWORD >( time( NULL ) );	// The time (in seconds) 
 
 	if ( bDiscovery ) // If this is a user-initiated manual query, or AutoStart with Cache empty
 	{
 		if ( m_hInternet ) return FALSE;
-		if ( tNow - m_tExecute < 10 ) return FALSE;
+		if ( m_tExecute != 0 && tNow - m_tExecute < 10 ) return FALSE;
+		if ( m_tQueried != 0 && tNow - m_tQueried < 60 && !bForceDiscovery ) return FALSE;
+		if ( bForceDiscovery && nProtocol == PROTOCOL_NULL ) return FALSE;
 
 		m_tExecute = tNow;
-		DWORD	nG1Hosts = HostCache.Gnutella1.CountHosts(TRUE);
-		DWORD	nG2Hosts = HostCache.Gnutella2.CountHosts(TRUE);
-		BOOL	bG1Required = Settings.Gnutella1.EnableToday && !( nG1Hosts > 0 ) && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_G1);
-		BOOL	bG2Required = Settings.Gnutella2.EnableToday && !( nG2Hosts > 0 ) && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_G2);
-		BOOL	bEdRequired = Settings.eDonkey.EnableToday && !HostCache.eDonkey.EnoughED2KServers() && Settings.eDonkey.MetAutoQuery && ( m_tMetQueried == 0 || tNow - m_tQueried >= 60 ) && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_ED2K );
+		BOOL	bG1Required = Settings.Gnutella1.EnableToday && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_G1) && ( bForceDiscovery || HostCache.Gnutella1.CountHosts(TRUE) == 0 );
+		BOOL	bG2Required = Settings.Gnutella2.EnableToday && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_G2) && ( bForceDiscovery || HostCache.Gnutella2.CountHosts(TRUE) == 0 );
+		BOOL	bEdRequired = Settings.eDonkey.EnableToday && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_ED2K ) && Settings.eDonkey.MetAutoQuery && ( m_tMetQueried == 0 || tNow - m_tMetQueried >= 60 * 60 ) && ( bForceDiscovery || !HostCache.eDonkey.EnoughED2KServers() );
 
 		if ( nProtocol == PROTOCOL_NULL )					// G1 + G2 + Ed hosts are wanted
 		{
@@ -759,24 +764,25 @@ BOOL CDiscoveryServices::Execute(BOOL bDiscovery, PROTOCOLID nProtocol)
 				bOK = bOK && RequestRandomService( PROTOCOL_G2 );
 			if ( bEdRequired )
 			{
-				m_tMetQueried = tNow;					// Execute this once only or when the number of eDonkey servers is too low (Very important).
+				m_tMetQueried = tNow;	// Execute this maximum one time each 60 min only when the number of eDonkey servers is too low (Very important).
 				bOK = bOK && RequestRandomService( PROTOCOL_ED2K );
 			}
 
-			if ( bOK ) return TRUE;
+			return bOK;
 		}
-		else if ( bG1Required && RequestRandomService( PROTOCOL_G1 ) )		// Only G1
+		else if ( bG1Required && RequestRandomService( PROTOCOL_G1 ) )	// Only G1
 			return TRUE;
-		else if ( bG2Required && RequestRandomService( PROTOCOL_G2 ) )		// Only G2
+		else if ( bG2Required && RequestRandomService( PROTOCOL_G2 ) )	// Only G2
 			return TRUE;
-		else if ( bEdRequired && RequestRandomService( PROTOCOL_ED2K ) )	// Only Ed
+		else if ( bEdRequired )											// Only Ed
 		// Note: Do not enable MetAutoQuery until we have a MET file set up!
 		if ( Settings.eDonkey.EnableToday && ( Settings.eDonkey.MetAutoQuery ||
 			 HostCache.eDonkey.CountHosts(FALSE) < 3 || m_tMetQueried == 0 ) &&
 			 ( nProtocol == PROTOCOL_ED2K || nProtocol == PROTOCOL_NULL ) )
 		{
-			m_tMetQueried = tNow;						// Execute this once only or when the number of eDonkey servers is too low (Very important).
-			return TRUE;
+			m_tMetQueried = tNow;		// Execute this maximum one time each 60 min only when the number of eDonkey servers is too low (Very important).
+			if ( RequestRandomService( PROTOCOL_ED2K ) )
+				return TRUE;
 		}
 	}
 	else
@@ -1130,27 +1136,8 @@ void CDiscoveryServices::StopWebRequest()
 {
 	if ( m_hInternet ) InternetCloseHandle( m_hInternet );
 	m_hInternet = NULL;
-	
-	if ( m_hThread == NULL ) return;
-	
-    int nAttempt = 10;
-	for ( ; nAttempt > 0 ; nAttempt-- )
-	{
-		DWORD nCode;
 
-		if ( ! GetExitCodeThread( m_hThread, &nCode ) ) break;
-		if ( nCode != STILL_ACTIVE ) break;
-		Sleep( 100 );
-	}
-
-	if ( nAttempt == 0 )
-	{
-		TerminateThread( m_hThread, 0 );
-		theApp.Message( MSG_DEBUG, _T("WARNING: Terminating CDiscoveryServices thread.") );
-		Sleep( 100 );
-	}
-
-	m_hThread = NULL;
+	CloseThread( &m_hThread, _T("CDiscoveryServices") );
 }
 
 //////////////////////////////////////////////////////////////////////

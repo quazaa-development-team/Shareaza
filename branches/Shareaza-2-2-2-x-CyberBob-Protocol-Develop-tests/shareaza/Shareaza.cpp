@@ -495,6 +495,30 @@ BOOL CShareazaApp::InitInstance()
 	if ( Settings.General.GUIMode != GUI_WINDOWED && Settings.General.GUIMode != GUI_TABBED && Settings.General.GUIMode != GUI_BASIC )
 		Settings.General.GUIMode = GUI_BASIC;
 
+	SplashStep( dlgSplash, L"P2P URIs" );
+		CShareazaURL::Register( TRUE );
+	SplashStep( dlgSplash, L"Shell Icons" );
+		ShellIcons.Clear();
+	SplashStep( dlgSplash, L"Metadata Schemas" );
+		SchemaCache.Load();
+	SplashStep( dlgSplash, L"Vendor Data" );
+		VendorCache.Load();
+	SplashStep( dlgSplash, L"Profile" );
+		MyProfile.Load();
+	SplashStep( dlgSplash, L"Query Manager" );
+		QueryHashMaster.Create();
+	SplashStep( dlgSplash, L"Host Cache" );
+		HostCache.Load();
+	SplashStep( dlgSplash, L"Discovery Services" );
+		DiscoveryServices.Load();
+	SplashStep( dlgSplash, L"Security Services" );
+		Security.Load();
+		AdultFilter.Load();
+		MessageFilter.Load();
+	SplashStep( dlgSplash, L"Scheduler" );
+		Schedule.Load();
+	SplashStep( dlgSplash, L"Rich Documents" );
+		Emoticons.Load();
 	SplashStep( dlgSplash, L"Firewall/Router Setup" );
 	{
 		CFirewall firewall;
@@ -521,31 +545,6 @@ BOOL CShareazaApp::InitInstance()
 		catch ( CUPnPFinder::UPnPError& ) {}
 		catch ( CException* e ) { e->Delete(); }
 	}
-
-	SplashStep( dlgSplash, L"P2P URIs" );
-		CShareazaURL::Register( TRUE );
-	SplashStep( dlgSplash, L"Shell Icons" );
-		ShellIcons.Clear();
-	SplashStep( dlgSplash, L"Metadata Schemas" );
-		SchemaCache.Load();
-	SplashStep( dlgSplash, L"Vendor Data" );
-		VendorCache.Load();
-	SplashStep( dlgSplash, L"Profile" );
-		MyProfile.Load();
-	SplashStep( dlgSplash, L"Query Manager" );
-		QueryHashMaster.Create();
-	SplashStep( dlgSplash, L"Host Cache" );
-		HostCache.Load();
-	SplashStep( dlgSplash, L"Discovery Services" );
-		DiscoveryServices.Load();
-	SplashStep( dlgSplash, L"Security Services" );
-		Security.Load();
-		AdultFilter.Load();
-		MessageFilter.Load();
-	SplashStep( dlgSplash, L"Scheduler" );
-		Schedule.Load();
-	SplashStep( dlgSplash, L"Rich Documents" );
-		Emoticons.Load();
 	SplashStep( dlgSplash, L"GUI" );
 		if ( m_ocmdInfo.m_bSilentTray ) WriteProfileInt( _T("Windows"), _T("CMainWnd.ShowCmd"), 0 );
 		m_pMainWnd = new CMainWnd();
@@ -586,12 +585,12 @@ BOOL CShareazaApp::InitInstance()
 	return TRUE;
 }
 
-void CShareazaApp::SplashStep(CSplashDlg*& dlg, LPCTSTR pszMessage)
+void CShareazaApp::SplashStep(CSplashDlg*& dlg, LPCTSTR pszMessage, bool bClosing)
 {
 	if ( m_ocmdInfo.m_bNoSplash ) return;
 	if ( dlg == NULL )
 		dlg = new CSplashDlg( 19, m_ocmdInfo.m_bSilentTray );
-	dlg->Step( pszMessage );
+	dlg->Step( pszMessage, bClosing );
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -605,19 +604,24 @@ int CShareazaApp::ExitInstance()
 	CITMQueue::DisableITM( &Transfers.m_pMessageQueue );
 	CITMQueue::DisableITM( &Network.m_pMessageQueue );
 
+	CSplashDlg* dlgSplash = NULL;
+	SplashStep( dlgSplash, L"Closing Server Processes", true );
 	DDEServer.Close();
 	IEProtocol.Close();
+	SplashStep( dlgSplash, L"Disconnecting", true );
 	VersionChecker.Stop();
 	DiscoveryServices.Stop();
 	Network.Disconnect();
+	SplashStep( dlgSplash, L"Stopping Library Tasks", true );
 	Library.StopThread();
-	
+	SplashStep( dlgSplash, L"Stopping Transfers", true );	
 	Transfers.StopThread();
 	Downloads.CloseTransfers();
+	SplashStep( dlgSplash, L"Clearing Clients", true );	
 	Uploads.Clear( FALSE );
 	EDClients.Clear();
 	BTClients.Clear();
-
+	SplashStep( dlgSplash, L"Closing Firewall/Router Access", true );	
 	{
 		CFirewall firewall;
 		if ( Settings.Connection.DeleteFirewallException && firewall.AccessWindowsFirewall() )
@@ -639,6 +643,7 @@ int CShareazaApp::ExitInstance()
 
 	if ( m_bLive )
 	{
+		SplashStep( dlgSplash, L"Saving", true );
 		Downloads.Save();
 		DownloadGroups.Save();
 		Library.Save();
@@ -647,7 +652,7 @@ int CShareazaApp::ExitInstance()
 		UploadQueues.Save();
 		DiscoveryServices.Save();
 	}
-	
+	SplashStep( dlgSplash, L"Finalizing", true );
 	Downloads.Clear( TRUE );
 	Library.Clear();
 	Skin.Clear();
@@ -661,7 +666,8 @@ int CShareazaApp::ExitInstance()
 	if ( m_hGDI32 != NULL ) FreeLibrary( m_hGDI32 );
 
 	if ( m_hPowrProf != NULL ) FreeLibrary( m_hPowrProf );
-
+	if ( dlgSplash )
+		dlgSplash->Hide();
 	if ( m_pMutex != NULL ) CloseHandle( m_pMutex );
 
 	return CWinApp::ExitInstance();
@@ -1661,4 +1667,22 @@ HBITMAP CreateMirroredBitmap(HBITMAP hbmOrig)
 		ReleaseDC( NULL, hdc );
 	}
 	return hbm;
+}
+
+void CloseThread(HANDLE* phThread, LPCTSTR pszName, DWORD dwTimeout)
+{
+	if ( *phThread )
+	{
+		if ( WaitForSingleObject( *phThread, dwTimeout ) == WAIT_TIMEOUT )
+		{
+			TerminateThread( *phThread, 0 );
+			CloseHandle( *phThread );
+			if ( pszName )
+			{
+				theApp.Message( MSG_DEBUG,
+					_T("WARNING: Terminating %s thread."), pszName );
+			}
+		}
+		*phThread = NULL;
+	}
 }
