@@ -2021,25 +2021,29 @@
 							Name="Debug|Win32">
 							<Tool
 								Name="VCCLCompilerTool"
-								UsePrecompiledHeader="0"/>
+								UsePrecompiledHeader="3"
+								PrecompiledHeaderThrough="..\StdAfx.h"/>
 						</FileConfiguration>
 						<FileConfiguration
 							Name="Release|Win32">
 							<Tool
 								Name="VCCLCompilerTool"
-								UsePrecompiledHeader="0"/>
+								UsePrecompiledHeader="3"
+								PrecompiledHeaderThrough="..\StdAfx.h"/>
 						</FileConfiguration>
 						<FileConfiguration
 							Name="Debug x64|Win32">
 							<Tool
 								Name="VCCLCompilerTool"
-								UsePrecompiledHeader="0"/>
+								UsePrecompiledHeader="3"
+								PrecompiledHeaderThrough="..\StdAfx.h"/>
 						</FileConfiguration>
 						<FileConfiguration
 							Name="Release x64|Win32">
 							<Tool
 								Name="VCCLCompilerTool"
-								UsePrecompiledHeader="0"/>
+								UsePrecompiledHeader="3"
+								PrecompiledHeaderThrough="..\StdAfx.h"/>
 						</FileConfiguration>
 					</File>
 					<File
@@ -2048,25 +2052,29 @@
 							Name="Debug|Win32">
 							<Tool
 								Name="VCCLCompilerTool"
-								UsePrecompiledHeader="0"/>
+								UsePrecompiledHeader="3"
+								PrecompiledHeaderThrough="..\StdAfx.h"/>
 						</FileConfiguration>
 						<FileConfiguration
 							Name="Release|Win32">
 							<Tool
 								Name="VCCLCompilerTool"
-								UsePrecompiledHeader="0"/>
+								UsePrecompiledHeader="3"
+								PrecompiledHeaderThrough="..\StdAfx.h"/>
 						</FileConfiguration>
 						<FileConfiguration
 							Name="Debug x64|Win32">
 							<Tool
 								Name="VCCLCompilerTool"
-								UsePrecompiledHeader="0"/>
+								UsePrecompiledHeader="3"
+								PrecompiledHeaderThrough="..\StdAfx.h"/>
 						</FileConfiguration>
 						<FileConfiguration
 							Name="Release x64|Win32">
 							<Tool
 								Name="VCCLCompilerTool"
-								UsePrecompiledHeader="0"/>
+								UsePrecompiledHeader="3"
+								PrecompiledHeaderThrough="..\StdAfx.h"/>
 						</FileConfiguration>
 					</File>
 				</Filter>
