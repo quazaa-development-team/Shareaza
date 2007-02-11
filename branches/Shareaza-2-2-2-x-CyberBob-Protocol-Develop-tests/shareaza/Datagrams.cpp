@@ -1537,14 +1537,14 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 			}
 			else
 			{
-				theApp.Message( MSG_ERROR, _T("Gnutella UHC reply from non-queried node %s (Ignored)"), (LPCTSTR)inet_ntoa( pHost->sin_addr ) );
+				theApp.Message( MSG_ERROR, _T("Gnutella UHC reply from non-queried node %s (Ignored)"), CString( (LPCSTR)inet_ntoa( pHost->sin_addr ) ) );
 				Statistics.Current.Gnutella1.Dropped++;
 			}
 		}
 		else
 		{
 			// It's not, drop the packet, but stay connected
-			theApp.Message( MSG_ERROR, IDS_PROTOCOL_GGEP_REQUIRED, (LPCTSTR)inet_ntoa( pHost->sin_addr ) );
+			theApp.Message( MSG_ERROR, IDS_PROTOCOL_GGEP_REQUIRED, CString( (LPCTSTR)inet_ntoa( pHost->sin_addr ) ) );
 			Statistics.Current.Gnutella1.Dropped++;
 		}
 	}

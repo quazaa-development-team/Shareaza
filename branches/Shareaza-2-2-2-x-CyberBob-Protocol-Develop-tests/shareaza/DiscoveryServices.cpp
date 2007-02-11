@@ -784,6 +784,8 @@ BOOL CDiscoveryServices::Execute(BOOL bDiscovery, PROTOCOLID nProtocol, BOOL bFo
 			if ( RequestRandomService( PROTOCOL_ED2K ) )
 				return TRUE;
 		}
+		else
+			return TRUE;
 	}
 	else
 	{

@@ -78,7 +78,8 @@ protected:
 	DWORD			m_tAverageTime;
 	int				m_nAveragePos;
 	DWORD			m_nAverageRate[ULA_SLOTS];
-	DWORD			m_tRatingTime;		//	When rating was last calculated
+	DWORD			m_nMaxRate;			// Maximum average speed we got
+	DWORD			m_tRatingTime;		// When rating was last calculated
 	
 // Operations
 public:
@@ -87,9 +88,10 @@ public:
 	virtual BOOL	Promote();
 	virtual BOOL	OnRename(LPCTSTR pszSource, LPCTSTR pszTarget);
 public:
-	virtual float	GetProgress();
+	virtual float	GetProgress() const;
 	virtual DWORD	GetAverageSpeed();
 	virtual DWORD	GetMeasuredSpeed();
+	virtual DWORD	GetMaxSpeed() const;
 	virtual void	SetSpeedLimit(DWORD nLimit);
 protected:
 	virtual BOOL	OnRun();

@@ -57,6 +57,16 @@ CDownloadBase::~CDownloadBase()
 }
 
 //////////////////////////////////////////////////////////////////////
+
+BOOL CDownloadBase::SetNewTask(CDownloadTask* pTask)
+{
+	if ( IsTasking() || pTask == NULL ) return FALSE;
+
+	m_pTask = pTask;
+	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
 // CDownloadBase modified
 
 void CDownloadBase::SetModified()

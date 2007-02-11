@@ -72,7 +72,8 @@ CUploadTransfer::CUploadTransfer(PROTOCOLID nProtocol) :
 	m_tRotateTime( 0 ),
 	m_tAverageTime( 0 ),
 	m_nAveragePos( 0 ),
-	m_tRatingTime( 0 )
+	m_tRatingTime( 0 ),
+	m_nMaxRate( 0 )
 {
 	ZeroMemory( m_nAverageRate, sizeof( m_nAverageRate ) );
 
@@ -169,7 +170,7 @@ BOOL CUploadTransfer::OnRename(LPCTSTR pszSource, LPCTSTR pszTarget)
 //////////////////////////////////////////////////////////////////////
 // CUploadTransfer statistics
 
-float CUploadTransfer::GetProgress()
+float CUploadTransfer::GetProgress() const
 {
 	if ( m_nState != upsUploading || m_nLength == 0 || m_nLength == SIZE_UNKNOWN ) return 0;
 	return (float)m_nPosition / (float)m_nLength;
@@ -180,6 +181,11 @@ DWORD CUploadTransfer::GetAverageSpeed()
 	if ( m_nState != upsUploading || m_nLength == 0 || m_nLength == SIZE_UNKNOWN ) return GetMeasuredSpeed();
 	DWORD nTime = ( GetTickCount() - m_tContent ) / 1000;
 	return nTime ? (DWORD)( m_nPosition / nTime ) : 0;
+}
+
+DWORD CUploadTransfer::GetMaxSpeed() const
+{
+	return m_nMaxRate;
 }
 
 DWORD CUploadTransfer::GetMeasuredSpeed()
@@ -277,6 +283,7 @@ void CUploadTransfer::LongTermAverage(DWORD tNow)
 	if ( m_nState != upsUploading || m_nLength == 0 || m_nLength == SIZE_UNKNOWN ) return;
 
 	DWORD nSpeed = GetMeasuredSpeed();
+	m_nMaxRate = max( m_nMaxRate, nSpeed );
 
 	if ( Settings.Live.BandwidthScale < 100 )
 	{
@@ -307,6 +314,22 @@ void CUploadTransfer::LongTermAverage(DWORD tNow)
 		DWORD nOld = m_nBandwidth;	// Save
 
 		m_nBandwidth = min( nAverage, m_nBandwidth );
+
+		theApp.Message( MSG_DEBUG, _T("Changing upload throttle on %s from %s to %s"),
+			(LPCTSTR)m_sAddress,
+			(LPCTSTR)Settings.SmartVolume( nOld * 8, FALSE, TRUE ),
+			(LPCTSTR)Settings.SmartVolume( m_nBandwidth * 8, FALSE, TRUE ) );
+	}
+	else if ( m_pQueue->GetAvailableBandwidth() )
+	{
+		DWORD nOld = m_nBandwidth;	// Save
+		ZeroMemory( m_nAverageRate, sizeof( m_nAverageRate ) );
+
+		DWORD nIncrease = m_pQueue->GetAvailableBandwidth() / ( m_pQueue->GetTransferCount() + 1 );
+		if ( nIncrease + m_nBandwidth < m_nMaxRate )
+			m_nBandwidth += nIncrease;
+		else
+			m_nBandwidth = m_nMaxRate;
 
 		theApp.Message( MSG_DEBUG, _T("Changing upload throttle on %s from %s to %s"),
 			(LPCTSTR)m_sAddress,
