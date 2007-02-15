@@ -283,6 +283,12 @@ BOOL CDatagrams::Send(SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease, LPVOI
 
 	if ( pPacket->m_nProtocol == PROTOCOL_ED2K )
 	{
+		if ( !Settings.IsEdAllowed() )
+		{
+			if ( bRelease ) pPacket->Release();
+			return FALSE;
+		}
+
 		CBuffer pBuffer;
 
 		((CEDPacket*)pPacket)->ToBufferUDP( &pBuffer );
@@ -301,6 +307,12 @@ BOOL CDatagrams::Send(SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease, LPVOI
 	else if ( pPacket->m_nProtocol == PROTOCOL_G1 )
 	{
 		// Quick hack
+		if ( !Settings.IsG1Allowed() )
+		{
+			if ( bRelease ) pPacket->Release();
+			return FALSE;
+		}
+
 		CBuffer pBuffer;
 
 		((CG1Packet*)pPacket)->ToBuffer( &pBuffer );
@@ -316,6 +328,12 @@ BOOL CDatagrams::Send(SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease, LPVOI
 	}
 	else if ( pPacket->m_nProtocol == PROTOCOL_G2 )
 	{
+		if ( !Settings.IsG2Allowed() )
+		{
+			if ( bRelease ) pPacket->Release();
+			return FALSE;
+		}
+
 		if ( m_pOutputFree == NULL || m_pBufferFree == NULL )
 		{
 			if ( m_pOutputLast == NULL )
@@ -761,8 +779,8 @@ BOOL CDatagrams::OnDatagram(SOCKADDR_IN* pHost, BYTE* pBuffer, DWORD nLength)
 {
 	GNUTELLAPACKET* pG1UDP = (GNUTELLAPACKET*)pBuffer;
 	
-	// if it is Gnutella UDP packet, packet size is 23 bytes or bigger.
-	if ( nLength >= sizeof(GNUTELLAPACKET)
+	if ( Settings.IsG1Allowed() &&
+		nLength >= sizeof(GNUTELLAPACKET)	// if it is Gnutella UDP packet, packet size is 23 bytes or bigger.
 		// if it is Gnutella packet, packet header size + payload length written in length field = UDP packet size
 		&& ( sizeof(GNUTELLAPACKET) + pG1UDP->m_nLength ) == nLength )
 	{
@@ -808,11 +826,12 @@ BOOL CDatagrams::OnDatagram(SOCKADDR_IN* pHost, BYTE* pBuffer, DWORD nLength)
 
 	ED2K_UDP_HEADER* pMULE = (ED2K_UDP_HEADER*)pBuffer;
 
-	if ( nLength > sizeof(*pMULE) && (
-		 pMULE->nProtocol == ED2K_PROTOCOL_EDONKEY ||
-		 pMULE->nProtocol == ED2K_PROTOCOL_EMULE ||
-		 pMULE->nProtocol == ED2K_PROTOCOL_PACKED ) &&
-		 Security.IsAccepted( &(pHost->sin_addr) ) )
+	if ( Settings.IsEdAllowed() &&
+		nLength > sizeof(*pMULE) && (
+		pMULE->nProtocol == ED2K_PROTOCOL_EDONKEY ||
+		pMULE->nProtocol == ED2K_PROTOCOL_EMULE ||
+		pMULE->nProtocol == ED2K_PROTOCOL_PACKED ) &&
+		Security.IsAccepted( &(pHost->sin_addr) ) )
 	{
 		CEDPacket* pPacket = CEDPacket::New( pMULE, nLength );
 
@@ -825,7 +844,6 @@ BOOL CDatagrams::OnDatagram(SOCKADDR_IN* pHost, BYTE* pBuffer, DWORD nLength)
 		}
 		else
 		{
-			pPacket->Release();
 			if ( TRUE /* should put setting define if the packet should go through all packet handlers or not */) return TRUE;
 		}
 
@@ -833,7 +851,9 @@ BOOL CDatagrams::OnDatagram(SOCKADDR_IN* pHost, BYTE* pBuffer, DWORD nLength)
 
 	SGP_HEADER* pSGP = (SGP_HEADER*)pBuffer;
 
-	if ( nLength >= sizeof(*pSGP) && strncmp( pSGP->szTag, SGP_TAG_2, 3 ) == 0 )
+	if ( Settings.IsG2Allowed() &&
+		nLength >= sizeof(*pSGP) &&
+		strncmp( pSGP->szTag, SGP_TAG_2, 3 ) == 0 )
 	{
 		if ( pSGP->nPart == 0 ) return FALSE;
 		if ( pSGP->nCount && pSGP->nPart > pSGP->nCount ) return FALSE;
