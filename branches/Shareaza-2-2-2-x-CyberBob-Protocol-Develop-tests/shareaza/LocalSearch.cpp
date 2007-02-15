@@ -587,7 +587,7 @@ int CLocalSearch::ExecutePartialFiles(INT_PTR nMaximum)
 	ASSERT( m_pSearch != NULL );
 	
 	if ( !m_pSearch->m_oTiger && !m_pSearch->m_oSHA1 &&
-		 !m_pSearch->m_oED2K && !m_pSearch->m_oBTH ) return 0;
+		 !m_pSearch->m_oED2K && !m_pSearch->m_oMD5 && !m_pSearch->m_oBTH ) return 0;
 	
 	CSingleLock pLock( &Transfers.m_pSection );
 	if ( ! pLock.Lock( 50 ) ) return 0;
