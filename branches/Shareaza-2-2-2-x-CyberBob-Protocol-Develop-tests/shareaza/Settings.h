@@ -526,6 +526,7 @@ public:
 	struct sExperimental
 	{
 		BOOL		EnableDIPPSupport;			// Handle GDNA host cache exchange
+		BOOL		LoadDownloadsAsPaused;
 	} Experimental;
 
 // Attributes : Item List

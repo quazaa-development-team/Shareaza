@@ -451,6 +451,7 @@ void CSettings::Setup()
 	Add( _T("Scheduler.AllowHub"), &Scheduler.AllowHub, TRUE );
 
 	Add( _T("Experimental.EnableDIPPSupport"), &Experimental.EnableDIPPSupport, FALSE );
+	Add( _T("Experimental.LoadDownloadsAsPaused"), &Experimental.LoadDownloadsAsPaused, FALSE );
 }
 
 
