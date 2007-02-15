@@ -1514,7 +1514,7 @@ void CQueryHit::Resolve()
 		}
 		return;
 	}
-	else if ( m_nIndex == 0 || m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 || Settings.Downloads.RequestHash )
+	else if ( m_nIndex == 0 || m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 || m_oBTH || Settings.Downloads.RequestHash )
 	{
 		if ( m_oSHA1 && m_oTiger )
 		{

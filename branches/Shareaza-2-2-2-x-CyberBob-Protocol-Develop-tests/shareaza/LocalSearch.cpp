@@ -667,13 +667,13 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 		nGroup += 8 + pPacket->GetStringLen( pDownload->m_sDisplayName );
 	}
 
-	if ( m_pSearch->m_bWantURL )
+	if ( m_pSearch->m_bWantURL || m_pSearch->m_oBTH )
 	{
 		nGroup += 5;
 
 		// if ( m_pSearch->m_bBTH && pDownload->m_pTorrent.IsAvailable() && Network.IsListening() )
 		
-		if ( m_pSearch->m_oBTH && pDownload->m_pTorrent.IsAvailable() && Network.m_pHost.sin_addr.S_un.S_addr != 0 )
+		if ( m_pSearch->m_oBTH && pDownload->m_pTorrent.IsAvailable() && Network.IsListening() && Network.IsFirewalled(CHECK_TCP) == TS_FALSE )
 		{
 			strURL.Format( _T("btc://%s:%i/%s/%s/"),
 				(LPCTSTR)CString( inet_ntoa( Network.m_pHost.sin_addr ) ),
