@@ -1345,12 +1345,34 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 		if ( tTimer - Network.m_tLastConnect < Settings.Connection.ConnectThrottle ) return;
 	}
 
-
 	// If we're connected to a hub of this protocol, store the tick count now in m_tPresent for this protocol
 	if ( m_nCount[ nProtocol ][ ntHub ] + m_nCount[ nProtocol ][ntNode] > 0 ) m_tPresent[ nProtocol ] = tNow;
+	BOOL bNeedMore = FALSE;
+
+	switch ( nProtocol )
+	{
+	case PROTOCOL_G1:
+		if ( m_nCount[ PROTOCOL_G1 ][ ntHub ] + m_nCount[ PROTOCOL_G1 ][ntNode] < m_nLimit[ PROTOCOL_G1 ][ ntHub ] )
+			bNeedMore = TRUE;
+		break;
+	case PROTOCOL_G2:
+		if ( m_nCount[ PROTOCOL_G2 ][ ntHub ] + m_nCount[ PROTOCOL_G2 ][ntNode] < m_nLimit[ PROTOCOL_G2 ][ ntHub ] )
+			bNeedMore = TRUE;
+		else if ( IsG2Hub() && m_nCount[ PROTOCOL_G2 ][ ntHub ] )
+			bNeedMore = TRUE;
+		else if ( IsG2Leaf() && m_nCount[ PROTOCOL_G2 ][ntNode] )
+			bNeedMore = TRUE;
+		break;
+	case PROTOCOL_ED2K:
+		if ( m_nCount[ PROTOCOL_ED2K ][ ntHub ] + m_nCount[ PROTOCOL_ED2K ][ntNode] < m_nLimit[ PROTOCOL_ED2K ][ ntHub ] )
+			bNeedMore = TRUE;
+		break;
+	default:
+		break;
+	}
 
 	// If we don't have enough hubs for this protocol
-	if ( m_nCount[ nProtocol ][ ntHub ] + m_nCount[ nProtocol ][ntNode] < m_nLimit[ nProtocol ][ ntHub ] )
+	if ( bNeedMore )
 	{
 		// Don't try to connect to G1 right away, wait a few seconds to reduce the number of connections
 		if ( ( nProtocol == PROTOCOL_G1 ) && ( Settings.Gnutella2.EnableToday == TRUE ) )
@@ -1368,6 +1390,7 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 		{
 			// For Gnutella and Gnutella2, try connection to the number of free slots multiplied by the connect factor from settings
 			nAttempt = m_nLimit[ nProtocol ][ ntHub ] - ( m_nCount[ nProtocol ][ ntHub ] + m_nCount[ nProtocol ][ntNode] );
+			if ( ! nAttempt ) nAttempt = 1;
 			nAttempt *=  Settings.Gnutella.ConnectFactor;
 		}
 		else
@@ -1403,6 +1426,7 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 
 						// Prevent queries while we connect with this computer (do)
 						pHost->m_tQuery = tNow;
+						bNeedMore = FALSE;
 
 						// If settings wants to limit how frequently this method can run
 						if ( Settings.Connection.ConnectThrottle != 0 )
@@ -1414,7 +1438,7 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 						}
 					}
 				}
-				if ( m_nCount[ nProtocol ][ntHub] < nAttempt && !Settings.Discovery.DisableAutoQuery )
+				if ( bNeedMore && m_nCount[ nProtocol ][ntHub] < nAttempt && !Settings.Discovery.DisableAutoQuery )
 					DiscoveryServices.Execute( TRUE, PROTOCOL_ED2K, TRUE );
 			}
 			else if ( pCache->GetOldest() == NULL && !Settings.Discovery.DisableAutoQuery )
@@ -1434,15 +1458,17 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 					// Make sure the connection we just made matches the protocol we're looping for right now
 					if ( ConnectTo( &(iHostPtr->sin_addr), ntohs( iHostPtr->sin_port ), PROTOCOL_G2, TRUE, FALSE, FALSE ) )
 					{
+						bNeedMore = FALSE;
+						m_oG2LocalCache.erase( iHostPtr );
+
 						// If settings wants to limit how frequently this method can run
 						if ( Settings.Connection.ConnectThrottle != 0 )
 						{
-							m_oG2LocalCache.erase( iHostPtr );
 							// Save the time we last made a connection as now, and leave
 							Network.m_tLastConnect = tTimer;
 							Downloads.m_tLastConnect = tTimer;
-							return;
 						}
+						return;
 					}
 					m_oG2LocalCache.erase( iHostPtr );
 				}
@@ -1458,6 +1484,7 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 						{
 							// Make sure the connection we just made matches the protocol we're looping for right now
 							ASSERT( pHost->m_nProtocol == nProtocol );
+							bNeedMore = FALSE;
 
 							// If settings wants to limit how frequently this method can run
 							if ( Settings.Connection.ConnectThrottle != 0 )
@@ -1482,6 +1509,8 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 						{
 							// Make sure the connection we just made matches the protocol we're looping for right now
 							ASSERT( pHost->m_nProtocol == nProtocol );
+							bNeedMore = FALSE;
+							m_tG2AttemptStart = tNow;
 
 							// If settings wants to limit how frequently this method can run
 							if ( Settings.Connection.ConnectThrottle != 0 )
@@ -1493,9 +1522,10 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 							return;
 						}
 					}
+					m_tG2AttemptStart = tNow;
 				}
 			}
-			if ( m_nCount[ nProtocol ][ntNull] < nAttempt && !Settings.Discovery.DisableAutoQuery )
+			if ( bNeedMore && m_nCount[ nProtocol ][ntNull] < nAttempt && !Settings.Discovery.DisableAutoQuery )
 				DiscoveryServices.Execute( TRUE, PROTOCOL_G2, TRUE );
 		}
 		else if ( nProtocol == PROTOCOL_G1 )
@@ -1503,23 +1533,24 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 			CHostCacheHost* pHost = pCache->GetNewest();
 			if ( !m_oG1LocalCache.empty() )
 			{
+				m_tG1AttemptStart = tNow;
 				if ( m_nCount[ PROTOCOL_G1 ][ntNull] < nAttempt )
 				{
 					HostAddrPtr	iHostPtr = m_oG1LocalCache.begin();
 					// Make sure the connection we just made matches the protocol we're looping for right now
 					if ( ConnectTo( &(iHostPtr->sin_addr), ntohs( iHostPtr->sin_port ), PROTOCOL_G1, TRUE, FALSE, FALSE ) )
 					{
-						m_tG1AttemptStart = tNow;
+						bNeedMore = FALSE;
+						m_oG1LocalCache.erase( iHostPtr );
+
 						// If settings wants to limit how frequently this method can run
 						if ( Settings.Connection.ConnectThrottle != 0 )
 						{
-							m_tG1AttemptStart = tNow;
-							m_oG1LocalCache.erase( iHostPtr );
 							// Save the time we last made a connection as now, and leave
 							Network.m_tLastConnect = tTimer;
 							Downloads.m_tLastConnect = tTimer;
-							return;
 						}
+						return;
 					}
 					m_oG1LocalCache.erase( iHostPtr );
 				}
@@ -1537,6 +1568,7 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 						{
 							// Make sure the connection we just made matches the protocol we're looping for right now
 							ASSERT( pHost->m_nProtocol == nProtocol );
+							bNeedMore = FALSE;
 
 							// If settings wants to limit how frequently this method can run
 							if ( Settings.Connection.ConnectThrottle != 0 )
@@ -1560,6 +1592,7 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 						{
 							// Make sure the connection we just made matches the protocol we're looping for right now
 							ASSERT( pHost->m_nProtocol == nProtocol );
+							bNeedMore = FALSE;
 
 							// If settings wants to limit how frequently this method can run
 							if ( Settings.Connection.ConnectThrottle != 0 )
@@ -1567,13 +1600,14 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 								// Save the time we last made a connection as now, and leave
 								Network.m_tLastConnect = tTimer;
 								Downloads.m_tLastConnect = tTimer;
+								return;
 							}
-							return;
 						}
 					}
+					m_tG1AttemptStart = tNow;
 				}
 			}
-			if ( m_nCount[ nProtocol ][ntNull] < nAttempt && !Settings.Discovery.DisableAutoQuery )
+			if ( bNeedMore && m_nCount[ nProtocol ][ntNull] < nAttempt && !Settings.Discovery.DisableAutoQuery )
 				DiscoveryServices.Execute( TRUE, PROTOCOL_G1, TRUE );
 		}
 /*
@@ -1721,6 +1755,28 @@ void CNeighboursWithConnect::NetworkPrune(PROTOCOLID nProtocol)
 
 		// Disconnect from one hub
 		if ( pNewest != NULL ) pNewest->Close(); // Close the connection
+	}
+	else if ( nProtocol == PROTOCOL_G2 )
+	{
+		if ( IsG2Hub() && m_nCount[ PROTOCOL_G2 ][ ntHub ] && m_nCount[ PROTOCOL_G2 ][ntNode] &&
+			m_nCount[ PROTOCOL_G2 ][ ntHub ] + m_nCount[ PROTOCOL_G2 ][ntNode] > m_nLimit[ PROTOCOL_G2 ][ ntHub ] )
+		{
+			// Find the Hub we have connected for longest for this protocol
+			CG2Neighbour* pNewest = *m_oG2Hubs.begin();
+			// Disconnect from one Hub
+			if ( pNewest != NULL ) pNewest->Close(); // Close the connection
+		}
+	}
+	else if ( nProtocol == PROTOCOL_G1 )
+	{
+		if ( IsG1Ultrapeer() && m_nCount[ PROTOCOL_G1 ][ ntHub ] && m_nCount[ PROTOCOL_G1 ][ntNode] &&
+			m_nCount[ PROTOCOL_G1 ][ ntHub ] + m_nCount[ PROTOCOL_G1 ][ntNode] > m_nLimit[ PROTOCOL_G1 ][ ntHub ] )
+		{
+			// Find the Ultrapeer we have connected for longest for this protocol
+			CG1Neighbour* pNewest = *m_oG1Ultrapeers.begin();
+			// Disconnect from one Ultrapeer
+			if ( pNewest != NULL ) pNewest->Close(); // Close the connection
+		}
 	}
 }
 
