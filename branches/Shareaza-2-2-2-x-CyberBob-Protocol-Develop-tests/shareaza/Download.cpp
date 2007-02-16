@@ -379,18 +379,23 @@ void CDownload::OnRun()
 					RunValidation( TRUE );
 					if ( Settings.BitTorrent.AutoSeed )
 					{
-						if ( m_tBegan == 0 )
+						if ( Network.IsConnected() )
 						{
-							if ( !Network.IsConnected() )
-								Network.Connect( TRUE );
-
-							m_tBegan = GetTickCount();
-							m_bTorrentStarted = TRUE;
+							if ( m_tBegan == 0 )
+							{
+								m_tBegan = GetTickCount();
+								m_bTorrentStarted = TRUE;
+							}
+							// in order to upload from firewalled node, something like below should be here.
+							StartTransfersIfNeeded( tNow, TRUE );
+						}
+						else
+						{
+							m_tBegan = 0;
+							m_bTorrentStarted = FALSE;
 						}
 					}
 					SetModified();
-					// in order to upload from firewalled node, something like below should be here.
-					StartTransfersIfNeeded( tNow, TRUE );
 				}
 				else if ( m_pFile != NULL )
 				{

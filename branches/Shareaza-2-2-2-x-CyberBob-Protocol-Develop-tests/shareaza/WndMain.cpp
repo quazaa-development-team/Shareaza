@@ -1529,11 +1529,17 @@ void CMainWnd::OnUpdateNetworkConnect(CCmdUI* pCmdUI)
 
 void CMainWnd::OnNetworkConnect()
 {
-	Network.Connect( TRUE );
-	if ( Settings.Gnutella1.EnableToday)
-		DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G1 );
-	if ( Settings.Gnutella2.EnableToday)
-		DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G2 );
+	if ( !Network.IsConnected() )
+	{
+		Network.Connect( TRUE );
+	}
+	else
+	{
+		if ( Settings.Gnutella1.EnableToday)
+			DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G1 );
+		if ( Settings.Gnutella2.EnableToday)
+			DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G2 );
+	}
 	// No BootStrap for ED2K at all but maybe in future.
 	//if ( Settings.eDonkey.EnableToday )
 	//	DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_ED2K );

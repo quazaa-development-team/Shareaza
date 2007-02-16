@@ -188,7 +188,7 @@ void CTorrentSeedDlg::OnSeed()
 		if ( Downloads.FindByBTH( m_pInfo.m_oInfoBTH ) == NULL )
 		{
 			// Connect if (we aren't)
-			if ( ! Network.IsConnected() ) Network.Connect();
+			if ( ! Network.IsConnected() ) Network.Connect(TRUE);
 
 			// Update the last seeded torrent
 			CSingleLock pLock( &Library.m_pSection );

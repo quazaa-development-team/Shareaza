@@ -343,8 +343,8 @@ void CWizardConnectionPage::OnRun()
 		if ( bConnected || Network.Connect(FALSE) )
 		{
 			// It will check if it is needed inside the function
-			for ( int i = 0; i < 2 && !DiscoveryServices.Execute(TRUE, PROTOCOL_NULL, FALSE); i++ )
-				Sleep(5000);
+			for ( int i = 0; i < 6 && !DiscoveryServices.Execute(TRUE, PROTOCOL_NULL, TRUE); i++ )
+				Sleep(10000);
 
 			if ( !bConnected )
 				Network.Disconnect();

@@ -108,7 +108,13 @@ BOOL CWizardFinishedPage::OnWizardFinish()
 		}
 	}
 
-	if ( m_bConnect ) Network.Connect( TRUE );
+	if ( Network.IsConnected() )
+	{
+		if ( m_bConnect )
+			Network.Connect( TRUE );
+		else
+			Network.Disconnect();
+	}
 	Settings.SetStartup( m_bStartup );
 
 	return CWizardPage::OnWizardFinish();
