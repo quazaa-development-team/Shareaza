@@ -79,30 +79,31 @@ public:
 protected:
 
 	// Member variables that tell our current role on the Gnutella and Gnutella2 networks
-	DWORD			m_tHubG2Promotion;		// Time we were promoted to a G2 hub(UTC Time in seconds)
-	DWORD			m_tModeCheck;			// Time we checked and decided network mode(UTC Time in seconds)
+	DWORD						m_tHubG2Promotion;		// Time we were promoted to a G2 hub(UTC Time in seconds)
+	DWORD						m_tModeCheck;			// Time we checked and decided network mode(UTC Time in seconds)
 
 	// Gnutella2 Bootstrap management.
-	DWORD			m_tG2Start;				// Time we enabled Gnutella2 network mode(UTC Time in seconds)
-	DWORD			m_tG2AttemptStart;		// Time we enabled Gnutella2 network mode(UTC Time in seconds)
-	HostAddrList	m_oG2LocalCache;
+	DWORD						m_tG2Start;				// Time we enabled Gnutella2 network mode(UTC Time in seconds)
+	DWORD						m_tG2AttemptStart;		// Time we enabled Gnutella2 network mode(UTC Time in seconds)
+	HostAddrList				m_oG2LocalCache;
 
 	// Gnutella1 Bootstrap management.
-	DWORD			m_tG1Start;				// Time we enabled Gnutella1 network mode(UTC Time in seconds)
-	DWORD			m_tG1AttemptStart;		// Time we enabled Gnutella1 network mode(UTC Time in seconds)
-	HostAddrList	m_oG1LocalCache;
+	DWORD						m_tG1Start;				// Time we enabled Gnutella1 network mode(UTC Time in seconds)
+	DWORD						m_tG1AttemptStart;		// Time we enabled Gnutella1 network mode(UTC Time in seconds)
+	HostAddrList				m_oG1LocalCache;
 
 public:
 	// Members for maintaining connections.
-	PROTOCOLID		m_nLastManagedProtocol;
-	int				m_nCount[4][5];			// Number of Neighbours we currently connected with
-	int				m_nLimit[4][5];			// max number of neighbor connections we can connect.
+	PROTOCOLID					m_nLastManagedProtocol;
+	int							m_nCount[4][5];			// Number of Neighbours we currently connected with
+	int							m_nLimit[4][5];			// max number of neighbor connections we can connect.
 
 	// Hub(Ultrapeer)/Leaf status for Gnutella1/Gnutella2 (BOOLs only need 1Bit.)
-	BOOL			m_bG2Leaf		:1;		// True if we are a Leaf to at least one computer on the Gnutella2 network
-	BOOL			m_bG2Hub		:1;		// True if we are a Hub to at least one computer on the Gnutella2 network
-	BOOL			m_bG1Leaf		:1;		// True if we are a Leaf to at least one computer on the Gnutella network
-	BOOL			m_bG1Ultrapeer	:1;		// True if we are an Ultrapeer to at least one computer on the Gnutella network
+	BOOL						m_bG2Leaf		:1;		// True if we are a Leaf to at least one computer on the Gnutella2 network
+	BOOL						m_bG2Hub		:1;		// True if we are a Hub to at least one computer on the Gnutella2 network
+	BOOL						m_bG1Leaf		:1;		// True if we are a Leaf to at least one computer on the Gnutella network
+	BOOL						m_bG1Ultrapeer	:1;		// True if we are an Ultrapeer to at least one computer on the Gnutella network
+	std::list<CShakeNeighbour*>	m_oNeighbourShakes;		// list of currently running CShakeNeighbour
 
 
 public:
@@ -123,15 +124,17 @@ protected:
 	DWORD m_tPresent[8]; // The index is a protocol identifier, like 3 eDonkey2000, 2 Gnutella2, and 1 Gnutella
 
 public:
-	int		GetCount(PROTOCOLID nProtocol, int nState, int nNodeType) const;
-	void	StoreCache(PROTOCOLID nProtocol, SOCKADDR_IN& pHost);	// Store UDP Bootstrap Reply to LocalCache
+	int					GetCount(PROTOCOLID nProtocol, int nState, int nNodeType) const;
+	void				StoreCache(PROTOCOLID nProtocol, SOCKADDR_IN& pHost);	// Store UDP Bootstrap Reply to LocalCache
+	CShakeNeighbour*	GetNeighbourShakes(IN_ADDR* pAddress) const;			// By the remote computer's IP address
+	CShakeNeighbour*	GetNeighbourShakes(SOCKADDR_IN* pAddress) const;		// By the remote computer's SOCKET address
 
-	virtual void ConnectG2();			// Connect to Gnutella2
-	virtual void DisconnectG2();		// Disconnect from Gnutella2
-	virtual void ConnectG1();			// Connect to Gnutella1
-	virtual void DisconnectG1();		// Disconnect from Gnutella1
-	virtual void ConnectED2K();			// Connect to eDonkey2000
-	virtual void DisconnectED2K();		// Disconnect from eDonkey2000
+	virtual	void		ConnectG2();			// Connect to Gnutella2
+	virtual	void		DisconnectG2();			// Disconnect from Gnutella2
+	virtual	void		ConnectG1();			// Connect to Gnutella1
+	virtual	void		DisconnectG1();			// Disconnect from Gnutella1
+	virtual	void		ConnectED2K();			// Connect to eDonkey2000
+	virtual	void		DisconnectED2K();		// Disconnect from eDonkey2000
 
 };
 

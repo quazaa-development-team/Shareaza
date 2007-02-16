@@ -103,10 +103,10 @@ CNeighbour* CNeighboursWithConnect::ConnectTo(
 		switch ( nProtocol )
 		{
 		case PROTOCOL_G1:
-			bExist = GetG1Node( pAddress ) ? true : false;
+			bExist = GetG1Node( pAddress ) ? true : GetNeighbourShakes( pAddress ) ? true : false;
 			break;
 		case PROTOCOL_G2:
-			bExist = GetG2Node( pAddress ) ? true : false;
+			bExist = GetG2Node( pAddress ) ? true : GetNeighbourShakes( pAddress ) ? true : false;
 			break;
 		case PROTOCOL_ED2K:
 			bExist = GetEDNode( pAddress ) ? true : false;
@@ -1259,7 +1259,7 @@ void CNeighboursWithConnect::ModeCheck()
 			}
 			else if ( tNow - m_tG2AttemptStart < 5 * 60 &&	// has been more than 5minute since connection attempt started
 															// same meaning as not having enough Hub/Peer connections for 5minutes
-					IsG2HubCapable( FALSE, FALSE ) )			// capable to be G2Hub node
+					IsG2HubCapable( FALSE, FALSE ) )		// capable to be G2Hub node
 			{
 				// We're a hub on the Gnutella2 network
 				m_bG2Leaf	= FALSE;
@@ -1996,4 +1996,54 @@ void CNeighboursWithConnect::StoreCache(PROTOCOLID nProtocol, SOCKADDR_IN& pHost
 	{
 		m_oG2LocalCache.push_back( pHost );
 	}
+}
+
+// Takes an IP address
+// Finds the CShakeNeighbours object in the m_pUniques map that represents the remote computer with that address
+// Returns it, or null if not found
+CShakeNeighbour* CNeighboursWithConnect::GetNeighbourShakes(IN_ADDR* pAddress) const // Saying const here means this method won't change any member variables
+{
+	std::list<CShakeNeighbour*>::const_iterator iIndex;
+	std::list<CShakeNeighbour*>::const_iterator iEnd;
+
+	iIndex = m_oNeighbourShakes.begin();
+	iEnd = m_oNeighbourShakes.end();
+	// Loop through each neighbour in the CShakeNeighbours
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CShakeNeighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the IP address we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) return pNeighbour;
+	}
+
+	// None of the neighbour objects in the map had the IP address we are looking for
+	return NULL; // Not found
+}
+
+// Takes an SOCKADDR
+// Finds the CShakeNeighbours object in the m_pUniques map that represents the remote computer with that address
+// Returns it, or null if not found
+CShakeNeighbour* CNeighboursWithConnect::GetNeighbourShakes(SOCKADDR_IN* pAddress) const // Saying const here means this method won't change any member variables
+{
+	std::list<CShakeNeighbour*>::const_iterator iIndex;
+	std::list<CShakeNeighbour*>::const_iterator iEnd;
+
+	iIndex = m_oNeighbourShakes.begin();
+	iEnd = m_oNeighbourShakes.end();
+	// Loop through each neighbour in the CShakeNeighbours
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CShakeNeighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the SOCKADDR we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->sin_addr.S_un.S_addr &&
+			pNeighbour->m_pRealHost.sin_port == pAddress->sin_port &&
+			pNeighbour->m_pRealHost.sin_family == pAddress->sin_family ) return pNeighbour;
+	}
+
+	// None of the neighbour objects in the map had the IP address we are looking for
+	return NULL; // Not found
 }

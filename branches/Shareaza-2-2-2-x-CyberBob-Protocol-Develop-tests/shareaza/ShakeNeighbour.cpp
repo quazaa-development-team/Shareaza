@@ -68,11 +68,13 @@ m_bCanDeflate( Neighbours.IsG2Leaf() ? ( Settings.Gnutella.DeflateHub2Hub || Set
 : ( Settings.Gnutella.DeflateHub2Hub || Settings.Gnutella.DeflateHub2Leaf ) ),
 m_bDelayClose(FALSE)
 {
+	Neighbours.m_oNeighbourShakes.push_back(this);
 }
 
 // Delete this CShakeNeighbour object
 CShakeNeighbour::~CShakeNeighbour()
 {
+	Neighbours.m_oNeighbourShakes.remove(this);
 	// This virtual method will be redefined by a class that inherits from CShakeNeighbour
 	if ( m_nState != nrsNull )
 	{
