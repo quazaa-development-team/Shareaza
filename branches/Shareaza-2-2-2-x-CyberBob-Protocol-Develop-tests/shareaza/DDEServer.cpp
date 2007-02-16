@@ -208,13 +208,13 @@ BOOL CDDEServer::Execute(LPCTSTR pszTopic, LPCVOID pData, DWORD nLength)
 	if ( theApp.m_bNT )
 	{
 		// Copy data info a buffer
-		LPWSTR pszData = new WCHAR[ nLength + 1 ];
-		CopyMemory( pszData, pData, nLength * sizeof( WCHAR ) );
+		//LPWSTR pszData = new WCHAR[ nLength + 1 ];
+		//CopyMemory( pszData, pData, nLength * sizeof( WCHAR ) );
 		// Ensure it has a null terminator
-		pszData[ nLength ] = 0;
-		// Assign it to the Cstring and remove buffer
-		str = pszData;
-		delete [] pszData;
+		//pszData[ nLength ] = 0;
+		// Assign it to the CString and remove buffer
+		str = CString( (LPCTSTR)pData );
+		//delete [] pszData;
 	}
 	else
 	{
