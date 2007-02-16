@@ -686,7 +686,7 @@ BOOL CDownloadTransferED2K::SendPrimaryRequest()
 	SetState( dtsRequesting );
 
 	//Set the 'last requested' time
-	m_tRequest	= tNow;		
+	m_tRequest	= tNow;
 
 	ClearRequests();
 	
@@ -694,13 +694,13 @@ BOOL CDownloadTransferED2K::SendPrimaryRequest()
 	CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_FILEREQUEST );
 	pPacket->Write( m_pDownload->m_oED2K );
 
-	if ( Settings.eDonkey.ExtendedRequest >= 1 && m_pClient->m_bEmRequest >= 1 )
+	if ( Settings.eDonkey.ExtendedRequest >= 1 && m_pClient->m_nEmRequest >= 1 )
 	{
 		m_pClient->WritePartStatus( pPacket, m_pDownload );
 	}
 
 	//It's not very accurate
-	if ( Settings.eDonkey.ExtendedRequest >= 2 && m_pClient->m_bEmRequest >= 2 ) 
+	if ( Settings.eDonkey.ExtendedRequest >= 2 && m_pClient->m_nEmRequest >= 2 )
 	{
 		pPacket->WriteShortLE( (WORD) m_pDownload->GetED2KCompleteSourceCount() );
 	}

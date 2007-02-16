@@ -52,37 +52,37 @@ public:
 public:
 	CString		m_sNick;
 	int			m_nVersion;
-	BOOL		m_bEmule;
-
 	int			m_nEmVersion;
 	int			m_nEmCompatible;
 	DWORD		m_nSoftwareVersion;
-public:	//Client capabilities
-	BOOL		m_bEmAICH;			// Not supported
-	BOOL		m_bEmUnicode;
-	BOOL		m_bEmUDPVersion;
-	BOOL		m_bEmDeflate;
-	BOOL		m_bEmSecureID;		// Not supported
-	BOOL		m_bEmSources;
-	BOOL		m_bEmRequest;
-	BOOL		m_bEmComments;
-	BOOL		m_bEmPeerCache;		// Not supported
-	BOOL		m_bEmBrowse;		// Not over ed2k
-	BOOL		m_bEmMultiPacket;	// Not supported
-	BOOL		m_bEmPreview;		// Not over ed2k
-	BOOL		m_bEmLargeFile;		// Large file support
 public:
-	BOOL		m_bLogin;
     Hashes::Ed2kHash m_oUpED2K;
 	QWORD		m_nUpSize;
 public:
 	CDownloadTransferED2K*	m_pDownload;
 	CUploadTransferED2K*	m_pUpload;
-	BOOL					m_bSeeking;
 	DWORD					m_nRunExCookie;
+public:	// Flags
+	//Client capabilities
+	BYTE		m_nEmAICH			:3;	// Not supported
+	BOOL		m_bEmUnicode		:1;
+	BYTE		m_nEmUDPVersion		:4;
+	BYTE		m_nEmDeflate		:4;
+	BYTE		m_nEmSecureID		:4;	// Not supported
+	BYTE		m_nEmSources		:4;
+	BYTE		m_nEmRequest		:4;
+	BYTE		m_nEmComments		:4;
+	BOOL		m_bEmPeerCache		:1;	// Not supported
+	BOOL		m_bEmBrowse			:1;	// Not over ed2k
+	BOOL		m_bEmMultiPacket	:1;	// Not supported
+	BOOL		m_bEmPreview		:1;	// Not over ed2k
+	BOOL		m_bEmLargeFile		:1;	// Large file support
+	BOOL		m_bEmule			:1;
+	BOOL		m_bLogin			:1;
+	BOOL		m_bSeeking			:1;
+	BOOL		m_bOpenChat			:1;
+	BOOL		m_bCommentSent		:1;
 
-	BOOL		m_bOpenChat;
-	BOOL		m_bCommentSent;
 
 // Operations
 public:

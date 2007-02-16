@@ -72,14 +72,14 @@ CEDClient::CEDClient()
 	m_nSoftwareVersion=0;
 
 	// Client capabilities
-	m_bEmAICH		= FALSE;		// Not supported
+	m_nEmAICH		= 0;		// Not supported
 	m_bEmUnicode	= FALSE;
-	m_bEmUDPVersion	= FALSE;
-	m_bEmDeflate	= FALSE;
-	m_bEmSecureID	= FALSE;		// Not supported
-	m_bEmSources	= FALSE;
-	m_bEmRequest	= FALSE;
-	m_bEmComments	= FALSE;
+	m_nEmUDPVersion	= 0;
+	m_nEmDeflate	= 0;
+	m_nEmSecureID	= 0;		// Not supported
+	m_nEmSources	= 0;
+	m_nEmRequest	= 0;
+	m_nEmComments	= 0;
 	m_bEmPeerCache	= FALSE;		// Not supported
 	m_bEmBrowse		= FALSE;		// Not over ed2k
 	m_bEmMultiPacket= FALSE;		// Not supported
@@ -248,14 +248,14 @@ void CEDClient::Merge(CEDClient* pClient)
 	if ( ! m_nEmVersion )		m_nEmVersion = pClient->m_nEmVersion;
 	if ( ! m_nEmCompatible )	m_nEmCompatible = pClient->m_nEmCompatible;
 	if ( ! m_nSoftwareVersion )	m_nSoftwareVersion = pClient->m_nSoftwareVersion;
-	if ( ! m_bEmAICH )			m_bEmAICH = pClient->m_bEmAICH;
+	if ( ! m_nEmAICH )			m_nEmAICH = pClient->m_nEmAICH;
 	if ( ! m_bEmUnicode )		m_bEmUnicode = pClient->m_bEmUnicode;
-	if ( ! m_bEmUDPVersion )	m_bEmUDPVersion = pClient->m_bEmUDPVersion;
-	if ( ! m_bEmDeflate )		m_bEmDeflate = pClient->m_bEmDeflate;
-	if ( ! m_bEmSecureID )		m_bEmSecureID = pClient->m_bEmSecureID;	
-	if ( ! m_bEmSources )		m_bEmSources = pClient->m_bEmSources;
-	if ( ! m_bEmRequest )		m_bEmRequest = pClient->m_bEmRequest;	
-	if ( ! m_bEmComments )		m_bEmComments = pClient->m_bEmComments;
+	if ( ! m_nEmUDPVersion )	m_nEmUDPVersion = pClient->m_nEmUDPVersion;
+	if ( ! m_nEmDeflate )		m_nEmDeflate = pClient->m_nEmDeflate;
+	if ( ! m_nEmSecureID )		m_nEmSecureID = pClient->m_nEmSecureID;	
+	if ( ! m_nEmSources )		m_nEmSources = pClient->m_nEmSources;
+	if ( ! m_nEmRequest )		m_nEmRequest = pClient->m_nEmRequest;	
+	if ( ! m_nEmComments )		m_nEmComments = pClient->m_nEmComments;
 	if ( ! m_bEmPeerCache )		m_bEmPeerCache = pClient->m_bEmPeerCache;
 	if ( ! m_bEmBrowse )		m_bEmBrowse = pClient->m_bEmBrowse;
 	if ( ! m_bEmMultiPacket )	m_bEmMultiPacket = pClient->m_bEmMultiPacket;	
@@ -336,20 +336,20 @@ void CEDClient::OnDownloadClose()
 	CDownloadSource* pExcept = m_pDownload ? m_pDownload->m_pSource : NULL;
 	m_pDownload = NULL;
 	m_mInput.pLimit = &Settings.Bandwidth.Request;
-	SeekNewDownload( pExcept );
+	//SeekNewDownload( pExcept );
 }
 
-BOOL CEDClient::SeekNewDownload(CDownloadSource* /*pExcept*/)
+BOOL CEDClient::SeekNewDownload(CDownloadSource* pExcept)
 {
 	// Removed for a while
-	return FALSE;
+	//return FALSE;
 	
-//	if ( m_pDownload != NULL ) return FALSE;
-//	if ( m_bSeeking ) return FALSE;
-//	m_bSeeking = TRUE;
-//	BOOL bSeek = Downloads.OnDonkeyCallback( this, pExcept );
-//	m_bSeeking = FALSE;
-//	return bSeek;
+	if ( m_pDownload != NULL ) return FALSE;
+	if ( m_bSeeking ) return FALSE;
+	m_bSeeking = TRUE;
+	BOOL bSeek = Downloads.OnDonkeyCallback( this, pExcept );
+	m_bSeeking = FALSE;
+	return bSeek;
 }
 
 void CEDClient::DetachDownload()
@@ -675,7 +675,7 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 BOOL CEDClient::SendCommentsPacket(int nRating, LPCTSTR pszComments)
 {
 	// If we have not sent comments yet, and this client supports comments
-	if ( ( ! m_bCommentSent ) && ( m_bEmComments > 0 ) && ( m_bEmule ) )
+	if ( ( ! m_bCommentSent ) && ( m_nEmComments > 0 ) && ( m_bEmule ) )
 	{ 
 		// Remove new lines and excess whitespace
 		CString strComments = pszComments;
@@ -845,14 +845,14 @@ BOOL CEDClient::OnHello(CEDPacket* pPacket)
 			if ( pTag.m_nType == ED2K_TAG_INT ) 
 			{
 				m_bEmule = TRUE;
-				m_bEmAICH		= (pTag.m_nValue >> 29) & 0x07;
+				m_nEmAICH		= (pTag.m_nValue >> 29) & 0x07;
 				m_bEmUnicode	= (pTag.m_nValue >> 28) & 0x01;
-				m_bEmUDPVersion	= (pTag.m_nValue >> 24) & 0x0F;
-				m_bEmDeflate	= (pTag.m_nValue >> 20) & 0x0F;
-				m_bEmSecureID	= (pTag.m_nValue >> 16) & 0x0F;
-				m_bEmSources	= (pTag.m_nValue >> 12) & 0x0F;
-				m_bEmRequest	= (pTag.m_nValue >> 8 ) & 0x0F;
-				m_bEmComments	= (pTag.m_nValue >> 4 ) & 0x0F;
+				m_nEmUDPVersion	= (pTag.m_nValue >> 24) & 0x0F;
+				m_nEmDeflate	= (pTag.m_nValue >> 20) & 0x0F;
+				m_nEmSecureID	= (pTag.m_nValue >> 16) & 0x0F;
+				m_nEmSources	= (pTag.m_nValue >> 12) & 0x0F;
+				m_nEmRequest	= (pTag.m_nValue >> 8 ) & 0x0F;
+				m_nEmComments	= (pTag.m_nValue >> 4 ) & 0x0F;
 				m_bEmPeerCache	= (pTag.m_nValue >> 3 ) & 0x01;
 				m_bEmBrowse		=!(pTag.m_nValue >> 2 ) & 0x01;
 				m_bEmMultiPacket= (pTag.m_nValue >> 1 ) & 0x01;
@@ -984,8 +984,8 @@ BOOL CEDClient::OnEmuleInfo(CEDPacket* pPacket)
 	if ( nProtocol != 1 ) return TRUE;
 	
 	// Have to assume capabilities for these versions
-	if ( m_nEmVersion > 0x22 && m_nEmVersion < 0x25 ) m_bEmSources = 1;
-	if ( m_nEmVersion == 0x24 ) m_bEmComments = 1;
+	if ( m_nEmVersion > 0x22 && m_nEmVersion < 0x25 ) m_nEmSources = 1;
+	if ( m_nEmVersion == 0x24 ) m_nEmComments = 1;
 	// Set the client ID to unknown
 	m_nEmCompatible = ED2K_CLIENT_UNKNOWN;
 	
@@ -1007,22 +1007,22 @@ BOOL CEDClient::OnEmuleInfo(CEDPacket* pPacket)
 		switch ( pTag.m_nKey )
 		{
 		case ED2K_ET_COMPRESSION:
-			 if ( pTag.m_nType == ED2K_TAG_INT ) m_bEmDeflate = pTag.m_nValue;
+			 if ( pTag.m_nType == ED2K_TAG_INT ) m_nEmDeflate = pTag.m_nValue;
 			break;
 		case ED2K_ET_UDPPORT:
 			if ( pTag.m_nType == ED2K_TAG_INT ) m_nUDP = (WORD)pTag.m_nValue;
 			break;
 		case ED2K_ET_UDPVER:
-			if ( pTag.m_nType == ED2K_TAG_INT ) m_bEmUDPVersion = (WORD)pTag.m_nValue;
+			if ( pTag.m_nType == ED2K_TAG_INT ) m_nEmUDPVersion = (WORD)pTag.m_nValue;
 			break;
 		case ED2K_ET_SOURCEEXCHANGE:
-			if ( pTag.m_nType == ED2K_TAG_INT ) m_bEmSources = pTag.m_nValue;
+			if ( pTag.m_nType == ED2K_TAG_INT ) m_nEmSources = pTag.m_nValue;
 			break;
 		case ED2K_ET_COMMENTS:
-			if ( pTag.m_nType == ED2K_TAG_INT ) m_bEmComments = pTag.m_nValue;
+			if ( pTag.m_nType == ED2K_TAG_INT ) m_nEmComments = pTag.m_nValue;
 			break;
 		case ED2K_ET_EXTENDEDREQUEST:
-			if ( pTag.m_nType == ED2K_TAG_INT ) m_bEmRequest = pTag.m_nValue;
+			if ( pTag.m_nType == ED2K_TAG_INT ) m_nEmRequest = pTag.m_nValue;
 			break;
 		case ED2K_ET_COMPATIBLECLIENT:
 			if ( pTag.m_nType == ED2K_TAG_INT ) m_nEmCompatible = pTag.m_nValue;
@@ -1102,7 +1102,7 @@ void CEDClient::DeriveSoftwareVersion()
 					( ( m_nSoftwareVersion >>  7 ) & 0x07 ) );
 				break;
 			case 4:
-				if ( m_bEmAICH || m_bEmSecureID )
+				if ( m_nEmAICH || m_nEmSecureID )
 				{
 					if ( m_sUserAgent.IsEmpty() ) 
 						m_sUserAgent.Format( _T("eMule mod (4) %i.%i%c"), 
@@ -1140,7 +1140,7 @@ void CEDClient::DeriveSoftwareVersion()
 					( ( m_nSoftwareVersion >>  7 ) & 0x07 ) + 'a' );
 				break;
 			case 40:
-				if ( m_bEmAICH || m_bEmSecureID )
+				if ( m_nEmAICH || m_nEmSecureID )
 				{
 					if ( m_sUserAgent.IsEmpty() ) 
 						m_sUserAgent.Format( _T("eMule mod (40) %i.%i%c"), 
@@ -1200,7 +1200,7 @@ void CEDClient::DeriveVersion()
 				m_sUserAgent.Format( _T("aMule v0.%i%i"), m_nEmVersion >> 4, m_nEmVersion & 15 );
 				break;
 			case 4:
-				if ( m_bEmAICH || m_bEmSecureID )
+				if ( m_nEmAICH || m_nEmSecureID )
 				{
 					if ( m_sUserAgent.IsEmpty() )
 						m_sUserAgent.Format( _T("eMule mod (4) v%i"), m_nEmVersion );
@@ -1219,7 +1219,7 @@ void CEDClient::DeriveVersion()
 				m_sUserAgent.Format( _T("Lphant v0.%i%i"), m_nEmVersion >> 4, m_nEmVersion & 15 );
 				break;
 			case 40:
-				if ( m_bEmAICH || m_bEmSecureID )
+				if ( m_nEmAICH || m_nEmSecureID )
 				{
 					if ( m_sUserAgent.IsEmpty() )
 						m_sUserAgent.Format( _T("eMule mod (40) v%i"), m_nEmVersion );
@@ -1767,7 +1767,7 @@ BOOL CEDClient::OnSourceRequest(CEDPacket* pPacket)
 				pReply->WriteShortLE( pSource->m_nPort );
 				pReply->WriteLongLE( pSource->m_pServerAddress.S_un.S_addr );
 				pReply->WriteShortLE( (WORD)pSource->m_nServerPort );
-				if ( m_bEmSources >= 2 ) pReply->Write( pSource->m_oGUID );
+				if ( m_nEmSources >= 2 ) pReply->Write( pSource->m_oGUID );
 				nCount++;
 			}
 		}
@@ -1813,7 +1813,7 @@ BOOL CEDClient::OnSourceAnswer(CEDPacket* pPacket)
 	pPacket->Read( oHash );
 	int nCount = pPacket->ReadShortLE();
 	
-	if ( pPacket->GetRemaining() < nCount * ( m_bEmSources >= 2 ? 12+16 : 12 ) )
+	if ( pPacket->GetRemaining() < nCount * ( m_nEmSources >= 2 ? 12+16 : 12 ) )
 	{
 		theApp.Message( MSG_ERROR, IDS_ED2K_CLIENT_BAD_PACKET, (LPCTSTR)m_sAddress, pPacket->m_nType );
 		return TRUE;
@@ -1832,7 +1832,7 @@ BOOL CEDClient::OnSourceAnswer(CEDPacket* pPacket)
 			WORD nServerPort	= pPacket->ReadShortLE();
 			
 			Hashes::Guid oGUID;
-			if ( m_bEmSources >= 2 ) pPacket->Read( oGUID );
+			if ( m_nEmSources >= 2 ) pPacket->Read( oGUID );
 			pDownload->AddSourceED2K( nClientID, nClientPort, nServerIP, nServerPort, oGUID );
 		}
 	}	
