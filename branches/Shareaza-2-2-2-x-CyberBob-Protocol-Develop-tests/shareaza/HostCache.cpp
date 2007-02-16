@@ -1353,7 +1353,11 @@ CG1Packet* CHostCacheHost::ToG1Ping(int nTTL, const Hashes::Guid& oGUID)
 BOOL CHostCacheHost::UDPCacheQuery()
 {
 	DWORD nTime = static_cast<DWORD>( time(NULL) );
-	if ( CanQuery( nTime ) )
+	
+	if ( ( 0 == m_tRetryAfter ||
+		nTime > m_tRetryAfter ) &&
+		( 0 == m_tQuery ||
+		( nTime - m_tQuery ) >= max( Settings.Gnutella2.QueryHostThrottle, 90u ) ) )
 	{
 		switch( m_nProtocol )
 		{
@@ -1468,13 +1472,16 @@ BOOL CHostCacheHost::CanQuery(DWORD tNow) const
 	else if ( m_nProtocol == PROTOCOL_G1 )
 	{
 		// Must support G1
-		if ( ! Settings.Gnutella1.EnableToday ) return FALSE;
+		if (  !Network.IsConnected() || ! Settings.Gnutella1.EnableToday ) return FALSE;
 
 		// Must not be waiting for an ack
 		if ( 0 != m_tAck ) return FALSE;
 
 		// Get the time if not supplied
 		if ( 0 == tNow ) tNow = Network.m_nNetworkGlobalTime;
+
+		// Must be a recently seen (current) host
+		if ( ( tNow - m_tSeen ) > Settings.Gnutella2.HostCurrent ) return FALSE;
 
 		// Retry After
 		if ( 0 != m_tRetryAfter && tNow < m_tRetryAfter ) return FALSE;
@@ -1506,6 +1513,10 @@ void CHostCacheHost::SetKey(DWORD nKey, IN_ADDR* pHost)
 void CHostCacheHost::OnFailure(bool bRemove)
 {
 	m_pContainer->OnFailure(this, bRemove);
+	if ( m_nProtocol == PROTOCOL_G1 )
+		m_tRetryAfter = static_cast<DWORD>( time(NULL) ) + DWORD( Settings.Gnutella1.RequeryDelay / 60 );
+	else if ( m_nProtocol == PROTOCOL_G2 )
+		m_tRetryAfter = static_cast<DWORD>( time(NULL) ) + DWORD( Settings.Gnutella2.RequeryDelay / 3600 );
 }
 
 void CHostCacheHost::OnSuccess(bool bUpdate)
