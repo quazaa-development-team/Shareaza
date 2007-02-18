@@ -1850,8 +1850,8 @@ void CShakeNeighbour::OnHandshakeComplete()
 		}
 
 		// check if this connection is still needed at this point
-		if ( m_bAutomatic && ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !Neighbours.NeedMoreHubs( PROTOCOL_G2, TRUE ) ) ||
-			( m_nNodeType == ntLeaf && !Neighbours.NeedMoreLeafs( PROTOCOL_G2 ) ) )
+		if ( m_bAutomatic && ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !Neighbours.NeedMoreHubs( PROTOCOL_G2, TRUE ) && ( !m_bShareaza && ( m_bObsoleteClient || m_bBadClient ) ) ) ||
+			( m_nNodeType == ntLeaf && !Neighbours.NeedMoreLeafs( PROTOCOL_G2 ) && ( !m_bShareaza && ( m_bObsoleteClient || m_bBadClient ) ) ) )
 		{
 			delete this;
 			return;
@@ -1871,8 +1871,8 @@ void CShakeNeighbour::OnHandshakeComplete()
 			HostCache.OnSuccess( &m_pHost.sin_addr, htons( m_pHost.sin_port ), PROTOCOL_G1, true );
 		}
 		// check if this connection is still needed at this point
-		if ( m_bAutomatic && ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !Neighbours.NeedMoreHubs( PROTOCOL_G1, TRUE ) ) ||
-			( m_nNodeType == ntLeaf && !Neighbours.NeedMoreLeafs( PROTOCOL_G1 ) ) )
+		if ( m_bAutomatic && ( ( m_nNodeType == ntHub || m_nNodeType == ntNode ) && !Neighbours.NeedMoreHubs( PROTOCOL_G1, TRUE ) && ( m_bObsoleteClient || m_bBadClient ) ) ||
+			( m_nNodeType == ntLeaf && !Neighbours.NeedMoreLeafs( PROTOCOL_G1 ) && ( m_bObsoleteClient || m_bBadClient ) ) )
 		{
 			delete this;
 			return;

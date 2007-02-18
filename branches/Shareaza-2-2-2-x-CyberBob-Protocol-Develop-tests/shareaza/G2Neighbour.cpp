@@ -112,19 +112,31 @@ CG2Neighbour::CG2Neighbour(CNeighbour* pBase) :
 	switch ( m_nNodeType )
 	{
 	case ntNode:
-		Neighbours.m_oG2Peers.push_back(this);
+		if ( !m_bAutomatic || ( m_bShareaza && !( m_bObsoleteClient || m_bBadClient ) ) )	// Up to date Shareaza or Manually connected node
+			Neighbours.m_oG2Peers.push_front(this);
+		else
+			Neighbours.m_oG2Peers.push_back(this);
 		InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][ntNode]) );
 		break;
 	case ntHub:
-		Neighbours.m_oG2Hubs.push_back(this);
+		if ( !m_bAutomatic || ( m_bShareaza && !( m_bObsoleteClient || m_bBadClient ) ) )	// Up to date Shareaza or Manually connected node
+			Neighbours.m_oG2Hubs.push_front(this);
+		else
+			Neighbours.m_oG2Hubs.push_back(this);
 		InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][ntHub]) );
 		break;
 	case ntLeaf:
-		Neighbours.m_oG2Leafs.push_back(this);
+		if ( !m_bAutomatic || ( m_bShareaza && !( m_bObsoleteClient || m_bBadClient ) ) )	// Up to date Shareaza or Manually connected node
+			Neighbours.m_oG2Leafs.push_front(this);
+		else
+			Neighbours.m_oG2Leafs.push_back(this);
 		InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][ntLeaf]) );
 		break;
 	case ntSpecial:
-		Neighbours.m_oG2Specials.push_back(this);
+		if ( !m_bAutomatic || ( m_bShareaza && !( m_bObsoleteClient || m_bBadClient ) ) )	// Up to date Shareaza or Manually connected node
+			Neighbours.m_oG2Specials.push_front(this);
+		else
+			Neighbours.m_oG2Specials.push_back(this);
 		InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_G2][ntSpecial]) );
 		break;
 	default:
