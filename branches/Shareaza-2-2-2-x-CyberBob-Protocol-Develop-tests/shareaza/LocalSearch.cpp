@@ -361,23 +361,37 @@ BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int /*nIndex*/)
 		nGroup += 5 + 4 + Hashes::Md5Hash::byteCount;
 	}
 
-	strFolderName = pFile->GetFolderName();
+	//strFolderName = pFile->GetFolderName();
 
-	if (strFolderName.GetLength() > 0)
-	{
-		nGroup += 4 + pPacket->GetStringLen( strFolderName );
-	}
+	//if (strFolderName.GetLength() > 0)
+	//{
+	//	nGroup += 4 + pPacket->GetStringLen( strFolderName );
+	//}
 
 	if ( m_pSearch == NULL || m_pSearch->m_bWantDN )
 	{
+		int nLength = pPacket->GetStringLen( pFile->m_sName );
 		if ( pFile->GetSize() <= 0xFFFFFFFF )
 		{
-			nGroup += 8 + pPacket->GetStringLen( pFile->m_sName );
+			nLength += 4;
+			nGroup += 4 + nLength;
+			if ( nLength > 15 )
+			{
+				nGroup++;
+				if ( nLength > 255 )
+					nGroup++;
+			}
 		}
 		else
 		{
 			nGroup += 4 + 8;
-			nGroup += 4 + pPacket->GetStringLen( pFile->m_sName );
+			nGroup += 4 + nLength;
+			if ( nLength > 15 )
+			{
+				nGroup++;
+				if ( nLength > 255 )
+					nGroup++;
+			}
 		}
 
 		if ( LPCTSTR pszType = _tcsrchr( pFile->m_sName, '.' ) )
@@ -588,7 +602,7 @@ int CLocalSearch::ExecutePartialFiles(INT_PTR nMaximum)
 	
 	if ( !m_pSearch->m_oTiger && !m_pSearch->m_oSHA1 &&
 		 !m_pSearch->m_oED2K && !m_pSearch->m_oMD5 && !m_pSearch->m_oBTH ) return 0;
-	
+
 	CSingleLock pLock( &Transfers.m_pSection );
 	if ( ! pLock.Lock( 50 ) ) return 0;
 
@@ -599,15 +613,18 @@ int CLocalSearch::ExecutePartialFiles(INT_PTR nMaximum)
 	{
 		CDownload* pDownload = Downloads.GetNext( pos );
 
-		if ( ! pDownload->IsShared() ) continue;
-		
-		if (	validAndEqual( m_pSearch->m_oTiger, pDownload->m_oTiger )
-			||	validAndEqual( m_pSearch->m_oSHA1, pDownload->m_oSHA1 )
-			||	validAndEqual( m_pSearch->m_oED2K, pDownload->m_oED2K )
-			||	validAndEqual( m_pSearch->m_oMD5, pDownload->m_oMD5 ) 
-			||	validAndEqual( m_pSearch->m_oBTH, pDownload->m_oBTH ) )
+		if ( pDownload->IsShared() || ( pDownload->m_oBTH && ( pDownload->IsSeeding() || !pDownload->IsPaused() ) ) )
 		{
-			if ( ( pDownload->m_oBTH && ( pDownload->IsSeeding() || !pDownload->IsPaused() ) ) || pDownload->IsShared() )
+			if ( ( ( m_pSearch->m_oSHA1 && pDownload->m_oSHA1 ) ||
+				( m_pSearch->m_oTiger && pDownload->m_oTiger ) ||
+				( m_pSearch->m_oED2K && pDownload->m_oED2K ) ||
+				( m_pSearch->m_oMD5 && pDownload->m_oMD5 ) ||
+				( m_pSearch->m_oBTH && pDownload->m_oBTH ) ) &&
+				invalidOrEqual( m_pSearch->m_oSHA1, pDownload->m_oSHA1 ) &&
+				invalidOrEqual( m_pSearch->m_oTiger, pDownload->m_oTiger ) &&
+				invalidOrEqual( m_pSearch->m_oED2K, pDownload->m_oED2K ) &&
+				invalidOrEqual( m_pSearch->m_oMD5, pDownload->m_oMD5 ) &&
+				invalidOrEqual( m_pSearch->m_oBTH, pDownload->m_oBTH ) )
 			{
 				if ( m_pPacket == NULL ) CreatePacketG2();
 				AddHit( pDownload, nCount++ );
@@ -631,30 +648,42 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 {
 	ASSERT( m_pPacket != NULL );
 	CG2Packet* pPacket = (CG2Packet*)m_pPacket;
-	DWORD nGroup = 2 + 4 + 4;
+	DWORD nGroup = 2 + 4 + 4;	// G2 Packet Header = 1
+								// size of Length field = 1
+								// Size of packet name "PART" = 4
+								// content of the packet = 4
 	CString strURL;
-	
+	BOOL bBTOnly = m_pSearch->m_oBTH && !( pDownload->m_oSHA1 || pDownload->m_oTiger ||
+										pDownload->m_oED2K || pDownload->m_oMD5 );
+	BOOL bWantURL = m_pSearch->m_bWantURL;
+	BOOL bWantDN = m_pSearch->m_bWantDN;
+
     if ( pDownload->m_oTiger && pDownload->m_oSHA1 )
 	{
         nGroup += 5 + 3 + Hashes::Sha1Hash::byteCount + Hashes::TigerHash::byteCount;
+		bBTOnly = FALSE;
 	}
 	else if ( pDownload->m_oSHA1 )
 	{
 		nGroup += 5 + 5 + Hashes::Sha1Hash::byteCount;
+		bBTOnly = FALSE;
 	}
     else if ( pDownload->m_oTiger )
 	{
 		nGroup += 5 + 4 + Hashes::TigerHash::byteCount;
+		bBTOnly = FALSE;
 	}
 	
 	if ( pDownload->m_oED2K )
 	{
 		nGroup += 5 + 5 + Hashes::Ed2kHash::byteCount;
+		bBTOnly = FALSE;
 	}
 
 	if ( pDownload->m_oMD5 )
 	{
 		nGroup += 5 + 4 + Hashes::Md5Hash::byteCount;
+		bBTOnly = FALSE;
 	}
 
 	if ( pDownload->m_oBTH )
@@ -662,27 +691,150 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 		nGroup += 5 + 5 + Hashes::BtHash::byteCount;
 	}
 
-	if ( m_pSearch->m_bWantDN )
+	if ( bWantDN )
 	{
-		nGroup += 8 + pPacket->GetStringLen( pDownload->m_sDisplayName );
+		int nLength = pPacket->GetStringLen( pDownload->m_sDisplayName );
+		if ( !nLength )
+		{
+			bWantDN = FALSE;
+		}
+		else if ( pDownload->m_nSize <= 0xFFFFFFFF )
+		{
+			nGroup += 4;	// G2Header = 1
+							// Size of Length field = 1
+							// Name of packet "DN" = 2
+			nLength += 4;	// DN could contain 4byte File size filed at beginning.
+			if ( nLength > 15 )			// Length of 4Byte+string is longer than 15Byte,
+			{
+				nGroup += 1;			// add 1Byte for Length Field
+				if ( nLength > 255 )	// Length of 4Byte+string is longer than 255Byte
+				{
+					nGroup += 1;		// add 1 more Byte to it to make the size.
+				}
+			}
+			nGroup += nLength;
+		}
+		else
+		{
+			nGroup += 12;	// G2Packet Header = 1
+							// Size of Length = 1
+							// Name of packet "SZ" = 2
+							// FileSize data = 8
+			nGroup += 4;	// G2Packet Header = 1
+							// Size of Length = 1
+							// Name of packet "DN" = 2
+							// DN contain String of file name = ValLength
+			if ( nLength > 15 )			// Length of string is longer than 15Byte,
+			{
+				nGroup += 1;			// add 1Byte for Length Field
+				if ( nLength > 255 )	// Length of string is longer than 255Byte
+				{
+					nGroup += 1;		// add 1 more Byte to it to make the size.
+				}
+			}
+			nGroup += nLength;
+		}
 	}
 
-	if ( m_pSearch->m_bWantURL || m_pSearch->m_oBTH )
+	if ( bBTOnly )
 	{
-		nGroup += 5;
-
-		// if ( m_pSearch->m_bBTH && pDownload->m_pTorrent.IsAvailable() && Network.IsListening() )
-		
-		if ( m_pSearch->m_oBTH && pDownload->m_pTorrent.IsAvailable() && Network.IsListening() && Network.IsFirewalled(CHECK_TCP) == TS_FALSE )
+		if ( !Network.IsListening() || Network.IsFirewalled(CHECK_TCP) == TS_TRUE )
 		{
+			// do nothing ( can not accept any incomming connection)
+			bWantURL = FALSE;
+		}
+		else if ( m_pSearch->m_oBTH && pDownload->m_oBTH && pDownload->m_pTorrent.IsAvailable() )
+		{
+			bWantURL = TRUE;
+			int nLength = 0;
 			strURL.Format( _T("btc://%s:%i/%s/%s/"),
 				(LPCTSTR)CString( inet_ntoa( Network.m_pHost.sin_addr ) ),
 				htons( Network.m_pHost.sin_port ),
 				(LPCTSTR)pDownload->m_pPeerID.toString(),
 				(LPCTSTR)pDownload->m_oBTH.toString() );
-			nGroup += pPacket->GetStringLen( strURL );
+			nLength = pPacket->GetStringLen( strURL );
+			if ( nLength > 15 )
+			{
+				nGroup += 1;
+				if ( nLength > 255 )
+				{
+					nGroup += 1;
+				}
+			}
+			nGroup += nLength + 4;
 		}
 	}
+	else if ( m_pSearch->m_bWantURL )
+	{
+		int nLength = 0;
+		// if ( m_pSearch->m_bBTH && pDownload->m_pTorrent.IsAvailable() && Network.IsListening() )
+		if ( m_pSearch->m_oSHA1 && pDownload->m_oSHA1 )
+		{
+			if ( m_pSearch->m_oTiger && pDownload->m_oTiger )
+			{
+				strURL.Format( _T("http://%s:%i/uri-res/N2R?urn:bitprint:%s.%s"),
+					(LPCTSTR)CString( inet_ntoa( Network.m_pHost.sin_addr ) ),
+					htons( Network.m_pHost.sin_port ),
+					(LPCTSTR)pDownload->m_oSHA1.toString(),
+					(LPCTSTR)pDownload->m_oTiger.toString() );
+				nLength = pPacket->GetStringLen( strURL );
+			}
+			else
+			{
+				strURL.Format( _T("http://%s:%i/uri-res/N2R?urn:sha1:%s"),
+					(LPCTSTR)CString( inet_ntoa( Network.m_pHost.sin_addr ) ),
+					htons( Network.m_pHost.sin_port ),
+					(LPCTSTR)pDownload->m_oSHA1.toString() );
+					nLength = pPacket->GetStringLen( strURL );
+			}
+		}
+		else if ( m_pSearch->m_oTiger && pDownload->m_oTiger )
+		{
+			strURL.Format( _T("http://%s:%i/uri-res/N2R?urn:tree:tiger/:%s"),
+				(LPCTSTR)CString( inet_ntoa( Network.m_pHost.sin_addr ) ),
+				htons( Network.m_pHost.sin_port ),
+				(LPCTSTR)pDownload->m_oTiger.toString() );
+			nLength = pPacket->GetStringLen( strURL );
+		}
+		else if ( m_pSearch->m_oED2K && pDownload->m_oED2K )
+		{
+			strURL.Format( _T("http://%s:%i/uri-res/N2R?urn:ed2k:%s"),
+				(LPCTSTR)CString( inet_ntoa( Network.m_pHost.sin_addr ) ),
+				htons( Network.m_pHost.sin_port ),
+				(LPCTSTR)pDownload->m_oED2K.toString() );
+			nLength = pPacket->GetStringLen( strURL );
+		}
+		else if ( m_pSearch->m_oMD5 && pDownload->m_oMD5 )
+		{
+			strURL.Format( _T("http://%s:%i/uri-res/N2R?urn:md5:%s"),
+				(LPCTSTR)CString( inet_ntoa( Network.m_pHost.sin_addr ) ),
+				htons( Network.m_pHost.sin_port ),
+				(LPCTSTR)pDownload->m_oMD5.toString() );
+			nLength = pPacket->GetStringLen( strURL );
+		}
+
+		if ( strURL.GetLength() )
+		{
+			if ( nLength > 15 )
+			{
+				nGroup += 1;
+				if ( nLength > 255 )
+				{
+					nGroup += 1;
+				}
+			}
+			nGroup += nLength + 4;
+		}
+		else
+		{
+			bWantURL = FALSE;
+		}
+	}
+
+	QWORD nComplete = pDownload->GetVolumeComplete();
+
+	if ( nComplete > 0xFFFFFFFF )
+		nGroup += 4;	// it is 8Byte Part instead of 4Byte so add 4byte for size.
 
 	pPacket->WritePacket( G2_PACKET_HIT_DESCRIPTOR, nGroup, TRUE );
 	
@@ -727,7 +879,7 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 		pPacket->Write( pDownload->m_oBTH );
 	}
 
-	if ( m_pSearch->m_bWantDN )
+	if ( bWantDN )
 	{
 		if ( pDownload->m_nSize <= 0xFFFFFFFF )
 		{
@@ -744,7 +896,7 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 		}
 	}
 
-	if ( m_pSearch->m_bWantURL )
+	if ( bWantURL )
 	{
 		if ( strURL.GetLength() > 0 )
 		{
@@ -756,8 +908,6 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 			pPacket->WritePacket( G2_PACKET_URL, 0 );
 		}
 	}
-
-	QWORD nComplete = pDownload->GetVolumeComplete();
 
 	if ( nComplete <= 0xFFFFFFFF )
 	{
