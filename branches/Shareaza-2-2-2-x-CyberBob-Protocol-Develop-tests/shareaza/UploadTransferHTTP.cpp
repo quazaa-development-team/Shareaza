@@ -1275,8 +1275,8 @@ void CUploadTransferHTTP::SendFileHeaders()
 		// Send X-NAlt for partial transfers only
 		if ( CDownload* pDownload = Downloads.FindByURN( pszURN ) )
 		{
-			strHeader = pDownload->GetTopFailedSources( 15, PROTOCOL_G1 ) + _T("\r\n");
-			if ( strHeader.GetLength() ) m_pOutput->Print( _T("X-NAlt: ") + strHeader );
+			strHeader = pDownload->GetTopFailedSources( 15, PROTOCOL_G1 );
+			if ( strHeader.GetLength() ) m_pOutput->Print( _T("X-NAlt: ") + strHeader + _T("\r\n") );
 		}
 	}
 }
