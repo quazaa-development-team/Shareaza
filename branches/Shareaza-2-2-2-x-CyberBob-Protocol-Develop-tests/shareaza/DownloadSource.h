@@ -213,7 +213,7 @@ public:
 				{
 					if ( ! Settings.Gnutella1.EnableToday ) return FALSE;
 				}
-				else
+				else if ( m_nGnutella == 3 )
 				{
 					if ( ! Settings.Gnutella1.EnableToday &&
 						! Settings.Gnutella2.EnableToday ) return FALSE;
