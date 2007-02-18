@@ -288,7 +288,7 @@ BOOL CDownloadSource::ResolveURL()
 	{
 		m_pServerAddress	= pURL.m_pServerAddress;
 		m_nServerPort		= pURL.m_nServerPort;
-		if ( m_nServerPort ) m_bPushOnly = TRUE;
+		if ( pURL.m_pServerAddress.S_un.S_addr && pURL.m_nServerPort ) m_bPushOnly = TRUE;
 	}
 	else if ( m_nProtocol == PROTOCOL_BT )
 	{
