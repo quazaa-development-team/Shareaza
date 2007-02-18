@@ -575,7 +575,7 @@ BOOL CG1Neighbour::OnPing(CG1Packet* pPacket)
 
 	// The ping can only once more or is dead, or it has already travelled across the Internet, and
 	if ( bIsKeepAlive ||                                       // Either this is a keep alive packet, or
-		( Network.IsListening() && ! Neighbours.IsG1Leaf() ) ) // We're listening for connections and this remote computer is a Gnutella hub
+		( Network.IsListening() && ! Neighbours.IsG1Leaf() ) ) // We're listening for connections and We're not a Gnutella Leaf
 	{
 		// Make a new pong packet, the response to a ping
 		CG1Packet* pPong = CG1Packet::New( // Gets it quickly from the Gnutella packet pool
