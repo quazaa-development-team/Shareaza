@@ -2662,7 +2662,14 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	{
 		DWORD nNext = pPacket->m_nPosition + nLength;
 
-		if ( nType == G2_PACKET_NEIGHBOUR_HUB ||
+		if ( nType == G2_PACKET_YOURIP )
+		{
+			DWORD nAddress = pPacket->ReadLongLE();
+			if ( !Network.IsFirewalledAddress( &nAddress, FALSE, TRUE ) &&
+				 !Network.IsReserved( (IN_ADDR*)(&nAddress), false ) )
+				 Network.m_pHost.sin_addr.S_un.S_addr = nAddress;
+		}
+		else if ( nType == G2_PACKET_NEIGHBOUR_HUB ||
 			nType == G2_PACKET_CACHED_HUB )
 		{
 			DWORD nAddress = 0, tSeen = tNow, nLeafCount = 0, nLeafLimit = 0;
@@ -2758,7 +2765,20 @@ BOOL CDatagrams::OnKHLR(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 
 	CG2Packet* pKHLA = CG2Packet::New( G2_PACKET_KHL_ANS, TRUE );
 
-	//	DWORD nBase = pPacket->m_nPosition;
+	pKHLA->WritePacket( G2_PACKET_YOURIP, 4, FALSE );
+	pKHLA->WriteLongLE( pHost->sin_addr.S_un.S_addr );	// 4
+
+	if ( Neighbours.IsG2Hub() )	// If in Hub mode
+	{
+		pKHLA->WritePacket( G2_PACKET_NEIGHBOUR_HUB, 16 + 6, TRUE );			// 4
+		pKHLA->WritePacket( G2_PACKET_HUB_STATUS, 4 );							// 4
+		pKHLA->WriteShortBE( (WORD)Neighbours.m_nCount[PROTOCOL_G2][ntLeaf] );	// 2
+		pKHLA->WriteShortBE( (WORD)Neighbours.m_nLimit[PROTOCOL_G2][ntLeaf] );	// 2
+		pKHLA->WritePacket( G2_PACKET_VENDOR, 4 );								// 3
+		pKHLA->WriteString( SHAREAZA_VENDOR_A );								// 5
+		pKHLA->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );				// 4
+		pKHLA->WriteShortBE( htons( Network.m_pHost.sin_port ) );				// 2
+	}
 
 	for ( POSITION pos = Neighbours.GetIterator() ; pos ; )
 	{
