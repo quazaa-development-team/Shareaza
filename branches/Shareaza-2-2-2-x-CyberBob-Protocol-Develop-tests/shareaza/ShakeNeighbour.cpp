@@ -1078,12 +1078,18 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 	}
 	else if ( strHeader.CompareNoCase( _T("X-Try-DNA-Hubs") ) == 0 )
 	{	// The remote computer is giving us a list GnucDNA G2 hubs
-		m_sTryDNAHubs = strValue;
+		if ( m_sTryDNAHubs.GetLength() )	// some Hosts may give multiple lines of Host lists.
+			m_sTryDNAHubs.AppendFormat( _T(", %s"), (LPCTSTR)strValue );
+		else 
+			m_sTryDNAHubs = strValue;
 	}
 	else if ( strHeader.CompareNoCase( _T("X-Try-Hubs") ) == 0 )
 	{	// The remote computer is giving us a list G2 hubs
-		m_sTryHubs = strValue;
-	} 
+		if ( m_sTryHubs.GetLength() )	// some Hosts may give multiple lines of Host lists.
+			m_sTryHubs.AppendFormat( _T(", %s"), (LPCTSTR)strValue );
+		else 
+			m_sTryHubs = strValue;
+	}
 	else if (	strHeader.CompareNoCase( _T("X-Try-Ultrapeers") ) == 0 )
 	{	// This header has been used for several things. In general, it's giving us a list of
 		// Gnutella Ultrapeers, however some older versions of Shareaza can send G2 hubs in it,
@@ -1091,7 +1097,10 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 		// However this should not be used for G2 because Shareaza 2.2.1.0 and earlier may give
 		// G1 host list with "accept: application/x-gnutella2" specified, if the node has
 		// Gnutella1 enabled
-		m_sTryUltrapeers = strValue;
+		if ( m_sTryUltrapeers.GetLength() )	// some Hosts may give multiple lines of Host lists.
+			m_sTryUltrapeers.AppendFormat( _T(", %s"), (LPCTSTR)strValue );
+		else
+			m_sTryUltrapeers = strValue;
 	}
 
 	// Report success
