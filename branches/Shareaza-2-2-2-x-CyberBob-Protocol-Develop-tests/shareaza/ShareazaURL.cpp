@@ -59,6 +59,7 @@ CShareazaURL::CShareazaURL(CBTInfo* pTorrent)
 	m_oSHA1     = pTorrent->m_oDataSHA1;
 	m_oED2K		= pTorrent->m_oDataED2K;
 	m_oTiger	= pTorrent->m_oDataTiger;
+	m_oMD5		= pTorrent->m_oDataMD5;
 	m_sName		= pTorrent->m_sName;
 	m_bSize		= TRUE;
 	m_nSize		= pTorrent->m_nTotalSize;

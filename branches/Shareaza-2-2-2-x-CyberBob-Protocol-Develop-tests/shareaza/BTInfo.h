@@ -28,6 +28,7 @@
 #include "ED2K.h"
 #include "Buffer.h"
 #include "TigerTree.h"
+#include "MD5.h"
 
 class CBuffer;
 class CBENode;
@@ -54,6 +55,7 @@ public:
         Hashes::Sha1Hash m_oSHA1;
 		Hashes::Ed2kHash m_oED2K;
 		Hashes::TigerHash m_oTiger;
+		Hashes::Md5Hash m_oMD5;
 		int		nFilePriority;
 	};
 	enum { prNotWanted, prLow, prNormal, prHigh };
@@ -84,6 +86,7 @@ public:
     Hashes::Sha1Hash m_oDataSHA1;
 	Hashes::Ed2kHash m_oDataED2K;
 	Hashes::TigerHash m_oDataTiger;
+	Hashes::Md5Hash m_oDataMD5;
 	CList< CString >	m_sURLs;	// Add sources from torrents - DWK
 
 public:

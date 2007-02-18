@@ -114,8 +114,12 @@ void CTorrentSeedDlg::OnDownload()
 		
 
 		CSingleLock oLibraryLock( &Library.m_pSection, TRUE );
-		if ( ( pFile = LibraryMaps.LookupFileBySHA1( pURL->m_oSHA1 ) ) != NULL
-			|| ( pFile = LibraryMaps.LookupFileByED2K( pURL->m_oED2K ) ) != NULL )
+		//if ( ( pFile = LibraryMaps.LookupFileBySHA1( pURL->m_oSHA1 ) ) != NULL
+		//	|| ( pFile = LibraryMaps.LookupFileByED2K( pURL->m_oED2K ) ) != NULL )
+		if ( ( pFile = LibraryMaps.LookupFileByHash( pURL->m_oSHA1, pURL->m_oTiger, pURL->m_oED2K, pURL->m_oMD5,
+													pURL->m_bSize ? pURL->m_nSize : QWORD(-1),
+													pURL->m_bSize ? pURL->m_nSize : QWORD(-1),
+													FALSE, FALSE ) ) != NULL )
 		{
 			CString strFormat, strMessage;
 			LoadString( strFormat, IDS_URL_ALREADY_HAVE );
@@ -362,10 +366,11 @@ CString CTorrentSeedDlg::FindFile(LPVOID pVoid)
 	int nSlash = strPath.ReverseFind( '\\' );
 	if ( nSlash >= 0 ) strPath = strPath.Left( nSlash + 1 );
 
-	if ( pFile->m_oSHA1 )
+	if ( pFile->m_oSHA1 || pFile->m_oTiger || pFile->m_oED2K || pFile->m_oMD5 )
 	{
 		CSingleLock oLibraryLock( &Library.m_pSection, TRUE );
-		if ( CLibraryFile* pShared = LibraryMaps.LookupFileBySHA1( pFile->m_oSHA1, FALSE, TRUE ) )
+		if ( CLibraryFile* pShared = LibraryMaps.LookupFileByHash( pFile->m_oSHA1, pFile->m_oTiger, pFile->m_oED2K,
+															pFile->m_oMD5, pFile->m_nSize, pFile->m_nSize, FALSE, TRUE ) )
 		{
 			strFile = pShared->GetPath();
 			oLibraryLock.Unlock();
