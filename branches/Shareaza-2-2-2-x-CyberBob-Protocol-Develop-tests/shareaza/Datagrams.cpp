@@ -2647,7 +2647,7 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 	if ( !bQueried ) // Should not process the packet if the node is not queried for(Answer without asking = unsafe)
 	{
 		Statistics.Current.Gnutella2.Dropped++;
-		theApp.Message( MSG_ERROR, _T("Gnutella2 UKHL reply from non-queried node %s (Ignored)"), (LPCTSTR)inet_ntoa( pHost->sin_addr ) );
+		theApp.Message( MSG_ERROR, _T("Gnutella2 UKHL reply from non-queried node %s (Ignored)"), CString( (LPCTSTR)inet_ntoa( pHost->sin_addr ) ) );
 		return FALSE;
 	}
 
