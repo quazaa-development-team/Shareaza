@@ -333,10 +333,10 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 {
 	if ( pURL->m_nAction != CShareazaURL::uriDownload &&
 		 pURL->m_nAction != CShareazaURL::uriSource ) return NULL;
-	
+
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
 	CDownload* pDownload = NULL;
-	
+
 	if ( pDownload == NULL && ( pURL->m_oSHA1 || pURL->m_oTiger || pURL->m_oED2K || pURL->m_oMD5 || pURL->m_oBTH ) )
 		pDownload = FindByHash( pURL->m_oSHA1, pURL->m_oTiger, pURL->m_oED2K,  pURL->m_oMD5, pURL->m_oBTH, FALSE );
 
@@ -348,7 +348,7 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 		pDownload = FindByED2K( pURL->m_oED2K );
 	if ( pDownload == NULL && pURL->m_oBTH )
 		pDownload = FindByBTH( pURL->m_oBTH ); */
-	
+
 	if ( pDownload != NULL )
 	{
 		theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_ALREADY,
@@ -358,9 +358,9 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 		
 		return pDownload;
 	}
-	
+
 	pDownload = new CDownload();
-	
+
 	if ( pURL->m_oSHA1 )
 	{
 		pDownload->m_oSHA1			= pURL->m_oSHA1;
@@ -388,17 +388,17 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 		pDownload->m_oBTH.signalTrusted();
 		//pDownload->Share( TRUE );
 	}
-	
+
 	if ( pURL->m_sName.GetLength() )
 	{
 		pDownload->m_sDisplayName = pURL->m_sName;
 	}
-	
+
 	if ( pURL->m_bSize )
 	{
 		pDownload->m_nSize = pURL->m_nSize;
 	}
-	
+
 	if ( pURL->m_sURL.GetLength() )
 	{
 		if ( ! pDownload->AddSourceURLs( pURL->m_sURL, FALSE ) )
@@ -410,7 +410,7 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 			}
 		}
 	}
-	
+
 	// Add sources from torrents - DWK
 	pDownload->SetTorrent( pURL->m_pTorrent );
 	if ( pURL->m_pTorrent && pURL->m_pTorrent->m_sURLs.GetCount() > 0 )
@@ -422,12 +422,12 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 		}
 		pURL->m_pTorrent->m_sURLs.RemoveAll();
 	}
-	
+
 	m_pList.AddTail( pDownload );
-	
+
 	theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_ADDED,
 		(LPCTSTR)pDownload->GetDisplayName(), pDownload->GetEffectiveSourceCount() );
-	
+
 	if ( (  pDownload->m_oBTH && ( GetTryingCount(TRUE)  < Settings.BitTorrent.DownloadTorrents ) ) ||
 		 ( !pDownload->m_oBTH && ( GetTryingCount(FALSE) < Settings.Downloads.MaxFiles ) ) )
 	{
@@ -435,10 +435,10 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 		//if ( pDownload->GetEffectiveSourceCount() <= 1 ) 
 		//	pDownload->FindMoreSources();
 	}
-	
+
 	DownloadGroups.Link( pDownload );
 	Transfers.StartThread();
-	
+
 	return pDownload;
 }
 

@@ -367,7 +367,6 @@ BOOL CShakeNeighbour::OnRun()
 
 		Close( m_nDelayCloseReason );
 		return FALSE;
-
 		break;
 	default:
 //		ASSERT( 0 )

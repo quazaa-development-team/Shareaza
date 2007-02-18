@@ -427,7 +427,6 @@ void CDownload::OnRun()
 
 			// Calculate the currently downloading state
 			if( GetTransferCount() > 0 ) bDownloading = TRUE;
-
 		}
 		else if ( ! m_bComplete && m_bVerify != TS_TRUE )
 		{	//If this download isn't trying to download, see if it can try
@@ -696,13 +695,13 @@ BOOL CDownload::Load(LPCTSTR pszName)
 BOOL CDownload::Save(BOOL bFlush)
 {
 	CFile pFile;
-	
+
 	m_nSaveCookie = m_nCookie;
 	m_tSaved = GetTickCount();
-	
+
 	if ( m_bComplete && !m_bSeeding ) return TRUE;
 	if ( m_bSeeding && !Settings.BitTorrent.AutoSeed ) return TRUE;
-	
+
 	if ( m_bSeeding )
 	{
 		m_sSafeName.Empty();

@@ -1225,7 +1225,7 @@ int CDownloadWithSources::GetSourceColour()
 void CDownloadWithSources::Serialize(CArchive& ar, int nVersion)
 {
 	CDownloadBase::Serialize( ar, nVersion );
-	
+
 	if ( ar.IsStoring() )
 	{
 		// custom option
@@ -1237,7 +1237,7 @@ void CDownloadWithSources::Serialize(CArchive& ar, int nVersion)
 		if ( Settings.Downloads.SavePushSource && !IsSeeding() )
 		{
 			ar.WriteCount( GetSourceCount() );
-		
+
 			for ( CDownloadSource* pSource = GetFirstSource() ; pSource ; pSource = pSource->m_pNext )
 			{
 				pSource->Serialize( ar, nVersion );
@@ -1246,7 +1246,7 @@ void CDownloadWithSources::Serialize(CArchive& ar, int nVersion)
 		else
 		{
 			ar.WriteCount( GetSourceCount( TRUE ) );
-		
+
 			for ( CDownloadSource* pSource = GetFirstSource() ; pSource ; pSource = pSource->m_pNext )
 			{
 				if ( !pSource->m_bPushOnly )
@@ -1263,13 +1263,13 @@ void CDownloadWithSources::Serialize(CArchive& ar, int nVersion)
 		{
 			// Create new source
 			CDownloadSource* pSource = new CDownloadSource( (CDownload*)this );
-			
+
 			// Add to the list
 			m_nSourceCount++;
 
 			pSource->m_pPrev = m_pSourceLast;
 			pSource->m_pNext = NULL;
-			
+
 			if ( m_pSourceLast != NULL )
 			{
 				m_pSourceLast->m_pNext = pSource;
@@ -1310,7 +1310,7 @@ void CDownloadWithSources::Serialize(CArchive& ar, int nVersion)
 					_stscanf( strURL, _T("%lu"), &pSource->m_pAddress.S_un.S_addr );
 			}
 		}
-		
+
 		if ( ar.ReadCount() )
 		{
 			m_pXML = new CXMLElement();
