@@ -235,7 +235,8 @@ BOOL CDownloadTransferED2K::OnConnected()
 	m_pSource->m_nPushAttempted = 0;
 	m_pSource->m_nBusyCount = 0;
 	m_pSource->m_nFailures = 0;
-	
+	m_pSource->m_oAvailable.clear();
+
 	theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_CONNECTED, (LPCTSTR)m_sAddress );
 	
 	return SendPrimaryRequest();
@@ -565,8 +566,8 @@ BOOL CDownloadTransferED2K::OnCompressedPart(CEDPacket* pPacket)
 		return TRUE;
 	}
 
-	QWORD nBaseOffset = pPacket->ReadLongLE();
-	QWORD nBaseLength = pPacket->ReadLongLE();
+	QWORD nBaseOffset = (QWORD)pPacket->ReadLongLE();
+	QWORD nBaseLength = (QWORD)pPacket->ReadLongLE();
 
 	z_streamp pStream = (z_streamp)m_pInflatePtr;
 
@@ -755,7 +756,7 @@ BOOL CDownloadTransferED2K::SendSecondaryRequest()
 		SetState( dtsHashset );
 		m_pClient->m_mInput.tLast = GetTickCount();
 	}
-	else if ( m_pSource->HasUsefulRanges() )
+	else if ( !m_pAvailable || m_pSource->HasUsefulRanges() )
 	{
 		CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_QUEUEREQUEST );
 		pPacket->Write( m_pDownload->m_oED2K );

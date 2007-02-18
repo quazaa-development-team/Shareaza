@@ -272,7 +272,7 @@ BOOL CDownloadTransferHTTP::StartNextFragment()
 		
 		return SendRequest();
 	}
-	else if ( m_pDownload->GetFragment( this ) )
+	else if ( m_pDownload->GetFragment( this ) || m_nRequests == 0 )
 	{
 		ChunkifyRequest( &m_nOffset, &m_nLength, Settings.Downloads.ChunkSize, TRUE );
 		
