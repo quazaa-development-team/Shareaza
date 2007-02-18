@@ -289,6 +289,36 @@ public:
 		return m_bBigEndian ? SWAP_64( nValue ) : nValue;
 	}
 
+	inline QWORD ReadIntLE64()
+	{
+		// Make sure there are at least 8 bytes of data at our position in the packet
+		if ( m_nPosition + 8 > m_nLength ) AfxThrowUserException();
+
+		// Read the 8 bytes at the position, and move the position past them
+		QWORD nValue = *(QWORD*)( m_pBuffer + m_nPosition ); // Look at the pointer as a 8 byte QWORD
+		m_nPosition += 8;                                    // Move the position beyond it
+
+		// If the packet is in big endian, reverse the order of the 8 bytes before returning them in a QWORD
+		return nValue;
+	}
+
+	// Read the next 8 bytes in the packet, moving the position beyond them
+	// Returns the bytes in a QWORD, reversing their order if the packet thinks its contents are in big endian order
+	inline QWORD ReadIntBE64()
+	{
+		// Make sure there are at least 8 bytes of data at our position in the packet
+		if ( m_nPosition + 8 > m_nLength ) AfxThrowUserException();
+
+		// Read the 8 bytes at the position, and move the position past them
+		QWORD nValue = *(QWORD*)( m_pBuffer + m_nPosition ); // Look at the pointer as a 8 byte QWORD
+		m_nPosition += 8;                                    // Move the position beyond it
+
+		// If the packet is in big endian, reverse the order of the 8 bytes before returning them in a QWORD
+		return m_bBigEndian ? SWAP_64( nValue ) : nValue;
+	}
+
+	// Read the next 8 bytes in the packet, moving the position beyond them
+	// Returns the bytes in a QWORD, reversing their order if the packet thinks its contents are in big endian order
 	// Takes a length of bytes we would like to add to the packet
 	// Ensures the allocated block of memory is big enough for them, making it bigger if necessary
 	inline BOOL Ensure(DWORD nLength)
@@ -432,6 +462,36 @@ public:
 	// Takes 8 bytes in a QWORD
 	// Writes them into the end of the packet, reversing their order if the packet is in big endian order
 	inline void WriteInt64(QWORD nValue)
+	{
+		// Make sure there is room for the 8 bytes
+		if ( m_nLength + sizeof(nValue) > m_nBuffer )
+		{
+			if ( ! Ensure( sizeof( nValue ) ) ) return;
+		}
+
+		// Write the 8 bytes as a QWORD at the end of the packet, and record that it is there
+		*(QWORD*)( m_pBuffer + m_nLength ) = m_bBigEndian ? SWAP_64( nValue ) : nValue; // Reverse their order if necessary
+		m_nLength += sizeof(nValue);
+	}
+
+	// Takes 8 bytes in a QWORD
+	// Writes them into the end of the packet, reversing their order if the packet is in big endian order
+	inline void WriteIntLE64(QWORD nValue)
+	{
+		// Make sure there is room for the 8 bytes
+		if ( m_nLength + sizeof(nValue) > m_nBuffer )
+		{
+			if ( ! Ensure( sizeof( nValue ) ) ) return;
+		}
+
+		// Write the 8 bytes as a QWORD at the end of the packet, and record that it is there
+		*(QWORD*)( m_pBuffer + m_nLength ) = nValue;
+		m_nLength += sizeof(nValue);
+	}
+
+	// Takes 8 bytes in a QWORD
+	// Writes them into the end of the packet, reversing their order if the packet is in big endian order
+	inline void WriteIntBE64(QWORD nValue)
 	{
 		// Make sure there is room for the 8 bytes
 		if ( m_nLength + sizeof(nValue) > m_nBuffer )
