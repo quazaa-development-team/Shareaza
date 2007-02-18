@@ -511,7 +511,7 @@ BOOL CUploadTransferHTTP::OnHeadersComplete()
 	{
 		// Network isn't active- Check if we should send 404 or 403
 
-		if ( StartsWith( m_sRequest, _T("/uri-res/N2R?urn:") ) )
+		/*if ( StartsWith( m_sRequest, _T("/uri-res/N2R?urn:") ) )
 		{
 			LPCTSTR pszURN = (LPCTSTR)m_sRequest + 13;
 
@@ -538,9 +538,9 @@ BOOL CUploadTransferHTTP::OnHeadersComplete()
 			SendResponse( IDR_HTML_FILENOTFOUND );
 		}
 		else
-		{
+		{*/
 			SendResponse( IDR_HTML_DISABLED );
-		}
+		/*}*/
 		theApp.Message( MSG_ERROR, IDS_UPLOAD_DISABLED, (LPCTSTR)m_sAddress, (LPCTSTR)m_sUserAgent );
 		Security.Ban( &m_pHost.sin_addr, ban2Hours, FALSE ); // Anti-hammer protection if client doesn't understand 403
 		Remove( FALSE );
@@ -1509,7 +1509,6 @@ BOOL CUploadTransferHTTP::OnRun()
 		break;
 
 	case upsUploading:
-	case upsResponse:
 	case upsBrowse:
 	case upsTigerTree:
 	case upsMetadata:
@@ -1539,6 +1538,8 @@ BOOL CUploadTransferHTTP::OnRun()
 			}
 			break;
 		}
+
+	case upsResponse:
 		if ( tNow - m_mOutput.tLast > Settings.Connection.TimeoutTraffic )
 		{
 			if ( tNow - m_tRequest > m_nTimeoutTraffic )
