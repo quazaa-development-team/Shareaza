@@ -79,6 +79,9 @@ int CNeighboursWithRouting::Broadcast(CPacket* pPacket, CNeighbour* pExcept, BOO
 		// Get the neighbour under pos, and move pos to the next one in the list
 		CNeighbour* pNeighbour = GetNext( pos );
 
+		// this BroadCast function is for Gnutella1 PING and should not do any process if pNeighbour is not any of G1 node
+		if ( pNeighbour->m_nProtocol != PROTOCOL_G1 ) continue;
+
 		if ( Settings.Gnutella1.EnableGGEP )
 		{
 			// Don't send GGEP packets if neighbour doesn't support them
