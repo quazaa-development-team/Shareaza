@@ -27,6 +27,7 @@
 #include "DownloadWithTiger.h"
 
 class CManagedSearch;
+class CDownloadEditHashesPage;
 
 
 class CDownloadWithSearch : public CDownloadWithTiger
@@ -58,6 +59,8 @@ private:
 	BOOL	CanSearch() const;
 	void	PrepareSearch( BOOL bG1 = TRUE, BOOL bG2 = TRUE, BOOL bED2K = TRUE );
 
+	friend class CDownloadsCtrl;
+	friend class CDownloadEditHashesPage;
 };
 
 #endif // !defined(AFX_DOWNLOADWITHSEARCH_H__0ED8A270_13B0_47A6_9917_727CBDD82B27__INCLUDED_)

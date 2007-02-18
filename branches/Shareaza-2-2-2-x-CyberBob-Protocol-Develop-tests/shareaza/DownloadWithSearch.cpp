@@ -210,12 +210,17 @@ void CDownloadWithSearch::PrepareSearch( BOOL bG1, BOOL bG2, BOOL bED2K )
 	}
 	else
 	{
+		pSearch->m_oSHA1.clear();
 		pSearch->m_bAndG1 = FALSE;
 	}
 
 	if ( m_oTiger )
 	{
 		pSearch->m_oTiger = m_oTiger;
+	}
+	else
+	{
+		pSearch->m_oTiger.clear();
 	}
 
 	if ( m_oED2K )
@@ -225,6 +230,7 @@ void CDownloadWithSearch::PrepareSearch( BOOL bG1, BOOL bG2, BOOL bED2K )
 	}
 	else
 	{
+		pSearch->m_oED2K.clear();
 		m_pSearch->m_bAllowED2K = FALSE;
 	}
 
@@ -232,12 +238,20 @@ void CDownloadWithSearch::PrepareSearch( BOOL bG1, BOOL bG2, BOOL bED2K )
 	{
 		pSearch->m_oMD5 = m_oMD5;
 	}
+	else
+	{
+		pSearch->m_oMD5.clear();
+	}
 
 	if ( m_oBTH )
 	{
 		pSearch->m_oBTH = m_oBTH;
 	}
-	
+	else
+	{
+		pSearch->m_oBTH.clear();
+	}
+
 	pSearch->m_bWantURL	= TRUE;
 	pSearch->m_bWantDN	= ( m_sDisplayName.GetLength() == 0 );
 	pSearch->m_bWantXML	= FALSE;

@@ -289,6 +289,8 @@ BOOL CDownloadEditHashesPage::Commit()
 		m_pDownload->ClearFailedSources();
 		m_pDownload->ClearVerification();
 		bNeedUpdate = true;
+		m_pDownload->StopSearch();
+		m_pDownload->PrepareSearch();
 	}
 
 	if (bNeedUpdate)
