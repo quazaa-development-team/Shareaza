@@ -258,6 +258,74 @@ void CDownloadWithSources::ClearSources()
 	SetModified();
 }
 
+void CDownloadWithSources::ClearOldSources()
+{
+	const QWORD nTimeOut = (QWORD)3600 * (QWORD)10000000;
+	SYSTEMTIME pTime;
+	FILETIME tNow;
+	GetSystemTime( &pTime );
+	SystemTimeToFileTime( &pTime, &tNow );
+
+	for ( CDownloadSource* pSource = GetFirstSource() ; pSource ; )
+	{
+		CDownloadSource* pNext = pSource->m_pNext;
+		if ( pSource->m_pTransfer )
+		{
+			pSource->SetLastSeen();
+		}
+		else if ( *reinterpret_cast<QWORD*>(&pSource->m_tLastSeen) + nTimeOut < *reinterpret_cast<QWORD*>(&tNow) )
+		{
+			AddFailedSource( pSource );
+			switch ( pSource->m_nProtocol )
+			{
+			case PROTOCOL_G1:
+				ASSERT(m_nG1SourceCount);
+				m_nG1SourceCount--;
+				break;
+			case PROTOCOL_G2:
+				ASSERT(m_nG2SourceCount);
+				m_nG2SourceCount--;
+				break;
+			case PROTOCOL_ED2K:
+				ASSERT(m_nEdSourceCount);
+				m_nEdSourceCount--;
+				break;
+			case PROTOCOL_HTTP:
+				ASSERT(m_nHTTPSourceCount);
+				m_nHTTPSourceCount--;
+				break;
+			case PROTOCOL_FTP:
+				ASSERT(m_nFTPSourceCount);
+				m_nFTPSourceCount--;
+				break;
+			case PROTOCOL_BT:
+				ASSERT(m_nBTSourceCount);
+				m_nBTSourceCount--;
+				break;
+			default:
+				break;
+			}
+			ASSERT(m_nSourceCount);
+			m_nSourceCount--;
+
+			if ( pSource->m_pPrev != NULL )
+				pSource->m_pPrev->m_pNext = pSource->m_pNext;
+			else
+				m_pSourceFirst = pSource->m_pNext;
+
+			if ( pSource->m_pNext != NULL )
+				pSource->m_pNext->m_pPrev = pSource->m_pPrev;
+			else
+				m_pSourceLast = pSource->m_pPrev;
+
+			delete pSource;
+		}
+		pSource = pNext;
+	}
+
+	SetModified();
+}
+
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithSources add a query-hit source
 
@@ -504,8 +572,12 @@ int CDownloadWithSources::AddSourceURLs(LPCTSTR pszURLs, BOOL bURN, BOOL bFailed
 {
 	if ( IsCompleted() || IsMoving() )
 	{
-		ClearSources();
-		return 0;
+		//ClearSources(); <- this should not be executed here.... since this can potentially cause crash in BT seeding.
+		// e.g. CDownloadTransfer eixst without CDownloadSource, crash when CDownloadTransfer tried to access CDownloadSource
+		// by its own member pointer of CDownloadSource.
+		
+		// adding Source Caching/management into completed download.
+		//return 0;
 	}
 	else if ( IsPaused() )
 		return 0;
@@ -1162,7 +1234,7 @@ void CDownloadWithSources::Serialize(CArchive& ar, int nVersion)
 		// plus somehow, if you have the source in the list and you find the same source by search, somehow it does not update
 		// routecache and you can not start download (not even send PUSH request packet)
 		// since that it is not really useful to save PUSH sources.
-		if ( Settings.Downloads.SavePushSource )
+		if ( Settings.Downloads.SavePushSource && !IsSeeding() )
 		{
 			ar.WriteCount( GetSourceCount() );
 		

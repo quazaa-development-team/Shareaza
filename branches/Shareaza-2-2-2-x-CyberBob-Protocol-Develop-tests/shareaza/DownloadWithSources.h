@@ -102,6 +102,7 @@ public:
 	void				ExpireFailedSources();
 	void				VoteSource(LPCTSTR pszUrl, bool bPositively);
 	void				ClearSources();
+	void				ClearOldSources();
 	void				ClearFailedSources();
 public:
 	BOOL				AddSourceHit(CQueryHit* pHit, BOOL bForce = FALSE);

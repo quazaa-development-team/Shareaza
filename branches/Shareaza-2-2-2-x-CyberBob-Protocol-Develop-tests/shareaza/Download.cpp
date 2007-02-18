@@ -65,6 +65,7 @@ CDownload::CDownload()
 , m_tBegan(0)
 , m_bDownloading(FALSE)
 , m_bTempPaused(FALSE)
+, m_tLastSourceCheck(0)
 {
 	DownloadGroups.Link( this );
 }
@@ -388,7 +389,7 @@ void CDownload::OnRun()
 						{
 							if ( m_tBegan == 0 )
 							{
-								m_tBegan = GetTickCount();
+								m_tBegan = tNow;
 								m_bTorrentStarted = TRUE;
 							}
 							// in order to upload from firewalled node, something like below should be here.
@@ -452,7 +453,17 @@ void CDownload::OnRun()
 				m_tBegan = 0;
 		}
 	}
-	
+
+	if ( IsCompleted() || IsSeeding() )
+	{
+		bDownloading = FALSE;
+		if ( m_tLastSourceCheck == 0 || tNow - m_tLastSourceCheck > 10 * 60 * 1000 )
+		{	// Check Sources one in 10 minute if completed
+			m_tLastSourceCheck = tNow;	// set current time to m_tLastSourceCheck value
+			ClearOldSources();
+		}
+	}
+
 	// Set the currently downloading state (Used to optimize display in Ctrl/Wnd functions)
 	m_bDownloading = bDownloading;
 	
