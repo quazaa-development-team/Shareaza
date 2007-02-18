@@ -25,7 +25,7 @@
 #pragma once
 
 class CDownloadTask;
-
+class CDownloadEditActionsPage;
 
 class CDownloadBase
 {
@@ -67,6 +67,7 @@ protected:
 	void			GenerateDiskName(bool bTorrent = false);
 	virtual void	Serialize(CArchive& ar, int nVersion);
 
+	friend class CDownloadEditActionsPage;
 };
 
 #endif // !defined(AFX_DOWNLOADBASE_H__71956CAE_7D13_4809_837B_5F17DE46856E__INCLUDED_)

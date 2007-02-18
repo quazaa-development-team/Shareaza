@@ -157,7 +157,7 @@ void CDownloadEditActionsPage::OnLButtonUp(UINT nFlags, CPoint point)
 		CSingleLock pLock( &Transfers.m_pSection, TRUE );
 		if ( ! Downloads.Check( m_pDownload ) || m_pDownload->IsMoving() ) return;
 		m_pDownload->ResetVerification();
-		m_pDownload->RunValidation(FALSE);
+		//m_pDownload->RunValidation(FALSE);
 	}
 	else if ( rcCtrl3.PtInRect( point ) )
 	{
