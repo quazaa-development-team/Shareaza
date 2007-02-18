@@ -813,8 +813,8 @@ void CG1Neighbour::OnNewPong(CPongItem* pPong )	//	cause crash if cache pPong is
 	if ( m_nPongNeeded[ pPong->m_nHops ] > 0 )
 	{
 		// Have the CPongItem object make a packet, and send it to the remote computer
-//		Send( pPong->ToPacket( m_nLastPingHops, tempGUID ) );
-//		Statistics.Current.Gnutella1.PongsSent++;
+		Send( pPong->ToPacket( m_nLastPingHops, tempGUID ) );
+		Statistics.Current.Gnutella1.PongsSent++;
 
 		// Record one less pong with that many hops is needed (do)
 		m_nPongNeeded[ pPong->m_nHops ]--;
