@@ -145,7 +145,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Gnutella1.MaxHostsInPongs, 1, 5, 30 );
 	AddSetting( &Settings.Gnutella1.HostCacheSize, 1, 32, 16384 );
 
-	AddSetting( &Settings.Gnutella2.EnableAlways, 1, 0, 1 );
+	//AddSetting( &Settings.Gnutella2.EnableAlways, 1, 0, 1 );
 	AddSetting( &Settings.Gnutella2.PingRelayLimit, 1, 10, 30);
 	AddSetting( &Settings.Gnutella2.UdpMTU, 1, 16, 10240 );
 	AddSetting( &Settings.Gnutella2.UdpBuffers, 1, 16, 2048 );
