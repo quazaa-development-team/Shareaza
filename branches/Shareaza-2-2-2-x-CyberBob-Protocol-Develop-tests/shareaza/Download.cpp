@@ -535,6 +535,10 @@ void CDownload::OnTaskComplete(CDownloadTask* pTask)
 	else if ( pTask->m_nTask == CDownloadTask::dtaskMergeFile )
 	{
 		// Merge Complete.
+		if ( ValidationCanFinish() )
+			OnDownloaded();
+		else
+			SetModified();
 	}
 	else
 	{
