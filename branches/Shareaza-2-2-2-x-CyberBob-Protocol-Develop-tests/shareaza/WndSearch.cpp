@@ -26,6 +26,7 @@
 #include "QueryHit.h"
 #include "MatchObjects.h"
 #include "Network.h"
+#include "DiscoveryServices.h"
 #include "Packet.h"
 #include "Schema.h"
 #include "SchemaCache.h"
@@ -465,7 +466,18 @@ void CSearchWnd::OnUpdateSearchSearch(CCmdUI* pCmdUI)
 
 void CSearchWnd::OnSearchSearch() 
 {
-	if ( ! Network.IsWellConnected() ) Network.Connect( TRUE );
+	if ( ! Network.IsWellConnected() )
+	{
+		if ( !Network.IsConnected() )
+			Network.Connect( TRUE );
+		else
+		{
+			if ( Settings.Gnutella1.EnableToday)
+				DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G1 );
+			if ( Settings.Gnutella2.EnableToday)
+				DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G2 );
+		}
+	}
 
 	//The 'Search More' situation
 	if ( !m_bPaused && m_bWaitMore && !empty() )
