@@ -297,7 +297,12 @@ BOOL CDownload::IsDownloading() const
 
 BOOL CDownload::IsMoving() const
 {
-	return ( m_pFile == NULL );
+	// Not true
+	//return ( m_pFile == NULL );
+	return ( m_pTask &&
+			( m_pTask->m_nTask == CDownloadTask::dtaskCopySimple ||
+			m_pTask->m_nTask == CDownloadTask::dtaskCopyTorrent ||
+			m_pTask->m_nTask == CDownloadTask::dtaskAllocate ) );
 }
 
 BOOL CDownload::IsCompleted() const
