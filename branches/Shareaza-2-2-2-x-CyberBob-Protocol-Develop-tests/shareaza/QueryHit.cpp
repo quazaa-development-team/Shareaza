@@ -1685,6 +1685,7 @@ void CQueryHit::Copy(CQueryHit* pOther)
 	m_oTiger		= pOther->m_oTiger;
 	m_oED2K			= pOther->m_oED2K;
 	m_oMD5			= pOther->m_oMD5;
+	m_oBTH			= pOther->m_oBTH;
 	m_sURL			= pOther->m_sURL;
 	m_sName			= pOther->m_sName;
 	m_nIndex		= pOther->m_nIndex;
