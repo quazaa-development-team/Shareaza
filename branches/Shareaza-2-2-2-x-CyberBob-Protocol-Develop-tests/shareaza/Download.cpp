@@ -288,7 +288,7 @@ BOOL CDownload::IsStarted() const
 
 BOOL CDownload::IsPaused( BOOL bRealState ) const
 {
-	return ( bRealState ? m_bPaused : m_bTempPaused );
+	return ( bRealState ? m_bPaused : ( m_bTempPaused || m_bPaused ) );
 }
 
 BOOL CDownload::IsDownloading() const
