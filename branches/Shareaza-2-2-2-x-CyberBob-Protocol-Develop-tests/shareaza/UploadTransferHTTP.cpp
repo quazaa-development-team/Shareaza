@@ -256,8 +256,7 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 			m_bRange	= TRUE;
 		}
 	}
-	else if (	strHeader.CompareNoCase( _T("X-Gnutella-Content-URN") ) == 0 ||
-				strHeader.CompareNoCase( _T("Content-URN") ) == 0 )
+	else if (	strHeader.CompareNoCase( _T("X-Gnutella-Content-URN") ) == 0 )
 	{
 		HashesFromURN( strValue );
 		m_nGnutella |= 1;
@@ -871,7 +870,7 @@ BOOL CUploadTransferHTTP::RequestPartialFile(CDownload* pDownload)
 		{
 			if ( bXAlt )
 			{
-				m_sXAlt = pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_G1, NULL );
+				m_sXAlt = pDownload->GetSourceURLs( &m_pSourcesSent, 15, ( m_nGnutella & 2 ) ? PROTOCOL_HTTP : PROTOCOL_G1, NULL );
 			}
 			else if ( bXG1AltLoc )
 			{
@@ -1399,6 +1398,7 @@ BOOL CUploadTransferHTTP::OnWrite()
 		{
 			OnCompleted();
 			CUploadTransfer::OnWrite();
+			m_nTimeoutTraffic = Settings.Connection.TimeoutTraffic;
 			return TRUE;
 		}
 
