@@ -119,9 +119,9 @@ public:
 	CDownload*	FindByBitprint(const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, BOOL bSharedOnly = FALSE) const;
     CDownload*	FindBySHA1(const Hashes::Sha1Hash& oSHA1, BOOL bSharedOnly = FALSE) const;
     CDownload*	FindByTiger(const Hashes::TigerHash& oTiger, BOOL bSharedOnly = FALSE) const;
-	CDownload*	FindByED2K(const Hashes::Ed2kHash& oED2K, BOOL bSharedOnly = FALSE) const;
+	CDownload*	FindByED2K(const Hashes::Ed2kHash& oED2K, BOOL bSharedOnly /*= FALSE*/, BOOL bForceStarted /*= TRUE*/) const;
 	CDownload*	FindByMD5(const Hashes::Md5Hash& oMD5, BOOL bSharedOnly = FALSE) const;
-    CDownload*	FindByBTH(const Hashes::BtHash& oBTH, BOOL bSharedOnly = FALSE) const;
+    CDownload*	FindByBTH(const Hashes::BtHash& oBTH, BOOL bSharedOnly /*= FALSE*/, BOOL bForceStarted /*= TRUE*/) const;
 	CDownload*	FindBySID(DWORD nSerID) const;
 	DWORD		GetFreeSID();
 	QWORD		GetAmountDownloadedFrom(IN_ADDR* pAddress);

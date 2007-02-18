@@ -607,7 +607,7 @@ int CLocalSearch::ExecutePartialFiles(INT_PTR nMaximum)
 			||	validAndEqual( m_pSearch->m_oMD5, pDownload->m_oMD5 ) 
 			||	validAndEqual( m_pSearch->m_oBTH, pDownload->m_oBTH ) )
 		{
-			if ( pDownload->m_oBTH || pDownload->IsStarted() )
+			if ( ( pDownload->m_oBTH && ( pDownload->IsSeeding() || !pDownload->IsPaused() ) ) || pDownload->IsShared() )
 			{
 				if ( m_pPacket == NULL ) CreatePacketG2();
 				AddHit( pDownload, nCount++ );

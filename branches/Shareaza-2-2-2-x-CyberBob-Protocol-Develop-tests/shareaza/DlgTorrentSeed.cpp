@@ -189,7 +189,7 @@ void CTorrentSeedDlg::OnSeed()
 				return;
 			}
 		}
-		if ( Downloads.FindByBTH( m_pInfo.m_oInfoBTH ) == NULL )
+		if ( Downloads.FindByBTH( m_pInfo.m_oInfoBTH, FALSE, FALSE ) == NULL )
 		{
 			// Connect if (we aren't)
 			if ( ! Network.IsConnected() ) Network.Connect(TRUE);
@@ -626,7 +626,7 @@ BOOL CTorrentSeedDlg::CreateDownload()
 	CSingleLock pTransfersLock( &Transfers.m_pSection );
 	if ( ! pTransfersLock.Lock( 2000 ) ) return FALSE;
 	
-	if ( Downloads.FindByBTH( m_pInfo.m_oInfoBTH ) != NULL )
+	if ( Downloads.FindByBTH( m_pInfo.m_oInfoBTH, FALSE, FALSE ) != NULL )
 	{
 		CString strFormat;
 		LoadString(strFormat, IDS_BT_SEED_ALREADY );

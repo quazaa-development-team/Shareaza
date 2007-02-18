@@ -666,7 +666,7 @@ CDownload* CDownloads::FindByURN(LPCTSTR pszURN, BOOL bSharedOnly) const
 	
 	if ( oED2K.fromUrn( pszURN ) )
 	{
-		if ( ( pDownload = FindByED2K( oED2K, bSharedOnly ) ) != NULL ) return pDownload;
+		if ( ( pDownload = FindByED2K( oED2K, bSharedOnly, FALSE ) ) != NULL ) return pDownload;
 	}
 
 	if ( oMD5.fromUrn( pszURN ) )
@@ -690,10 +690,10 @@ CDownload* CDownloads::FindByHash(const Hashes::Sha1Hash& oSHA1, const Hashes::T
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = GetNext( pos );
-		if ( ( ( pDownload->m_oSHA1 && oSHA1) || 
-				( pDownload->m_oTiger && oTiger) || 
-				( pDownload->m_oED2K && oED2K) || 
-				( pDownload->m_oMD5 && oMD5) || 
+		if ( ( ( pDownload->m_oSHA1 && oSHA1) ||
+				( pDownload->m_oTiger && oTiger) ||
+				( pDownload->m_oED2K && oED2K) ||
+				( pDownload->m_oMD5 && oMD5) ||
 				( pDownload->m_oBTH && oBTH ) ) &&
 				( !validAndUnequal( pDownload->m_oSHA1, oSHA1 ) ) && 
 				( !validAndUnequal( pDownload->m_oTiger, oTiger ) ) &&
@@ -701,7 +701,7 @@ CDownload* CDownloads::FindByHash(const Hashes::Sha1Hash& oSHA1, const Hashes::T
 				( !validAndUnequal( pDownload->m_oMD5, oMD5 ) ) &&
 				( !validAndUnequal( pDownload->m_oBTH, oBTH ) ) )
 		{
-			if ( ! bSharedOnly || ( pDownload->IsShared() && pDownload->IsStarted() ) )
+			if ( !pDownload->IsMoving() && ( !bSharedOnly || pDownload->IsShared() ) )
 				if ( ( !bMinSize && !bMaxSize ) || 
 					( !bMaxSize && nMinSize <= pDownload->m_nSize ) || 
 					( !bMinSize && nMaxSize >= pDownload->m_nSize ) || 
@@ -723,7 +723,7 @@ CDownload* CDownloads::FindByBitprint(const Hashes::Sha1Hash& oSHA1, const Hashe
 			( !pDownload->m_oSHA1 || validAndEqual( pDownload->m_oSHA1, oSHA1 ) ) && 
 			( !pDownload->m_oTiger || validAndEqual( pDownload->m_oTiger, oTiger ) ) )
 		{
-			if ( ! bSharedOnly || ( pDownload->IsShared() && pDownload->IsStarted() ) )
+			if ( !pDownload->IsMoving() && ( !bSharedOnly || pDownload->IsShared() ) )
 				return pDownload;
 		}
 	}
@@ -738,7 +738,7 @@ CDownload* CDownloads::FindBySHA1(const Hashes::Sha1Hash& oSHA1, BOOL bSharedOnl
 		CDownload* pDownload = GetNext( pos );
 		if ( validAndEqual( pDownload->m_oSHA1, oSHA1 ) )
 		{
-			if ( ! bSharedOnly || ( pDownload->IsShared() && pDownload->IsStarted() ) )
+			if ( !pDownload->IsMoving() && ( !bSharedOnly || pDownload->IsShared() ) )
 				return pDownload;
 		}
 	}
@@ -753,7 +753,7 @@ CDownload* CDownloads::FindByTiger(const Hashes::TigerHash& oTiger, BOOL bShared
 		CDownload* pDownload = GetNext( pos );
 		if ( validAndEqual( pDownload->m_oTiger, oTiger ) )
 		{
-			if ( ! bSharedOnly || ( pDownload->IsShared() && pDownload->IsStarted() ) )
+			if ( !pDownload->IsMoving() && ( !bSharedOnly || pDownload->IsShared() ) )
 				return pDownload;
 		}
 	}
@@ -761,15 +761,16 @@ CDownload* CDownloads::FindByTiger(const Hashes::TigerHash& oTiger, BOOL bShared
 	return NULL;
 }
 
-CDownload* CDownloads::FindByED2K(const Hashes::Ed2kHash& oED2K, BOOL bSharedOnly) const
+CDownload* CDownloads::FindByED2K(const Hashes::Ed2kHash& oED2K, BOOL bSharedOnly, BOOL bForceStarted) const
 {
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = GetNext( pos );
 		if ( validAndEqual( pDownload->m_oED2K, oED2K ) )
 		{
-			if ( ! bSharedOnly || ( pDownload->IsShared() && pDownload->IsStarted() )
-				&& ( pDownload->m_nSize > ED2K_PART_SIZE || pDownload->IsCompleted() ) )
+			if ( !pDownload->IsMoving() && ( !bSharedOnly || pDownload->IsShared() ||
+				( !pDownload->IsPaused() && bForceStarted )
+				&& ( pDownload->m_nSize > ED2K_PART_SIZE || pDownload->IsCompleted() ) ) )
 				return pDownload;
 		}
 	}
@@ -784,7 +785,7 @@ CDownload* CDownloads::FindByMD5(const Hashes::Md5Hash& oMD5, BOOL bSharedOnly) 
 		CDownload* pDownload = GetNext( pos );
 		if ( validAndEqual( pDownload->m_oMD5, oMD5 ) )
 		{
-			if ( ! bSharedOnly || ( pDownload->IsShared() && pDownload->IsStarted() ) )
+			if ( !pDownload->IsMoving() && ( !bSharedOnly || pDownload->IsShared() ) )
 				return pDownload;
 		}
 	}
@@ -792,14 +793,15 @@ CDownload* CDownloads::FindByMD5(const Hashes::Md5Hash& oMD5, BOOL bSharedOnly) 
 	return NULL;
 }
 
-CDownload* CDownloads::FindByBTH(const Hashes::BtHash& oBTH, BOOL bSharedOnly) const
+CDownload* CDownloads::FindByBTH(const Hashes::BtHash& oBTH, BOOL bSharedOnly, BOOL bForceStarted) const
 {
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = GetNext( pos );
 		if ( validAndEqual( pDownload->m_oBTH, oBTH ) )
 		{
-			if ( ! bSharedOnly || ( pDownload->IsShared() ) )
+			if ( !pDownload->IsMoving() && ( ! bSharedOnly || pDownload->IsShared() ||
+				( ( !pDownload->IsPaused() || pDownload->IsSeeding() ) && bForceStarted ) ) )
 				return pDownload;
 		}
 	}

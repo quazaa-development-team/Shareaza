@@ -653,9 +653,9 @@ BOOL CUploadTransferHTTP::OnHeadersComplete()
 			}
 		}
 
-		CDownload* pDownload = Downloads.FindByURN( pszURN );
+		CDownload* pDownload = Downloads.FindByURN( pszURN, TRUE );
 
-		if ( pDownload != NULL && pDownload->IsShared() && pDownload->IsStarted() )
+		if ( pDownload != NULL && ( !pDownload->IsPaused() || pDownload->IsSeeding() ) )
 		{
 			return RequestPartialFile( pDownload );
 		}
@@ -824,7 +824,7 @@ BOOL CUploadTransferHTTP::RequestSharedFile(CLibraryFile* pFile, CSingleLock& oL
 BOOL CUploadTransferHTTP::RequestPartialFile(CDownload* pDownload)
 {
 	ASSERT( pDownload != NULL );
-	ASSERT( pDownload->IsStarted() );
+	ASSERT( pDownload->IsStarted() || pDownload->IsSeeding() );
 
 	if ( ! RequestPartial( pDownload ) )
 	{
@@ -917,6 +917,10 @@ BOOL CUploadTransferHTTP::RequestPartialFile(CDownload* pDownload)
 			theApp.Message( MSG_ERROR, IDS_UPLOAD_FILENOTFOUND, (LPCTSTR)m_sAddress, (LPCTSTR)m_sFileName );
 			return TRUE;
 		}
+	}
+	else if ( pDownload->IsSeeding() )
+	{
+		return QueueRequest();
 	}
 	else if ( pDownload->GetTransferCount() )
 	{

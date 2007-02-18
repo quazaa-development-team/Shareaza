@@ -365,7 +365,7 @@ BOOL CBTClient::OnHandshake1()
 		ASSERT( m_pDownload != NULL );
 		ASSERT( m_pDownloadTransfer != NULL );
 		
-		if ( validAndUnequal( oFileHash, m_pDownload->m_oBTH ) || !m_pDownload->IsShared() )
+		if ( validAndUnequal( oFileHash, m_pDownload->m_oBTH ) )
 		{	//Display and error and exit
 			theApp.Message( MSG_ERROR, IDS_BT_CLIENT_WRONG_FILE, (LPCTSTR)m_sAddress );
 			Close();
@@ -384,7 +384,7 @@ BOOL CBTClient::OnHandshake1()
 		ASSERT( m_pDownloadTransfer == NULL );
 		
 		// Find the requested file
-		m_pDownload = Downloads.FindByBTH( oFileHash, TRUE );
+		m_pDownload = Downloads.FindByBTH( oFileHash, TRUE, TRUE );
 
 		if ( m_pDownload == NULL )				// If we can't find the file
 		{	//Display and error and exit

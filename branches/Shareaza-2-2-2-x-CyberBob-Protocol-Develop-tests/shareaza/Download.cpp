@@ -328,7 +328,7 @@ BOOL CDownload::IsShared(BOOL bSavedState) const
 	}
 	else
 	{
-		return m_bShared || m_oBTH || ((!IsPaused()) && Settings.eDonkey.EnableToday);
+		return m_bShared || ( ( IsSeeding() || !IsPaused() ) && m_oBTH ) /*|| ( !IsPaused() && m_oBTH ) || ( !IsPaused() && Settings.eDonkey.EnableToday )*/;
 	}
 }
 

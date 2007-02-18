@@ -1334,7 +1334,7 @@ BOOL CEDClient::OnFileRequest(CEDPacket* pPacket)
 		oLock.Unlock();
 	}
 
-	if ( CDownload* pDownload = Downloads.FindByED2K( m_oUpED2K, TRUE ) )
+	if ( CDownload* pDownload = Downloads.FindByED2K( m_oUpED2K, TRUE, TRUE ) )
 	{
 		pReply->WriteEDString( pDownload->m_sDisplayName, m_bEmUnicode );
 		Send( pReply );
@@ -1385,7 +1385,7 @@ BOOL CEDClient::OnFileStatusRequest(CEDPacket* pPacket)
 		}
 		oLock.Unlock();
 	}
-	if ( CDownload* pDownload = Downloads.FindByED2K( m_oUpED2K, TRUE ) )
+	if ( CDownload* pDownload = Downloads.FindByED2K( m_oUpED2K, TRUE, TRUE ) )
 	{
 		WritePartStatus( pReply, pDownload );
 		m_nUpSize = pDownload->m_nSize;
@@ -1440,7 +1440,7 @@ BOOL CEDClient::OnHashsetRequest(CEDPacket* pPacket)
 		else
 		{
 			oLock.Unlock();
-			if ( CDownload* pDownload = Downloads.FindByED2K( oHash, TRUE ) )
+			if ( CDownload* pDownload = Downloads.FindByED2K( oHash, TRUE, TRUE ) )
 			{
 				if ( ( pHashset = pDownload->GetHashset() ) != NULL )
 				{
@@ -1681,7 +1681,7 @@ BOOL CEDClient::OnPreviewAnswer(CEDPacket* pPacket)
 	if ( pPacket->GetRemaining() > 1 + 4 ) // The file has preview
 	{
 		// Check only downloads. Previews become unneeded when the download is completed.
-		if ( ( pDownload = Downloads.FindByED2K( oHash ) ) != NULL )
+		if ( ( pDownload = Downloads.FindByED2K( oHash, FALSE, TRUE ) ) != NULL )
 		{
 			int nFrames = 0;
 			pPacket->Read( (void*)&nFrames, 1 );
@@ -1757,7 +1757,7 @@ BOOL CEDClient::OnSourceRequest(CEDPacket* pPacket)
 	CEDPacket* pReply = CEDPacket::New( ED2K_C2C_ANSWERSOURCES, ED2K_PROTOCOL_EMULE );
 	int nCount = 0;
 	
-	if ( CDownload* pDownload = Downloads.FindByED2K( oHash, TRUE ))
+	if ( CDownload* pDownload = Downloads.FindByED2K( oHash, TRUE, TRUE ))
 	{
 		for ( CDownloadSource* pSource = pDownload->GetFirstSource() ; pSource ; pSource = pSource->m_pNext )
 		{
@@ -1819,7 +1819,7 @@ BOOL CEDClient::OnSourceAnswer(CEDPacket* pPacket)
 		return TRUE;
 	}
 	
-	if ( CDownload* pDownload = Downloads.FindByED2K( oHash ))
+	if ( CDownload* pDownload = Downloads.FindByED2K( oHash, TRUE, TRUE ))
 	{
 		// Don't bother adding sources if this download has finished
 		if ( pDownload->IsMoving() ) return TRUE;

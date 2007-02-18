@@ -542,7 +542,7 @@ BOOL CDownloadTransferHTTP::SendRequest()
 			strURN = m_pDownload->m_oMD5.toUrn();
 		}
 
-		if ( m_pDownload->IsShared() && m_pDownload->IsStarted() && Network.IsFirewalled(CHECK_TCP) != TS_TRUE && m_nRequests > 0)
+		if ( m_pDownload->IsShared() && !m_pDownload->IsPaused() && Network.IsFirewalled(CHECK_TCP) != TS_TRUE && m_nRequests > 0)
 		{
 			if ( strURN.GetLength() )
 			{
@@ -554,7 +554,7 @@ BOOL CDownloadTransferHTTP::SendRequest()
 				m_pOutput->Print( strLine + _T("\r\n") );
 			}
 
-			if ( m_pSource->m_nGnutella < 2 )
+			if ( m_pSource->m_nGnutella < 2 && Settings.IsG1Allowed() )
 			{
 				strLine = m_pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_G1, m_pSource );
 				if ( strLine.GetLength() )

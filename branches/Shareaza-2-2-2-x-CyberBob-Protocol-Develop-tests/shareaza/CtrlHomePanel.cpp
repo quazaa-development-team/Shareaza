@@ -1380,7 +1380,7 @@ void CHomeTorrentsBox::Update()
 	{
 		if ( ( LibraryHistory.LastSeededTorrent.m_sName.IsEmpty() ) ||
 			 ( LibraryHistory.LastSeededTorrent.m_sPath.IsEmpty() ) ||
-			 ( Downloads.FindByBTH( LibraryHistory.LastSeededTorrent.m_oBTH ) != NULL ) )
+			 ( Downloads.FindByBTH( LibraryHistory.LastSeededTorrent.m_oBTH, FALSE, TRUE ) != NULL ) )
 		{
 			// No 'Last seeded' torrent, or it's already seeding
 			m_pdReseedTorrent->Show( FALSE );
