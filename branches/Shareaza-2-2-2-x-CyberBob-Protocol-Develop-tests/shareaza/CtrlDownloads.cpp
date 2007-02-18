@@ -290,7 +290,11 @@ BOOL CDownloadsCtrl::IsFiltered(CDownload* pDownload)
 
 BOOL CDownloadsCtrl::IsExpandable(CDownload* pDownload)
 {
-	if ( Settings.Downloads.ShowSources )
+	if ( !Settings.General.Debug && ( pDownload->IsCompleted() || pDownload->IsSeeding() ) )
+	{
+		return FALSE;
+	}
+	else if ( Settings.Downloads.ShowSources )
 	{
 		return ( pDownload->GetSourceCount() > 0 );
 	}
@@ -855,7 +859,9 @@ void CDownloadsCtrl::OnPaint()
 
 		if ( ! pDownload->m_bExpanded ) continue;
 
-		if ( Settings.Downloads.ShowSources )
+		if ( Settings.General.Debug ||									// Show sources if Debug mode
+			( Settings.Downloads.ShowSources &&							// settings says to show sources
+			!( pDownload->IsCompleted() || pDownload->IsSeeding() ) ) )	// but hide sources if is Completed or Seeding
 		{
 			int nSources = pDownload->GetSourceCount();
 
