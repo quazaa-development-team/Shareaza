@@ -196,6 +196,8 @@ CString CLibraryFile::GetSearchName() const
 
 BOOL CLibraryFile::IsShared() const
 {
+	if ( m_bShared == TS_FALSE ) return FALSE;
+
 	if ( LPCTSTR pszExt = _tcsrchr( m_sName, '.' ) )
 	{
 		pszExt++;
@@ -214,11 +216,7 @@ BOOL CLibraryFile::IsShared() const
 		}
 	}
 	
-	if ( m_bShared )
-	{
-		if ( m_bShared == TS_TRUE ) return TRUE;
-		if ( m_bShared == TS_FALSE ) return FALSE;
-	}
+	if ( m_bShared == TS_TRUE ) return TRUE;
 	
 	for ( CLibraryFolder* pFolder = m_pFolder ; pFolder ; pFolder = pFolder->m_pParent )
 	{
