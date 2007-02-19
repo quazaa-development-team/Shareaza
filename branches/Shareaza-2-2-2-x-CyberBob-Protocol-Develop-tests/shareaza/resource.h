@@ -702,6 +702,7 @@
 #define IDC_CREATE_GHOST                1436
 #define IDC_MAKE_GHOSTS                 1437
 #define IDC_COPYRIGHT                   1438
+#define IDC_GEOIP                       1441
 #define IDC_WIZARD_DOWNLOAD_SPEED       1442
 #define IDC_FILTERS                     1500
 #define IDC_SAVE_FILTER                 1501
@@ -1715,6 +1716,7 @@
 #define ID_HELP_ROUTER                  33124
 #define ID_HELP_SECURITY                33125
 #define ID_HELP_CODEC                   33126
+#define ID_HELP_TEST                    33127
 #define ID_HELP_DISKSPACE               33130
 #define ID_HELP_DISKWRITEFAIL           33131
 #define ID_HELP_CONNECTIONFAIL          33132
@@ -1728,7 +1730,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        281
 #define _APS_NEXT_COMMAND_VALUE         33138
-#define _APS_NEXT_CONTROL_VALUE         1441
+#define _APS_NEXT_CONTROL_VALUE         1442
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

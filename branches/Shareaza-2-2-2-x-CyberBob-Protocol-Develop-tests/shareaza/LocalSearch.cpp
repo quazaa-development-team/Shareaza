@@ -611,11 +611,11 @@ int CLocalSearch::ExecutePartialFiles(INT_PTR nMaximum)
 
 		if ( pDownload->IsShared() || ( pDownload->m_oBTH && ( pDownload->IsSeeding() || !pDownload->IsPaused() ) ) )
 		{
-			if ( ( ( m_pSearch->m_oSHA1 && pDownload->m_oSHA1 ) ||
-				( m_pSearch->m_oTiger && pDownload->m_oTiger ) ||
-				( m_pSearch->m_oED2K && pDownload->m_oED2K ) ||
-				( m_pSearch->m_oMD5 && pDownload->m_oMD5 ) ||
-				( m_pSearch->m_oBTH && pDownload->m_oBTH ) ) &&
+			if ( ( ( m_pSearch->m_oSHA1.isValid() && pDownload->m_oSHA1.isValid() ) ||
+				( m_pSearch->m_oTiger.isValid() && pDownload->m_oTiger.isValid() ) ||
+				( m_pSearch->m_oED2K.isValid() && pDownload->m_oED2K.isValid() ) ||
+				( m_pSearch->m_oMD5.isValid() && pDownload->m_oMD5.isValid() ) ||
+				( m_pSearch->m_oBTH.isValid() && pDownload->m_oBTH.isValid() ) ) &&
 				invalidOrEqual( m_pSearch->m_oSHA1, pDownload->m_oSHA1 ) &&
 				invalidOrEqual( m_pSearch->m_oTiger, pDownload->m_oTiger ) &&
 				invalidOrEqual( m_pSearch->m_oED2K, pDownload->m_oED2K ) &&

@@ -81,6 +81,9 @@ public:
 	TRISTATE			m_bUPnPPortsForwarded;		// UPnP values are assigned when the discovery is complete
 	TRISTATE			m_bUPnPDeviceConnected;		// or when the service notifies
 	CString				m_sUPnPExternalIP;
+	DWORD				m_dwLastInput;				// Time of last input event	in secs
+	HHOOK				m_hHookKbd;
+	HHOOK				m_hHookMouse;
 
 	// GDI and display monitor functions
 	HINSTANCE	m_hUser32;
@@ -99,6 +102,11 @@ public:
 	BOOLEAN		(WINAPI *m_pfnGetCurrentPowerPolicies)(PGLOBAL_POWER_POLICY, PPOWER_POLICY);
 	BOOLEAN		(WINAPI *m_pfnSetActivePwrScheme)(UINT, PGLOBAL_POWER_POLICY, PPOWER_POLICY);
 	
+	// GeoIP - IP to Country lookup
+	HINSTANCE m_hGeoIP;
+	GeoIP* m_pGeoIP;
+	GeoIP_country_code_by_addrFunc m_pfnGeoIP_country_code_by_addr;
+
 public:
 	CMutex							m_mSearchWndList;
 	std::list<CSearchWnd*>			m_oSearchWndList;
@@ -161,6 +169,8 @@ public:
 	void				PrintMessage(int nType, LPCTSTR pszLog);
 	void				LogMessage(LPCTSTR pszLog);
 	void				DebugState(BOOL bState);
+
+	CString				GetCountryCode(IN_ADDR pAddress) const;
 
 	virtual BOOL		InitInstance();
 	virtual int			ExitInstance();

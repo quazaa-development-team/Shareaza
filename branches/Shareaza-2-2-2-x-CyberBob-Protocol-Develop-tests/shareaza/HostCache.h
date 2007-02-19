@@ -122,6 +122,7 @@ public:
 	DWORD			m_nTCPFlags;
 	DWORD			m_nUDPFlags;
 	BOOL			m_bCheckedLocally;
+	CString			m_sCountry;
 
 // Attributes: Contact Times
 	DWORD			m_tAdded;

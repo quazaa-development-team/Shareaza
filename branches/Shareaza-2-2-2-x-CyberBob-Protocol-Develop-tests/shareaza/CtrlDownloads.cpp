@@ -33,6 +33,7 @@
 #include "Skin.h"
 #include "CtrlDownloads.h"
 #include "WndDownloads.h"
+#include "Flags.h"
 
 IMPLEMENT_DYNAMIC(CDownloadsCtrl, CWnd)
 
@@ -71,6 +72,7 @@ END_MESSAGE_MAP()
 #define DOWNLOAD_COLUMN_CLIENT		5
 #define DOWNLOAD_COLUMN_DOWNLOADED	6
 #define DOWNLOAD_COLUMN_PERCENTAGE  7
+#define DOWNLOAD_COLUMN_COUNTRY		8
 #define COLUMNS_TO_SORT				DOWNLOAD_COLUMN_PERCENTAGE - DOWNLOAD_COLUMN_TITLE
 
 //////////////////////////////////////////////////////////////////////////////
@@ -145,6 +147,7 @@ int CDownloadsCtrl::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	InsertColumn( DOWNLOAD_COLUMN_CLIENT, _T("Client"), LVCFMT_CENTER, 80 );
 	InsertColumn( DOWNLOAD_COLUMN_DOWNLOADED, _T("Downloaded"), LVCFMT_RIGHT, 0 );
 	InsertColumn( DOWNLOAD_COLUMN_PERCENTAGE, _T("Complete"), LVCFMT_CENTER, 60 );
+	InsertColumn( DOWNLOAD_COLUMN_COUNTRY, _T("Country"), LVCFMT_LEFT, 60 );
 	
 	LoadColumnState();
 	
@@ -961,14 +964,14 @@ void CDownloadsCtrl::PaintDownload(CDC& dc, const CRect& rcRow, CDownload* pDown
 		switch ( pColumn.lParam )
 		{
 		case DOWNLOAD_COLUMN_TITLE:
-			dc.FillSolidRect( rcCell.left, rcCell.bottom - 1, 32, 1, crNatural );
+			dc.FillSolidRect( rcCell.left, rcCell.bottom - 1, 32, 1, crBack );
 			if ( IsExpandable( pDownload ) )
 			{
 				ImageList_DrawEx( ShellIcons.GetHandle( 16 ), pDownload->m_bExpanded ? SHI_MINUS : SHI_PLUS, dc.GetSafeHdc(),
-					rcCell.left, rcCell.top, 16, 16, crNatural, CLR_DEFAULT, ILD_NORMAL );
+					rcCell.left, rcCell.top, 16, 16, crBack, CLR_DEFAULT, ILD_NORMAL );
 			}
 			else
-				dc.FillSolidRect( rcCell.left, rcCell.top, 16, 16, crNatural );
+				dc.FillSolidRect( rcCell.left, rcCell.top, 16, 16, crBack );
 			rcCell.left += 16;
 			nIconStyle = pDownload->m_bSelected ? ILD_SELECTED : ILD_NORMAL;
 
@@ -991,9 +994,9 @@ void CDownloadsCtrl::PaintDownload(CDC& dc, const CRect& rcRow, CDownload* pDown
 			}
 
 			ImageList_DrawEx( ShellIcons.GetHandle( 16 ), ShellIcons.Get( pDownload->m_sDisplayName, 16 ), dc.GetSafeHdc(),
-				rcCell.left, rcCell.top, 16, 16, crNatural, CLR_DEFAULT, nIconStyle );
+				rcCell.left, rcCell.top, 16, 16, crBack, CLR_DEFAULT, nIconStyle );
 			rcCell.left += 16;
-			dc.FillSolidRect( rcCell.left, rcCell.top, 1, rcCell.Height(), crNatural );
+			dc.FillSolidRect( rcCell.left, rcCell.top, 1, rcCell.Height(), crBack );
 			rcCell.left += 1;
 
 			strText = pDownload->GetDisplayName();
@@ -1169,13 +1172,13 @@ void CDownloadsCtrl::PaintSource(CDC& dc, const CRect& rcRow, CDownload* pDownlo
 		switch ( pColumn.lParam )
 		{
 		case DOWNLOAD_COLUMN_TITLE:
-			dc.FillSolidRect( rcCell.left, rcCell.top, 24, rcCell.Height(), crNatural );
+			dc.FillSolidRect( rcCell.left, rcCell.top, 24, rcCell.Height(), crBack );
 			rcCell.left += 24;
-			dc.FillSolidRect( rcCell.left, rcCell.bottom - 1, 16, 1, crNatural );
+			dc.FillSolidRect( rcCell.left, rcCell.bottom - 1, 16, 1, crBack );
 			ImageList_DrawEx( m_pProtocols, pSource->m_nProtocol, dc.GetSafeHdc(),
-					rcCell.left, rcCell.top, 16, 16, crNatural, CLR_DEFAULT, pSource->m_bSelected ? ILD_SELECTED : ILD_NORMAL );
+					rcCell.left, rcCell.top, 16, 16, crBack, CLR_DEFAULT, pSource->m_bSelected ? ILD_SELECTED : ILD_NORMAL );
 			rcCell.left += 16;
-			dc.FillSolidRect( rcCell.left, rcCell.top, 1, rcCell.Height(), crNatural );
+			dc.FillSolidRect( rcCell.left, rcCell.top, 1, rcCell.Height(), crBack );
 			rcCell.left += 1;
 			
 			if ( pSource->m_pTransfer != NULL )
@@ -1292,6 +1295,17 @@ void CDownloadsCtrl::PaintSource(CDC& dc, const CRect& rcRow, CDownload* pDownlo
 			else
 				strText = _T("-");
 			break;
+		case DOWNLOAD_COLUMN_COUNTRY:
+			dc.FillSolidRect( rcCell.left, rcCell.top, 20, rcCell.Height(), crBack );
+			rcCell.left += 2;
+			ImageList_DrawEx( Flags.m_pImage, Flags.GetFlagIndex(pSource->m_sCountry), dc.GetSafeHdc(),
+					rcCell.left, rcCell.top - 1, 18, 18, CLR_NONE, CLR_DEFAULT, pSource->m_bSelected ? ILD_SELECTED : ILD_NORMAL );
+
+			rcCell.left += 18;
+			dc.FillSolidRect( rcCell.left, rcCell.top, 1, rcCell.Height(), crNatural );
+
+			strText = pSource->m_sCountry;
+			break;
 
 		}
 		
@@ -1348,10 +1362,11 @@ void CDownloadsCtrl::PaintSource(CDC& dc, const CRect& rcRow, CDownload* pDownlo
 
 void CDownloadsCtrl::OnSkinChange()
 {
+	int nRevStart = m_pProtocols.GetImageCount() - 1;
 	for ( int nImage = 1 ; nImage < 7 ; nImage++ )
 	{
 		HICON hIcon = CoolInterface.ExtractIcon( (UINT)protocolCmdMap[ nImage ].commandID );
-		m_pProtocols.Replace( nImage, hIcon );
+		m_pProtocols.Replace( theApp.m_bRTL ? nRevStart - nImage : nImage, hIcon );
 	}
 }
 

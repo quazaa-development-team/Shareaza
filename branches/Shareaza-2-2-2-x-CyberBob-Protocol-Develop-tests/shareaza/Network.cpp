@@ -527,15 +527,9 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 	Settings.Live.AutoClose = FALSE;
 	m_bAutoConnect = bAutoConnect ? TRUE : m_bAutoConnect;
 
-	// If we are already connected, skiping further initializations. 
-	if ( m_bEnabled )
-		return TRUE;
 
 	m_nNetworkGlobalTime = static_cast<DWORD>( time( NULL ) );
 	m_nNetworkGlobalTickCount = GetTickCount();
-
-	// Begin network startup
-	theApp.Message( MSG_SYSTEM, IDS_NETWORK_STARTUP );
 
 	// Make sure WinINet is connected (IE is not in offline mode)
 	if ( Settings.Connection.ForceConnectedState )
@@ -547,6 +541,13 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 		InternetSetOption( hInternet, INTERNET_OPTION_CONNECTED_STATE, &ici, sizeof(ici) );
 		InternetCloseHandle( hInternet );
 	}
+
+	// If we are already connected exit.
+	if ( m_bEnabled )
+		return TRUE;
+
+	// Begin network startup
+	theApp.Message( MSG_SYSTEM, IDS_NETWORK_STARTUP );
 
 	Resolve( Settings.Connection.InHost, Settings.Connection.InPort, &m_pHost );
 

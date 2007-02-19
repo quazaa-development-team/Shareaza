@@ -519,6 +519,9 @@
 				RelativePath="Firewall.cpp">
 			</File>
 			<File
+				RelativePath="Flags.cpp">
+			</File>
+			<File
 				RelativePath="FragmentBar.cpp">
 			</File>
 			<File
@@ -2371,6 +2374,9 @@
 			</File>
 			<File
 				RelativePath="Firewall.h">
+			</File>
+			<File
+				RelativePath="Flags.h">
 			</File>
 			<File
 				RelativePath="FragmentBar.h">

@@ -454,6 +454,7 @@
 		</menu>
 		<menu text="_Help">
 			<item id="ID_HELP_FAQ" text="Shareaza _FAQ"/>
+			<item id="ID_HELP_TEST" text="Connection Test"/>
 			<separator/>
 			<menu text="_Guides">
 				<item id="ID_HELP_GUIDE" text="Shareaza _Users Guide"/>
@@ -549,6 +550,7 @@
 		</menu>
 		<menu text="_Help">
 			<item id="ID_HELP_FAQ" text="Shareaza _FAQ"/>
+			<item id="ID_HELP_TEST" text="Connection Test"/>
 			<separator/>
 			<menu text="_Guides">
 				<item id="ID_HELP_GUIDE" text="Shareaza _Users Guide"/>
@@ -638,6 +640,7 @@
 		</menu>
 		<menu text="_Help">
 			<item id="ID_HELP_FAQ" text="Shareaza _FAQ"/>
+			<item id="ID_HELP_TEST" text="Connection Test"/>
 			<separator/>
 			<menu text="_Guides">
 				<item id="ID_HELP_GUIDE" text="Shareaza _Users Guide"/>
@@ -762,6 +765,7 @@
 	<menu name="CHostCacheWnd">
 		<item id="ID_HOSTCACHE_CONNECT" text="_Connect Now"/>
 		<item id="ID_HOSTCACHE_DISCONNECT" text="_Disconnect"/>
+		<item id="ID_NEIGHBOURS_COPY" text="Copy _URI"/>
 		<item id="ID_HOSTCACHE_PRIORITY" text="_Priority Server"/>
 		<separator/>
 		<item id="ID_HOSTCACHE_REMOVE" text="_Remove Host(s)"/>

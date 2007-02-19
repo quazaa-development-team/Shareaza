@@ -47,6 +47,7 @@
 #include "GProfile.h"
 #include "SharedFile.h"
 #include "Emoticons.h"
+#include "Flags.h"
 #include "ShellIcons.h"
 #include "Skin.h"
 #include "Scheduler.h"
@@ -519,6 +520,7 @@ BOOL CShareazaApp::InitInstance()
 		Schedule.Load();
 	SplashStep( dlgSplash, L"Rich Documents" );
 		Emoticons.Load();
+		Flags.Load();
 
 	CFirewall firewall;
 	if ( Settings.Connection.EnableFirewallException && firewall.AccessWindowsFirewall() && firewall.AreExceptionsAllowed() )
@@ -671,8 +673,15 @@ int CShareazaApp::ExitInstance()
 	if ( m_hGDI32 != NULL ) FreeLibrary( m_hGDI32 );
 
 	if ( m_hPowrProf != NULL ) FreeLibrary( m_hPowrProf );
+
+	if ( m_hGeoIP != NULL ) FreeLibrary( m_hGeoIP );
+
 	if ( dlgSplash )
 		dlgSplash->Hide();
+
+	UnhookWindowsHookEx( m_hHookKbd );
+	UnhookWindowsHookEx( m_hHookMouse );
+
 	if ( m_pMutex != NULL ) CloseHandle( m_pMutex );
 
 	return CWinApp::ExitInstance();
@@ -923,6 +932,16 @@ void CShareazaApp::InitResources()
 		m_pfnSetActivePwrScheme = NULL;
 	}
 
+	// Load the GeoIP library for mapping IPs to countries
+	m_hGeoIP = LoadLibrary( _T("geoip.dll") );
+    if ( m_hGeoIP )
+	{
+		GeoIP_newFunc pfnGeoIP_new = (GeoIP_newFunc)GetProcAddress( m_hGeoIP, "GeoIP_new" );
+		m_pfnGeoIP_country_code_by_addr = (GeoIP_country_code_by_addrFunc)GetProcAddress( m_hGeoIP, "GeoIP_country_code_by_addr" );
+
+		m_pGeoIP = pfnGeoIP_new( GEOIP_MEMORY_CACHE );
+	}
+
 	// Get the fonts from the registry
 	theApp.m_sDefaultFont		= theApp.GetProfileString( _T("Fonts"), _T("DefaultFont"), _T("Tahoma") );
 	theApp.m_sPacketDumpFont	= theApp.GetProfileString( _T("Fonts"), _T("PacketDumpFont"), _T("Lucida Console") );
@@ -945,6 +964,10 @@ void CShareazaApp::InitResources()
 	theApp.m_bRTL = theApp.GetProfileInt( _T("Settings"), _T("LanguageRTL"), 0 );
 
 	srand( GetTickCount() );
+
+	m_hHookKbd   = SetWindowsHookEx( WH_KEYBOARD, KbdHook, NULL, AfxGetThread()->m_nThreadID );
+	m_hHookMouse = SetWindowsHookEx( WH_MOUSE, MouseHook, NULL, AfxGetThread()->m_nThreadID );
+	m_dwLastInput = (DWORD)time( NULL );
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1102,6 +1125,13 @@ CString CShareazaApp::GetErrorString()
 	}
 	
 	return strMessage;
+}
+
+CString CShareazaApp::GetCountryCode(IN_ADDR pAddress) const
+{
+	if ( m_pGeoIP )
+		return CString( m_pfnGeoIP_country_code_by_addr( m_pGeoIP, inet_ntoa( pAddress ) ) );
+	return _T("");
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1690,4 +1720,26 @@ void CloseThread(HANDLE* phThread, LPCTSTR pszName, DWORD dwTimeout)
 		}
 		*phThread = NULL;
 	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Keyboard hook: record tick count
+
+LRESULT CALLBACK KbdHook(int nCode, WPARAM wParam, LPARAM lParam)
+{
+	if ( nCode == HC_ACTION )
+		theApp.m_dwLastInput = (DWORD)time( NULL );
+
+	return ::CallNextHookEx( theApp.m_hHookKbd, nCode, wParam, lParam );
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Mouse hook: record tick count
+
+LRESULT CALLBACK MouseHook(int nCode, WPARAM wParam, LPARAM lParam)
+{
+	if ( nCode == HC_ACTION )
+		theApp.m_dwLastInput = (DWORD)time( NULL );
+
+	return ::CallNextHookEx( theApp.m_hHookMouse, nCode, wParam, lParam );
 }

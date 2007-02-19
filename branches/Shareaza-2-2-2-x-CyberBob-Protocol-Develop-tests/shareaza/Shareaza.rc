@@ -246,6 +246,7 @@ BEGIN
     BEGIN
         MENUITEM "Shareaza Users &Guide",       ID_HELP_FAQ
         MENUITEM "Shareaza &Forums",            ID_HELP_FORUMS
+        MENUITEM "Connection Test",             ID_HELP_TEST
         MENUITEM "Router Help",                 ID_TOOLS_SEEDTORRENT
         MENUITEM "Security Help",               ID_HELP_SECURITY
         MENUITEM SEPARATOR
@@ -440,6 +441,7 @@ BEGIN
     BEGIN
         MENUITEM "&Connect",                    ID_HOSTCACHE_CONNECT
         MENUITEM "&Disconnect",                 ID_HOSTCACHE_DISCONNECT
+        MENUITEM "Copy &URL",                   ID_NEIGHBOURS_COPY
         MENUITEM "&Priority Server",            ID_HOSTCACHE_PRIORITY
         MENUITEM SEPARATOR
         MENUITEM "&Remove Host(s)",             ID_HOSTCACHE_REMOVE
@@ -1363,7 +1365,7 @@ BEGIN
                     WS_VSCROLL | WS_TABSTOP
 END
 
-IDD_ABOUT DIALOGEX 0, 0, 292, 148
+IDD_ABOUT DIALOGEX 0, 0, 292, 162
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About Shareaza"
 FONT 8, "Tahoma", 0, 0, 0x1
@@ -1377,8 +1379,10 @@ BEGIN
                     IDC_STATIC,20,75,262,24
     LTEXT           "Logo by Kid at designhazard.com",IDC_STATIC,20,105,262,
                     12
-    LTEXT           "www.shareaza.com",IDC_WEB,20,120,65,10
-    DEFPUSHBUTTON   "OK",IDOK,246,127,39,14
+    LTEXT           "www.shareaza.com",IDC_WEB,20,142,65,10
+    DEFPUSHBUTTON   "OK",IDOK,246,141,39,14
+    LTEXT           "This product includes GeoLite data created by MaxMind, available from http://maxmind.com/",
+                    IDC_STATIC,20,120,262,18
 END
 
 IDD_GRAPH_LIST DIALOG  0, 0, 247, 230
@@ -3341,7 +3345,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 285
         TOPMARGIN, 7
-        BOTTOMMARGIN, 141
+        BOTTOMMARGIN, 155
     END
 
     IDD_GRAPH_LIST, DIALOG
@@ -5925,6 +5929,7 @@ BEGIN
     ID_HELP_ROUTER          "Get help configuring your router or firewall."
     ID_HELP_SECURITY        "Help protecting your system from hostile programs"
     ID_HELP_CODEC           "All about codecs and video problems"
+    ID_HELP_TEST            "Run the connection test"
 END
 
 STRINGTABLE 

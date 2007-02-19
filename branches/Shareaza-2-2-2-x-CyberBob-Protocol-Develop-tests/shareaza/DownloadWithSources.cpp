@@ -365,6 +365,10 @@ BOOL CDownloadWithSources::AddSourceHit(CQueryHit* pHit, BOOL bForce)
 			if ( m_oBTH != pHit->m_oBTH ) return FALSE;
 			bHash = TRUE;
 		}
+		if ( m_nSize != SIZE_UNKNOWN && pHit->m_bSize )
+		{
+			if ( m_nSize != pHit->m_nSize ) return FALSE;
+		}
 	}
 	
 	if ( ! bHash && ! bForce )
@@ -408,10 +412,6 @@ BOOL CDownloadWithSources::AddSourceHit(CQueryHit* pHit, BOOL bForce)
 	if ( m_nSize == SIZE_UNKNOWN && pHit->m_bSize )
 	{
 		m_nSize = pHit->m_nSize;
-	}
-	else if ( m_nSize != SIZE_UNKNOWN && pHit->m_bSize && m_nSize != pHit->m_nSize )
-	{
-		return FALSE;
 	}
 	
 	if ( m_sDisplayName.IsEmpty() && pHit->m_sName.GetLength() )

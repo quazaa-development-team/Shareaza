@@ -1,7 +1,7 @@
 //
 // CtrlLibraryMetaPanel.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -34,6 +34,7 @@
 #include "Skin.h"
 #include "ThumbCache.h"
 #include "ImageServices.h"
+#include "ImageFile.h"
 #include "CtrlLibraryFrame.h"
 #include "CtrlLibraryMetaPanel.h"
 #include "FileExecutor.h"
@@ -71,6 +72,8 @@ CLibraryMetaPanel::CLibraryMetaPanel()
 , m_crLight(CCoolInterface::CalculateColour( CoolInterface.m_crTipBack, RGB( 255, 255, 255 ), 128 ))
 , m_bNewFile(TRUE)
 {
+	m_rcFolder.SetRectEmpty();
+
 	// Try to get the number of lines to scroll when the mouse wheel is rotated
 	if( !SystemParametersInfo ( SPI_GETWHEELSCROLLLINES, 0, &m_nScrollWheelLines, 0) )
 	{
@@ -399,7 +402,7 @@ void CLibraryMetaPanel::OnPaint()
 	else str.Empty();
 
 	DrawText( &dc, rcWork.left + 68, rcWork.top, str, &m_rcFolder );
-	if ( m_sFolder.Find( '\\' ) < 0 ) m_rcFolder.SetRect( 0, 0, 0, 0 );
+	if ( m_sFolder.Find( '\\' ) < 0 ) m_rcFolder.SetRectEmpty();
 	rcWork.top += 18;
 	
 	m_pMetadata.Paint( &dc, &rcWork );
@@ -639,8 +642,6 @@ UINT CLibraryMetaPanel::ThreadStart(LPVOID pParam)
 
 void CLibraryMetaPanel::OnRun()
 {
-	CImageServices pServices;
-
 	while ( m_bThread )
 	{
 		WaitForSingleObject( m_pWakeup, INFINITE );
@@ -655,7 +656,7 @@ void CLibraryMetaPanel::OnRun()
 		CString strPath = m_sPath;
 		m_pSection.Unlock();
 
-		CImageFile pFile( &pServices );
+		CImageFile pFile;
 		CThumbCache pCache;
 		CSize Size( THUMB_STORE_SIZE, THUMB_STORE_SIZE );
 		BOOL bSuccess = FALSE;

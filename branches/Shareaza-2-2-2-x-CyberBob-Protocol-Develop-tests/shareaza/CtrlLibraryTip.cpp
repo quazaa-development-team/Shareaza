@@ -34,6 +34,7 @@
 #include "SHA.h"
 #include "ED2K.h"
 #include "ImageServices.h"
+#include "ImageFile.h"
 #include "CtrlLibraryTip.h"
 
 #ifdef _DEBUG
@@ -351,8 +352,6 @@ UINT CLibraryTipCtrl::ThreadStart(LPVOID pParam)
 
 void CLibraryTipCtrl::OnRun()
 {
-	CImageServices pServices;
-
 	while ( m_bThread )
 	{
 		WaitForSingleObject( m_pWakeup, INFINITE );
@@ -362,7 +361,7 @@ void CLibraryTipCtrl::OnRun()
 		CString strPath = m_sPath;
 		m_pSection.Unlock();
 
-		CImageFile pFile( &pServices );
+		CImageFile pFile;
 		CThumbCache pCache;
 		CSize Size( THUMB_STORE_SIZE, THUMB_STORE_SIZE );
 		BOOL bSuccess = FALSE;

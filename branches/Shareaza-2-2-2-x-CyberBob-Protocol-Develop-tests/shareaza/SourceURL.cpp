@@ -295,7 +295,7 @@ BOOL CSourceURL::ParseBTC(LPCTSTR pszURL, BOOL bResolve)
     if ( !m_oBTH.fromString( strURL ) ) return FALSE;
 	
 	SOCKADDR_IN saHost;
-	BOOL bResult = Network.Resolve( m_sAddress, ED2K_DEFAULT_PORT, &saHost, bResolve );
+	BOOL bResult = Network.Resolve( m_sAddress, 6881, &saHost, bResolve );
 	
 	m_pAddress	= saHost.sin_addr;
 	m_nPort		= htons( saHost.sin_port );

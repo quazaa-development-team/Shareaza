@@ -61,6 +61,12 @@ static char THIS_FILE[]=__FILE__;
 
 CQuerySearch::CQuerySearch(BOOL bGUID)
 : m_oWords()
+, m_oSHA1()
+, m_oTiger()
+, m_oED2K()
+, m_oMD5()
+, m_oBTH()
+, m_oSimilarED2K()
 {
 	if ( bGUID ) Network.CreateID( m_oGUID );
 	

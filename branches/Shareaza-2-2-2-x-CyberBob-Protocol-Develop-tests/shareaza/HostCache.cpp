@@ -116,7 +116,7 @@ BOOL CHostCache::Save()
 
 void CHostCache::Serialize(CArchive& ar)
 {
-	int nVersion = 12;
+	int nVersion = 14;
 	
 	if ( ar.IsStoring() )
 	{
@@ -1186,6 +1186,7 @@ void CHostCacheHost::Serialize(CArchive& ar, int nVersion)
 
 		ar << m_bCheckedLocally;
 		ar << m_nDailyUptime;
+		ar << m_sCountry;
 	}
 	else
 	{
@@ -1260,7 +1261,12 @@ void CHostCacheHost::Serialize(CArchive& ar, int nVersion)
 			ar >> m_bCheckedLocally;
 			ar >> m_nDailyUptime;
 		}
-
+		if ( nVersion >= 14 )
+		{
+			ar >> m_sCountry;
+		}
+		else
+			m_sCountry = theApp.GetCountryCode( m_pAddress );
 	}
 }
 
@@ -1269,7 +1275,10 @@ void CHostCacheHost::Serialize(CArchive& ar, int nVersion)
 
 void CHostCacheHost::Reset(IN_ADDR* pAddress)
 {
-	if ( pAddress ) m_pAddress = *pAddress;
+	if ( pAddress ) 
+		m_pAddress = *pAddress;
+	else
+		m_sCountry.Empty();
 	
 	m_pVendor		= NULL;
 	m_bPriority		= FALSE;
@@ -1321,6 +1330,8 @@ void CHostCacheHost::Update(WORD nPort, DWORD tSeen, LPCTSTR pszVendor, DWORD nU
 			m_pVendor = VendorCache.Lookup( (LPCTSTR)strVendorCode );
 		}
 	}
+	
+	m_sCountry = theApp.GetCountryCode( m_pAddress );
 }
 
 //////////////////////////////////////////////////////////////////////

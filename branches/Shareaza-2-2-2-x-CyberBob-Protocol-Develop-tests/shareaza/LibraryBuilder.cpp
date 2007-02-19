@@ -28,6 +28,7 @@
 #include "LibraryBuilderInternals.h"
 #include "LibraryBuilderPlugins.h"
 #include "HashDatabase.h"
+#include "Security.h"
 
 #include "XML.h"
 #include "Packet.h"
@@ -345,6 +346,13 @@ void CLibraryBuilder::OnRun()
 			if ( CLibraryFile* pFile = Library.LookupFile( m_nIndex ) )
 			{
 				m_sPath = pFile->GetPath();
+				if ( LPCTSTR pszExt = _tcsrchr( m_sPath, '.' ) )
+				{
+					CString strExt;
+					strExt.Format( L"|%s|", ++pszExt );
+					if ( pszExt && _tcsistr( Settings.Library.PrivateTypes, strExt ) )
+						continue;
+				}
 			}
 			else
 			{
@@ -483,6 +491,19 @@ BOOL CLibraryBuilder::HashFile(HANDLE hFile, BOOL bPriority, Hashes::Sha1Hash& o
 		
 		LibraryMaps.CullDeletedFiles( pFile );
 		Library.AddFile( pFile );
+		
+		// child pornography check
+		bool bHit = false;
+		if ( AdultFilter.IsChildPornography( pFile->GetSearchName() ) )
+			bHit = true;
+		else
+		{
+			if ( AdultFilter.IsChildPornography( pFile->GetMetadataWords() ) )
+				bHit = true;
+		}
+		if ( bHit )
+			pFile->m_bVerify = pFile->m_bShared = TS_FALSE;
+
 		Library.Update();
 	}
 

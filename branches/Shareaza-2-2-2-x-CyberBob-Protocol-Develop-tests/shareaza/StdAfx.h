@@ -127,6 +127,20 @@ const bool SHAREAZA_ADVANCED_MIN_TEMPLATE = true;
 
 #pragma warning( pop )
 
+
+//
+// Smaller type check fix (/RTCc)
+//
+
+#ifdef _DEBUG
+	#undef GetRValue
+	#define GetRValue(rgb)      ((BYTE)( (rgb)        & 0xff))
+	#undef GetGValue
+	#define GetGValue(rgb)      ((BYTE)(((rgb) >>  8) & 0xff))
+	#undef GetBValue
+	#define GetBValue(rgb)      ((BYTE)(((rgb) >> 16) & 0xff))
+#endif
+
 //
 // Missing constants
 //
@@ -249,6 +263,30 @@ typedef struct _POWER_POLICY
 	USER_POWER_POLICY user;
 	MACHINE_POWER_POLICY mach;
 } POWER_POLICY, *PPOWER_POLICY;
+
+// Copied from GeoIP.h
+typedef struct GeoIPTag {
+  FILE *GeoIPDatabase;
+  char *file_path;
+	unsigned char *cache;
+	unsigned char *index_cache;
+	unsigned int *databaseSegments;
+	char databaseType;
+	time_t mtime;
+	int flags;
+	char record_length;
+	int record_iter; /* used in GeoIP_next_record */
+} GeoIP;
+
+typedef enum {
+	GEOIP_STANDARD = 0,
+	GEOIP_MEMORY_CACHE = 1,
+	GEOIP_CHECK_CACHE = 2,
+	GEOIP_INDEX_CACHE = 4,
+} GeoIPOptions;
+
+typedef GeoIP* (*GeoIP_newFunc)(int);
+typedef const char * (*GeoIP_country_code_by_addrFunc) (GeoIP*, const char *);
 
 // CArchive operators to help replacing TRISTATE with safer and more convenient tribools
 inline CArchive& operator<<(CArchive& ar, const boost::logic::tribool& rhs)

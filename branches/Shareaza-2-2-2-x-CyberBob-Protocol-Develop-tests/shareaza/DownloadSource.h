@@ -1,7 +1,7 @@
 //
 // DownloadSource.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -69,6 +69,7 @@ public:
 	WORD				m_nPort;
 	IN_ADDR				m_pServerAddress;
 	WORD				m_nServerPort;
+	CString				m_sCountry;
 public:
 	CString				m_sName;
 	DWORD				m_nIndex;
@@ -77,6 +78,7 @@ public:
 	BOOL				m_bTiger;
 	BOOL				m_bED2K;
 	BOOL				m_bMD5;
+	BOOL				m_bBTH;
 public:
 	CString				m_sServer;
 	CString				m_sNick;

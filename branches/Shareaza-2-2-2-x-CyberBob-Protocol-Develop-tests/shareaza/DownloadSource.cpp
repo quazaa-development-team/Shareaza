@@ -1,11 +1,7 @@
 //
 // DownloadSource.cpp
 //
-//	Date:			"$Date: 2006/03/27 01:36:17 $"
-//	Revision:		"$Revision: 1.16 $"
-//  Last change by:	"$Author: rolandas $"
-//
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -63,7 +59,7 @@ CDownloadSource::CDownloadSource(CDownload* pDownload)
 void CDownloadSource::Construct(CDownload* pDownload)
 {
 	ASSERT( pDownload != NULL );
-	
+
 	SYSTEMTIME pTime;
 	GetSystemTime( &pTime );
 
@@ -72,7 +68,7 @@ void CDownloadSource::Construct(CDownload* pDownload)
 	m_pNext			= NULL;
 	m_pTransfer		= NULL;
 	m_bSelected		= FALSE;
-	
+
 	m_nProtocol		= PROTOCOL_NULL;
 	ZeroMemory( &m_pAddress, sizeof( m_pAddress ) );
 	m_nPort			= 0;
@@ -84,6 +80,8 @@ void CDownloadSource::Construct(CDownload* pDownload)
 	m_bSHA1			= FALSE;
 	m_bTiger		= FALSE;
 	m_bED2K			= FALSE;
+	m_bMD5			= FALSE;
+	m_bBTH			= FALSE;
 	
 	m_nSpeed		= 0;
 	m_bPushOnly		= FALSE;
@@ -130,6 +128,7 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, CQueryHit* pHit)
 	m_bTiger	= bool( pHit->m_oTiger );
 	m_bED2K		= bool( pHit->m_oED2K );
 	m_bMD5		= bool( pHit->m_oMD5 );
+	m_bBTH		= bool( pHit->m_oBTH );
 	m_oHubList	= pHit->m_oHubList;
 	m_oPushProxyList	= pHit->m_oPushProxyList;
 	
@@ -154,9 +153,6 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, CQueryHit* pHit)
 		}
 	}
 	
-	if ( pHit->m_oBTH.isValid() && !pHit->m_oSHA1 && !pHit->m_oED2K && !pHit->m_oTiger && !pHit->m_oMD5 )
-		m_nProtocol = PROTOCOL_BT;
-
 	ResolveURL();
 
 	if ( m_nProtocol == PROTOCOL_HTTP )
@@ -223,10 +219,11 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, const Hashes::BtGuid& oGU
 			(LPCTSTR)CString( inet_ntoa( *pAddress ) ), nPort,
 			(LPCTSTR)pDownload->m_oBTH.toString() );
 	}
-	
+
+	m_bBTH		= TRUE;
 	m_oGUID	= transformGuid( oGUID );
 	m_sServer	= _T("BitTorrent");
-	
+
 	ResolveURL();
 
 }
@@ -279,6 +276,7 @@ BOOL CDownloadSource::ResolveURL()
 	m_bTiger	|= static_cast< BOOL >( bool( pURL.m_oTiger ) );
 	m_bED2K		|= static_cast< BOOL >( bool( pURL.m_oED2K ) );
 	m_bMD5		|= static_cast< BOOL >( bool( pURL.m_oMD5 ) );
+	m_bBTH		|= static_cast< BOOL >( bool( pURL.m_oBTH ) );
 
 	m_nProtocol	= pURL.m_nProtocol;
 	m_pAddress	= pURL.m_pAddress;
@@ -297,6 +295,8 @@ BOOL CDownloadSource::ResolveURL()
 			m_oGUID = transformGuid( pURL.m_oBTC );
 		}
 	}
+
+	m_sCountry = theApp.GetCountryCode( m_pAddress );
 
 	return TRUE;
 }
@@ -324,9 +324,12 @@ void CDownloadSource::Serialize(CArchive& ar, int nVersion)
 		ar << m_bSHA1;
 		ar << m_bTiger;
 		ar << m_bED2K;
-
+		ar << m_bBTH;
+		ar << m_bMD5;
+		
 		ar << m_sServer;
 		ar << m_sNick;
+		ar << m_sCountry;
 		ar << m_nSpeed;
 		ar << m_bPushOnly;
 		ar << m_bCloseConn;
@@ -353,9 +356,20 @@ void CDownloadSource::Serialize(CArchive& ar, int nVersion)
 		ar >> m_bSHA1;
 		ar >> m_bTiger;
 		ar >> m_bED2K;
-
+		if ( nVersion >= 37 )
+		{
+			ar >> m_bBTH;
+			ar >> m_bMD5;
+		}
+		
 		ar >> m_sServer;
 		if ( nVersion >= 24 ) ar >> m_sNick;
+
+		if ( nVersion >= 36 ) 
+			ar >> m_sCountry;
+		else
+			m_sCountry = theApp.GetCountryCode( m_pAddress );
+
 		ar >> m_nSpeed;
 		ar >> m_bPushOnly;
 		ar >> m_bCloseConn;

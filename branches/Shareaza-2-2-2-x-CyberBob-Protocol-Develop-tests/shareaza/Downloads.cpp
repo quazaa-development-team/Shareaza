@@ -130,7 +130,7 @@ BOOL CDownloads::CITMQueryHit::OnProcess()
 	for ( POSITION pos = Downloads.GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = Downloads.GetNext( pos );
-		if ( pDownload->IsMoving() == FALSE ) pDownload->OnQueryHits( m_pHits );
+		if ( !pDownload->IsMoving() ) pDownload->OnQueryHits( m_pHits );
 	}	
 
 	return TRUE;
@@ -178,10 +178,9 @@ CDownload* CDownloads::Add(CQueryHit* pHit, BOOL bAddToHead)
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
 	
 	CDownload* pDownload = NULL;
-	Hashes::Md5Hash	oMD5;
 	
 	
-	if ( pDownload == NULL && ( pHit->m_oSHA1 || pHit->m_oTiger || pHit->m_oED2K || pHit->m_oMD5 || pHit->m_oBTH ) )
+	if ( pHit->m_oSHA1 || pHit->m_oTiger || pHit->m_oED2K || pHit->m_oMD5 || pHit->m_oBTH )
 		pDownload = FindByHash( pHit->m_oSHA1, pHit->m_oTiger, pHit->m_oED2K, pHit->m_oMD5, pHit->m_oBTH, FALSE );
 	
 /*	if ( pDownload == NULL && pHit->m_oSHA1 && pHit->m_oTiger )
@@ -215,6 +214,7 @@ CDownload* CDownloads::Add(CQueryHit* pHit, BOOL bAddToHead)
         if ( pDownload->m_oED2K ) pDownload->m_oED2K.signalTrusted();
 		if ( pDownload->m_oTiger ) pDownload->m_oTiger.signalTrusted();
 		if ( pDownload->m_oMD5 ) pDownload->m_oMD5.signalTrusted();
+		if ( pDownload->m_oBTH ) pDownload->m_oBTH.signalTrusted();
 	}
 
 	pHit->m_bDownload = TRUE;
@@ -236,7 +236,6 @@ CDownload* CDownloads::Add(CMatchFile* pFile, BOOL bAddToHead)
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
 	
 	CDownload* pDownload = NULL;
-	Hashes::Md5Hash	oMD5;
 	Hashes::BtHash	oBTH;
 
 
@@ -418,7 +417,7 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 		for ( POSITION pos = pURL->m_pTorrent->m_sURLs.GetHeadPosition() ; pos ; )
 		{
 			CString pCurrentUrl = pURL->m_pTorrent->m_sURLs.GetNext( pos );
-			pDownload->AddSourceURLs( (LPCTSTR)pCurrentUrl , FALSE  );
+			pDownload->AddSourceURLs( (LPCTSTR)pCurrentUrl, FALSE  );
 		}
 		pURL->m_pTorrent->m_sURLs.RemoveAll();
 	}

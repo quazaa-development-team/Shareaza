@@ -30,6 +30,7 @@
 #include "VendorCache.h"
 #include "WndHostCache.h"
 #include "DlgDonkeyServers.h"
+#include "DlgURLCopy.h"
 #include "LiveList.h"
 #include "Skin.h"
 #include "CoolInterface.h"
@@ -71,6 +72,8 @@ BEGIN_MESSAGE_MAP(CHostCacheWnd, CPanelWnd)
 	ON_COMMAND(ID_HOSTCACHE_ED2K_DOWNLOAD, OnHostcacheEd2kDownload)
 	ON_UPDATE_COMMAND_UI(ID_HOSTCACHE_PRIORITY, OnUpdateHostcachePriority)
 	ON_COMMAND(ID_HOSTCACHE_PRIORITY, OnHostcachePriority)
+	ON_UPDATE_COMMAND_UI(ID_NEIGHBOURS_COPY, OnUpdateNeighboursCopy)
+	ON_COMMAND(ID_NEIGHBOURS_COPY, OnNeighboursCopy)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -137,6 +140,7 @@ int CHostCacheWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndList.InsertColumn( 11, _T("Query"), LVCFMT_RIGHT, 0, 8 );
 	m_wndList.InsertColumn( 12, _T("Ack"), LVCFMT_RIGHT, 0, 9 );
 #endif
+	m_wndList.InsertColumn( 13, _T("Country"), LVCFMT_CENTER, 60, 10 );
 	m_wndList.SetFont( &theApp.m_gdiFont );
 
 	Settings.LoadList( _T("CHostCacheWnd"), &m_wndList );
@@ -174,9 +178,9 @@ void CHostCacheWnd::Update(BOOL bForce)
 	
 	m_wndList.ModifyStyle( WS_VISIBLE, 0 );
 #ifdef _DEBUG	
-	CLiveList pLiveList( 13 );
+	CLiveList pLiveList( 14 );
 #else
-	CLiveList pLiveList( 10 );
+	CLiveList pLiveList( 11 );
 #endif
 	
 	PROTOCOLID nEffective = m_nMode ? m_nMode : PROTOCOL_G2;
@@ -231,6 +235,7 @@ void CHostCacheWnd::Update(BOOL bForce)
 		if ( pHost->m_tQuery ) pItem->Format( 11, _T("%u"), pHost->m_tQuery );
 		if ( pHost->m_tAck ) pItem->Format( 12, _T("%u"), pHost->m_tAck);
 #endif
+		pItem->Set( 13, pHost->m_sCountry );
 	}
 
 	if ( !m_bAllowUpdates && !bForce ) return;
@@ -450,6 +455,34 @@ void CHostCacheWnd::OnHostcachePriority()
 	}
 	
 	HostCache.eDonkey.m_nCookie ++;
+}
+
+void CHostCacheWnd::OnUpdateNeighboursCopy(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable( m_wndList.GetSelectedCount() == 1 );
+}
+
+void CHostCacheWnd::OnNeighboursCopy()
+{
+	CSingleLock pLock( &Network.m_pSection, TRUE );
+	
+	CString strURL;
+
+	CHostCacheHost* pHost = GetItem( m_wndList.GetNextItem( -1, LVNI_SELECTED ) );
+	if ( ! pHost ) return;
+
+	if ( pHost->m_nProtocol == PROTOCOL_G1 || pHost->m_nProtocol == PROTOCOL_G2 )
+	{
+		strURL.Format( _T("gnutella:host:%s:%u"),
+			(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pHost->m_pAddress ) ), pHost->m_nPort );
+	}
+	else if ( pHost->m_nProtocol == PROTOCOL_ED2K )
+	{
+		strURL.Format( _T("ed2k://|server|%s|%u|/"),
+			(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pHost->m_pAddress ) ), pHost->m_nPort );
+	}
+	
+	CURLCopyDlg::SetClipboardText( strURL );
 }
 
 void CHostCacheWnd::OnUpdateHostCacheRemove(CCmdUI* pCmdUI) 

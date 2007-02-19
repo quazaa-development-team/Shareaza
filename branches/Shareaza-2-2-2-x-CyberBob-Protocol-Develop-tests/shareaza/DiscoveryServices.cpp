@@ -754,7 +754,7 @@ BOOL CDiscoveryServices::Execute(BOOL bDiscovery, PROTOCOLID nProtocol, BOOL bFo
 		BOOL	bG2Required = Settings.Gnutella2.EnableToday && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_G2) && ( bForceDiscovery || HostCache.Gnutella2.CountHosts(TRUE) == 0 );
 		BOOL	bEdRequired = Settings.eDonkey.EnableToday && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_ED2K ) && Settings.eDonkey.MetAutoQuery && ( m_tMetQueried == 0 || tNow - m_tMetQueried >= 60 * 60 ) && ( bForceDiscovery || !HostCache.eDonkey.EnoughED2KServers() );
 
-		if ( nProtocol == PROTOCOL_NULL )					// G1 + G2 + Ed hosts are wanted
+		if ( nProtocol == PROTOCOL_NULL )								// G1 + G2 + Ed hosts are wanted
 		{
 			BOOL bOK = TRUE;
 

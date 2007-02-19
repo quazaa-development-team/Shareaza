@@ -645,12 +645,12 @@ CList< CLibraryFile* >* CLibraryMaps::Search(CQuerySearch* pSearch, int nMaximum
 		{
 			CLibraryFile* pFile = GetNextFile( pos );
 			
-			if (!validAndUnequal( pFile->m_oSHA1, pSearch->m_oSHA1 ) && 
-				!validAndUnequal( pFile->m_oTiger, pSearch->m_oTiger ) && 
-				!validAndUnequal( pFile->m_oED2K, pSearch->m_oED2K ) && 
-				!validAndUnequal( pFile->m_oMD5, pSearch->m_oMD5 ) )
+			if ( bLocal || pFile->IsShared() && pFile->m_oSHA1 )
 			{
-				if ( bLocal || pFile->IsShared() && pFile->m_oSHA1 )
+				if (!validAndUnequal( pFile->m_oSHA1, pSearch->m_oSHA1 ) && 
+					!validAndUnequal( pFile->m_oTiger, pSearch->m_oTiger ) && 
+					!validAndUnequal( pFile->m_oED2K, pSearch->m_oED2K ) && 
+					!validAndUnequal( pFile->m_oMD5, pSearch->m_oMD5 ) )
 				{
 					if ( ! pHits ) pHits = new CList< CLibraryFile* >( 64 );
 					pHits->AddTail( pFile );
