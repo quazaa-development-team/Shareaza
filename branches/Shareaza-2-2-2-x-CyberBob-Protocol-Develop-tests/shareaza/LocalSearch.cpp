@@ -375,22 +375,18 @@ BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int /*nIndex*/)
 		{
 			nLength += 4;
 			nGroup += 4 + nLength;
-			if ( nLength > 15 )
+			if ( nLength > 0xFF )
 			{
 				nGroup++;
-				if ( nLength > 255 )
-					nGroup++;
 			}
 		}
 		else
 		{
 			nGroup += 4 + 8;
 			nGroup += 4 + nLength;
-			if ( nLength > 15 )
+			if ( nLength > 0xFF )
 			{
 				nGroup++;
-				if ( nLength > 255 )
-					nGroup++;
 			}
 		}
 
@@ -517,11 +513,11 @@ BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int /*nIndex*/)
 		pPacket->Write( pFile->m_oMD5 );
 	}
 
-	if (strFolderName.GetLength() > 0 ) // Send Folder name in Hit packet
-	{
-		pPacket->WritePacket( G2_PACKET_FOLDERNAME, pPacket->GetStringLen( strFolderName ) );
-		pPacket->WriteString( strFolderName, FALSE );
-	}
+	//if (strFolderName.GetLength() > 0 ) // Send Folder name in Hit packet
+	//{
+	//	pPacket->WritePacket( G2_PACKET_FOLDERNAME, pPacket->GetStringLen( strFolderName ) );
+	//	pPacket->WriteString( strFolderName, FALSE );
+	//}
 
 	if ( m_pSearch == NULL || m_pSearch->m_bWantDN ) // want File name or File Size
 	{
@@ -704,13 +700,9 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 							// Size of Length field = 1
 							// Name of packet "DN" = 2
 			nLength += 4;	// DN could contain 4byte File size filed at beginning.
-			if ( nLength > 15 )			// Length of 4Byte+string is longer than 15Byte,
+			if ( nLength > 0xFF )			// Length of 4Byte+string is longer than 255Byte,
 			{
 				nGroup += 1;			// add 1Byte for Length Field
-				if ( nLength > 255 )	// Length of 4Byte+string is longer than 255Byte
-				{
-					nGroup += 1;		// add 1 more Byte to it to make the size.
-				}
 			}
 			nGroup += nLength;
 		}
@@ -724,13 +716,9 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 							// Size of Length = 1
 							// Name of packet "DN" = 2
 							// DN contain String of file name = ValLength
-			if ( nLength > 15 )			// Length of string is longer than 15Byte,
+			if ( nLength > 0xFF )			// Length of string is longer than 255Byte,
 			{
 				nGroup += 1;			// add 1Byte for Length Field
-				if ( nLength > 255 )	// Length of string is longer than 255Byte
-				{
-					nGroup += 1;		// add 1 more Byte to it to make the size.
-				}
 			}
 			nGroup += nLength;
 		}
@@ -753,15 +741,11 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 				(LPCTSTR)pDownload->m_pPeerID.toString(),
 				(LPCTSTR)pDownload->m_oBTH.toString() );
 			nLength = pPacket->GetStringLen( strURL );
-			if ( nLength > 15 )
+			if ( nLength > 0xFF )
 			{
 				nGroup += 1;
-				if ( nLength > 255 )
-				{
-					nGroup += 1;
-				}
 			}
-			nGroup += nLength + 4;
+			nGroup += nLength + 5;
 		}
 	}
 	else if ( m_pSearch->m_bWantURL )
@@ -815,15 +799,11 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 
 		if ( strURL.GetLength() )
 		{
-			if ( nLength > 15 )
+			if ( nLength > 0xFF )
 			{
 				nGroup += 1;
-				if ( nLength > 255 )
-				{
-					nGroup += 1;
-				}
 			}
-			nGroup += nLength + 4;
+			nGroup += nLength + 5;
 		}
 		else
 		{
