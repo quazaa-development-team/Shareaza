@@ -221,6 +221,9 @@ HBITMAP	CreateMirroredBitmap(HBITMAP hbmOrig);
 
 void CloseThread(HANDLE* phThread, LPCTSTR pszName, DWORD dwTimeout = 5000);
 
+LRESULT CALLBACK KbdHook(int nCode, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK MouseHook(int nCode, WPARAM wParam, LPARAM lParam);
+
 #ifdef _DEBUG
 #define MLOG(x) theApp.Message( MSG_DEBUG, x )
 #else

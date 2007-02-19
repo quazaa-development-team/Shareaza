@@ -1948,8 +1948,6 @@ BOOL CUploadTransferHTTP::RequestPreview(CLibraryFile* pFile, CSingleLock& oLibr
 		return TRUE;
 	}
 
-	pServices.Cleanup();
-
 	m_pOutput->Print( "HTTP/1.1 200 OK\r\n" );
 	SendDefaultHeaders();
 
