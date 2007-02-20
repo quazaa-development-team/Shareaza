@@ -1845,6 +1845,64 @@ BOOL CDatagrams::OnHit(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 }
 
 //////////////////////////////////////////////////////////////////////
+// CDatagrams common packet handler
+
+BOOL CDatagrams::OnCommonHit(SOCKADDR_IN* pHost, CPacket* pPacket)
+{
+	CQueryHit* pHits = NULL;
+	int nHops = 0;
+
+	if ( pPacket->m_nProtocol == PROTOCOL_G1 )
+	{
+		pHits = CQueryHit::FromPacket( (CG1Packet*)pPacket, &nHops );
+	}
+	else if ( pPacket->m_nProtocol == PROTOCOL_G2 )
+	{
+		pHits = CQueryHit::FromPacket( (CG2Packet*)pPacket, &nHops, pHost );
+	}
+	else
+	{
+		ASSERT( FALSE );
+	}
+
+	if ( pHits == NULL )
+	{
+		pPacket->Debug( _T("BadHit") );
+		theApp.Message( MSG_ERROR, IDS_PROTOCOL_BAD_HIT, (LPCTSTR)CString( inet_ntoa( pHost->sin_addr ) ) );
+		if ( pPacket->m_nProtocol == PROTOCOL_G1 )
+			Statistics.Current.Gnutella1.Dropped++;
+		else if ( pPacket->m_nProtocol == PROTOCOL_G2 )
+			Statistics.Current.Gnutella2.Dropped++;
+		return TRUE;
+	}
+
+	if ( Security.IsDenied( &pHits->m_pAddress ) || nHops > (int)Settings.Gnutella1.MaximumTTL )
+	{
+		pHits->Delete();
+		if ( pPacket->m_nProtocol == PROTOCOL_G1 )
+			Statistics.Current.Gnutella1.Dropped++;
+		else if ( pPacket->m_nProtocol == PROTOCOL_G2 )
+			Statistics.Current.Gnutella2.Dropped++;
+		return TRUE;
+	}
+
+	Network.NodeRoute->Add( pHits->m_oClientID, pHost );
+
+	// Shareaza does not Route any G1 UDP packet.
+	if ( pPacket->m_nProtocol == PROTOCOL_G2 )
+	{
+		if ( SearchManager.OnQueryHits( pHits ) )
+		{
+			Network.RouteHits( pHits, pPacket );
+		}
+	}
+
+	Network.OnQueryHits( pHits );
+
+	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
 // CDatagrams QUERY KEY REQUEST packet handler
 
 BOOL CDatagrams::OnQueryKeyRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket)

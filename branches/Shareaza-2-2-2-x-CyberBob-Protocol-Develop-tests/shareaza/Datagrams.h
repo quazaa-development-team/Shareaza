@@ -164,6 +164,7 @@ protected:
 	BOOL	OnQueryAck(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnHit(SOCKADDR_IN* pHost, CG1Packet* pPacket);
 	BOOL	OnHit(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnCommonHit(SOCKADDR_IN* pHost, CPacket* pPacket);
 	BOOL	OnQueryKeyRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnQueryKeyAnswer(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnPush(SOCKADDR_IN* pHost, CG1Packet* pPacket);
