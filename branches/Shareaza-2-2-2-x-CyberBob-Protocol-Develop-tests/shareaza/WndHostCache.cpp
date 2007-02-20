@@ -135,12 +135,12 @@ int CHostCacheWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndList.InsertColumn( 7, _T("CurUsers"), LVCFMT_CENTER, 60, 6 );
 	m_wndList.InsertColumn( 8, _T("MaxUsers"), LVCFMT_CENTER, 60, 7 );
 	m_wndList.InsertColumn( 9, _T("Failures"), LVCFMT_CENTER, 60, 7 );
+	m_wndList.InsertColumn( 10, _T("Country"), LVCFMT_LEFT, 40, 10 );
 #ifdef _DEBUG
-	m_wndList.InsertColumn( 10, _T("Key"), LVCFMT_RIGHT, 0, 7 );
-	m_wndList.InsertColumn( 11, _T("Query"), LVCFMT_RIGHT, 0, 8 );
-	m_wndList.InsertColumn( 12, _T("Ack"), LVCFMT_RIGHT, 0, 9 );
+	m_wndList.InsertColumn( 11, _T("Key"), LVCFMT_RIGHT, 0, 7 );
+	m_wndList.InsertColumn( 12, _T("Query"), LVCFMT_RIGHT, 0, 8 );
+	m_wndList.InsertColumn( 13, _T("Ack"), LVCFMT_RIGHT, 0, 9 );
 #endif
-	m_wndList.InsertColumn( 13, _T("Country"), LVCFMT_CENTER, 60, 10 );
 	m_wndList.SetFont( &theApp.m_gdiFont );
 
 	Settings.LoadList( _T("CHostCacheWnd"), &m_wndList );
