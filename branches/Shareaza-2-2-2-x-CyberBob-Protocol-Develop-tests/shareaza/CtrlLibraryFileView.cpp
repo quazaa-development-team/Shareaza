@@ -746,15 +746,18 @@ void CLibraryFileView::OnLibraryShared()
 	{
 		if ( CLibraryFile* pFile = Library.LookupFile( m_pSelection.GetNext( m_posSel ) ) )
 		{
-			// Don't share not verified files
-			if ( pFile->m_bVerify == TS_TRUE )
-			{
+			// the check for verification does not work at all. needs to be checked further more.
+			// for now, temporary commenting this code out.
+
+			// --------Don't share not verified files
+			//if ( pFile->m_bVerify == TS_TRUE )
+			//{
 				if ( pFile->IsShared() )
 					pFile->m_bShared = pFile->m_pFolder->IsShared() ? TS_FALSE : TS_UNKNOWN;
 				else
 					pFile->m_bShared = pFile->m_pFolder->IsShared() ? TS_UNKNOWN : TS_TRUE;
 				pFile->m_nUpdateCookie++;
-			}
+			//}
 		}
 	}
 
