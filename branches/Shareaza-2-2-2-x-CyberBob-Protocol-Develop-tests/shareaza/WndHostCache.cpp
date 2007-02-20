@@ -230,12 +230,12 @@ void CHostCacheWnd::Update(BOOL bForce)
 		if ( pHost->m_nUserCount ) pItem->Format( 7, _T("%u"), pHost->m_nUserCount );
 		if ( pHost->m_nUserLimit ) pItem->Format( 8, _T("%u"), pHost->m_nUserLimit );
 		if ( pHost->m_nFailures ) pItem->Format( 9, _T("%u"), pHost->m_nFailures );
+		if ( pHost->m_sCountry ) pItem->Set( 10, pHost->m_sCountry );
 #ifdef _DEBUG
-		if ( pHost->m_nKeyValue ) pItem->Format( 10, _T("%u"), pHost->m_nKeyValue);
-		if ( pHost->m_tQuery ) pItem->Format( 11, _T("%u"), pHost->m_tQuery );
-		if ( pHost->m_tAck ) pItem->Format( 12, _T("%u"), pHost->m_tAck);
+		if ( pHost->m_nKeyValue ) pItem->Format( 11, _T("%u"), pHost->m_nKeyValue);
+		if ( pHost->m_tQuery ) pItem->Format( 12, _T("%u"), pHost->m_tQuery );
+		if ( pHost->m_tAck ) pItem->Format( 13, _T("%u"), pHost->m_tAck);
 #endif
-		if ( pHost->m_sCountry ) pItem->Set( 13, pHost->m_sCountry );
 	}
 
 	if ( !m_bAllowUpdates && !bForce ) return;
