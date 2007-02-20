@@ -196,6 +196,7 @@ CString CLibraryFile::GetSearchName() const
 
 BOOL CLibraryFile::IsShared() const
 {
+	if ( m_bVerify == TS_FALSE ) return FALSE;	// verified and file has been marked as bad.
 	if ( m_bShared == TS_FALSE ) return FALSE;
 
 	if ( LPCTSTR pszExt = _tcsrchr( m_sName, '.' ) )
