@@ -570,9 +570,6 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 
 	Uploads.SetStable( 0 );
 
-	ASSERT(m_bTCPListeningReady);
-	ASSERT(m_bUDPListeningReady);
-
 	if ( !m_bTCPListeningReady || !m_bUDPListeningReady )
 	{
 		theApp.Message( MSG_DISPLAYED_ERROR, _T("The connection process is failed.") );
@@ -594,9 +591,7 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 	CITMQueue::EnableITM( &(Network.m_pMessageQueue) );
 	if ( Settings.Gnutella2.EnableToday ) BeginTestG2UDPFW();
     
-	CWinThread* pThread = AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_NORMAL );
-	m_hThread				= pThread->m_hThread;
-	SetThreadName( pThread->m_nThreadID, "Network" );
+	m_hThread				= BeginThread( "Network", ThreadStart, this );
 
 	if ( Settings.Gnutella1.EnableToday)
 		DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G1 );
@@ -639,7 +634,7 @@ void CNetwork::Disconnect()
 	pLock.Unlock();
 
 	m_pWakeup.SetEvent();
-	CloseThread( &m_hThread, _T("CNetwork") );
+	CloseThread( &m_hThread );
 
 	Handshakes.Disconnect();
 	pLock.Lock();

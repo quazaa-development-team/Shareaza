@@ -299,9 +299,7 @@ void CLibraryTipCtrl::OnShow()
 	if ( m_hThread == NULL )
 	{
 		m_bThread = TRUE;
-		CWinThread* pThread = AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_IDLE );
-		SetThreadName( pThread->m_nThreadID, "CtrlLibraryTip" );
-		m_hThread = pThread->m_hThread;
+		m_hThread = BeginThread( "CtrlLibraryTip", ThreadStart, this, THREAD_PRIORITY_IDLE );
 	}
 
 	m_pWakeup.SetEvent();
@@ -337,7 +335,7 @@ void CLibraryTipCtrl::StopThread()
 	m_bThread = FALSE;
 	m_pWakeup.SetEvent();
 
-	CloseThread( &m_hThread, _T("CLibraryTipCtrl"), 2000 );
+	CloseThread( &m_hThread, 2000 );
 }
 
 /////////////////////////////////////////////////////////////////////////////

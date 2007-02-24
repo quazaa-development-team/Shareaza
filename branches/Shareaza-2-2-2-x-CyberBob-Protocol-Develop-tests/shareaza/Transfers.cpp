@@ -92,9 +92,7 @@ BOOL CTransfers::StartThread()
 	m_bThread	= TRUE;
 	
 	CITMQueue::EnableITM( &( m_pMessageQueue ) );
-	CWinThread* pThread = AfxBeginThread( ThreadStart, this, THREAD_PRIORITY_NORMAL );
-	SetThreadName( pThread->m_nThreadID, "Transfers" );
-	m_hThread = pThread->m_hThread;
+	m_hThread = BeginThread( "Transfers", ThreadStart, this );
 
 	return TRUE;
 }
@@ -107,7 +105,7 @@ void CTransfers::StopThread()
 	m_bThread = FALSE;
 	m_pWakeup.SetEvent();
 
-	CloseThread( &m_hThread, _T("CTransfers") );
+	CloseThread( &m_hThread );
 
 	Downloads.m_nTransfers	= 0;
 	Downloads.m_nBandwidth	= 0;
