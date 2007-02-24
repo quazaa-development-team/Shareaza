@@ -31,6 +31,7 @@ class CDownload;
 class CTigerTree;
 class CXMLElement;
 class CED2K;
+class CUploadTipCtrl;
 
 
 class CUploadTransferHTTP : public CUploadTransfer
@@ -57,6 +58,7 @@ protected:
 	BOOL		m_bRange;
 	BOOL		m_bQueueMe;
 	BOOL		m_bNotShareaza;
+	BOOL		m_bListening;
 	int			m_nGnutella;
 	int			m_nReaskMultiplier; //Last re-ask time multiplier used
 protected:
@@ -105,6 +107,8 @@ protected:
 
 public:
 	inline BOOL IsBackwards() const { return m_bBackwards; }
+
+	friend class CUploadTipCtrl;
 };
 
 #endif // !defined(AFX_UPLOADTRANSFERHTTP_H__FFC5B664_6827_41EC_87E2_033318A36E0A__INCLUDED_)

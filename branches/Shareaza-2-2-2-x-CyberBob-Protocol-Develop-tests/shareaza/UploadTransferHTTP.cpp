@@ -75,6 +75,7 @@ CUploadTransferHTTP::CUploadTransferHTTP() : CUploadTransfer( PROTOCOL_HTTP )
 	m_nReaskMultiplier	= 1;
 	m_bNotShareaza		= FALSE;
 	m_nTimeoutTraffic	= Settings.Connection.TimeoutTraffic;
+	m_bListening		= FALSE;
 }
 
 CUploadTransferHTTP::~CUploadTransferHTTP()
@@ -324,11 +325,16 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 			m_nGnutella |= 1;
 		*/
 	}
+	else if ( strHeader.CompareNoCase( _T("Listen-IP") ) == 0 )
+	{
+		m_bListening = TRUE;
+	}
 	else if (  strHeader.CompareNoCase( _T("X-My-Address") ) == 0
 			|| strHeader.CompareNoCase( _T("X-Node") ) == 0
 			|| strHeader.CompareNoCase( _T("Node") ) == 0 )
 	{
 		m_bNotShareaza = TRUE; // Shareaza doesn't send this header
+		m_bListening = TRUE;
 		m_nGnutella |= 1;
 	}
 	else if ( strHeader.CompareNoCase( _T("X-Queue") ) == 0 )

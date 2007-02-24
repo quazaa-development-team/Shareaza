@@ -24,7 +24,9 @@
 #include "Settings.h"
 #include "CoolInterface.h"
 #include "Transfers.h"
+#include "EDPacket.h"
 #include "EDClient.h"
+#include "BTClient.h"
 #include "UploadFile.h"
 #include "UploadFiles.h"
 #include "UploadQueue.h"
@@ -32,6 +34,7 @@
 #include "UploadTransfer.h"
 #include "UploadTransferHTTP.h"
 #include "UploadTransferED2K.h"
+#include "UploadTransferBT.h"
 #include "GraphLine.h"
 #include "GraphItem.h"
 #include "FragmentedFile.h"
@@ -130,18 +133,52 @@ void CUploadTipCtrl::OnCalcSize(CDC* pDC)
 
 	m_sz.cy += TIP_TEXTHEIGHT * 2;
 	m_sz.cy += TIP_RULE;
+	m_sGUID.Empty();
+	m_sServer.Empty();
 
 	if ( pUpload->m_nProtocol == PROTOCOL_HTTP )
 	{
 		m_sz.cy += TIP_TEXTHEIGHT * 4;
 		CUploadTransferHTTP * pUploadHTTP = static_cast<CUploadTransferHTTP*>(pUpload);
-		if ( pUploadHTTP->m_oGUID.isValid() ) m_sz.cy += TIP_TEXTHEIGHT;
+		if ( !pUploadHTTP->m_bListening ) m_sAddress += _T("(Firewalled)");
+		if ( pUploadHTTP->m_oGUID.isValid() )
+		{
+			Hashes::Guid oID ( pUploadHTTP->m_oGUID );
+			m_sGUID.Format(	_T("%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X"),
+				int( oID[0] ),  int( oID[1] ),  int( oID[2] ),  int( oID[3] ),		// Our GUID
+				int( oID[4] ),  int( oID[5] ),  int( oID[6] ),  int( oID[7] ),
+				int( oID[8] ),  int( oID[9] ),  int( oID[10] ), int( oID[11] ),
+				int( oID[12] ), int( oID[13] ), int( oID[14] ), int( oID[15] ) );
+			m_sz.cy += TIP_TEXTHEIGHT;
+		}
 	}
 	else if ( pUpload->m_nProtocol == PROTOCOL_ED2K )
 	{
 		m_sz.cy += TIP_TEXTHEIGHT * 4;
 		CUploadTransferED2K * pUploadED2K = static_cast<CUploadTransferED2K*>(pUpload);
-		if ( pUploadED2K->m_pClient != NULL && pUploadED2K->m_pClient->m_oGUID.isValid() ) m_sz.cy += TIP_TEXTHEIGHT;
+		if ( pUploadED2K->m_pClient )
+		{
+			if ( CEDPacket::IsLowID( pUploadED2K->m_pClient->m_nClientID ) ) m_sAddress += _T("(LowID)");
+			if ( pUploadED2K->m_pClient->m_oGUID.isValid() )
+			{
+				Hashes::Guid oID ( pUploadED2K->m_pClient->m_oGUID );
+				// MFC's CString::Format is like sprintf, "%.2X" formats a byte into 2 hexidecimal characters like "ff"
+				m_sGUID.Format(	_T("%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X"),
+					int( oID[0] ),  int( oID[1] ),  int( oID[2] ),  int( oID[3] ),		// Our GUID
+					int( oID[4] ),  int( oID[5] ),  int( oID[6] ),  int( oID[7] ),
+					int( oID[8] ),  int( oID[9] ),  int( oID[10] ), int( oID[11] ),
+					int( oID[12] ), int( oID[13] ), int( oID[14] ), int( oID[15] ) );
+				m_sz.cy += TIP_TEXTHEIGHT;
+			}
+			if ( pUploadED2K->m_pClient->m_pServer.sin_addr.S_un.S_addr &&
+				pUploadED2K->m_pClient->m_pServer.sin_port )
+			{
+				m_sServer.Format( _T("%ui@%s:%ui"), pUploadED2K->m_pClient->m_nClientID,
+									(LPCTSTR)CString( inet_ntoa( pUploadED2K->m_pClient->m_pServer.sin_addr ) ),
+									ntohs( pUploadED2K->m_pClient->m_pServer.sin_port ) );
+				m_sz.cy += TIP_TEXTHEIGHT;
+			}
+		}
 	}
 	else
 	{
@@ -263,67 +300,77 @@ void CUploadTipCtrl::OnPaint(CDC* pDC)
 	DrawText( pDC, &pt, pUpload->m_sUserAgent, 80 );
 	pt.y += TIP_TEXTHEIGHT;
 
-	if ( pUpload->m_nProtocol == PROTOCOL_HTTP )
+	switch ( pUpload->m_nProtocol )
 	{
-		CUploadTransferHTTP * pUploadHTTP = static_cast<CUploadTransferHTTP*>(pUpload);
-		strText = "Connection:";
-		DrawText( pDC, &pt, strText );
-		if ( pUpload->m_bInitiated )
-			DrawText( pDC, &pt, _T("Locally Initiated"), 80 );
-		else
-			DrawText( pDC, &pt, _T("Remotely Initiated"), 80 );
-		pt.y += TIP_TEXTHEIGHT;
-
-		Hashes::Guid oID ( pUploadHTTP->m_oGUID );
-		if ( oID != NULL )
+	case PROTOCOL_G1:
+	case PROTOCOL_G2:
+	case PROTOCOL_HTTP:
 		{
-			strText = "GUID:";
+			strText = "Connection:";
 			DrawText( pDC, &pt, strText );
-			// MFC's CString::Format is like sprintf, "%.2X" formats a byte into 2 hexidecimal characters like "ff"
-			strText.Format(	_T("%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X"),
-				int( oID[0] ),  int( oID[1] ),  int( oID[2] ),  int( oID[3] ),		// Our GUID
-				int( oID[4] ),  int( oID[5] ),  int( oID[6] ),  int( oID[7] ),
-				int( oID[8] ),  int( oID[9] ),  int( oID[10] ), int( oID[11] ),
-				int( oID[12] ), int( oID[13] ), int( oID[14] ), int( oID[15] ) );
-			DrawText( pDC, &pt, strText, 80 );
-			pt.y += TIP_TEXTHEIGHT;
-		}
-	}
-	else if ( pUpload->m_nProtocol == PROTOCOL_ED2K )
-	{
-		CUploadTransferED2K * pUploadED2K = static_cast<CUploadTransferED2K*>(pUpload);
-		strText = "Connection:";
-		DrawText( pDC, &pt, strText );
-		if ( pUploadED2K->m_pClient != NULL )
-		{
-			if ( pUploadED2K->m_pClient != NULL && pUploadED2K->m_pClient->m_bInitiated )
+			if ( pUpload->m_bInitiated )
 				DrawText( pDC, &pt, _T("Locally Initiated"), 80 );
 			else
 				DrawText( pDC, &pt, _T("Remotely Initiated"), 80 );
+			pt.y += TIP_TEXTHEIGHT;
 		}
-		else
+		break;
+	case PROTOCOL_ED2K:
 		{
-			DrawText( pDC, &pt, _T("Not Connected"), 80 );
-		}
-		pt.y += TIP_TEXTHEIGHT;
-
-		if ( pUploadED2K->m_pClient != NULL )
-		{
-			Hashes::Guid oID ( pUploadED2K->m_pClient->m_oGUID );
-			if ( oID != NULL )
+			CUploadTransferED2K * pUploadED2K = static_cast<CUploadTransferED2K*>(pUpload);
+			strText = "Connection:";
+			DrawText( pDC, &pt, strText );
+			if ( pUploadED2K->m_pClient != NULL )
 			{
-				strText = "GUID:";
-				DrawText( pDC, &pt, strText );
-				// MFC's CString::Format is like sprintf, "%.2X" formats a byte into 2 hexidecimal characters like "ff"
-				strText.Format(	_T("%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X"),
-					int( oID[0] ),  int( oID[1] ),  int( oID[2] ),  int( oID[3] ),		// Our GUID
-					int( oID[4] ),  int( oID[5] ),  int( oID[6] ),  int( oID[7] ),
-					int( oID[8] ),  int( oID[9] ),  int( oID[10] ), int( oID[11] ),
-					int( oID[12] ), int( oID[13] ), int( oID[14] ), int( oID[15] ) );
-				DrawText( pDC, &pt, strText, 80 );
-				pt.y += TIP_TEXTHEIGHT;
+				if ( pUploadED2K->m_pClient != NULL && pUploadED2K->m_pClient->m_bInitiated )
+					DrawText( pDC, &pt, _T("Locally Initiated"), 80 );
+				else
+					DrawText( pDC, &pt, _T("Remotely Initiated"), 80 );
 			}
+			else
+			{
+				DrawText( pDC, &pt, _T("Not Connected"), 80 );
+			}
+			pt.y += TIP_TEXTHEIGHT;
 		}
+		break;
+	case PROTOCOL_BT:
+		{
+			CUploadTransferBT * pUploadBT = static_cast<CUploadTransferBT*>(pUpload);
+			strText = "Connection:";
+			DrawText( pDC, &pt, strText );
+			if ( pUploadBT->m_pClient != NULL )
+			{
+				if ( pUploadBT->m_pClient != NULL && pUploadBT->m_pClient->m_bInitiated )
+					DrawText( pDC, &pt, _T("Locally Initiated"), 80 );
+				else
+					DrawText( pDC, &pt, _T("Remotely Initiated"), 80 );
+			}
+			else
+			{
+				DrawText( pDC, &pt, _T("Not Connected"), 80 );
+			}
+			pt.y += TIP_TEXTHEIGHT;
+		}
+		break;
+	default:
+		break;
+	}
+
+	if ( m_sServer.GetLength() )
+	{
+		strText = "Server:";
+		DrawText( pDC, &pt, strText );
+		DrawText( pDC, &pt, m_sServer, 80 );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+
+	if ( m_sGUID.GetLength() )
+	{
+		strText = "GUID:";
+		DrawText( pDC, &pt, strText );
+		DrawText( pDC, &pt, m_sGUID, 80 );
+		pt.y += TIP_TEXTHEIGHT;
 	}
 
 	pt.y += TIP_GAP;
