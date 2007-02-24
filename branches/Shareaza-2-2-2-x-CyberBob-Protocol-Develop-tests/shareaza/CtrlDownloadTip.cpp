@@ -31,6 +31,7 @@
 #include "DownloadTransfer.h"
 #include "DownloadTransferBT.h"
 #include "DownloadTransferED2K.h"
+#include "BTClient.h"
 #include "EDClient.h"
 #include "FragmentedFile.h"
 #include "FragmentBar.h"
@@ -641,18 +642,29 @@ void CDownloadTipCtrl::PrepareFileInfo(CDownload* pDownload)
 void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 {
 //	CDownload* pDownload = pSource->m_pDownload;
+	m_sServer.Empty();
+	m_sGUID.Empty();
 
 	if ( pSource->m_sNick.GetLength() > 0 )
 	{
 		m_sName = pSource->m_sNick;
-		if ( ( pSource->m_nProtocol == PROTOCOL_ED2K ) && ( pSource->m_bPushOnly == TRUE ) )
+		if ( pSource->m_nProtocol == PROTOCOL_ED2K )
 		{
-			m_sName.AppendFormat( _T(" (%lu@%s:%u)"), pSource->m_pAddress.S_un.S_addr, 
-				(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+			if ( pSource->m_bPushOnly )
+			{
+				m_sName.AppendFormat( _T(" (%lu@%s:%u)(PUSH)"), pSource->m_pAddress.S_un.S_addr, 
+					(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+			}
+			else
+			{
+				m_sName.AppendFormat( _T(" (%s:%u)"), (LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pAddress ) ), pSource->m_nPort );
+				m_sServer.Format( _T("%lu@%s:%u"), pSource->m_pAddress.S_un.S_addr, 
+								(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+			}
 		}
 		else if ( pSource->m_bPushOnly )
 		{
-			m_sName.AppendFormat( _T(" (%s)"), (LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pAddress ) ) );
+			m_sName.AppendFormat( _T(" (%s)(PUSH)"), (LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pAddress ) ) );
 		}
 		else
 		{
@@ -661,10 +673,24 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 	}
 	else
 	{
-		if ( ( pSource->m_nProtocol == PROTOCOL_ED2K ) && ( pSource->m_bPushOnly == TRUE ) )
+		if ( pSource->m_nProtocol == PROTOCOL_ED2K )
 		{
-			m_sName.Format( _T("%lu@%s:%u"), (DWORD)pSource->m_pAddress.S_un.S_addr,
-				(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+			if ( pSource->m_bPushOnly == TRUE )
+			{
+				m_sName.Format( _T("%lu@%s:%u (PUSH)"), (DWORD)pSource->m_pAddress.S_un.S_addr,
+					(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+			}
+			else
+			{
+				m_sName = inet_ntoa( pSource->m_pAddress );
+				m_sName.AppendFormat( _T(":%u"), pSource->m_nPort );
+				m_sServer.Format( _T("%lu@%s:%u"), pSource->m_pAddress.S_un.S_addr, 
+								(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+			}
+		}
+		else if ( pSource->m_bPushOnly )
+		{
+			m_sName.Format( _T("%s (PUSH)"), (LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pAddress ) ) );
 		}
 		else
 		{
@@ -672,12 +698,6 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 			m_sName.AppendFormat( _T(":%u"), pSource->m_nPort );
 		}
 	}
-
-	if ( pSource->m_bPushOnly )
-	{
-		m_sName += _T(" (push)");
-	}
-
 
 	m_sURL = pSource->m_sURL;
 
@@ -758,10 +778,19 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 	AddSize( pDC, m_sURL, 80 );
 	m_sz.cy += TIP_TEXTHEIGHT * 5;
 
-	if (pSource->m_oGUID.isValid())
+	if ( pSource->m_oGUID.isValid() )
 	{
+		Hashes::Guid oID( pSource->m_oGUID );
+		// Compose the X-MyGUID string, which is like "X-MyGUID: " with two newlines at the end (do)
+		// MFC's CString::Format is like sprintf, "%.2X" formats a byte into 2 hexidecimal characters like "ff"
+		m_sGUID.Format(	_T("%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X"),
+			int( oID[0] ),  int( oID[1] ),  int( oID[2] ),  int( oID[3] ),		// Our GUID
+			int( oID[4] ),  int( oID[5] ),  int( oID[6] ),  int( oID[7] ),
+			int( oID[8] ),  int( oID[9] ),  int( oID[10] ), int( oID[11] ),
+			int( oID[12] ), int( oID[13] ), int( oID[14] ), int( oID[15] ) );
 		m_sz.cy += TIP_TEXTHEIGHT;
 	}
+
 
 	if ( m_sPushProxyList.GetLength() != 0 )
 	{
@@ -866,9 +895,9 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownloadSource* pSource)
 	{
 		switch( pSource->m_nProtocol )
 		{
-			case PROTOCOL_HTTP:
 			case PROTOCOL_G1:
 			case PROTOCOL_G2:
+			case PROTOCOL_HTTP:
 				if ( !pSource->m_pTransfer->m_bConnected )
 					DrawText( pDC, &pt, _T("Not Connected"), 80 );
 				else if ( pSource->m_pTransfer->m_bInitiated )
@@ -876,7 +905,6 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownloadSource* pSource)
 				else
 					DrawText( pDC, &pt, _T("Remotely Initiated"), 80 );
 				break;
-
 			case PROTOCOL_ED2K:
 				{
 					CDownloadTransferED2K* pTransfer = static_cast<CDownloadTransferED2K*>(pSource->m_pTransfer);
@@ -891,9 +919,19 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownloadSource* pSource)
 						DrawText( pDC, &pt, _T("Not connected"), 80 );
 				}
 				break;
-
 			case PROTOCOL_BT:
-				DrawText( pDC, &pt, _T("Unknown"), 80 );
+				{
+					CDownloadTransferBT* pTransfer = static_cast<CDownloadTransferBT*>(pSource->m_pTransfer);
+					if ( pTransfer != NULL && pTransfer->m_pClient != NULL && pTransfer->m_pClient->m_bConnected )
+					{
+						if ( pTransfer->m_pClient->m_bInitiated )
+							DrawText( pDC, &pt, _T("Locally Initiated"), 80 );
+						else
+							DrawText( pDC, &pt, _T("Remotely Initiated"), 80 );
+					}
+					else
+						DrawText( pDC, &pt, _T("Not connected"), 80 );
+				}
 				break;
 			default:
 				DrawText( pDC, &pt, _T("Unknown"), 80 );
@@ -906,21 +944,19 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownloadSource* pSource)
 	}
 	pt.y += TIP_TEXTHEIGHT;
 
+	if ( m_sServer.GetLength() )
+	{
+		strText = _T("Server:");
+		DrawText( pDC, &pt, strText );
+		DrawText( pDC, &pt, m_sServer, 80 );
+		pt.y += TIP_TEXTHEIGHT;
+	}
 
-	if (pSource->m_oGUID.isValid())
+	if ( m_sGUID.GetLength() )
 	{
 		strText = _T("GUID:");
 		DrawText( pDC, &pt, strText );
-
-		Hashes::Guid oID( pSource->m_oGUID );
-		// Compose the X-MyGUID string, which is like "X-MyGUID: " with two newlines at the end (do)
-		// MFC's CString::Format is like sprintf, "%.2X" formats a byte into 2 hexidecimal characters like "ff"
-		strText.Format(	_T("%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X"),
-			int( oID[0] ),  int( oID[1] ),  int( oID[2] ),  int( oID[3] ),		// Our GUID
-			int( oID[4] ),  int( oID[5] ),  int( oID[6] ),  int( oID[7] ),
-			int( oID[8] ),  int( oID[9] ),  int( oID[10] ), int( oID[11] ),
-			int( oID[12] ), int( oID[13] ), int( oID[14] ), int( oID[15] ) );
-		DrawText( pDC, &pt, strText, 80 );
+		DrawText( pDC, &pt, m_sGUID, 80 );
 		pt.y += TIP_TEXTHEIGHT;
 	}
 

@@ -63,6 +63,8 @@ protected:
 	int				m_nStatWidth;
 	BOOL			m_bDrawGraph;		//Draw the download graph?
 	BOOL			m_bDrawError;		//Display the tracker error?
+	CString			m_sGUID;
+	CString			m_sServer;
 	CString			m_sHubList;
 	CString			m_sPushProxyList;
 
