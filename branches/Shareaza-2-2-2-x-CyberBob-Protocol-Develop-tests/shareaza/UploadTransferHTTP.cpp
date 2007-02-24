@@ -324,7 +324,9 @@ BOOL CUploadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 			m_nGnutella |= 1;
 		*/
 	}
-	else if ( strHeader.CompareNoCase( _T("X-Node") ) == 0 )
+	else if (  strHeader.CompareNoCase( _T("X-My-Address") ) == 0
+			|| strHeader.CompareNoCase( _T("X-Node") ) == 0
+			|| strHeader.CompareNoCase( _T("Node") ) == 0 )
 	{
 		m_bNotShareaza = TRUE; // Shareaza doesn't send this header
 		m_nGnutella |= 1;
@@ -722,18 +724,19 @@ BOOL CUploadTransferHTTP::IsNetworkDisabled()
 	if ( !Network.IsConnected() ) return TRUE;
 	if ( Settings.Connection.RequireForTransfers == FALSE ) return FALSE;
 
-	if ( m_nGnutella & 2 )
+	switch ( m_nGnutella )
 	{
-		if ( Settings.Gnutella2.EnableToday ) return FALSE;
-	}
-	else if ( m_nGnutella & 1 )
-	{
-		if ( Settings.Gnutella1.EnableToday ) return FALSE;
-	}
-	else
-	{
-		if ( ! Settings.Gnutella1.EnableToday &&
-			 ! Settings.Gnutella2.EnableToday ) return TRUE;
+	case 1:
+		if ( !Settings.IsG1Allowed() ) return TRUE;
+		break;
+	case 2:
+		if ( !Settings.IsG2Allowed() ) return TRUE;
+		break;
+	case 3:
+		if ( !Settings.IsG1Allowed() && !Settings.IsG2Allowed() ) return TRUE;
+		break;
+	default:
+		break;
 	}
 
 	return FALSE;
