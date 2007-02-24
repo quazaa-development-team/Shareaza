@@ -228,11 +228,14 @@ BOOL CDownloadTransferED2K::OnConnected()
 	m_pHost		= m_pClient->m_pHost;
 	m_sAddress	= m_pClient->m_sAddress;
 	m_sCountry	= theApp.GetCountryCode( m_pHost.sin_addr );
-	
+	if ( Network.IsFirewalledAddress( &m_pHost.sin_addr, TRUE, TRUE ) )
+		m_sCountry = _T("N/A");
+
 	m_pSource->m_oGUID		= m_pClient->m_oGUID;
 	m_pSource->m_sServer	= m_sUserAgent = m_pClient->m_sUserAgent;
 	m_pSource->m_sNick		= m_pClient->m_sNick;
 	m_pSource->SetLastSeen();
+	m_pSource->m_sCountry	= m_sCountry;
 
 	m_pSource->m_nPushAttempted = 0;
 	m_pSource->m_nBusyCount = 0;
