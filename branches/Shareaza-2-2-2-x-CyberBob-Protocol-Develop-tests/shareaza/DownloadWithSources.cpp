@@ -1306,10 +1306,8 @@ void CDownloadWithSources::Serialize(CArchive& ar, int nVersion)
 			{
 				RemoveSource( pSource, FALSE );
 			}
-
-			// Extract ed2k client ID from url (m_pAddress) because it wasn't saved
-			if ( ( !pSource->m_nPort ) && ( _tcsnicmp( pSource->m_sURL, _T("ed2kftp://"), 10 ) == 0 )  )
-			{
+			else if ( ( !pSource->m_nPort ) && ( _tcsnicmp( pSource->m_sURL, _T("ed2kftp://"), 10 ) == 0 )  )
+			{ // Extract ed2k client ID from url (m_pAddress) because it wasn't saved
 				CString strURL = pSource->m_sURL.Mid(10);
 				if ( strURL.GetLength())
 					_stscanf( strURL, _T("%lu"), &pSource->m_pAddress.S_un.S_addr );
