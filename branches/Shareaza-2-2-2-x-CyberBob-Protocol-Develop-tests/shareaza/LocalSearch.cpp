@@ -654,15 +654,18 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 	BOOL bWantURL = m_pSearch->m_bWantURL;
 	BOOL bWantDN = m_pSearch->m_bWantDN;
 
-    if ( pDownload->m_oTiger && pDownload->m_oSHA1 )
+	if ( pDownload->m_oSHA1 )
 	{
-        nGroup += 5 + 3 + Hashes::Sha1Hash::byteCount + Hashes::TigerHash::byteCount;
-		bBTOnly = FALSE;
-	}
-	else if ( pDownload->m_oSHA1 )
-	{
-		nGroup += 5 + 5 + Hashes::Sha1Hash::byteCount;
-		bBTOnly = FALSE;
+		if ( pDownload->m_oTiger )
+		{
+			nGroup += 5 + 3 + Hashes::Sha1Hash::byteCount + Hashes::TigerHash::byteCount;
+			bBTOnly = FALSE;
+		}
+		else
+		{
+			nGroup += 5 + 5 + Hashes::Sha1Hash::byteCount;
+			bBTOnly = FALSE;
+		}
 	}
     else if ( pDownload->m_oTiger )
 	{
@@ -818,24 +821,27 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 
 	pPacket->WritePacket( G2_PACKET_HIT_DESCRIPTOR, nGroup, TRUE );
 	
-    if ( pDownload->m_oTiger && pDownload->m_oSHA1 )
+	if ( pDownload->m_oSHA1 )
 	{
-        pPacket->WritePacket( G2_PACKET_URN, 3 + Hashes::Sha1Hash::byteCount + Hashes::TigerHash::byteCount );
-		pPacket->WriteString( "bp" );
-		pPacket->Write( pDownload->m_oSHA1 );
-		pPacket->Write( pDownload->m_oTiger );
+		if ( pDownload->m_oTiger )
+		{
+			pPacket->WritePacket( G2_PACKET_URN, 3 + Hashes::Sha1Hash::byteCount + Hashes::TigerHash::byteCount );
+			pPacket->WriteString( "bp" );
+			pPacket->Write( pDownload->m_oSHA1 );
+			pPacket->Write( pDownload->m_oTiger );
+		}
+		else
+		{
+			pPacket->WritePacket( G2_PACKET_URN, 5 + Hashes::Sha1Hash::byteCount );
+			pPacket->WriteString( "sha1" );
+			pPacket->Write( pDownload->m_oSHA1 );
+		}
 	}
     else if ( pDownload->m_oTiger )
 	{
 		pPacket->WritePacket( G2_PACKET_URN, 4 + Hashes::TigerHash::byteCount );
 		pPacket->WriteString( "ttr" );
 		pPacket->Write( pDownload->m_oTiger );
-	}
-	else if ( pDownload->m_oSHA1 )
-	{
-		pPacket->WritePacket( G2_PACKET_URN, 5 + Hashes::Sha1Hash::byteCount );
-		pPacket->WriteString( "sha1" );
-		pPacket->Write( pDownload->m_oSHA1 );
 	}
 	
 	if ( pDownload->m_oED2K )
