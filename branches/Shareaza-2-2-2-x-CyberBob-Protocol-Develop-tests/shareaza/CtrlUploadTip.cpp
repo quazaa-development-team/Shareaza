@@ -37,6 +37,7 @@
 #include "UploadTransferBT.h"
 #include "GraphLine.h"
 #include "GraphItem.h"
+#include "Flags.h"
 #include "FragmentedFile.h"
 #include "FragmentBar.h"
 #include "CtrlUploadTip.h"
@@ -130,8 +131,9 @@ void CUploadTipCtrl::OnCalcSize(CDC* pDC)
 	AddSize( pDC, pFile->m_sName );
 	AddSize( pDC, m_sAddress );
 	pDC->SelectObject( &CoolInterface.m_fntNormal );
+	AddSize( pDC, pUpload->m_sCountryName );
 
-	m_sz.cy += TIP_TEXTHEIGHT * 2;
+	m_sz.cy += TIP_TEXTHEIGHT * 3 + 4;
 	m_sz.cy += TIP_RULE;
 	m_sGUID.Empty();
 	m_sServer.Empty();
@@ -235,8 +237,23 @@ void CUploadTipCtrl::OnPaint(CDC* pDC)
 	DrawText( pDC, &pt, pFile->m_sName );
 	pt.y += TIP_TEXTHEIGHT;
 	DrawText( pDC, &pt, m_sAddress );
-	pt.y += TIP_TEXTHEIGHT;
 	pDC->SelectObject( &CoolInterface.m_fntNormal );
+	pt.y += TIP_TEXTHEIGHT;
+
+	int nFlagIndex = Flags.GetFlagIndex( pUpload->m_sCountry );
+	if ( nFlagIndex >= 0 )
+	{
+		ImageList_DrawEx( Flags.m_pImage, nFlagIndex, pDC->GetSafeHdc(),
+			pt.x, pt.y, 18, 18, CoolInterface.m_crTipBack, CLR_NONE, ILD_NORMAL );
+		pDC->ExcludeClipRect( pt.x, pt.y, pt.x + 18, pt.y + 18 );
+	}
+
+	pt.x += 25;
+	pt.y += 2;
+
+	DrawText( pDC, &pt, pUpload->m_sCountryName );
+	pt.x -= 25;
+	pt.y += TIP_TEXTHEIGHT + 2;
 
 	DrawRule( pDC, &pt );
 

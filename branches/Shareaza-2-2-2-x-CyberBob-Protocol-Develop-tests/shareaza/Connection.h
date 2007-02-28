@@ -70,6 +70,7 @@ public:
 	SOCKADDR_IN	m_pHost;		// The remote computer's IP address in Windows Sockets format
 	CString		m_sAddress;		// The same IP address in a string like "1.2.3.4"
 	CString		m_sCountry;		// The country of this host
+	CString		m_sCountryName;	// The full name of the country
 	BOOL		m_bInitiated;	// True if we initiated the connection, false if the remote computer connected to us
 	BOOL		m_bConnected;	// True when the socket is connected
 	DWORD		m_tConnected;	// The tick count when the socket connection was made
@@ -103,23 +104,25 @@ public:
 public:
 
 	// Exchange data with the other computer, measure bandwidth, and work with headers
-	virtual BOOL DoRun();          // Communicate with the other computer, reading and writing everything we can right now
-	virtual void QueueRun();       // (do) may no longer be in use
-	virtual void Measure();        // Measure the bandwidth, setting nMeasure in the bandwidth meters for each direction
-	virtual BOOL ReadHeaders();    // Read text headers sitting in the input buffer
-	virtual BOOL SendMyAddress();  // If we are listening on a port, tell the other computer our IP address and port number
-	virtual BOOL IsAgentBlocked(); // Check the other computer's software title against our list of programs not to talk to
-	
+	virtual BOOL DoRun();						// Communicate with the other computer, reading and writing everything we can right now
+	virtual void QueueRun();					// (do) may no longer be in use
+	virtual void Measure();						// Measure the bandwidth, setting nMeasure in the bandwidth meters for each direction
+	virtual BOOL ReadHeaders();					// Read text headers sitting in the input buffer
+	virtual BOOL SendMyAddress();				// If we are listening on a port, tell the other computer our IP address and port number
+	virtual BOOL IsAgentBlocked();				// Check the other computer's software title against our list of programs not to talk to
+
+	void UpdateCountry();						// Call whenever the IP address is set
 protected:
 
 	// Read and write data through the socket, and look at headers
-	virtual BOOL OnRun();                // (do) just returns true
-	virtual BOOL OnConnected();          // (do) just returns true
-	virtual BOOL OnRead();               // Read data waiting in the socket into the input buffer
-	virtual BOOL OnWrite();              // Move the contents of the output buffer into the socket
-	virtual void OnDropped(BOOL bError); // (do) empty
-	virtual BOOL OnHeaderLine(CString& strHeader, CString& strValue); // Processes a single line from the headers
-	virtual BOOL OnHeadersComplete();    // (do) just returns true
+	virtual BOOL OnRun();						// (do) just returns true
+	virtual BOOL OnConnected();					// (do) just returns true
+	virtual BOOL OnRead();						// Read data waiting in the socket into the input buffer
+	virtual BOOL OnWrite();						// Move the contents of the output buffer into the socket
+	virtual void OnDropped(BOOL bError);		// (do) empty
+	virtual BOOL OnHeaderLine(CString& strHeader,
+							CString& strValue); // Processes a single line from the headers
+	virtual BOOL OnHeadersComplete();			// (do) just returns true
 
 public:
 

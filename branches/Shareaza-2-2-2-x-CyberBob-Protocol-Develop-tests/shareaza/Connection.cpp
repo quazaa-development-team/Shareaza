@@ -76,6 +76,8 @@ CConnection::CConnection(CConnection& other)
 	: m_pHost( other.m_pHost )
 	, m_pRealHost( other.m_pRealHost )
 	, m_sAddress( other.m_sAddress )
+	, m_sCountry(     other.m_sCountry )
+	, m_sCountryName( other.m_sCountryName )
 	, m_bInitiated( other.m_bInitiated )
 	, m_bConnected( other.m_bConnected )
 	, m_tConnected( other.m_tConnected )
@@ -101,8 +103,6 @@ CConnection::CConnection(CConnection& other)
 	// Null the input and output pointers
 	other.m_pInput	= NULL;
 	other.m_pOutput	= NULL;
-
-	m_sCountry = theApp.GetCountryCode( m_pHost.sin_addr );
 }
 
 // Delete this CConnection object
@@ -154,7 +154,7 @@ BOOL CConnection::ConnectTo(IN_ADDR* pAddress, WORD nPort)
 	m_pHost.sin_family	= PF_INET;							// PF_INET means just normal IPv4, not IPv6 yet
 	m_pHost.sin_port	= htons( nPort );					// Copy the port number into the m_pHost structure
 	m_sAddress			= inet_ntoa( m_pHost.sin_addr );	// Save the IP address as a string of text
-	m_sCountry			= theApp.GetCountryCode( m_pHost.sin_addr );
+	UpdateCountry();
 
 	CopyMemory( &m_pRealHost, &m_pHost, sizeof(m_pRealHost) );
 
@@ -262,7 +262,7 @@ void CConnection::AcceptFrom(SOCKET hSocket, SOCKADDR_IN* pHost)
 	m_pHost			= *pHost;							// Copy the remote IP address into this object
 	m_pRealHost		= *pHost;							// Copy the remote IP address into this object
 	m_sAddress		= inet_ntoa( m_pHost.sin_addr );	// Store it as a string also
-	m_sCountry		= theApp.GetCountryCode( m_pHost.sin_addr );
+	UpdateCountry();
 
 	// Make new input and output buffer objects
 	m_pInput		= new CBuffer( &Settings.Bandwidth.PeerIn );
@@ -298,6 +298,7 @@ void CConnection::AttachTo(CConnection* pConnection)
 	m_pRealHost		= pConnection->m_pRealHost;
 	m_sAddress		= pConnection->m_sAddress;
 	m_sCountry		= pConnection->m_sCountry;
+	m_sCountryName	= pConnection->m_sCountryName;
 	m_hSocket		= pConnection->m_hSocket;
 	m_bInitiated	= pConnection->m_bInitiated;
 	m_bConnected	= pConnection->m_bConnected;
@@ -965,6 +966,12 @@ BOOL CConnection::IsAgentBlocked()
 
 	// Allow it
 	return FALSE;
+}
+
+void CConnection::UpdateCountry()
+{
+	m_sCountry     = theApp.GetCountryCode( m_pHost.sin_addr );
+	m_sCountryName = theApp.GetCountryName( m_pHost.sin_addr );
 }
 
 //////////////////////////////////////////////////////////////////////

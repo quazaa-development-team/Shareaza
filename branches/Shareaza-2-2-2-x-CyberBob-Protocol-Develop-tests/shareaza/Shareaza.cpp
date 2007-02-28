@@ -375,6 +375,8 @@ m_oHitMonitorList()
 
 BOOL CShareazaApp::InitInstance()
 {
+	CWinApp::InitInstance();
+
 	CWaitCursor pCursor;
 
 	SetRegistryKey( _T("Shareaza") );
@@ -938,6 +940,7 @@ void CShareazaApp::InitResources()
 	{
 		GeoIP_newFunc pfnGeoIP_new = (GeoIP_newFunc)GetProcAddress( m_hGeoIP, "GeoIP_new" );
 		m_pfnGeoIP_country_code_by_addr = (GeoIP_country_code_by_addrFunc)GetProcAddress( m_hGeoIP, "GeoIP_country_code_by_addr" );
+		m_pfnGeoIP_country_name_by_addr = (GeoIP_country_name_by_addrFunc)GetProcAddress( m_hGeoIP, "GeoIP_country_name_by_addr" );
 
 		m_pGeoIP = pfnGeoIP_new( GEOIP_MEMORY_CACHE );
 	}
@@ -1134,14 +1137,21 @@ CString CShareazaApp::GetCountryCode(IN_ADDR pAddress) const
 	return _T("");
 }
 
+CString CShareazaApp::GetCountryName(IN_ADDR pAddress) const
+{
+	if ( m_pGeoIP )
+		return CString( m_pfnGeoIP_country_name_by_addr( m_pGeoIP, inet_ntoa( pAddress ) ) );
+	return _T("");
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CShareazaApp process an internal URI
 
 BOOL CShareazaApp::InternalURI(LPCTSTR pszURI)
 {
-	if ( m_pSafeWnd == NULL ) return FALSE;
-	CMainWnd* pMainWnd = (CMainWnd*)m_pSafeWnd;
-	
+	CMainWnd* pMainWnd = SafeMainWnd();
+	if ( pMainWnd == NULL ) return FALSE;
+
 	CString strURI( pszURI );
 	
 	if ( strURI.Find( _T("raza:command:") ) == 0 )
@@ -1696,7 +1706,7 @@ HBITMAP CreateMirroredBitmap(HBITMAP hbmOrig)
 		theApp.m_pfnSetLayout( hdcMem2, LAYOUT_RTL );
 		BitBlt( hdcMem2, 0, 0, bm.bmWidth, bm.bmHeight, hdcMem1, 0, 0, SRCCOPY );
 		SelectObject( hdcMem1, hOld_bm1 );
-		SelectObject( hdcMem1, hOld_bm2 );
+		SelectObject( hdcMem2, hOld_bm2 );
 		DeleteDC( hdcMem1 );
 		DeleteDC( hdcMem2 );
 		ReleaseDC( NULL, hdc );
@@ -1758,19 +1768,20 @@ public:
 		CThreadTag tag = { pThread, pszName };
 		m_ThreadMap.SetAt( pThread->m_hThread, tag );
 
-		TRACE( "Creating '%s' thread (0x%08x). Count: %d\n",
+		TRACE( _T("Creating '%hs' thread (0x%08x). Count: %d\n"),
 			( pszName ? pszName : "unnamed" ), pThread->m_hThread, m_ThreadMap.GetCount() );
 	}
 
 	static void Remove(HANDLE hThread)
 	{
 		CSingleLock oLock( &m_ThreadMapSection, TRUE );
-		CThreadTag tag = {};
+
+		CThreadTag tag = { 0 };
 		if ( m_ThreadMap.Lookup( hThread, tag ) )
 		{
 			m_ThreadMap.RemoveKey( hThread );
 
-			TRACE( "Removing '%s' thread (0x%08x). Count: %d\n",
+			TRACE( _T("Removing '%hs' thread (0x%08x). Count: %d\n"),
 				( tag.pszName ? tag.pszName : "unnamed" ),
 				hThread, m_ThreadMap.GetCount() );
 		}
@@ -1779,24 +1790,26 @@ public:
 	static void Terminate(HANDLE hThread)
 	{
 		// Its a very dangerous function produces 100% urecoverable TLS leaks/deadlocks
-		TerminateThread( hThread, 0 );
-
-		CSingleLock oLock( &m_ThreadMapSection, TRUE );
-		CThreadTag tag = {};
-		if ( m_ThreadMap.Lookup( hThread, tag ) )
+		if ( TerminateThread( hThread, 0 ) )
 		{
-			ASSERT( hThread == tag.pThread->m_hThread );
-			ASSERT_VALID( tag.pThread );
-			ASSERT( static_cast<CWinThread*>( tag.pThread ) != AfxGetApp() );
-			tag.pThread->Delete();
-		}
-		else
-			CloseHandle( hThread );
+			CSingleLock oLock( &m_ThreadMapSection, TRUE );
 
-		theApp.Message( MSG_DEBUG, _T("WARNING: Terminating '%s' thread (0x%08x)."),
-			( tag.pszName ? tag.pszName : "unnamed" ), hThread );
-		TRACE( _T("WARNING: Terminating '%s' thread (0x%08x)."),
-			( tag.pszName ? tag.pszName : "unnamed" ), hThread );
+			CThreadTag tag = { 0 };
+			if ( m_ThreadMap.Lookup( hThread, tag ) )
+			{
+				ASSERT( hThread == tag.pThread->m_hThread );
+				ASSERT_VALID( tag.pThread );
+				ASSERT( static_cast<CWinThread*>( tag.pThread ) != AfxGetApp() );
+				tag.pThread->Delete();
+			}
+			else
+				CloseHandle( hThread );
+
+			theApp.Message( MSG_DEBUG, _T("WARNING: Terminating '%hs' thread (0x%08x)."),
+				( tag.pszName ? tag.pszName : "unnamed" ), hThread );
+			TRACE( _T("WARNING: Terminating '%hs' thread (0x%08x)."),
+				( tag.pszName ? tag.pszName : "unnamed" ), hThread );
+		}
 	}
 
 protected:
@@ -1845,9 +1858,16 @@ void CloseThread(HANDLE* phThread, DWORD dwTimeout)
 {
 	if ( *phThread )
 	{
-		if ( WaitForSingleObject( *phThread, dwTimeout ) == WAIT_TIMEOUT )
+		__try
 		{
-			CRazaThread::Terminate( *phThread );
+			SetThreadPriority( *phThread, THREAD_PRIORITY_HIGHEST );
+			if ( WaitForSingleObject( *phThread, dwTimeout ) == WAIT_TIMEOUT )
+			{
+				CRazaThread::Terminate( *phThread );
+			}
+		}
+		__except( EXCEPTION_CONTINUE_EXECUTION )
+		{
 		}
 
 		CRazaThread::Remove( *phThread );

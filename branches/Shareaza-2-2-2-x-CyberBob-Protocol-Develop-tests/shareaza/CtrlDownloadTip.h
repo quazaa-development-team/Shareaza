@@ -52,6 +52,7 @@ protected:
 	CString			m_sURL;
 	CString			m_sSize;
 	CString			m_sType;
+	CString			m_sCountryName;
 	int				m_nIcon;
 protected:
 	CLineGraph*		m_pGraph;

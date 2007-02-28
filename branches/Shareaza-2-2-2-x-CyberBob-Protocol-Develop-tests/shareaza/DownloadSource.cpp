@@ -283,9 +283,15 @@ BOOL CDownloadSource::ResolveURL()
 	m_nPort		= pURL.m_nPort;
 
 	if ( Network.IsFirewalledAddress( &m_pAddress, TRUE, TRUE ) )
+	{
 		m_sCountry = _T("N/A");
+		m_sCountryName = _T("N/A");
+	}
 	else
+	{
 		m_sCountry = theApp.GetCountryCode( m_pAddress );
+		m_sCountryName	= theApp.GetCountryName( m_pAddress );
+	}
 
 	if ( m_nProtocol == PROTOCOL_ED2K )
 	{
@@ -337,6 +343,7 @@ void CDownloadSource::Serialize(CArchive& ar, int nVersion)
 		ar << m_sServer;
 		ar << m_sNick;
 		ar << m_sCountry;
+		ar << m_sCountryName;
 		ar << m_nSpeed;
 		ar << m_bPushOnly;
 		ar << m_bCloseConn;
@@ -376,6 +383,11 @@ void CDownloadSource::Serialize(CArchive& ar, int nVersion)
 			ar >> m_sCountry;
 		else
 			m_sCountry = theApp.GetCountryCode( m_pAddress );
+
+		if ( nVersion >= 38 ) 
+			ar >> m_sCountryName;
+		else
+			m_sCountryName = theApp.GetCountryName( m_pAddress );
 
 		ar >> m_nSpeed;
 		ar >> m_bPushOnly;
