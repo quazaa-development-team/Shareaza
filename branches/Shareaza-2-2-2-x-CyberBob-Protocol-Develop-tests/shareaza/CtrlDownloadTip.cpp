@@ -658,8 +658,12 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 			else
 			{
 				m_sName.AppendFormat( _T(" (%s:%u)"), (LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pAddress ) ), pSource->m_nPort );
-				m_sServer.Format( _T("%lu@%s:%u"), pSource->m_pAddress.S_un.S_addr, 
-								(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+				if ( pSource->m_pServerAddress.S_un.S_addr )
+				{
+					m_sServer.Format( _T("%lu@%s:%u"), pSource->m_pAddress.S_un.S_addr, 
+						(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+					m_sz.cy += TIP_TEXTHEIGHT;
+				}
 			}
 		}
 		else if ( pSource->m_bPushOnly )
@@ -684,8 +688,12 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 			{
 				m_sName = inet_ntoa( pSource->m_pAddress );
 				m_sName.AppendFormat( _T(":%u"), pSource->m_nPort );
-				m_sServer.Format( _T("%lu@%s:%u"), pSource->m_pAddress.S_un.S_addr, 
-								(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+				if ( pSource->m_pServerAddress.S_un.S_addr )
+				{
+					m_sServer.Format( _T("%lu@%s:%u"), pSource->m_pAddress.S_un.S_addr, 
+						(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+					m_sz.cy += TIP_TEXTHEIGHT;
+				}
 			}
 		}
 		else if ( pSource->m_bPushOnly )
