@@ -74,7 +74,7 @@ CDownload::~CDownload()
 {
 	if ( m_pTask != NULL ) m_pTask->Abort();
 	DownloadGroups.Unlink( this );
-	
+
 	if ( m_pTorrent.m_nFiles > 1 && m_bComplete )
 	{
 		CloseTransfers();
@@ -494,13 +494,13 @@ void CDownload::OnRun()
 void CDownload::OnDownloaded()
 {
 	ASSERT( m_bComplete == FALSE );
-	
+
 	theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_COMPLETED, (LPCTSTR)GetDisplayName() );
 	m_tCompleted = GetTickCount();
 	m_bDownloading = FALSE;
-	
+
 	CloseTransfers();
-	
+
 	if ( m_pFile != NULL )
 	{
 		m_pFile->Close();
@@ -508,14 +508,14 @@ void CDownload::OnDownloaded()
 		m_pFile = NULL;
 		AppendMetadata();
 	}
-	
+
 	if ( m_pTask && m_pTask->m_nTask == CDownloadTask::dtaskPreviewRequest )
 	{
 		m_pTask->Abort(); // We don't need previews if the file was downloaded
 	}
 	ASSERT( m_pTask == NULL );
 	m_pTask = new CDownloadTask( this, CDownloadTask::dtaskCopySimple );
-	
+
 	SetModified();
 }
 
@@ -526,9 +526,9 @@ void CDownload::OnTaskComplete(CDownloadTask* pTask)
 {
 	ASSERT( m_pTask == pTask );
 	m_pTask = NULL;
-	
+
 	if ( pTask->WasAborted() ) return;
-	
+
 	if ( pTask->m_nTask == CDownloadTask::dtaskAllocate )
 	{
 		// allocate complete
@@ -559,14 +559,14 @@ void CDownload::OnMoved(CDownloadTask* pTask)
 	CString strDiskFileName = m_sDiskName;
 	// File is moved
 	ASSERT( m_pFile == NULL );
-	
+
 	if ( pTask->m_bSuccess )
 	{
 		m_sDiskName = pTask->m_sFilename;
 		
 		theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_MOVED,
 			(LPCTSTR)GetDisplayName(), (LPCTSTR)m_sDiskName );
-		
+
 		if ( m_pXML != NULL && Settings.Downloads.Metadata )
 			WriteMetadata( pTask->m_sPath );
 	}
@@ -574,14 +574,14 @@ void CDownload::OnMoved(CDownloadTask* pTask)
 	{
 		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_CANT_MOVE,
 			(LPCTSTR)GetDisplayName(), (LPCTSTR)pTask->m_sPath );
-		
+
 		if ( m_pTorrent.IsAvailable() )
 		{
 			m_bDiskFull = TRUE;
 			return;
 		}
 	}
-	
+
 	// We just completed torrent
 	if ( m_nTorrentBlock > 0 && m_nTorrentSuccess >= m_nTorrentBlock )
 	{
@@ -606,13 +606,13 @@ void CDownload::OnMoved(CDownloadTask* pTask)
 	// Download finalized, tracker notified, set flags that we completed
 	m_bComplete		= TRUE;
 	m_tCompleted	= GetTickCount();
-	
+
 
 	// Delete the SD file
 	::DeleteFile( strDiskFileName + _T(".sd") );
 
 	LibraryBuilder.RequestPriority( m_sDiskName );
-	
+
     if ( m_oSHA1 || m_oED2K )
 	{
 		LibraryHistory.Add( m_sDiskName, m_oSHA1,
@@ -622,10 +622,10 @@ void CDownload::OnMoved(CDownloadTask* pTask)
 	{
         LibraryHistory.Add( m_sDiskName, Hashes::Sha1Hash(), m_oED2K, NULL );
 	}
-	
+
 	ClearSources();
 	SetModified();
-	
+
 	if ( IsFullyVerified() ) OnVerify( m_sDiskName, TRUE );
 }
 
@@ -636,13 +636,13 @@ BOOL CDownload::OnVerify(LPCTSTR pszPath, BOOL bVerified)
 {
 	if ( m_bVerify != TS_UNKNOWN ) return FALSE;
 	if ( m_pFile != NULL ) return FALSE;
-	
+
 	if ( pszPath != (LPCTSTR)m_sDiskName &&
 		 m_sDiskName.CompareNoCase( pszPath ) != 0 ) return FALSE;
-	
+
 	m_bVerify = bVerified ? TS_TRUE : TS_FALSE;
 	SetModified();
-	
+
 	return TRUE;
 }
 
@@ -653,10 +653,10 @@ BOOL CDownload::Load(LPCTSTR pszName)
 {
 	BOOL bSuccess = FALSE;
 	CFile pFile;
-	
+
 	m_sDiskName = pszName;
 	m_sDiskName = m_sDiskName.Left( m_sDiskName.GetLength() - 3 );
-	
+
 	if ( pFile.Open( m_sDiskName + _T(".sd"), CFile::modeRead ) )
 	{
 		try
@@ -669,10 +669,10 @@ BOOL CDownload::Load(LPCTSTR pszName)
 		{
 			pException->Delete();
 		}
-		
+
 		pFile.Close();
 	}
-	
+
 	if ( ! bSuccess && pFile.Open( m_sDiskName + _T(".sd.sav"), CFile::modeRead ) )
 	{
 		try
@@ -685,11 +685,11 @@ BOOL CDownload::Load(LPCTSTR pszName)
 		{
 			pException->Delete();
 		}
-		
+
 		pFile.Close();
 		if ( bSuccess ) Save();
 	}
-	
+
 	if ( m_bSeeding )
 		m_sDiskName = m_sServingFileName;
 
@@ -697,7 +697,7 @@ BOOL CDownload::Load(LPCTSTR pszName)
 	m_nSaveCookie = m_nCookie;
 	// only for debuging purpose
 	m_bTempPaused = IsSeeding() ? FALSE : m_bPaused ? TRUE : Settings.Experimental.LoadDownloadsAsPaused;
-	
+
 	return bSuccess;
 }
 
@@ -738,25 +738,24 @@ BOOL CDownload::Save(BOOL bFlush)
 	if ( m_sSafeName.IsEmpty() )
 		m_sSafeName = CDownloadTask::SafeFilename( m_sDisplayName.Right( 64 ) );
 	}
-	
+
 	::DeleteFile( m_sDiskName + _T(".sd.sav") );
 	
 	if ( ! pFile.Open( m_sDiskName + _T(".sd.sav"),
 		CFile::modeReadWrite|CFile::modeCreate|CFile::osWriteThrough ) ) return FALSE;
-	
 	{
 		BYTE pBuffer[ 65536 ];
 		CArchive ar( &pFile, CArchive::store, sizeof( pBuffer ), pBuffer );
 		Serialize( ar, 0 );
 		ar.Close();
 	}
-	
+
 	if ( Settings.Downloads.FlushSD || bFlush ) pFile.Flush();
 	pFile.SeekToBegin();
 	CHAR szID[3] = { 0, 0, 0 };
 	pFile.Read( szID, 3 );
 	pFile.Close();
-	
+
 	BOOL bResult = TRUE;
 	if ( szID[0] == 'S' && szID[1] == 'D' && szID[2] == 'L' )
 	{
@@ -790,7 +789,7 @@ void CDownload::Serialize(CArchive& ar, int nVersion)
 	if ( nVersion == 0 )
 	{
 		nVersion = DOWNLOAD_SER_VERSION;
-		
+
 		if ( ar.IsStoring() )
 		{
 			ar.Write( "SDL", 3 );
@@ -810,16 +809,15 @@ void CDownload::Serialize(CArchive& ar, int nVersion)
 		SerializeOld( ar, nVersion );
 		return;
 	}
-			
+
 	CDownloadWithExtras::Serialize( ar, nVersion );
-	
+
 	if ( ar.IsStoring() )
 	{
 		ar << m_bExpanded;
 		ar << m_bPaused;
 		ar << m_bBoosted;
 		ar << m_bShared;
-		
 		ar << m_nSerID;
 	}
 	else
@@ -830,7 +828,7 @@ void CDownload::Serialize(CArchive& ar, int nVersion)
 		ar >> m_bBoosted;
 		if ( nVersion >= 14 ) ar >> m_bShared;
 		if ( nVersion >= 26 ) ar >> m_nSerID;
-		
+
 		DownloadGroups.Link( this );
 
 		if ( nVersion == 32 )
@@ -859,7 +857,6 @@ void CDownload::Serialize(CArchive& ar, int nVersion)
 	}
 	else
 	{
-		
 	}
 */
 }
@@ -867,23 +864,23 @@ void CDownload::Serialize(CArchive& ar, int nVersion)
 void CDownload::SerializeOld(CArchive& ar, int nVersion)
 {
 	ASSERT( ar.IsLoading() );
-	
+
 	ar >> m_sDiskName;
 	ar >> m_sDisplayName;
-	
+
 	DWORD nSize;
 	ar >> nSize;
 	m_nSize = nSize;
-	
+
     Hashes::Sha1Hash oSHA1;
     SerializeIn( ar, oSHA1, nVersion );
     m_oSHA1 = oSHA1;
     m_oSHA1.signalTrusted();
-	
+
 	ar >> m_bPaused;
 	ar >> m_bExpanded;
 	if ( nVersion >= 6 ) ar >> m_bBoosted;
-	
+
 	m_pFile->Serialize( ar, nVersion );
 	GenerateDiskName();
 	

@@ -69,7 +69,7 @@ BOOL CDownloadWithSearch::FindSourcesAllowed(DWORD tNow) const
 BOOL CDownloadWithSearch::FindMoreSources()
 {
 	BOOL bSuccess = CDownloadWithTiger::FindMoreSources();
-	
+
 	if ( CanSearch() )
 	{
 		DWORD tNow = GetTickCount();
@@ -80,7 +80,7 @@ BOOL CDownloadWithSearch::FindMoreSources()
 			bSuccess = TRUE;
 		}
 	}
-	
+
 	return bSuccess;
 }
 
@@ -105,7 +105,7 @@ void CDownloadWithSearch::RunSearch(DWORD tNow)
 		//int nHTTP = 0, nG1 = 0, nG2 = 0, nED2K = 0, nBT = 0;
 		BOOL bFewSources = GetEffectiveSourceCount() < Settings.Downloads.MinSources;
 		BOOL bG1 = FALSE, bG2 = FALSE, bED2K = FALSE;
-		
+
 		//GetMultiSourceCount( TRUE, &nHTTP, &nG1, &nG2, &nED2K, &nBT );
 		BOOL bDataStarve = ( tNow > m_tReceived ? tNow - m_tReceived : 0 ) > Settings.Downloads.StarveTimeout * 1000;
 
@@ -135,9 +135,9 @@ void CDownloadWithSearch::StartManualSearch()
 {
 	CSingleLock pLock( &SearchManager.m_pSection );
 	if ( ! pLock.Lock( 50 ) ) return;
-	
+
 	PrepareSearch();
-	
+
 	m_pSearch->m_nPriority = CManagedSearch::spHighest;
 	m_pSearch->Start();
 }
@@ -149,9 +149,9 @@ void CDownloadWithSearch::StartAutomaticSearch( BOOL bG1, BOOL bG2, BOOL bED2K )
 {
 	CSingleLock pLock( &SearchManager.m_pSection );
 	if ( ! pLock.Lock( 10 ) ) return;
-	
+
 	PrepareSearch( bG1, bG2, bED2K );
-	
+
 	m_pSearch->m_nPriority = CManagedSearch::spLowest;
 	m_pSearch->Start();
 }
@@ -174,7 +174,7 @@ void CDownloadWithSearch::PrepareSearch( BOOL bG1, BOOL bG2, BOOL bED2K )
 {
 	if ( m_pSearch == NULL ) m_pSearch = new CManagedSearch();
 	CQuerySearch* pSearch = m_pSearch->m_pSearch.get();
-	
+
 	m_pSearch->m_bAllowG1 = Settings.Gnutella1.EnableToday && bG1;
 	m_pSearch->m_bAllowG2 = Settings.Gnutella2.EnableToday && bG2;
 

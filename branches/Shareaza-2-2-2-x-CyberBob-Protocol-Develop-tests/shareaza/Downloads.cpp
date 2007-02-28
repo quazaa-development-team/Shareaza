@@ -206,7 +206,7 @@ CDownload* CDownloads::Add(CQueryHit* pHit, BOOL bAddToHead)
 
 		if ( bAddToHead ) m_pList.AddHead( pDownload );
 		else m_pList.AddTail( pDownload );
-		
+
 		theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_ADDED,
 			(LPCTSTR)pDownload->GetDisplayName(), pDownload->GetSourceCount() );
 
@@ -273,7 +273,7 @@ CDownload* CDownloads::Add(CMatchFile* pFile, BOOL bAddToHead)
 		pDownload = new CDownload();
 		if ( bAddToHead ) m_pList.AddHead( pDownload );
 		else m_pList.AddTail( pDownload );
-		
+
 		if ( pFile->m_pBest != NULL )
 		{
 			pDownload->AddSourceHit( pFile->m_pBest, TRUE );
@@ -1518,11 +1518,11 @@ BOOL CDownloads::LoadFromTimePair()
 void CDownloads::SerializeCompound(CArchive& ar)
 {
 	ASSERT( ar.IsLoading() );
-	
+
 	int nVersion;
 	ar >> nVersion;
 	if ( nVersion < 4 ) return;
-	
+
 	for ( DWORD_PTR nCount = ar.ReadCount() ; nCount > 0 ; nCount-- )
 	{
 		CDownload* pDownload = new CDownload();

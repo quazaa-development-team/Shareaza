@@ -92,7 +92,6 @@ CShakeNeighbour::~CShakeNeighbour()
 // Returns false if the connection could not be made
 BOOL CShakeNeighbour::ConnectTo(IN_ADDR* pAddress, WORD nPort, BOOL bAutomatic, BOOL bNoUltraPeer, BOOL bFirewallTest )
 {
-
 	m_bFirewallTest = bFirewallTest;
 
 	// Connect the socket in this object to the given ip address and port number
@@ -212,7 +211,7 @@ void CShakeNeighbour::DelayClose(UINT nError)
 	// Change this object's state to closing
 	m_nState = nrsClosing;
 	//m_bDelayClose = TRUE;
-	
+
 	// Have the connection object write all the outgoing data soon
 	CNeighbour::QueueRun();
 }
@@ -244,7 +243,7 @@ BOOL CShakeNeighbour::OnConnected()
 		// We initiated the connection to this computer, send it our first block of handshake headers
 		m_pOutput->Print( "GNUTELLA CONNECT/0.6\r\n" ); // Ask to connect
 		SendPublicHeaders();                            // User agent, ip addresses, Gnutella2 and deflate, advanced Gnutella 
-													// features
+														// features
 		// POSSIBLE POLLUTION ALERT:
 		// This SendHostHeaders() should not be here. because remote node is not known either G1 or G2.
 		// calling this function here sends Cached G1 address to remote host, but since RAZA tells the remote that it is G2 capable
@@ -617,7 +616,6 @@ void CShakeNeighbour::SendPublicHeaders()
 			{
 				// Don't know what the hell is going on, it should not get here
 			}
-
 		}
 		else
 		{
@@ -718,7 +716,7 @@ void CShakeNeighbour::SendPrivateHeaders()
 			// Tell it we accept compressed data too
 			m_pOutput->Print( "Accept-Encoding: deflate\r\n" );
 		}
-		
+
 		// The remote computer accepts compressed data
 		if ( m_bDeflateAccept ) 
 		{
@@ -761,7 +759,6 @@ void CShakeNeighbour::SendHostHeaders(LPCTSTR pszMessage)
 		// Loop through the Gnutella2 host cache from newest to oldest
 		for ( pHost = HostCache.Gnutella2.GetNewest() ; pHost && nCount > 0 ; pHost = pHost->m_pPrevTime )
 		{
-			
 			if ( pHost->CanQuote( nTime ) )		// if host is still recent enough
 			{
 				// Add it to the string
@@ -945,7 +942,7 @@ BOOL CShakeNeighbour::OnHeaderLine(CString& strHeader, CString& strValue)
 			m_nDelayCloseReason =IDS_HANDSHAKE_REJECTED;
 			m_bDelayClose = TRUE;
 		}
-		
+
 		// If the remote computer is running a client the user has blocked
 		if ( IsAgentBlocked() )
 		{
@@ -1171,7 +1168,7 @@ BOOL CShakeNeighbour::OnHeadersComplete()
 		// Tell discovery services the remote computer's IP address, and how many hosts it just told us about
 		DiscoveryServices.OnGnutellaAdded( &m_pHost.sin_addr, nCount );
 		m_sTryHubs.Empty();
-	} 
+	}
 	else if ( m_sTryUltrapeers.GetLength() )
 	{	// This header has been used for several things. In general, it's giving us a list of
 		// Gnutella Ultrapeers, however some older versions of Shareaza can send G2 hubs in it,
@@ -1197,7 +1194,6 @@ BOOL CShakeNeighbour::OnHeadersComplete()
 				// since there is no clever way to detect what the given Hosts' vender codes are, just add then as NULL
 				// in order to prevent HostCache/KHL pollution done by wrong assumptions.
 				//if ( HostCache.Gnutella2.Add( strHost, 0, NULL ) ) nCount++; // Count it
-
 			} 
 			else if ( m_bG1Accept || m_bG1Send )	// This is a Gnutella connection, not Gnutella2
 			{
@@ -1330,7 +1326,6 @@ BOOL CShakeNeighbour::OnHeadersCompleteG2()
 				m_nNodeType = ntHub; // Pretend this connection is to a hub above us
 				bFallback = TRUE;    // We'll tell the remote computer we're a leaf so we can still connect
 			}
-
 		} // The remote computer is a hub
 		else if ( m_bUltraPeerSet == TS_TRUE )
 		{
@@ -1957,7 +1952,6 @@ BOOL CShakeNeighbour::IsClientObsolete()
 		{
 			return TRUE;
 		}
-
 	}
 	else if ( _tcsistr( m_sUserAgent, _T("gnucdna") ) )
 	{
@@ -1993,11 +1987,9 @@ BOOL CShakeNeighbour::IsClientObsolete()
 		}
 		else if ( _stscanf( strVersion, _T("%u.%u"), &nVersion[0], &nVersion[1] ) == 2)
 		{
-
 		}
 		else if ( _stscanf( strVersion, _T("%u"), &nVersion[0] ) == 1)
 		{
-
 		}
 		else
 		{
@@ -2113,11 +2105,9 @@ BOOL CShakeNeighbour::IsClientBad()
 		}
 		else if ( _stscanf( strVersion, _T("%u.%u"), &nVersion[0], &nVersion[1] ) == 2)
 		{
-
 		}
 		else if ( _stscanf( strVersion, _T("%u"), &nVersion[0] ) == 1)
 		{
-
 		}
 		else
 		{
@@ -2174,4 +2164,3 @@ BOOL CShakeNeighbour::IsClientBanned()
 	// Unknown- Assume OK
 	return FALSE;
 }
-
