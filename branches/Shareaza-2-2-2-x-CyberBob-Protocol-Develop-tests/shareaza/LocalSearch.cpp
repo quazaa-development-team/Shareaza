@@ -659,13 +659,12 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 		if ( pDownload->m_oTiger )
 		{
 			nGroup += 5 + 3 + Hashes::Sha1Hash::byteCount + Hashes::TigerHash::byteCount;
-			bBTOnly = FALSE;
 		}
 		else
 		{
 			nGroup += 5 + 5 + Hashes::Sha1Hash::byteCount;
-			bBTOnly = FALSE;
 		}
+		bBTOnly = FALSE;
 	}
     else if ( pDownload->m_oTiger )
 	{
@@ -685,7 +684,7 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 		bBTOnly = FALSE;
 	}
 
-	if ( pDownload->m_oBTH )
+	if ( m_pSearch->m_oBTH && pDownload->m_oBTH )
 	{
 		nGroup += 5 + 5 + Hashes::BtHash::byteCount;
 	}
@@ -858,7 +857,7 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 		pPacket->Write( pDownload->m_oMD5 );
 	}
 
-	if ( pDownload->m_oBTH )
+	if ( m_pSearch->m_oBTH && pDownload->m_oBTH )
 	{
         pPacket->WritePacket( G2_PACKET_URN, 5 + Hashes::BtHash::byteCount );
 		pPacket->WriteString( "btih" );
