@@ -284,9 +284,13 @@ BOOL CDownloadSource::ResolveURL()
 
 	if ( m_nProtocol == PROTOCOL_ED2K )
 	{
-		m_pServerAddress	= pURL.m_pServerAddress;
-		m_nServerPort		= pURL.m_nServerPort;
-		if ( pURL.m_pServerAddress.S_un.S_addr && pURL.m_nServerPort ) m_bPushOnly = TRUE;
+		if ( pURL.m_pServerAddress.S_un.S_addr && pURL.m_nServerPort )
+		{
+			m_pServerAddress	= pURL.m_pServerAddress;
+			m_nServerPort		= pURL.m_nServerPort;
+			m_bPushOnly = TRUE;
+			m_sCountry = _T("N/A");
+		}
 	}
 	else if ( m_nProtocol == PROTOCOL_BT )
 	{
