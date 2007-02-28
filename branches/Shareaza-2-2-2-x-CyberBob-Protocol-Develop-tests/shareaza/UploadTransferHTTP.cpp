@@ -848,7 +848,7 @@ BOOL CUploadTransferHTTP::RequestPartialFile(CDownload* pDownload)
 	m_bMetadata		= ( pDownload->m_pXML != NULL );
 
 	if ( m_sAltG1Locations.GetLength() ) pDownload->AddSourceURLs( m_sAltG1Locations, TRUE, FALSE, PROTOCOL_HTTP );
-	if ( m_sXAlt.GetLength() ) pDownload->AddSourceURLs( m_sXAlt, TRUE, FALSE, PROTOCOL_G1 );
+	if ( m_sXAlt.GetLength() ) pDownload->AddSourceURLs( m_sXAlt, TRUE, FALSE, ( m_nGnutella & 2 ) ? PROTOCOL_HTTP : PROTOCOL_G1 );
 	if ( m_sAltLocations.GetLength() ) pDownload->AddSourceURLs( m_sAltLocations, TRUE, FALSE, PROTOCOL_HTTP );
 	if ( m_sXG2Alt.GetLength() ) pDownload->AddSourceURLs( m_sXG2Alt, TRUE, FALSE, PROTOCOL_G2 );
 	// if ( Settings.Library.SourceMesh ) m_sLocations = pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_HTTP, NULL );
@@ -876,18 +876,18 @@ BOOL CUploadTransferHTTP::RequestPartialFile(CDownload* pDownload)
 			m_sXG2Alt.Empty();
 		}
 
-		if ( m_nGnutella == 1 )
+		if ( m_nGnutella & 1 )
 		{
 			if ( bXAlt )
 			{
-				m_sXAlt = pDownload->GetSourceURLs( &m_pSourcesSent, 15, ( m_nGnutella & 2 ) ? PROTOCOL_HTTP : PROTOCOL_G1, NULL );
+				m_sXAlt = pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_G1, NULL );
 			}
 			else if ( bXG1AltLoc )
 			{
 				m_sAltG1Locations = pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_HTTP, NULL );
 			}
 		}
-		if ( m_nGnutella == 2 )
+		if ( m_nGnutella & 2 )
 		{
 			if ( bXG2Alt )
 			{
