@@ -327,6 +327,11 @@ BOOL CDownload::IsShared(BOOL bSavedState) const
 	{
 		return m_bShared;
 	}
+	else if ( ( !m_oSHA1.isValid() && !m_oTiger.isValid() && !m_oED2K.isValid() && !m_oMD5.isValid() && !m_oBTH.isValid() ) ||
+		m_nSize == 0 || m_nSize == SIZE_UNKNOWN )
+	{
+		return FALSE;
+	}
 	else
 	{
 		return m_bShared || ( ( IsSeeding() || !IsPaused() ) && m_oBTH ) /*|| ( !IsPaused() && m_oBTH ) || ( !IsPaused() && Settings.eDonkey.EnableToday )*/;
