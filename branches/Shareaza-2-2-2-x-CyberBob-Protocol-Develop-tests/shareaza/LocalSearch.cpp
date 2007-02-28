@@ -649,8 +649,8 @@ void CLocalSearch::AddHit(CDownload* pDownload, int /*nIndex*/)
 								// Size of packet name "PART" = 4
 								// content of the packet = 4
 	CString strURL;
-	BOOL bBTOnly = m_pSearch->m_oBTH && !( pDownload->m_oSHA1 || pDownload->m_oTiger ||
-										pDownload->m_oED2K || pDownload->m_oMD5 );
+	BOOL bBTOnly = m_pSearch->m_oBTH && !( m_pSearch->m_oSHA1 || m_pSearch->m_oTiger ||
+										m_pSearch->m_oED2K || m_pSearch->m_oMD5 );
 	BOOL bWantURL = m_pSearch->m_bWantURL;
 	BOOL bWantDN = m_pSearch->m_bWantDN;
 
