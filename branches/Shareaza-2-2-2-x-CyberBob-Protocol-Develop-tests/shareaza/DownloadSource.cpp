@@ -282,6 +282,11 @@ BOOL CDownloadSource::ResolveURL()
 	m_pAddress	= pURL.m_pAddress;
 	m_nPort		= pURL.m_nPort;
 
+	if ( Network.IsFirewalledAddress( &m_pAddress, TRUE, TRUE ) )
+		m_sCountry = _T("N/A");
+	else
+		m_sCountry = theApp.GetCountryCode( m_pAddress );
+
 	if ( m_nProtocol == PROTOCOL_ED2K )
 	{
 		if ( pURL.m_pServerAddress.S_un.S_addr && pURL.m_nServerPort )
@@ -299,8 +304,6 @@ BOOL CDownloadSource::ResolveURL()
 			m_oGUID = transformGuid( pURL.m_oBTC );
 		}
 	}
-
-	m_sCountry = theApp.GetCountryCode( m_pAddress );
 
 	return TRUE;
 }
