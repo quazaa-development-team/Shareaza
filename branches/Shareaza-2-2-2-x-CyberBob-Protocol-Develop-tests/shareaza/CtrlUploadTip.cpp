@@ -175,7 +175,7 @@ void CUploadTipCtrl::OnCalcSize(CDC* pDC)
 			if ( pUploadED2K->m_pClient->m_pServer.sin_addr.S_un.S_addr &&
 				pUploadED2K->m_pClient->m_pServer.sin_port )
 			{
-				m_sServer.Format( _T("%ui@%s:%ui"), pUploadED2K->m_pClient->m_nClientID,
+				m_sServer.Format( _T("%lu@%s:%u"), pUploadED2K->m_pClient->m_nClientID,
 									(LPCTSTR)CString( inet_ntoa( pUploadED2K->m_pClient->m_pServer.sin_addr ) ),
 									ntohs( pUploadED2K->m_pClient->m_pServer.sin_port ) );
 				m_sz.cy += TIP_TEXTHEIGHT;
