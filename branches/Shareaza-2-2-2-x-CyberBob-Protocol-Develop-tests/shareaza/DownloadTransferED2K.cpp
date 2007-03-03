@@ -236,6 +236,7 @@ BOOL CDownloadTransferED2K::OnConnected()
 	m_pSource->m_sNick		= m_pClient->m_sNick;
 	m_pSource->SetLastSeen();
 	m_pSource->m_sCountry	= m_sCountry;
+	m_pSource->m_sCountryName	= m_sCountryName;
 	m_pSource->m_pServerAddress.S_un.S_addr = m_pClient->m_pServer.sin_addr.S_un.S_addr;
 	m_pSource->m_nServerPort	= ntohs( m_pClient->m_pServer.sin_port );
 

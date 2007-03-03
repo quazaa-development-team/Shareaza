@@ -301,6 +301,7 @@ BOOL CDownloadSource::ResolveURL()
 			m_nServerPort		= pURL.m_nServerPort;
 			m_bPushOnly = TRUE;
 			m_sCountry = _T("N/A");
+			m_sCountryName = _T("N/A");
 		}
 	}
 	else if ( m_nProtocol == PROTOCOL_BT )
