@@ -1413,7 +1413,7 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 			if ( pHost != NULL ) // if there are any cache 
 			{
 				// Loop into the host cache until we have as many handshaking connections as we need hub connections
-				for ( ;pHost && m_nCount[ nProtocol ][ntHub] < nAttempt;  // Loop if we need more eDonkey2000 hubs than we have handshaking connections
+				for ( ;pHost ;  // Loop if we need more eDonkey2000 hubs than we have handshaking connections
 					pHost = pHost->m_pPrevTime )                 // At the end of the loop, move to the next youngest host cache entry
 				{
 					// If we can connect to this host, try it, if it works, move into this if block
@@ -1437,6 +1437,8 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 							return;
 						}
 					}
+					if ( m_nCount[ nProtocol ][ntHub] >= nAttempt )
+						return;
 				}
 				if ( bNeedMore && m_nCount[ nProtocol ][ntHub] < nAttempt && !Settings.Discovery.DisableAutoQuery )
 					DiscoveryServices.Execute( TRUE, PROTOCOL_ED2K, TRUE );
@@ -1496,11 +1498,15 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 							return;
 						}
 					}
+					// fake attempt started time to fail back TCP connection procedure,
+					// this is for preventing Discovery gets executed when it is not needed
+					m_tG2AttemptStart -= 20;
+					return;
 				}
 				else
 				{
 					// If we need more connections for this network, get IP addresses from the host cache and try to connect to them
-					for (; pHost && m_nCount[ PROTOCOL_G2 ][ntNull] < nAttempt;  // Loop if we need more hubs that we have handshaking connections
+					for (; pHost ;  // Loop if we need more hubs that we have handshaking connections
 						pHost = pHost->m_pPrevTime )                 // At the end of the loop, move to the next youngest host cache entry
 					{
 						// if Local Storage of Host for this network is not empty.
@@ -1510,7 +1516,6 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 							// Make sure the connection we just made matches the protocol we're looping for right now
 							ASSERT( pHost->m_nProtocol == nProtocol );
 							bNeedMore = FALSE;
-							m_tG2AttemptStart = tNow;
 
 							// If settings wants to limit how frequently this method can run
 							if ( Settings.Connection.ConnectThrottle != 0 )
@@ -1518,14 +1523,20 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 								// Save the time we last made a connection as now, and leave
 								Network.m_tLastConnect = tTimer;
 								Downloads.m_tLastConnect = tTimer;
+								if ( m_nCount[ PROTOCOL_G2 ][ntNull] < nAttempt )
+									m_tG2AttemptStart = tNow;
+								return;
 							}
+						}
+						if ( m_nCount[ PROTOCOL_G2 ][ntNull] >= nAttempt )
+						{
+							m_tG2AttemptStart = tNow;
 							return;
 						}
 					}
-					m_tG2AttemptStart = tNow;
 				}
 			}
-			if ( bNeedMore && m_nCount[ nProtocol ][ntNull] < nAttempt && !Settings.Discovery.DisableAutoQuery )
+			if ( bNeedMore && !m_nCount[ PROTOCOL_G2 ][ntNull] && !Settings.Discovery.DisableAutoQuery )
 				DiscoveryServices.Execute( TRUE, PROTOCOL_G2, TRUE );
 		}
 		else if ( nProtocol == PROTOCOL_G1 )
@@ -1580,6 +1591,10 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 							return;
 						}
 					}
+					// fake attempt started time to fail back TCP connection procedure,
+					// this is for preventing Discovery gets executed when it is not needed
+					m_tG1AttemptStart -= 20;
+					return;
 				}
 				// If we can connect to this IP address from the host cache, try to make the connection
 				else
@@ -1600,38 +1615,32 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 								// Save the time we last made a connection as now, and leave
 								Network.m_tLastConnect = tTimer;
 								Downloads.m_tLastConnect = tTimer;
+								if ( m_nCount[ PROTOCOL_G1 ][ntNull] < nAttempt )
+									m_tG1AttemptStart = tNow;
 								return;
 							}
 						}
+						if ( m_nCount[ PROTOCOL_G1 ][ntNull] >= nAttempt )
+						{
+							m_tG1AttemptStart = tNow;
+							return;
+						}
 					}
-					m_tG1AttemptStart = tNow;
 				}
 			}
-			if ( bNeedMore && m_nCount[ nProtocol ][ntNull] < nAttempt && !Settings.Discovery.DisableAutoQuery )
+			if ( bNeedMore && !m_nCount[ PROTOCOL_G1 ][ntNull] && !Settings.Discovery.DisableAutoQuery )
 				DiscoveryServices.Execute( TRUE, PROTOCOL_G1, TRUE );
 		}
 /*
 		// If network autoconnet is on (do)
 		// this condition is very funny since it is not reachable unless m_bAutoConnect is TRUE anyway.
-		if ( Network.m_bAutoConnect )
+		if ( !Settings.Discovery.DisableAutoQuery  )
 		{
 			// If we don't have any handshaking connections for this network, and we've been connected to a hub for more than 30 seconds
 			if ( m_nCount[ nProtocol ][ ntNull ] == 0          || // We don't have any handshaking connections for this network, or
 				tNow - m_tPresent[ nProtocol ] >= 30 )    // We've not been connected to a hub for more than 30 seconds
 			{
-				// We're looping for Gnutella2 right now
-				if ( nProtocol == PROTOCOL_G2 && Settings.Gnutella2.EnableToday )
-				{
-					// If the Gnutella host cache is empty and Auto is not Disabled, execute discovery services (do)
-					if ( !Settings.Discovery.DisableAutoQuery )
-						DiscoveryServices.Execute( TRUE, PROTOCOL_G2 );
-				} // We're looping for Gnutella right now
-				else if ( nProtocol == PROTOCOL_G1 && Settings.Gnutella1.EnableToday )
-				{
-					// If the Gnutella host cache is empty and Auto is not Disabled, execute discovery services (do)
-					if ( !Settings.Discovery.DisableAutoQuery )
-						DiscoveryServices.Execute( TRUE, PROTOCOL_G1 );
-				}
+				DiscoveryServices.Execute( TRUE, nProtocol, TRUE );
 			}
 		}
 */
