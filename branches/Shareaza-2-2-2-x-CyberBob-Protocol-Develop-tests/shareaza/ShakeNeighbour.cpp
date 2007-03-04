@@ -1619,7 +1619,7 @@ BOOL CShakeNeighbour::OnHeadersCompleteG1()
 				if ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER )
 				{
 					// Tell the remote computer we can't connect
-					SendHostHeaders( _T("GNUTELLA/0.6 503 Ultrapeer disabled") );
+					SendHostHeaders( _T("GNUTELLA/0.6 503 Ultrapeer mode Forced") );
 					DelayClose( IDS_HANDSHAKE_NOULTRAPEER ); // Send the buffer then close the socket
 					return FALSE; // Return false all the way back to CHandshakes::RunHandshakes, which will delete this object
 				}
@@ -1629,23 +1629,14 @@ BOOL CShakeNeighbour::OnHeadersCompleteG1()
 				bFallback = TRUE;    // We'll tell the remote computer we're a leaf so we can still connect
 			}
 
-		} // We're a leaf, and the remote computer is an ultrapeer
+		} // the remote computer is an ultrapeer
 		else if ( m_bUltraPeerSet == TS_TRUE )
 		{
-			// We are an ultrapeer
-			if ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER )
-			{
-				// Tell the remote computer we can't connect
-				SendHostHeaders( _T("GNUTELLA/0.6 503 Ultrapeer disabled") );
-				DelayClose( IDS_HANDSHAKE_NOULTRAPEER ); // Send the buffer then close the socket
-				return FALSE; // Return false all the way back to CHandshakes::RunHandshakes, which will delete this object
-			}
-
 			// This connection is to a hub above us
 			m_nNodeType = ntHub;
 
 		} // The remote computer is a leaf
-		else if ( m_bUltraPeerSet != TS_TRUE )
+		else if ( m_bUltraPeerSet == TS_FALSE )
 		{
 			// And so are we
 			if ( Settings.Gnutella1.ClientMode == MODE_LEAF )
@@ -1674,16 +1665,8 @@ BOOL CShakeNeighbour::OnHeadersCompleteG1()
 	} // not rejected, not handshake3, not initiated (do)
 	else
 	{
-		// We are a leaf
-		if ( Neighbours.IsG1Leaf() )
-		{
-			// Tell the remote computer we can't connect because we are a shielded leaf right now
-			SendHostHeaders( _T("GNUTELLA/0.6 503 Shielded leaf node") );
-			DelayClose( IDS_HANDSHAKE_IAMLEAF ); // Send the buffer and then close the socket citing our being a leaf as the reason
-			return FALSE; // Return false all the way back to CHandshakes::RunHandshakes, which will delete this object
-
-		} // We are an ultrapeer, or at least we are capable of becoming one
-		else if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable( FALSE, Settings.General.Debug ) )
+		// We are an ultrapeer, or at least we are capable of becoming one
+		if ( Neighbours.IsG1Ultrapeer() || Neighbours.IsG1UltrapeerCapable( FALSE, Settings.General.Debug ) )
 		{
 			// The remote computer told us it is a leaf
 			if ( m_bUltraPeerSet == TS_FALSE )
@@ -1698,18 +1681,19 @@ BOOL CShakeNeighbour::OnHeadersCompleteG1()
 				m_nNodeType = ntNode;
 			}
 
-		} // The remote computer is an ultrapeer, but we are just a leaf
-		else if ( m_bUltraPeerSet == TS_TRUE && ( Settings.Gnutella1.ClientMode != MODE_ULTRAPEER ) )
+		}
+		// We are a leaf
+		else
 		{
-			// This connection is to a hub above us
-			m_nNodeType = ntHub;
+			// Tell the remote computer we can't connect because we are a shielded leaf right now
+			SendHostHeaders( _T("GNUTELLA/0.6 503 Shielded leaf node") );
+			DelayClose( IDS_HANDSHAKE_IAMLEAF ); // Send the buffer and then close the socket citing our being a leaf as the reason
+			return FALSE; // Return false all the way back to CHandshakes::RunHandshakes, which will delete this object
 		}
 
 		// If we don't need this connection
-		if ( ( m_nNodeType == ntLeaf && ! Neighbours.NeedMoreHubs( PROTOCOL_G1, TRUE ) &&		// This connection is to a leaf below us, and we don't need more hubs/leaves
-			 ! Neighbours.NeedMoreLeafs( PROTOCOL_G1 ) ) ||
-			 ( m_nNodeType != ntLeaf && ! Neighbours.NeedMoreHubs( PROTOCOL_G1, TRUE ) ) ||	// This connection is to a hub and we don't need more hubs
-			 ( ( m_nNodeType != ntHub ) && ( m_bObsoleteClient || m_bBadClient ) ) )	// This is an obsolete version of Shareaza
+		if ( ( m_nNodeType == ntLeaf && ! Neighbours.NeedMoreLeafs( PROTOCOL_G1 ) ) ||		// This connection is to a leaf below us, and we don't need more hubs/leaves
+			 ( m_nNodeType == ntNode && ! Neighbours.NeedMoreHubs( PROTOCOL_G1, TRUE ) ) )	// This connection is to a hub and we don't need more hubs
 		{
 			// Tell the remote computer we can't connect because we already have too many connections
 			SendHostHeaders( _T("GNUTELLA/0.6 503 Maximum connections reached") );
