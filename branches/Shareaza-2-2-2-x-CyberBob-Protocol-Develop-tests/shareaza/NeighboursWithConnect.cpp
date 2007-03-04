@@ -1012,7 +1012,7 @@ BOOL CNeighboursWithConnect::NeedMoreLeafs(PROTOCOLID nProtocol)
 	case PROTOCOL_G1:
 
 		// If we're not connected to Gnutella, say we have enough leaf connections
-		if ( Settings.Gnutella1.EnableToday == FALSE ) return FALSE;
+		if ( !Settings.Gnutella1.EnableToday ) return FALSE;
 
 		// Compare our leaf count to NumLeafs from settings, return true if we don't have enough
 		return ( m_nCount[PROTOCOL_G1][ntLeaf] < m_nLimit[PROTOCOL_G1][ntLeaf] ); // Gnutella NumLeafs is 0 by default, we always have enough leaves
@@ -1021,7 +1021,7 @@ BOOL CNeighboursWithConnect::NeedMoreLeafs(PROTOCOLID nProtocol)
 	case PROTOCOL_G2:
 
 		// If we're not connected to Gnutella2, say we have enough leaf connections
-		if ( Settings.Gnutella2.EnableToday == FALSE ) return FALSE;
+		if ( !Settings.Gnutella2.EnableToday ) return FALSE;
 
 		// Compare our leaf count to NumLeafs from settings, return true if we don't have enough
 		return ( m_nCount[PROTOCOL_G2][ntLeaf] < m_nLimit[PROTOCOL_G2][ntLeaf] ); // Gnutella2 NumLeafs is 1024 by default
