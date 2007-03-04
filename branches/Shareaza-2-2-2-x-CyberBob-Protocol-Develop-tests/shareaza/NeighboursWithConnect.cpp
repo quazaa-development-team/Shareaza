@@ -1358,9 +1358,9 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 	case PROTOCOL_G2:
 		if ( m_nCount[ PROTOCOL_G2 ][ ntHub ] + m_nCount[ PROTOCOL_G2 ][ntNode] < m_nLimit[ PROTOCOL_G2 ][ ntHub ] )
 			bNeedMore = TRUE;
-		else if ( IsG2Hub() && m_nCount[ PROTOCOL_G2 ][ ntHub ] )
+		else if ( IsG2Hub() && m_nCount[ PROTOCOL_G2 ][ ntHub ] && m_nCount[ PROTOCOL_G2 ][ ntNode ] < m_nLimit[ PROTOCOL_G2 ][ ntHub ] )
 			bNeedMore = TRUE;
-		else if ( IsG2Leaf() && m_nCount[ PROTOCOL_G2 ][ntNode] )
+		else if ( IsG2Leaf() && m_nCount[ PROTOCOL_G2 ][ntNode] && m_nCount[ PROTOCOL_G2 ][ ntHub ] < m_nLimit[ PROTOCOL_G2 ][ ntHub ] )
 			bNeedMore = TRUE;
 		break;
 	case PROTOCOL_ED2K:
