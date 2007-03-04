@@ -107,8 +107,8 @@ BOOL CDatagrams::Listen()
 	m_hSocket = socket( PF_INET, SOCK_DGRAM, IPPROTO_UDP );
 	if ( m_hSocket == INVALID_SOCKET ) return FALSE;
 
-	// Do not see any Point doing this, since this wont make any sence if you do not
-	// Setup ALl the instance of RAZA in LAN to have same PORT. which will not be
+	// Do not see any Point doing this, since this wont make any sense if you do not
+	// Setup All the instance of RAZA in LAN to have same PORT. which will not be
 	// if just behind Router network.
 	/* 
 	const BOOL bEnable = TRUE;
