@@ -1193,19 +1193,24 @@ void CNeighboursWithConnect::ModeCheck()
 		}
 		else
 		{
-			if ( m_nCount[PROTOCOL_G1][ntLeaf] || IsG1Ultrapeer() )
+			if ( m_nCount[PROTOCOL_G1][ntLeaf] ||		// have some Leaf node connected
+				( IsG1Ultrapeer() &&					// running in G1Ultrapeer mode already
+				m_nCount[PROTOCOL_G1][ntNode] ) )		// have some peer nodes connected
 			{
 				// We're an ultrapeer on the Gnutella network
 				m_bG1Leaf      = FALSE;
 				m_bG1Ultrapeer = TRUE;
 			}
-			else if ( m_nCount[PROTOCOL_G1][ntHub] )
+			else if ( m_nCount[PROTOCOL_G1][ntHub] == m_nLimit[PROTOCOL_G1][ntHub] &&	// have enough Ultrapeer connections
+					IsG1Leaf() )														// running in G1Leaf mode right now
 			{
 				// We're a leaf on the Gnutella network
 				m_bG1Leaf      = TRUE;
 				m_bG1Ultrapeer = FALSE;
 			}
-			else if ( IsG1UltrapeerCapable( FALSE, FALSE ) )
+			else if ( tNow - m_tG1AttemptStart < 5 * 60 &&	// has been more than 5minute since connection attempt started
+															// same meaning as not having enough Hub/Peer connections for 5minutes
+				IsG1UltrapeerCapable( FALSE, FALSE ) )		// capable to be G1Ultrapeer node
 			{
 				m_bG1Leaf      = FALSE;
 				m_bG1Ultrapeer = TRUE;
@@ -1228,7 +1233,7 @@ void CNeighboursWithConnect::ModeCheck()
 			else
 			{
 				// Set the limit for Gnutella hub connections as whichever is smaller, the number from settings, or 5
-				m_nLimit[ PROTOCOL_G1 ][ ntHub ] = m_nLimit[ PROTOCOL_G1 ][ ntNode ] = min( Settings.Gnutella1.NumHubs, 32 ); // NumHubs is 2 by default
+				m_nLimit[ PROTOCOL_G1 ][ ntHub ] = m_nLimit[ PROTOCOL_G1 ][ ntNode ] = min( Settings.Gnutella1.NumHubs, 5 ); // NumHubs is 2 by default
 			}
 		}
 
@@ -1353,6 +1358,10 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 	{
 	case PROTOCOL_G1:
 		if ( m_nCount[ PROTOCOL_G1 ][ ntHub ] + m_nCount[ PROTOCOL_G1 ][ntNode] < m_nLimit[ PROTOCOL_G1 ][ ntHub ] )
+			bNeedMore = TRUE;
+		else if ( IsG1Ultrapeer() && m_nCount[ PROTOCOL_G1 ][ ntHub ] && m_nCount[ PROTOCOL_G1 ][ ntNode ] < m_nLimit[ PROTOCOL_G1 ][ ntHub ] )
+			bNeedMore = TRUE;
+		else if ( IsG1Leaf() && m_nCount[ PROTOCOL_G1 ][ntNode] && m_nCount[ PROTOCOL_G1 ][ ntHub ] < m_nLimit[ PROTOCOL_G1 ][ ntHub ] )
 			bNeedMore = TRUE;
 		break;
 	case PROTOCOL_G2:
