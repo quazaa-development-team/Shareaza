@@ -1181,7 +1181,8 @@ CAPTION "Gnutella"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
     GROUPBOX        "Gnutella2 Network:",IDC_STATIC,7,13,131,60,WS_GROUP
-    CHECKBOX        "Always connect to Gnutella2",IDC_G2_ALWAYS,10,25,127,8
+    CONTROL         "Always connect to Gnutella2",IDC_G2_ALWAYS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,10,25,127,8
     CONTROL         "Connect to Gnutella2 today",IDC_G2_TODAY,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,10,38,127,8
     LTEXT           "Mode: ",IDC_STATIC,16,56,55,8,0,WS_EX_RIGHT
