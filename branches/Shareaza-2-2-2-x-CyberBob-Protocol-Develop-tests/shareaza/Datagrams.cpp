@@ -793,6 +793,7 @@ BOOL CDatagrams::TryRead()
 BOOL CDatagrams::OnDatagram(SOCKADDR_IN* pHost, BYTE* pBuffer, DWORD nLength)
 {
 	GNUTELLAPACKET* pG1UDP = (GNUTELLAPACKET*)pBuffer;
+	bool bProcessed = false;
 	
 	if ( Settings.IsG1Allowed() &&
 		nLength >= sizeof(GNUTELLAPACKET)	// if it is Gnutella UDP packet, packet size is 23 bytes or bigger.
@@ -804,13 +805,16 @@ BOOL CDatagrams::OnDatagram(SOCKADDR_IN* pHost, BYTE* pBuffer, DWORD nLength)
 		if ( OnPacket( pHost, pG1Packet ) )
 		{
 			pG1Packet->Release();
+			if ( !Settings.Connection.LosePacketHandling ) return TRUE;
 			// NOTE: sometimes you can get some G2/ED2K packet gets processed on G1 packet handler
 		}
 		else
 		{
 			pG1Packet->Release();
-			return TRUE;
+			if ( !Settings.Connection.LosePacketHandling ) return TRUE;
+			// NOTE: sometimes you can get some G2/ED2K packet gets processed on G1 packet handler
 		}
+		bProcessed = true;
 	}
 
 	ED2K_UDP_HEADER* pMULE = (ED2K_UDP_HEADER*)pBuffer;
@@ -828,13 +832,13 @@ BOOL CDatagrams::OnDatagram(SOCKADDR_IN* pHost, BYTE* pBuffer, DWORD nLength)
 			pPacket->SmartDump( NULL, &pHost->sin_addr, FALSE );
 			EDClients.OnUDP( pHost, pPacket );
 			pPacket->Release();
-			return TRUE;
+			if ( !Settings.Connection.LosePacketHandling ) return TRUE;
 		}
 		else
 		{
-			if ( TRUE /* should put setting define if the packet should go through all packet handlers or not */) return TRUE;
+			if ( !Settings.Connection.LosePacketHandling ) return TRUE;
 		}
-
+		bProcessed = true;
 	}
 
 	SGP_HEADER* pSGP = (SGP_HEADER*)pBuffer;
@@ -859,6 +863,9 @@ BOOL CDatagrams::OnDatagram(SOCKADDR_IN* pHost, BYTE* pBuffer, DWORD nLength)
 
 		return TRUE;
 	}
+
+	if ( bProcessed == true ) return TRUE;
+
 	theApp.Message( MSG_ERROR, _T("Recieved unknown UDP packet type") );
 
 	return FALSE;
