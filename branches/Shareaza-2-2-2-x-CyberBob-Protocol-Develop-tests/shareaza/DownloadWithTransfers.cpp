@@ -272,7 +272,7 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow, BOOL bSeeding)
 					CDownloadTransfer* pTransfer = pSource->CreateTransfer();
 					return pTransfer != NULL && pTransfer->Initiate();
 				}
-			}	
+			}
 			pSource = pNext;
 		}
 	}

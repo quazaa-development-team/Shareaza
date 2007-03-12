@@ -330,11 +330,11 @@ void CAdvancedSettingsPage::AddSetting(LPVOID pValue, DWORD nScale, DWORD nMin, 
 {
 	CSettings::Item* pItem = Settings.GetSetting( (DWORD*)pValue );
 	if ( pItem == NULL ) return;
-	
+
 	EditItem* pEdit = new EditItem( pItem, nScale, nMin, nMax, pszSuffix );
-	
+
 	LV_ITEM pList = {};
-	
+
 	pList.mask		= LVIF_PARAM|LVIF_TEXT|LVIF_IMAGE;
 	pList.iItem		= m_wndList.GetItemCount();
 	pList.lParam	= (LPARAM)pEdit;
@@ -349,7 +349,7 @@ void CAdvancedSettingsPage::UpdateItem(int nItem)
 {
 	EditItem* pItem = (EditItem*)m_wndList.GetItemData( nItem );
 	CString strValue;
-		
+
 	if ( pItem->m_nMin == 0 && pItem->m_nMax == 1 )
 	{
 		strValue = pItem->m_nValue ? _T("True") : _T("False");
@@ -362,25 +362,25 @@ void CAdvancedSettingsPage::UpdateItem(int nItem)
 		else
 			strValue += pItem->m_sSuffix;
 	}
-	
+
 	m_wndList.SetItemText( nItem, 1, strValue );
 }
 
 void CAdvancedSettingsPage::OnItemChangedProperties(NMHDR* /*pNMHDR*/, LRESULT* pResult) 
 {
 //	NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
-	
+
 	int nItem = m_wndList.GetNextItem( -1, LVNI_SELECTED );
-	
+
 	if ( nItem >= 0 )
 	{
 		EditItem* pItem = (EditItem*)m_wndList.GetItemData( nItem );
 		CString strValue;
-		
+
 		m_wndValueSpin.SendMessage( WM_USER+111, pItem->m_nMin, pItem->m_nMax );
-		
+
 		strValue.Format( _T("%lu"), pItem->m_nValue / pItem->m_nScale );
-		
+
 		m_wndValue.SetWindowText( strValue );
 		m_wndValue.EnableWindow( TRUE );
 		m_wndValueSpin.EnableWindow( TRUE );
@@ -391,23 +391,23 @@ void CAdvancedSettingsPage::OnItemChangedProperties(NMHDR* /*pNMHDR*/, LRESULT* 
 		m_wndValue.EnableWindow( FALSE );
 		m_wndValueSpin.EnableWindow( FALSE );
 	}
-	
+
 	*pResult = 0;
 }
 
 void CAdvancedSettingsPage::OnChangeValue() 
 {
 	if ( m_wndList.m_hWnd == NULL ) return;
-	
+
 	int nItem = m_wndList.GetNextItem( -1, LVNI_SELECTED );
-	
+
 	if ( nItem >= 0 )
 	{
 		EditItem* pItem = (EditItem*)m_wndList.GetItemData( nItem );
 		CString strValue;
-		
+
 		m_wndValue.GetWindowText( strValue );
-		
+
 		if ( _stscanf( strValue, _T("%lu"), &pItem->m_nValue ) == 1 )
 		{
 			pItem->m_nValue = max( pItem->m_nMin, min( pItem->m_nMax, pItem->m_nValue ) );
@@ -431,7 +431,7 @@ void CAdvancedSettingsPage::OnOK()
 		EditItem* pItem = (EditItem*)m_wndList.GetItemData( nItem );
 		pItem->Commit();
 	}
-	
+
 	CSettingsPage::OnOK();
 }
 
@@ -441,7 +441,7 @@ void CAdvancedSettingsPage::OnDestroy()
 	{
 		delete (EditItem*)m_wndList.GetItemData( nItem );
 	}
-	
+
 	CSettingsPage::OnDestroy();
 }
 
@@ -457,9 +457,9 @@ CAdvancedSettingsPage::EditItem::EditItem(CSettings::Item* pItem, DWORD nScale, 
 	m_nScale	= nScale;
 	m_nMin		= nMin;
 	m_nMax		= nMax;
-	
+
 	if ( m_sName.GetAt( 0 ) == '.' ) m_sName = _T("razacore") + m_sName;
-	
+
 	if ( pszSuffix ) m_sSuffix = pszSuffix;
 }
 

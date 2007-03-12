@@ -42,54 +42,54 @@ protected:
 
 // Attributes
 public:
-	CBTInfo		m_pTorrent;
-	BOOL		m_bTorrentRequested;
-	BOOL		m_bTorrentStarted;
-	DWORD		m_tTorrentTracker;
-	QWORD		m_nTorrentUploaded;
-	QWORD		m_nTorrentDownloaded;
-	BOOL		m_bTorrentTrackerError;
-	CString		m_sTorrentTrackerError;
-	int			m_nTorrentTrackerErrors;
-    Hashes::BtGuid m_pPeerID;
-	CString		m_sKey;
-    BOOL		m_bTorrentEndgame;
-	CString		m_sServingFileName;
+	CBTInfo						m_pTorrent;
+	BOOL						m_bTorrentRequested;
+	BOOL						m_bTorrentStarted;
+	DWORD						m_tTorrentTracker;
+	QWORD						m_nTorrentUploaded;
+	QWORD						m_nTorrentDownloaded;
+	BOOL						m_bTorrentTrackerError;
+	CString						m_sTorrentTrackerError;
+	int							m_nTorrentTrackerErrors;
+    Hashes::BtGuid				m_pPeerID;
+	CString						m_sKey;
+    BOOL						m_bTorrentEndgame;
+	CString						m_sServingFileName;
 protected:
-	BOOL		m_bSeeding;
-	DWORD		m_nTorrentBlock;
-	DWORD		m_nTorrentSuccess;
-	DWORD		m_nTorrentSize;
-	BYTE*		m_pTorrentBlock;
+	BOOL						m_bSeeding;
+	DWORD						m_nTorrentBlock;
+	DWORD						m_nTorrentSuccess;
+	DWORD						m_nTorrentSize;
+	BYTE*						m_pTorrentBlock;
 private:
-	CList< CUploadTransferBT* > m_pTorrentUploads;
-	DWORD		m_tTorrentChoke;
-	DWORD		m_tTorrentSources;
+	CList< CUploadTransferBT* >	m_pTorrentUploads;
+	DWORD						m_tTorrentChoke;
+	DWORD						m_tTorrentSources;
 
 // Operations
 public:
-	void			AddUpload(CUploadTransferBT* pUpload);
-	void			RemoveUpload(CUploadTransferBT* pUpload);
-	BOOL			SeedTorrent(LPCTSTR pszTarget);
-	inline BOOL		IsSeeding() const { return m_bSeeding; }
-	float			GetRatio() const;
-	BOOL			UploadExists(in_addr* pIP) const;
-	BOOL			UploadExists(const Hashes::BtGuid& oGUID) const;
-	void			OnTrackerEvent(BOOL bSuccess, LPCTSTR pszReason = NULL);
-	void			ChokeTorrent(DWORD tNow = 0);
+	void					AddUpload(CUploadTransferBT* pUpload);
+	void					RemoveUpload(CUploadTransferBT* pUpload);
+	BOOL					SeedTorrent(LPCTSTR pszTarget);
+	inline BOOL				IsSeeding() const { return m_bSeeding; }
+	float					GetRatio() const;
+	BOOL					UploadExists(in_addr* pIP) const;
+	BOOL					UploadExists(const Hashes::BtGuid& oGUID) const;
+	void					OnTrackerEvent(BOOL bSuccess, LPCTSTR pszReason = NULL);
+	void					ChokeTorrent(DWORD tNow = 0);
 	CDownloadTransferBT*	CreateTorrentTransfer(CBTClient* pClient);
-	CBTPacket*		CreateBitfieldPacket();
-	BOOL			SetTorrent(CBTInfo* pTorrent);
+	CBTPacket*				CreateBitfieldPacket();
+	BOOL					SetTorrent(CBTInfo* pTorrent);
 protected:
-	BOOL			RunTorrent(DWORD tNow);
-	void			CloseTorrent();
-	void			CloseTorrentUploads();
-	BOOL 			CheckTorrentRatio() const;
-	virtual BOOL	FindMoreSources();
-	void			OnFinishedTorrentBlock(DWORD nBlock);
-	virtual void	Serialize(CArchive& ar, int nVersion);
+	BOOL					RunTorrent(DWORD tNow);
+	void					CloseTorrent();
+	void					CloseTorrentUploads();
+	BOOL 					CheckTorrentRatio() const;
+	virtual BOOL			FindMoreSources();
+	void					OnFinishedTorrentBlock(DWORD nBlock);
+	virtual void			Serialize(CArchive& ar, int nVersion);
 private:
-	BOOL			GenerateTorrentDownloadID();	//Generate Peer ID
+	BOOL					GenerateTorrentDownloadID();	//Generate Peer ID
 
 	TCHAR GenerateCharacter() const
 	{
