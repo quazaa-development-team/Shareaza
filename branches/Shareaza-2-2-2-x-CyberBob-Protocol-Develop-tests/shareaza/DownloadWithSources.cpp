@@ -259,7 +259,9 @@ void CDownloadWithSources::ClearSources()
 
 void CDownloadWithSources::ClearOldSources()
 {
-	const QWORD nTimeOut = (QWORD)3600 * (QWORD)10000000;
+	const QWORD nTimeOut = (QWORD)12 * (QWORD)3600 * (QWORD)10000000;	// Timeout for non-push sources
+	const QWORD nPushTimeOut = (QWORD)3600 * (QWORD)10000000;			// Timeout for push sources.
+
 	SYSTEMTIME pTime;
 	FILETIME tNow;
 	GetSystemTime( &pTime );
@@ -272,52 +274,106 @@ void CDownloadWithSources::ClearOldSources()
 		{
 			pSource->SetLastSeen();
 		}
-		else if ( *reinterpret_cast<QWORD*>(&pSource->m_tLastSeen) + nTimeOut < *reinterpret_cast<QWORD*>(&tNow) )
+		else if ( pSource->m_bPushOnly )
 		{
-			AddFailedSource( pSource );
-			switch ( pSource->m_nProtocol )
+			// currently SourceExchanges works good only on ED2K if the source is Firewalled.
+			// 1. you can not send message to firewalled BT node to start transfer.
+			// 2. x-alt/alt-location does not support firewalled sources. (may change in future.)
+			if ( pSource->m_nProtocol != PROTOCOL_ED2K || *reinterpret_cast<QWORD*>(&pSource->m_tLastSeen) + nPushTimeOut < *reinterpret_cast<QWORD*>(&tNow) )
 			{
-			case PROTOCOL_G1:
-				ASSERT(m_nG1SourceCount);
-				m_nG1SourceCount--;
-				break;
-			case PROTOCOL_G2:
-				ASSERT(m_nG2SourceCount);
-				m_nG2SourceCount--;
-				break;
-			case PROTOCOL_ED2K:
-				ASSERT(m_nEdSourceCount);
-				m_nEdSourceCount--;
-				break;
-			case PROTOCOL_HTTP:
-				ASSERT(m_nHTTPSourceCount);
-				m_nHTTPSourceCount--;
-				break;
-			case PROTOCOL_FTP:
-				ASSERT(m_nFTPSourceCount);
-				m_nFTPSourceCount--;
-				break;
-			case PROTOCOL_BT:
-				ASSERT(m_nBTSourceCount);
-				m_nBTSourceCount--;
-				break;
-			default:
-				break;
+				switch ( pSource->m_nProtocol )
+				{
+				case PROTOCOL_G1:
+					ASSERT(m_nG1SourceCount);
+					m_nG1SourceCount--;
+					break;
+				case PROTOCOL_G2:
+					ASSERT(m_nG2SourceCount);
+					m_nG2SourceCount--;
+					break;
+				case PROTOCOL_ED2K:
+					ASSERT(m_nEdSourceCount);
+					m_nEdSourceCount--;
+					break;
+				case PROTOCOL_HTTP:
+					ASSERT(m_nHTTPSourceCount);
+					m_nHTTPSourceCount--;
+					break;
+				case PROTOCOL_FTP:
+					ASSERT(m_nFTPSourceCount);
+					m_nFTPSourceCount--;
+					break;
+				case PROTOCOL_BT:
+					ASSERT(m_nBTSourceCount);
+					m_nBTSourceCount--;
+					break;
+				default:
+					break;
+				}
+				ASSERT(m_nSourceCount);
+				m_nSourceCount--;
+
+				if ( pSource->m_pPrev != NULL )
+					pSource->m_pPrev->m_pNext = pSource->m_pNext;
+				else
+					m_pSourceFirst = pSource->m_pNext;
+
+				if ( pSource->m_pNext != NULL )
+					pSource->m_pNext->m_pPrev = pSource->m_pPrev;
+				else
+					m_pSourceLast = pSource->m_pPrev;
+
+				delete pSource;
 			}
-			ASSERT(m_nSourceCount);
-			m_nSourceCount--;
+		}
+		else
+		{
+			if ( *reinterpret_cast<QWORD*>(&pSource->m_tLastSeen) + nTimeOut < *reinterpret_cast<QWORD*>(&tNow) )
+			{
+				switch ( pSource->m_nProtocol )
+				{
+				case PROTOCOL_G1:
+					ASSERT(m_nG1SourceCount);
+					m_nG1SourceCount--;
+					break;
+				case PROTOCOL_G2:
+					ASSERT(m_nG2SourceCount);
+					m_nG2SourceCount--;
+					break;
+				case PROTOCOL_ED2K:
+					ASSERT(m_nEdSourceCount);
+					m_nEdSourceCount--;
+					break;
+				case PROTOCOL_HTTP:
+					ASSERT(m_nHTTPSourceCount);
+					m_nHTTPSourceCount--;
+					break;
+				case PROTOCOL_FTP:
+					ASSERT(m_nFTPSourceCount);
+					m_nFTPSourceCount--;
+					break;
+				case PROTOCOL_BT:
+					ASSERT(m_nBTSourceCount);
+					m_nBTSourceCount--;
+					break;
+				default:
+					break;
+				}
+				ASSERT(m_nSourceCount);
+				m_nSourceCount--;
 
-			if ( pSource->m_pPrev != NULL )
-				pSource->m_pPrev->m_pNext = pSource->m_pNext;
-			else
-				m_pSourceFirst = pSource->m_pNext;
+				if ( pSource->m_pPrev != NULL )
+					pSource->m_pPrev->m_pNext = pSource->m_pNext;
+				else
+					m_pSourceFirst = pSource->m_pNext;
 
-			if ( pSource->m_pNext != NULL )
-				pSource->m_pNext->m_pPrev = pSource->m_pPrev;
-			else
-				m_pSourceLast = pSource->m_pPrev;
+				if ( pSource->m_pNext != NULL )
+					pSource->m_pNext->m_pPrev = pSource->m_pPrev;
+				else
+					m_pSourceLast = pSource->m_pPrev;
 
-			delete pSource;
+				delete pSource;
+			}
 		}
 		pSource = pNext;
 	}
