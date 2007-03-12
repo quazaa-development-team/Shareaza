@@ -152,6 +152,21 @@ BOOL CDatagrams::Listen()
 		theApp.Message( MSG_DEFAULT, IDS_NETWORK_LISTENING_UDP,
 			(LPCTSTR)CString( inet_ntoa( saHost.sin_addr ) ), htons( saHost.sin_port ) );
 	}
+	else
+	{
+		theApp.Message( MSG_DEFAULT, _T("Failed to bind UDP socket to %s:%ul"),
+			(LPCTSTR)CString( inet_ntoa( saHost.sin_addr ) ), htons( saHost.sin_port ) );
+
+		// Set linger period to zero (it will close the socket immediatelly)
+		// Default behaviour is to send data and close or timeout and close
+		linger ls = {1, 0};
+		int ret = setsockopt( m_hSocket, SOL_SOCKET, SO_LINGER, (char*)&ls, sizeof(ls) );
+
+		shutdown( m_hSocket, SD_RECEIVE );
+		ret = closesocket( m_hSocket );
+		m_hSocket = INVALID_SOCKET;
+		return FALSE;
+	}
 
 	WSAEventSelect( m_hSocket, Network.m_pWakeup, FD_READ );
 
