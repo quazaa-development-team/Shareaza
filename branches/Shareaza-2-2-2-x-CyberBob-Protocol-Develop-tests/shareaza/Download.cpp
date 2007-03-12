@@ -628,8 +628,8 @@ void CDownload::OnMoved(CDownloadTask* pTask)
 	{
         LibraryHistory.Add( m_sDiskName, Hashes::Sha1Hash(), m_oED2K, NULL );
 	}
-
-	ClearSources();
+	// should check if it is Torrent or not.
+	if ( !m_pTorrent.IsAvailable() ) ClearSources();
 	SetModified();
 
 	if ( IsFullyVerified() ) OnVerify( m_sDiskName, TRUE );
