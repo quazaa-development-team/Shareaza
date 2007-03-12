@@ -50,6 +50,7 @@ CDeleteFileDlg::CDeleteFileDlg(CWnd* pParent) : CSkinDialog( CDeleteFileDlg::IDD
 , m_bCreateGhost(Settings.Library.CreateGhosts)
 , m_nRateValue(0)
 , m_bAll(FALSE)
+, m_bButtonsOnly(FALSE)
 {
 }
 
@@ -70,8 +71,9 @@ void CDeleteFileDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_CBIndex(pDX, IDC_DELETE_OPTIONS, m_nOption);
 	DDX_Control(pDX, IDC_GHOST_RATING, m_wndRating);
 	DDX_CBIndex(pDX, IDC_GHOST_RATING, m_nRateValue);
-	DDX_Check(pDX, IDC_CREATE_GHOST, m_bCreateGhost);
+//	DDX_Check(pDX, IDC_CREATE_GHOST, m_bCreateGhost);
 	DDX_Control(pDX, IDC_RATE_PROMPT, m_wndPrompt);
+	DDX_Control(pDX, IDC_CREATE_GHOST, m_wndCreateGhost);
 }
 
 BOOL CDeleteFileDlg::OnInitDialog()
@@ -95,12 +97,25 @@ BOOL CDeleteFileDlg::OnInitDialog()
 	m_nOriginalRating = m_nRateValue;
 	UpdateData( FALSE );
 
-	if ( m_bCreateGhost )
+	if ( m_bButtonsOnly )
 	{
+		m_bCreateGhost = FALSE;
+		m_wndCreateGhost.EnableWindow( FALSE );
+		m_wndOptions.EnableWindow( FALSE );
+		m_wndRating.EnableWindow( FALSE );
+		m_wndComments.EnableWindow( FALSE );
+		m_wndPrompt.EnableWindow( FALSE );
+	}
+	else if ( m_bCreateGhost )
+	{
+		m_wndCreateGhost.EnableWindow( FALSE );
+		m_wndCreateGhost.SetCheck( BST_CHECKED );
 		m_wndOptions.SetFocus();
 	}
 	else
 	{
+		m_wndCreateGhost.EnableWindow( TRUE );
+		m_wndCreateGhost.SetCheck( BST_UNCHECKED );
 		m_wndOptions.EnableWindow( FALSE );
 		m_wndRating.EnableWindow( FALSE );
 		m_wndComments.EnableWindow( FALSE );
@@ -167,20 +182,23 @@ void CDeleteFileDlg::Apply(CLibraryFile* pFile)
 
 void CDeleteFileDlg::Create(CDownload* pDownload, BOOL bShare)
 {
-	if ( !pDownload->m_oSHA1 && !pDownload->m_oTiger && !pDownload->m_oED2K ) return;
+	if ( !pDownload->m_oSHA1 && !pDownload->m_oTiger && !pDownload->m_oED2K && !pDownload->m_oMD5 ) return;
 
 	CSingleLock oLock( &Library.m_pSection );
 	if ( !oLock.Lock( 500 ) ) return;
 
 	CLibraryFile* pFile = NULL;
 	
+	// This should be replaced by LookupByHash() function.
 	if ( pFile == NULL && pDownload->m_oSHA1 )
 		pFile = LibraryMaps.LookupFileBySHA1( pDownload->m_oSHA1 );
     if ( pFile == NULL && pDownload->m_oTiger )
 		pFile = LibraryMaps.LookupFileByTiger( pDownload->m_oTiger );
 	if ( pFile == NULL && pDownload->m_oED2K )
 		pFile = LibraryMaps.LookupFileByED2K( pDownload->m_oED2K );
-	
+	if ( pFile == NULL && pDownload->m_oMD5 )
+		pFile = LibraryMaps.LookupFileByMD5( pDownload->m_oMD5 );
+
 	if ( pFile == NULL && m_bCreateGhost && 
 		 ( m_nRateValue > 0 || m_sComments.GetLength() > 0 ) ) // The file is not completed
 	{
@@ -348,11 +366,35 @@ void CDeleteFileDlg::OnChangeComments()
 
 void CDeleteFileDlg::OnClickedCreateGhost()
 {
-	m_bCreateGhost = !m_bCreateGhost;
-	m_wndOptions.EnableWindow( m_bCreateGhost );
-	m_wndRating.EnableWindow( m_bCreateGhost );
-	m_wndComments.EnableWindow( m_bCreateGhost && m_nOption > 0 );
-	m_wndPrompt.EnableWindow( m_bCreateGhost && m_nOption > 0 );
-	m_wndPrompt.Invalidate();
-	UpdateData( FALSE );
+	BOOL bCreateGhost = m_wndCreateGhost.GetCheck();
+
+	switch ( bCreateGhost )
+	{
+	case BST_UNCHECKED:
+		m_bCreateGhost = TRUE;
+		m_wndOptions.EnableWindow( TRUE );
+		m_wndRating.EnableWindow( TRUE );
+		m_wndComments.EnableWindow( m_nOption > 0 );
+		m_wndPrompt.EnableWindow( m_nOption > 0 );
+		m_wndPrompt.Invalidate();
+		UpdateData( FALSE );
+		m_wndCreateGhost.SetCheck(BST_CHECKED);
+		break;
+	case BST_CHECKED:
+		m_bCreateGhost = TRUE;
+		m_wndOptions.EnableWindow( FALSE );
+		m_wndRating.EnableWindow( FALSE );
+		m_wndComments.EnableWindow( FALSE );
+		m_wndPrompt.EnableWindow( FALSE );
+		m_wndPrompt.Invalidate();
+		UpdateData( FALSE );
+		m_wndCreateGhost.SetCheck(BST_UNCHECKED);
+		break;
+	case BST_INDETERMINATE:
+		m_bCreateGhost = FALSE;
+		m_wndCreateGhost.SetCheck(BST_INDETERMINATE);
+		break;
+	default:
+		break;
+	}
 }

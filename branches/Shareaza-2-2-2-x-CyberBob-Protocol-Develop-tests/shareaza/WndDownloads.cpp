@@ -746,18 +746,21 @@ void CDownloadsWnd::OnDownloadsClearIncomplete()
 		{
 			if ( ! pDownload->IsCompleted() && ! pDownload->IsPreviewVisible() )
 			{
-				if ( pDownload->IsStarted() )
-				{
+				// Uncommenting condition, getting sick of the mis-operation happens on try clicking on PAUSE cause Cancel when the file is 0Byte downloaded.
+				//if ( pDownload->IsStarted() )
+				//{
 					CDeleteFileDlg dlg;
 					dlg.m_sName = pDownload->m_sDisplayName;
 					BOOL bShared = pDownload->IsShared();
-					
+					if ( !pDownload->IsStarted() )
+						dlg.m_bButtonsOnly = TRUE;
+
 					pLock.Unlock();
 					if ( dlg.DoModal() != IDOK ) break;
 					pLock.Lock();
 					
 					if ( Downloads.Check( pDownload ) ) dlg.Create( pDownload, bShared );
-				}
+				//}
 				
 				if ( Downloads.Check( pDownload ) ) pDownload->Remove();
 			}
