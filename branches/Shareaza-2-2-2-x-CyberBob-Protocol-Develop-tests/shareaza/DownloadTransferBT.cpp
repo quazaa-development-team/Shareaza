@@ -188,12 +188,13 @@ BOOL CDownloadTransferBT::OnConnected()
 	ASSERT( m_pClient != NULL );
 	ASSERT( m_pSource != NULL );
 
+	// not deleting source for source exchange.
 	if ( m_pDownload->IsCompleted() )
 	{
 		// This source is only here to push start torrent uploads. (We don't want to download)
 		theApp.Message( MSG_DEFAULT, _T("Initiated push start for upload to %s"), (LPCTSTR)m_sAddress );
-		Close( TS_FALSE );
-		return FALSE;
+		//Close( TS_FALSE );
+		//return FALSE;
 	}
 	else
 	{
@@ -210,8 +211,8 @@ BOOL CDownloadTransferBT::OnConnected()
 			Close( TS_TRUE );
 			return FALSE;
 		}
-		return TRUE;
 	}
+	return TRUE;
 }
 
 //////////////////////////////////////////////////////////////////////

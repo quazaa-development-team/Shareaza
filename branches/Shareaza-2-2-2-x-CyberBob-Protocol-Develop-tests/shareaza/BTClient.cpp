@@ -363,20 +363,22 @@ BOOL CBTClient::OnHandshake1()
 	if ( m_bInitiated )		// If we initiated the connection
 	{
 		ASSERT( m_pDownload != NULL );
-		ASSERT( m_pDownloadTransfer != NULL );
-
+		// Initiated Connection does not mean there always DownloadTransfer exist. Firewall Seeding makes connection from Seeder side thus can be there without
+		// CDownloadTransferBT.
+		//ASSERT( m_pDownloadTransfer != NULL );
 		if ( validAndUnequal( oFileHash, m_pDownload->m_oBTH ) )
 		{	//Display and error and exit
 			theApp.Message( MSG_ERROR, IDS_BT_CLIENT_WRONG_FILE, (LPCTSTR)m_sAddress );
 			Close();
 			return FALSE;
 		}
-		else if ( ! m_pDownload->IsTrying() )
-		{	//Display and error and exit
-			theApp.Message( MSG_ERROR, IDS_BT_CLIENT_INACTIVE_FILE, (LPCTSTR)m_sAddress );
-			Close();
-			return FALSE;
-		}
+		// Again, it is not necessary it to be downloading when it is initiated from this side.
+		//else if ( ! m_pDownload->IsTrying() )
+		//{	//Display and error and exit
+		//	theApp.Message( MSG_ERROR, IDS_BT_CLIENT_INACTIVE_FILE, (LPCTSTR)m_sAddress );
+		//	Close();
+		//	return FALSE;
+		//}
 	}
 	else					// If we didn't initiate the connection
 	{
@@ -408,8 +410,8 @@ BOOL CBTClient::OnHandshake1()
 			return FALSE;
 		}
 		// The file isn't verified yet, close the connection
-		else if ( m_pDownload->IsMoving() && !m_pDownload->m_bVerify || 
-				  m_pDownload->IsCompleted() && !m_pDownload->m_bVerify )
+		else if ( m_pDownload->IsMoving() || 
+				( m_pDownload->IsCompleted() && m_pDownload->m_bVerify != TS_TRUE ) )
 		{
 			theApp.Message( MSG_ERROR, IDS_BT_CLIENT_INACTIVE_FILE, (LPCTSTR)m_sAddress );
 			Close();
@@ -859,7 +861,7 @@ BOOL CBTClient::OnBeHandshake(CBTPacket* pPacket)
 
 	CBENode* pAgent = pRoot->GetNode( "user-agent" );
 
-	if ( pAgent->IsType( CBENode::beString ) )
+	if ( pAgent && pAgent->IsType( CBENode::beString ) )
 	{
 		m_sUserAgent = pAgent->GetString();
 
@@ -882,7 +884,7 @@ BOOL CBTClient::OnBeHandshake(CBTPacket* pPacket)
 
 	CBENode* pNick = pRoot->GetNode( "nickname" );
 
-	if ( pNick->IsType( CBENode::beString ) )
+	if ( pNick && pNick->IsType( CBENode::beString ) )
 	{
 		if ( m_pDownloadTransfer != NULL )
 		{
@@ -927,6 +929,7 @@ BOOL CBTClient::OnSourceRequest(CBTPacket* /*pPacket*/)
 
 	for ( CDownloadSource* pSource = m_pDownload->GetFirstSource() ; pSource ; pSource = pSource->m_pNext )
 	{
+		if ( pSource->m_bPushOnly == TRUE ) continue;
 		if ( pSource->m_pTransfer == NULL ) continue;
 		if ( pSource->m_pTransfer->m_nState < dtsRequesting ) continue;
 
@@ -944,8 +947,7 @@ BOOL CBTClient::OnSourceRequest(CBTPacket* /*pPacket*/)
 			pPeer->Add( "port" )->SetInt( pSource->m_nPort );
 		}
 		else if (	pSource->m_nProtocol == PROTOCOL_HTTP &&
-					pSource->m_bReadContent == TRUE &&
-					pSource->m_bPushOnly == FALSE )
+					pSource->m_bReadContent == TRUE )
 		{
 			CBENode* pPeer = pPeers->Add();
 			pPeer->Add( "url" )->SetString( pSource->m_sURL );
