@@ -284,8 +284,8 @@ BOOL CDownloadTransferHTTP::StartNextFragment()
 	}
 	else
 	{
-		// Line Below cause Shareaza to forget Available range on Source, which might cause User to think the source have full range
-		// Available.
+		// Line Below cause Shareaza to forget Available range on Source, which might cause User to think the source have either full range
+		// Available or else, no range. thus it is better to have it left drawn on Range graph.
         //if ( m_pSource != NULL ) m_pSource->SetAvailableRanges( NULL );
 
 		theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_FRAGMENT_END, (LPCTSTR)m_sAddress );
