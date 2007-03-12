@@ -166,7 +166,7 @@ void CNeighbourTipCtrl::OnCalcSize(CDC* pDC)
 	m_sz.cy += TIP_TEXTHEIGHT;
 	m_sz.cy += TIP_RULE;
 
-	m_sz.cy += TIP_TEXTHEIGHT * 6;
+	m_sz.cy += TIP_TEXTHEIGHT * 7;
 
 	m_sz.cx = max( m_sz.cx, 128 + 160 );
 	m_sz.cy += 40;
@@ -321,6 +321,17 @@ void CNeighbourTipCtrl::OnPaint(CDC* pDC)
 	if ( pNeighbour->m_pVendor && pNeighbour->m_pVendor->m_sCode.GetLength() != 0 )
 	{
 		DrawText( pDC, &pt, pNeighbour->m_pVendor->m_sCode );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+
+	if ( pNeighbour->m_bInitiated )
+	{
+		DrawText( pDC, &pt, _T("Locally Initiated") );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+	else
+	{
+		DrawText( pDC, &pt, _T("Remotely Initiated") );
 		pt.y += TIP_TEXTHEIGHT;
 	}
 
