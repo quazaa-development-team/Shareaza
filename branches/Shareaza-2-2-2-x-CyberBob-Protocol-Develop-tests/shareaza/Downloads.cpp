@@ -140,6 +140,8 @@ BOOL CDownloads::CITMQueryHit::OnProcess()
 // CDownloads construction
 
 CDownloads::CDownloads()
+: m_oActiveSearches()
+, m_oPendingSearches()
 {
 	m_nLimitGeneric			= Settings.Bandwidth.Downloads;
 	m_nLimitDonkey			= Settings.Bandwidth.Downloads;
@@ -167,6 +169,7 @@ CDownload* CDownloads::Add()
 {
 	CDownload* pDownload = new CDownload();
 	m_pList.AddTail( pDownload );
+	m_oPendingSearches.push_back( pDownload );
 	return pDownload;
 }
 
@@ -206,7 +209,7 @@ CDownload* CDownloads::Add(CQueryHit* pHit, BOOL bAddToHead)
 
 		if ( bAddToHead ) m_pList.AddHead( pDownload );
 		else m_pList.AddTail( pDownload );
-
+		m_oPendingSearches.push_back( pDownload );
 		theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_ADDED,
 			(LPCTSTR)pDownload->GetDisplayName(), pDownload->GetSourceCount() );
 
@@ -273,7 +276,7 @@ CDownload* CDownloads::Add(CMatchFile* pFile, BOOL bAddToHead)
 		pDownload = new CDownload();
 		if ( bAddToHead ) m_pList.AddHead( pDownload );
 		else m_pList.AddTail( pDownload );
-
+		m_oPendingSearches.push_back( pDownload );
 		if ( pFile->m_pBest != NULL )
 		{
 			pDownload->AddSourceHit( pFile->m_pBest, TRUE );
@@ -423,6 +426,7 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 	}
 
 	m_pList.AddTail( pDownload );
+	m_oPendingSearches.push_back( pDownload );
 
 	theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_ADDED,
 		(LPCTSTR)pDownload->GetDisplayName(), pDownload->GetEffectiveSourceCount() );
@@ -1076,6 +1080,24 @@ void CDownloads::OnRun()
 {
 	DWORD tNow = GetTickCount();
 
+	if ( (DWORD)m_oActiveSearches.size() < (DWORD)Settings.Downloads.MaxFileSearches )
+	{
+		if ( m_oPendingSearches.size() )
+		{
+			std::list<CDownload*>::iterator iIndex = m_oPendingSearches.begin();
+			CDownload* pDownload = *iIndex;
+			if ( pDownload->CanSearch() )
+			{
+				m_oPendingSearches.erase(iIndex);
+				pDownload->StartAutomaticSearch(tNow);
+			}
+			else
+			{
+				m_oPendingSearches.erase(iIndex);
+				m_oPendingSearches.push_back(pDownload);
+			}
+		}
+	}
 
 	// Re-calculating bandwidth may be a little CPU heavy if there are a lot of transfers- limit
 	// it to 4 times per second
@@ -1376,6 +1398,10 @@ void CDownloads::Load()
 					pDownload->m_bComplete = TRUE;
 					pDownload->m_bVerify = TS_TRUE;
 				}
+				else if ( !pDownload->m_bTempPaused )
+				{
+					m_oPendingSearches.push_back(pDownload);
+				}
 				m_pList.AddTail( pDownload );
 			}
 			else
@@ -1528,6 +1554,10 @@ void CDownloads::SerializeCompound(CArchive& ar)
 		CDownload* pDownload = new CDownload();
 		m_pList.AddTail( pDownload );
 		pDownload->Serialize( ar, nVersion );
+		if ( !pDownload->m_bPaused )
+		{
+			m_oPendingSearches.push_back(pDownload);
+		}
 	}
 }
 

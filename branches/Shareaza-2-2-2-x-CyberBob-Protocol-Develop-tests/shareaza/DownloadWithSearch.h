@@ -28,6 +28,7 @@
 
 class CManagedSearch;
 class CDownloadEditHashesPage;
+class CDownloads;
 
 
 class CDownloadWithSearch : public CDownloadWithTiger
@@ -45,6 +46,10 @@ private:
 public:
 	DWORD			m_tLastED2KGlobal;	// Time the last ed2k UDP GetSources was done on this download
 	DWORD			m_tLastED2KLocal;	// Time the last ed2k TCP GetSources was done on this download
+private:
+	DWORD			m_tSearchStart;		// time this download started search (TickCount)
+	DWORD			m_tSearchDuration;	// Period of time this search should be executed for (TickCount)
+	BOOL			m_bSearchActive;
 
 // Operations
 public:
@@ -52,15 +57,16 @@ public:
 	virtual BOOL	FindMoreSources();
 protected:
 	void	RunSearch(DWORD tNow);
-	void	StopSearch();
+	void	StopSearch(DWORD tNow, BOOL bQueuePending);
 private:
-	void	StartManualSearch();
-	void	StartAutomaticSearch( BOOL bG1 = TRUE, BOOL bG2 = TRUE, BOOL bED2K = TRUE );
+	void	StartManualSearch(DWORD tNow);
+	void	StartAutomaticSearch( DWORD tNow, BOOL bG1 = TRUE, BOOL bG2 = TRUE, BOOL bED2K = TRUE );
 	BOOL	CanSearch() const;
 	void	PrepareSearch( BOOL bG1 = TRUE, BOOL bG2 = TRUE, BOOL bED2K = TRUE );
 
 	friend class CDownloadsCtrl;
 	friend class CDownloadEditHashesPage;
+	friend class CDownloads;
 };
 
 #endif // !defined(AFX_DOWNLOADWITHSEARCH_H__0ED8A270_13B0_47A6_9917_727CBDD82B27__INCLUDED_)

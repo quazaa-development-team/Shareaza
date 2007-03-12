@@ -74,7 +74,8 @@ CDownload::~CDownload()
 {
 	if ( m_pTask != NULL ) m_pTask->Abort();
 	DownloadGroups.Unlink( this );
-
+	Downloads.m_oActiveSearches.remove( this );
+	Downloads.m_oPendingSearches.remove( this );
 	if ( m_pTorrent.m_nFiles > 1 && m_bComplete )
 	{
 		CloseTransfers();
@@ -94,6 +95,7 @@ CDownload::~CDownload()
 
 void CDownload::Pause( BOOL bRealPause )
 {
+	StopSearch( 0, FALSE );
 	if ( m_bComplete || m_bPaused ) return;
 
 	theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_PAUSED, (LPCTSTR)GetDisplayName() );
@@ -142,6 +144,8 @@ void CDownload::Resume()
 	m_tReceived				= GetTickCount();
 	m_bTorrentTrackerError	= FALSE;
 	m_nTorrentTrackerErrors = 0;
+
+	Downloads.m_oPendingSearches.push_front(this);
 
 	if ( m_oBTH )
 	{
@@ -257,7 +261,7 @@ void CDownload::StopTrying()
 
 	CloseTransfers();
 	CloseFile();
-	StopSearch();
+	StopSearch( GetTickCount(), FALSE );
 	SetModified();
 }
 
@@ -498,7 +502,8 @@ void CDownload::OnDownloaded()
 	theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_COMPLETED, (LPCTSTR)GetDisplayName() );
 	m_tCompleted = GetTickCount();
 	m_bDownloading = FALSE;
-
+	Downloads.m_oActiveSearches.remove(this);
+	Downloads.m_oPendingSearches.remove(this);
 	CloseTransfers();
 
 	if ( m_pFile != NULL )
@@ -557,6 +562,7 @@ void CDownload::OnTaskComplete(CDownloadTask* pTask)
 void CDownload::OnMoved(CDownloadTask* pTask)
 {
 	CString strDiskFileName = m_sDiskName;
+	DWORD tNow = GetTickCount();
 	// File is moved
 	ASSERT( m_pFile == NULL );
 
@@ -592,7 +598,7 @@ void CDownload::OnMoved(CDownloadTask* pTask)
 		m_bTorrentStarted = TRUE;
 		m_bTorrentRequested = TRUE;
 		CloseTransfers();
-		StopSearch();
+		StopSearch(tNow, FALSE);
 	}
 	else if ( m_oBTH ) // Something wrong (?), since we moved the torrent
 	{
@@ -605,7 +611,7 @@ void CDownload::OnMoved(CDownloadTask* pTask)
 
 	// Download finalized, tracker notified, set flags that we completed
 	m_bComplete		= TRUE;
-	m_tCompleted	= GetTickCount();
+	m_tCompleted	= tNow;
 
 
 	// Delete the SD file

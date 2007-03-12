@@ -51,19 +51,19 @@ public:
 	BOOL			m_bActive;
 	BOOL			m_bReceive;
 public:
-	DWORD			m_tStarted;					// Time search was started
+	DWORD			m_tStarted;					// Time search was started (Sec)
 	DWORD			m_nHits;					// Hits
 	DWORD			m_nHubs;					// Number of G2 hubs searched
 	DWORD			m_nLeaves;					// Number of G2 leaves searched
 	DWORD			m_nQueryCount;				// Total Gnutella2 queries sent
-	DWORD			m_tLastG2;					// Time a G2 hub was last searched
-	DWORD			m_tLastED2K;				// Time an ed2k server was last searched
-	DWORD			m_tMoreResults;				// Time more results were requested from an ed2k server
+	DWORD			m_tLastG2;					// Time a G2 hub was last searched (Tick)
+	DWORD			m_tLastED2K;				// Time an ed2k server was last searched (Tick)
+	DWORD			m_tMoreResults;				// Time more results were requested from an ed2k server (Tick)
 	DWORD			m_nEDServers;				// Number of EDonkey servers searched
 	DWORD			m_nEDClients;				// Number of ED2K clients searched (Guess)
 protected:
 	CMap< DWORD, DWORD, DWORD, DWORD > m_pNodes;
-	DWORD			m_tExecute;
+	DWORD			m_tExecute;					// Time function CManagedSearch::Execute() executed last. (Tick)
 
 // Operations
 public:

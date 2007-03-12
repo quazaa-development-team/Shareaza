@@ -26,6 +26,8 @@
 #include "SearchManager.h"
 #include "ManagedSearch.h"
 #include "QuerySearch.h"
+#include "Download.h"
+#include "Downloads.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -44,6 +46,9 @@ CDownloadWithSearch::CDownloadWithSearch()
 	m_tSearchCheck		= 0;
 	m_tLastED2KGlobal	= 0;
 	m_tLastED2KLocal	= 0;
+	m_tSearchStart		= 0;
+	m_tSearchDuration	= 0;
+	m_bSearchActive		= FALSE;
 }
 
 CDownloadWithSearch::~CDownloadWithSearch()
@@ -57,7 +62,7 @@ CDownloadWithSearch::~CDownloadWithSearch()
 
 BOOL CDownloadWithSearch::FindSourcesAllowed(DWORD tNow) const
 {
-	if ( tNow > m_tSearchTime && tNow - m_tSearchTime > 15*1000 )
+	if ( tNow > m_tSearchTime && tNow - m_tSearchTime > 60*1000 )
 		return TRUE;
 	else
 		return FALSE;
@@ -70,13 +75,20 @@ BOOL CDownloadWithSearch::FindMoreSources()
 {
 	BOOL bSuccess = CDownloadWithTiger::FindMoreSources();
 
+	// allow 4 extra Searchs for manual starting.
+	if ( !m_bSearchActive && DWORD( Downloads.m_oActiveSearches.size() ) > DWORD( Settings.Downloads.MaxFileSearches + 4 ) )
+		return bSuccess;
+
 	if ( CanSearch() )
 	{
 		DWORD tNow = GetTickCount();
 		if ( tNow - m_tSearchTime > ( Settings.Downloads.SearchPeriod / 4 ) )
 		{
 			m_tSearchTime = tNow;
-			if ( m_pSearch != NULL ) m_pSearch->Stop();
+			if ( m_pSearch != NULL ) StopSearch( tNow, FALSE );
+			m_tSearchStart		= 0;
+			PrepareSearch( TRUE, TRUE, TRUE );
+			if ( m_pSearch != NULL ) StartManualSearch( tNow );
 			bSuccess = TRUE;
 		}
 	}
@@ -89,15 +101,25 @@ BOOL CDownloadWithSearch::FindMoreSources()
 
 void CDownloadWithSearch::RunSearch(DWORD tNow)
 {
-	if ( ! CanSearch() )
+	if ( ! CanSearch() )	// if this item is not searchable anymore,
 	{
-		StopSearch();
+		if ( m_bSearchActive ) StopSearch( tNow, FALSE );				// stop search now
 		return;
 	}
-
-	if ( tNow > m_tSearchTime && tNow - m_tSearchTime < Settings.Downloads.SearchPeriod )
+	else if ( m_bSearchActive )
 	{
-		StartManualSearch();
+		if ( m_tSearchDuration == 0 || tNow - m_tSearchStart > m_tSearchDuration )
+		{
+			StopSearch( tNow, TRUE );
+		}
+	}
+/*	else if ( DWORD(Downloads.m_oActiveSearches.size()) > DWORD(Settings.Downloads.MaxFileSearches) )
+	{
+		return;
+	}
+	else if ( m_tLastSearchTime && tNow - m_tLastSearchTime < Downloads.m_tSearchThrottle )
+	{
+		return;
 	}
 	else if ( tNow > m_tSearchCheck && tNow - m_tSearchCheck >= 1000 )
 	{
@@ -119,19 +141,19 @@ void CDownloadWithSearch::RunSearch(DWORD tNow)
 
 		if ( IsPaused() == FALSE && ( bFewSources || bDataStarve ) )
 		{
-			StartAutomaticSearch( bG1, bG2, bED2K );
+			StartAutomaticSearch( tNow, bG1, bG2, bED2K );
 		}
 		else
 		{
-			StopSearch();
+			StopSearch(tNow);
 		}
-	}
+	}*/
 }
 
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithSearch start (or continue) a manual search
 
-void CDownloadWithSearch::StartManualSearch()
+void CDownloadWithSearch::StartManualSearch(DWORD tNow)
 {
 	CSingleLock pLock( &SearchManager.m_pSection );
 	if ( ! pLock.Lock( 50 ) ) return;
@@ -140,20 +162,30 @@ void CDownloadWithSearch::StartManualSearch()
 
 	m_pSearch->m_nPriority = CManagedSearch::spHighest;
 	m_pSearch->Start();
+	Downloads.m_oPendingSearches.remove( static_cast<CDownload*>(this) );
+	Downloads.m_oActiveSearches.push_back( static_cast<CDownload*>(this) );
+	m_bSearchActive		= TRUE;
+	m_tSearchStart = tNow;
+	m_tSearchDuration = Settings.Downloads.ManualSearchDuration;
 }
 
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithSearch start (or continue) an automatic search
 
-void CDownloadWithSearch::StartAutomaticSearch( BOOL bG1, BOOL bG2, BOOL bED2K )
+void CDownloadWithSearch::StartAutomaticSearch( DWORD tNow, BOOL bG1, BOOL bG2, BOOL bED2K )
 {
 	CSingleLock pLock( &SearchManager.m_pSection );
 	if ( ! pLock.Lock( 10 ) ) return;
 
 	PrepareSearch( bG1, bG2, bED2K );
-
-	m_pSearch->m_nPriority = CManagedSearch::spLowest;
+	Downloads.m_oPendingSearches.remove( static_cast<CDownload*>(this) );
+	Downloads.m_oActiveSearches.push_back( static_cast<CDownload*>(this) );
+	//m_pSearch->m_nPriority = CManagedSearch::spLowest;
+	m_pSearch->m_nPriority = CManagedSearch::spMedium;
 	m_pSearch->Start();
+	m_bSearchActive		= TRUE;
+	m_tSearchStart = tNow;
+	m_tSearchDuration = Settings.Downloads.AutoSearchDuration;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -164,7 +196,7 @@ BOOL CDownloadWithSearch::CanSearch() const
 	return m_pFile != NULL && 
 		( m_oSHA1  && ( Settings.Gnutella1.EnableToday || Settings.Gnutella2.EnableToday ) ||
 		  ( m_oED2K && ( Settings.Gnutella2.EnableToday || Settings.eDonkey.EnableToday ) ) || 
-		  m_oBTH || ( ( m_oMD5 || m_oTiger ) && Settings.Gnutella2.EnableToday ) );
+		  ( ( m_oBTH || m_oMD5 || m_oTiger ) && Settings.Gnutella2.EnableToday ) );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -274,7 +306,21 @@ void CDownloadWithSearch::PrepareSearch( BOOL bG1, BOOL bG2, BOOL bED2K )
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithSearch stop searching
 
-void CDownloadWithSearch::StopSearch()
+void CDownloadWithSearch::StopSearch(DWORD tNow, BOOL bQueuePending)
 {
-	if ( m_pSearch != NULL ) m_pSearch->Stop();
+	UNUSED_ALWAYS(tNow);
+	if ( m_pSearch != NULL )
+	{
+		m_pSearch->Stop();
+		delete m_pSearch;
+		m_pSearch = NULL;
+	}
+	m_bSearchActive		= FALSE;
+	Downloads.m_oActiveSearches.remove( static_cast<CDownload*>(this) );
+	if ( bQueuePending )
+		Downloads.m_oPendingSearches.push_back( static_cast<CDownload*>(this) );
+	else
+		Downloads.m_oPendingSearches.remove( static_cast<CDownload*>(this) );
+	m_tSearchStart = 0;			// set the started time to 0
+	m_tSearchDuration = 0;		// reset Search duration.
 }

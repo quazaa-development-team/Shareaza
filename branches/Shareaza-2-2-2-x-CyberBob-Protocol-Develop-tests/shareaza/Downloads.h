@@ -60,9 +60,11 @@ public:
 	BOOL			m_bClosing;
 	DWORD			m_tLastConnect;
 protected:
-	CList< CDownload* > m_pList;
-	CMap< ULONG, ULONG, int, int > m_pHostLimits;
-	int				m_nRunCookie;
+	CList< CDownload* >				m_pList;
+	CMap< ULONG, ULONG, int, int >	m_pHostLimits;
+	int								m_nRunCookie;
+	std::list<CDownload*>			m_oActiveSearches;
+	std::list<CDownload*>			m_oPendingSearches;
 
 public:
 	enum
@@ -178,6 +180,7 @@ public:
 	friend class CDownload;
 	friend class CDownloadBase;
 	friend class CDownloadWithTransfers;
+	friend class CDownloadWithSearch;
 	friend class CDownloadSource;
 };
 

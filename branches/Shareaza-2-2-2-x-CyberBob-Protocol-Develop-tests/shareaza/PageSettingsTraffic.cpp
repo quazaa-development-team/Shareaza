@@ -43,8 +43,6 @@ BEGIN_MESSAGE_MAP(CAdvancedSettingsPage, CSettingsPage)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
-
-
 /////////////////////////////////////////////////////////////////////////////
 // CAdvancedSettingsPage property page
 
@@ -273,7 +271,9 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Downloads.SortSources, 1, 0, 1 );
 	AddSetting( &Settings.Downloads.MaxReviews, 1, 0, 256 );
 	AddSetting( &Settings.Downloads.IgnoreED2KPushSource, 1, 0, 1 );
-	
+	AddSetting( &Settings.Downloads.AutoSearchDuration, 60*1000, 10, 60, _T(" m") );
+	AddSetting( &Settings.Downloads.ManualSearchDuration, 60*1000, 1, 10, _T(" m") );
+
 	AddSetting( &Settings.Uploads.FreeBandwidthValue, 128, 0, 4096, _T(" Kb/s") );
 	AddSetting( &Settings.Uploads.FreeBandwidthFactor, 1, 0, 100, _T("%") );
 	AddSetting( &Settings.Uploads.ClampdownFactor, 1, 0, 100, _T("%") );

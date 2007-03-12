@@ -284,13 +284,15 @@ BOOL CDownloadEditHashesPage::Commit()
 
 	if (bCriticalChange)
 	{
+		DWORD tNow = GetTickCount();
 		m_pDownload->CloseTransfers();
 		m_pDownload->ClearSources();
 		m_pDownload->ClearFailedSources();
 		m_pDownload->ClearVerification();
 		bNeedUpdate = true;
-		m_pDownload->StopSearch();
+		m_pDownload->StopSearch( tNow, FALSE );
 		m_pDownload->PrepareSearch();
+		m_pDownload->StartManualSearch( tNow );
 	}
 
 	if (bNeedUpdate)

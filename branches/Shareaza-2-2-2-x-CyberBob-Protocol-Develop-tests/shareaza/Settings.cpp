@@ -417,6 +417,8 @@ void CSettings::Setup()
 	Add( _T("Downloads.SourcesWanted"), &Downloads.SourcesWanted, 500 );
 	Add( _T("Downloads.MaxReviews"), &Downloads.MaxReviews, 64 );
 	Add( _T("Downloads.IgnoreED2KPushSource"), &Downloads.IgnoreED2KPushSource, FALSE );
+	Add( _T("Downloads.AutoSearchDuration"), &Downloads.AutoSearchDuration, 10*60*1000 );
+	Add( _T("Downloads.ManualSearchDuration"), &Downloads.ManualSearchDuration, 5*60*1000 );
 
 	Add( _T("Uploads.MaxPerHost"), &Uploads.MaxPerHost, 2 );
 	Add( _T("Uploads.FreeBandwidthValue"), &Uploads.FreeBandwidthValue, 2560 );
