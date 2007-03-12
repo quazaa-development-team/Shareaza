@@ -115,15 +115,23 @@ BOOL CDownloadTransferED2K::Initiate()
 	{
 		SetState( dtsNull );
 		m_pClient = NULL;
-		Close( TS_TRUE );
+		// this needs to be changed somehow, because CEDClient has download attached already, but it does not mean the source
+		// is not invalid nor off-line. thus this has to be something like non-destructive/non-error-counted close with re-order
+		// of the source to bottom.
+		// for now, do it with short retry time.
+		Close( TS_TRUE, 5 * 60 );	// Non-destructive close with retry in 5min.
 		return FALSE;
 	}
 	
 	m_pHost			= m_pClient->m_pHost;
 	m_sAddress		= m_pClient->m_sAddress;
+
 	if( m_sAddress.IsEmpty() )
 		m_sAddress	= inet_ntoa( m_pHost.sin_addr );
-	UpdateCountry();
+
+	if ( !CEDPacket::IsLowID( m_pSource->m_pAddress.S_un.S_addr ) )
+		UpdateCountry();
+
 	m_pClient->m_mInput.pLimit = &m_nBandwidth;
 	
 	return TRUE;
