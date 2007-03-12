@@ -334,19 +334,19 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 			pFile->m_pNextSHA1 = *pMap;
 			*pMap = pFile;
 		}
-		else if ( ! Stats.bHadTiger && pFile->m_oTiger )
+		if ( ! Stats.bHadTiger && pFile->m_oTiger )
 		{
 			pMap = m_pMapTiger + pFile->m_oTiger[ 0 ];
 			pFile->m_pNextTiger = *pMap;
 			*pMap = pFile;
 		}
-		else if ( ! Stats.bHadED2K && pFile->m_oED2K )
+		if ( ! Stats.bHadED2K && pFile->m_oED2K )
 		{
 			pMap = m_pMapED2K + pFile->m_oED2K[ 0 ];
 			pFile->m_pNextED2K = *pMap;
 			*pMap = pFile;
 		}
-		else if ( ! Stats.bHadMD5 && pFile->m_oMD5 )
+		if ( ! Stats.bHadMD5 && pFile->m_oMD5 )
 		{
 			pMap = m_pMapMD5 + pFile->m_oMD5[ 0 ];
 			pFile->m_pNextMD5 = *pMap;
