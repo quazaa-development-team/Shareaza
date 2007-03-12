@@ -1421,33 +1421,41 @@ void CNeighboursWithConnect::Maintain(PROTOCOLID nProtocol)
 			CHostCacheHost* pHost = pCache->GetNewest(); // Get the newest host from the eDonkey2000 host cache is network's host cache
 			if ( pHost != NULL ) // if there are any cache 
 			{
-				// Loop into the host cache until we have as many handshaking connections as we need hub connections
-				for ( ;pHost ;  // Loop if we need more eDonkey2000 hubs than we have handshaking connections
-					pHost = pHost->m_pPrevTime )                 // At the end of the loop, move to the next youngest host cache entry
+				bool bPrioritied = true;
+				CHostCacheHost* pTopHost = pHost;
+
+				for (;pTopHost && !( pHost != pTopHost && bPrioritied == false );bPrioritied = false)
 				{
-					// If we can connect to this host, try it, if it works, move into this if block
-					if ( pHost->m_bPriority       && // This host in the host cache is marked as priority (do)
-						pHost->CanConnect( tNow ) && // We can connect to this host now (do)
-						pHost->ConnectTo( TRUE ) )   // Try to connect to this host now (do), if it works
+					pHost = pTopHost;
+					// Loop into the host cache until we have as many handshaking connections as we need hub connections
+					for ( ;pHost ;  // Loop if we need more eDonkey2000 hubs than we have handshaking connections
+						pHost = pHost->m_pPrevTime )                 // At the end of the loop, move to the next youngest host cache entry
 					{
-						// Make sure it's an eDonkey2000 computer we just connected to
-						ASSERT( pHost->m_nProtocol == nProtocol );
-
-						// Prevent queries while we connect with this computer (do)
-						pHost->m_tQuery = tNow;
-						bNeedMore = FALSE;
-
-						// If settings wants to limit how frequently this method can run
-						if ( Settings.Connection.ConnectThrottle != 0 )
+						// If we can connect to this host, try it, if it works, move into this if block
+						if (pHost->CanConnect( tNow ) &&	// We can connect to this host now (do)
+							pHost->ConnectTo( TRUE ) &&		// Try to connect to this host now (do), if it works
+							( ( pHost->m_bPriority && bPrioritied ) ||
+							( !pHost->m_bPriority && !bPrioritied ) ) ) // This host in the host cache is marked as priority (do)
 						{
-							// Save the time we last made a connection as now, and leave
-							Network.m_tLastConnect = tTimer;
-							Downloads.m_tLastConnect = tTimer;
-							return;
+							// Make sure it's an eDonkey2000 computer we just connected to
+							ASSERT( pHost->m_nProtocol == nProtocol );
+
+							// Prevent queries while we connect with this computer (do)
+							pHost->m_tQuery = tNow;
+							bNeedMore = FALSE;
+
+							// If settings wants to limit how frequently this method can run
+							if ( Settings.Connection.ConnectThrottle != 0 )
+							{
+								// Save the time we last made a connection as now, and leave
+								Network.m_tLastConnect = tTimer;
+								Downloads.m_tLastConnect = tTimer;
+								return;
+							}
 						}
+						if ( m_nCount[ nProtocol ][ntHub] >= nAttempt )
+							return;
 					}
-					if ( m_nCount[ nProtocol ][ntHub] >= nAttempt )
-						return;
 				}
 				if ( bNeedMore && m_nCount[ nProtocol ][ntHub] < nAttempt && !Settings.Discovery.DisableAutoQuery )
 					DiscoveryServices.Execute( TRUE, PROTOCOL_ED2K, TRUE );
