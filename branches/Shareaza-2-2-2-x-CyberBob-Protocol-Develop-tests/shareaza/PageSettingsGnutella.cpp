@@ -38,6 +38,7 @@ BEGIN_MESSAGE_MAP(CGnutellaSettingsPage, CSettingsPage)
 	//{{AFX_MSG_MAP(CGnutellaSettingsPage)
 	ON_BN_CLICKED(IDC_G2_TODAY, OnG2Today)
 	ON_BN_CLICKED(IDC_G1_TODAY, OnG1Today)
+	ON_BN_CLICKED(IDC_G2_ALWAYS, OnG2Always)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -50,7 +51,6 @@ CGnutellaSettingsPage::CGnutellaSettingsPage() : CSettingsPage( CGnutellaSetting
 	//{{AFX_DATA_INIT(CGnutellaSettingsPage)
 	m_bG2Today = FALSE;
 	m_bG1Today = FALSE;
-	m_bG2Always = FALSE;
 	m_bG1Always = FALSE;
 	m_nG1Hubs = 0;
 	m_nG1Leafs = 0;
@@ -80,7 +80,6 @@ void CGnutellaSettingsPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_G1_HUBS_SPIN, m_wndG1Hubs);
 	DDX_Check(pDX, IDC_G2_TODAY, m_bG2Today);
 	DDX_Check(pDX, IDC_G1_TODAY, m_bG1Today);
-	DDX_Check(pDX, IDC_G2_ALWAYS, m_bG2Always);
 	DDX_Check(pDX, IDC_G1_ALWAYS, m_bG1Always);
 	DDX_Text(pDX, IDC_G1_HUBS, m_nG1Hubs);
 	DDX_Text(pDX, IDC_G1_LEAFS, m_nG1Leafs);
@@ -106,7 +105,6 @@ BOOL CGnutellaSettingsPage::OnInitDialog()
 	//Load initial values from the settings variables
 	m_bG2Today			= Settings.Gnutella2.EnableToday;
 	m_bG1Today			= Settings.Gnutella1.EnableToday;
-	m_bG2Always			= Settings.Gnutella2.EnableAlways;
 	m_bG1Always			= Settings.Gnutella1.EnableAlways;
 	m_bDeflateHub2Hub	= Settings.Gnutella.DeflateHub2Hub;
 	m_bDeflateLeaf2Hub	= Settings.Gnutella.DeflateLeaf2Hub;
@@ -149,7 +147,7 @@ BOOL CGnutellaSettingsPage::OnInitDialog()
 	}
 	m_wndG2ClientMode.SetCurSel( Settings.Gnutella2.ClientMode );
 
-	//m_wndG2Always.SetCheck( BST_INDETERMINATE );
+	m_wndG2Always.SetCheck( Settings.Gnutella2.EnableAlways ? BST_CHECKED : BST_UNCHECKED );
 	
 	UpdateData( FALSE );
 	
@@ -260,7 +258,7 @@ void CGnutellaSettingsPage::OnOK()
 	Settings.Gnutella2.EnableToday		= m_bG2Today;
 	Settings.Gnutella1.EnableToday		= m_bG1Today;
 	Settings.Gnutella1.EnableAlways		= m_bG1Always;
-	Settings.Gnutella2.EnableAlways		= m_bG2Always;
+	Settings.Gnutella2.EnableAlways		= m_wndG2Always.GetCheck() == BST_UNCHECKED ? FALSE : TRUE;
 	Settings.Gnutella.DeflateHub2Hub	= m_bDeflateHub2Hub;
 	Settings.Gnutella.DeflateLeaf2Hub	= m_bDeflateLeaf2Hub;
 	Settings.Gnutella.DeflateHub2Leaf	= m_bDeflateHub2Leaf;
@@ -297,5 +295,17 @@ void CGnutellaSettingsPage::OnOK()
 
 void CGnutellaSettingsPage::OnG2Always()
 {
-	//m_wndG2Always.SetCheck( BST_INDETERMINATE );
+	BOOL bEnableG2Always = m_wndG2Always.GetCheck();
+	switch ( bEnableG2Always )
+	{
+	case BST_UNCHECKED:
+		m_wndG2Always.SetCheck( BST_CHECKED );
+		break;
+	case BST_CHECKED:
+		m_wndG2Always.SetCheck( BST_UNCHECKED );
+		break;
+	default:
+		m_wndG2Always.SetCheck( BST_CHECKED );
+		break;
+	}
 }
