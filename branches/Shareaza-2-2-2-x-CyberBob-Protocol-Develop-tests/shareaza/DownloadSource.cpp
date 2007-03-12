@@ -737,7 +737,7 @@ BOOL CDownloadSource::CheckDonkey(CEDClient* pClient)
 {
 	if ( m_nProtocol != PROTOCOL_ED2K ) return FALSE;
 
-	if ( m_oGUID && pClient->m_oGUID ) return m_oGUID == pClient->m_oGUID;
+	if ( validAndEqual( m_oGUID, pClient->m_oGUID ) ) return TRUE;
 
 	if ( m_bPushOnly )
 	{
