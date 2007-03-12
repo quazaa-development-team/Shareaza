@@ -207,6 +207,7 @@ public:
 		BOOL		SkipWANIPSetup;				// Skip WANIPConn1 device setup (UPnP)
 		DWORD		FWTestWait;
 		DWORD		MaxFWTestQueue;
+		BOOL		LosePacketHandling;
 	} Connection;
 
 	struct sBandwidth

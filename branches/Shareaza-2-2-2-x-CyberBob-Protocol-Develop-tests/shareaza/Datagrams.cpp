@@ -764,10 +764,10 @@ BOOL CDatagrams::TryRead()
 	m_mInput.nTotal += nLength;
 	Statistics.Current.Bandwidth.Incoming += nLength;
 
-	//if ( Security.IsAccepted( &pFrom.sin_addr ) )
-	//{
+	if ( Security.IsAccepted( &pFrom.sin_addr ) )
+	{
 		OnDatagram( &pFrom, pBuffer, nLength );
-	//}
+	}
 
 	return TRUE;
 }
@@ -784,41 +784,15 @@ BOOL CDatagrams::OnDatagram(SOCKADDR_IN* pHost, BYTE* pBuffer, DWORD nLength)
 		// if it is Gnutella packet, packet header size + payload length written in length field = UDP packet size
 		&& ( sizeof(GNUTELLAPACKET) + pG1UDP->m_nLength ) == nLength )
 	{
-		if ( Security.IsAccepted( &(pHost->sin_addr) ) )
+		CG1Packet* pG1Packet = CG1Packet::New( (GNUTELLAPACKET*)pG1UDP );
+		pG1Packet->SmartDump( NULL, &pHost->sin_addr, FALSE );
+		if ( OnPacket( pHost, pG1Packet ) )
 		{
-			CG1Packet* pG1Packet = CG1Packet::New( (GNUTELLAPACKET*)pG1UDP );
-			pG1Packet->SmartDump( NULL, &pHost->sin_addr, FALSE );
-			if ( OnPacket( pHost, pG1Packet ) )
-			{
-				pG1Packet->Release();
-				return TRUE;
-			}
-			else
-			{
-				pG1Packet->Release();
-				if ( TRUE /* should put setting define if the packet should go through all packet handlers or not */) return TRUE;
-			}
+			pG1Packet->Release();
+			// NOTE: sometimes you can get some G2/ED2K packet gets processed on G1 packet handler
 		}
 		else
 		{
-			CG1Packet* pG1Packet = CG1Packet::New( (GNUTELLAPACKET*)pG1UDP );
-
-			if ( pG1Packet->m_nType == G1_PACKET_PONG && m_oUHCFilter.size() != 0 )
-			{
-				BootSecurityFilterItem iIndex	= m_oUHCFilter.begin();
-				BootSecurityFilterItem iEnd		= m_oUHCFilter.end();
-				for ( ; iIndex != iEnd ; iIndex++ )
-				{
-					if ( iIndex->m_pHost.sin_addr.S_un.S_addr == pHost->sin_addr.S_un.S_addr && 
-						iIndex->m_pHost.sin_port == pHost->sin_port )
-					{
-						pG1Packet->SmartDump( NULL, &pHost->sin_addr, FALSE );
-						OnPacket( pHost, pG1Packet );
-						pG1Packet->Release();
-						return TRUE;
-					}
-				}
-			}
 			pG1Packet->Release();
 			return TRUE;
 		}
@@ -830,8 +804,7 @@ BOOL CDatagrams::OnDatagram(SOCKADDR_IN* pHost, BYTE* pBuffer, DWORD nLength)
 		nLength > sizeof(*pMULE) && (
 		pMULE->nProtocol == ED2K_PROTOCOL_EDONKEY ||
 		pMULE->nProtocol == ED2K_PROTOCOL_EMULE ||
-		pMULE->nProtocol == ED2K_PROTOCOL_PACKED ) &&
-		Security.IsAccepted( &(pHost->sin_addr) ) )
+		pMULE->nProtocol == ED2K_PROTOCOL_PACKED ) )
 	{
 		CEDPacket* pPacket = CEDPacket::New( pMULE, nLength );
 
@@ -1127,34 +1100,6 @@ BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 
 BOOL CDatagrams::OnPacket(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 {
-
-	if ( Security.IsDenied( &(pHost->sin_addr) ) )
-	{
-		if ( pPacket->m_nType == G2_PACKET_KHL_ANS && m_oUKHLFilter.size() != 0 )
-		{
-			BootSecurityFilterItem iIndex	= m_oUKHLFilter.begin();
-			BootSecurityFilterItem iEnd		= m_oUKHLFilter.end();
-			for ( ; iIndex != iEnd ; iIndex++ )
-			{
-				if ( iIndex->m_pHost.sin_addr.S_un.S_addr == pHost->sin_addr.S_un.S_addr && 
-					iIndex->m_pHost.sin_port == pHost->sin_port )
-				{
-					break;
-				}
-			}
-			if ( iIndex == iEnd ) 
-			{
-				Statistics.Current.Gnutella2.Dropped++;
-				return TRUE;
-			}
-		}
-		else
-		{
-			Statistics.Current.Gnutella2.Dropped++;
-			return TRUE;
-		}
-	}
-
 	// Is it neigbour's packet or stranger's packet?
 	//CNeighbour* pNeighbour = Neighbours.Get( (SOCKADDR_IN*)pHost );
 	//CG2Neighbour* pNeighbour2 = static_cast< CG2Neighbour* >
@@ -1437,18 +1382,6 @@ BOOL CDatagrams::OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket)
 				break;
 			}
 		}
-	}
-
-	// If that IP address is in our list of computers to not talk to, except ones in UHC list in discovery
-	if (	!bQueried &&	// Should not process the packet if the node is not queried for(Answer without asking = unsafe)
-		(	Network.IsFirewalledAddress( (LPVOID*)&pHost->sin_addr, TRUE, TRUE ) ||
-			Network.IsReserved( &pHost->sin_addr ) ||
-			Security.IsDenied( &pHost->sin_addr ) )
-		)
-	{
-		// Record the packet as dropped, do nothing else, and leave now
-		Statistics.Current.Gnutella1.Dropped++;
-		return TRUE;
 	}
 
 	// If the pong is bigger than 14 bytes, and the remote compuer told us in the handshake it supports GGEP blocks
