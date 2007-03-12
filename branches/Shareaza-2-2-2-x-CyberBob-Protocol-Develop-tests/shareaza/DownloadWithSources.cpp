@@ -736,24 +736,28 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 				{
 					if ( pExisting->m_pTransfer == NULL ) // Not Downloading.
 					{
-						pExisting->ChangeProtocolID( pSource->m_nProtocol );
-						if ( pSource->m_oGUID != NULL ) pExisting->m_oGUID = pSource->m_oGUID;
-						pExisting->m_pAddress.S_un.S_addr = pSource->m_pAddress.S_un.S_addr;
-						pExisting->m_nPort = pSource->m_nPort;
-						pExisting->m_nIndex = pSource->m_nIndex;
-						pExisting->m_bClientExtended = pSource->m_bClientExtended;
-						pExisting->m_bPushOnly = pSource->m_bPushOnly;
-						pExisting->m_sURL = pSource->m_sURL;
+						if ( CompareFileTime( &pExisting->m_tLastSeen, &pSource->m_tLastSeen ) < 0 )
+						{
+							pExisting->m_tLastSeen = pSource->m_tLastSeen;
+							pExisting->ChangeProtocolID( pSource->m_nProtocol );
+							if ( pSource->m_oGUID != NULL ) pExisting->m_oGUID = pSource->m_oGUID;
+							pExisting->m_pAddress.S_un.S_addr = pSource->m_pAddress.S_un.S_addr;
+							pExisting->m_nPort = pSource->m_nPort;
+							pExisting->m_nIndex = pSource->m_nIndex;
+							pExisting->m_bClientExtended = pSource->m_bClientExtended;
+							pExisting->m_bPushOnly = pSource->m_bPushOnly;
+							pExisting->m_sURL = pSource->m_sURL;
 
-						if ( !pSource->m_oHubList.empty() )
-						{
-							pExisting->m_oHubList = pSource->m_oHubList;
-							pExisting->m_nPushAttempted = 0;
-						}
-						if ( !pSource->m_oPushProxyList.empty() )
-						{
-							pExisting->m_oPushProxyList = pSource->m_oPushProxyList;
-							pExisting->m_nPushAttempted = 0;
+							if ( !pSource->m_oHubList.empty() )
+							{
+								pExisting->m_oHubList = pSource->m_oHubList;
+								pExisting->m_nPushAttempted = 0;
+							}
+							if ( !pSource->m_oPushProxyList.empty() )
+							{
+								pExisting->m_oPushProxyList = pSource->m_oPushProxyList;
+								pExisting->m_nPushAttempted = 0;
+							}
 						}
 					}				
 				}

@@ -100,6 +100,7 @@ CQueryHit::CQueryHit(PROTOCOLID nProtocol, const Hashes::Guid& oSearchID) :
 	m_bNew			= FALSE;
 	m_bSelected		= FALSE;
 	m_bResolveURL	= TRUE;
+	ZeroMemory( (void*)&m_tTimeCreated, sizeof(FILETIME) );
 }
 
 CQueryHit::~CQueryHit()
@@ -237,12 +238,17 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 		oClientID.validate();
 
 		DWORD nIndex = 0;
-		
+		SYSTEMTIME tTime;
+		FILETIME tSeen;
+		GetSystemTime( &tTime );
+		SystemTimeToFileTime( &tTime, &tSeen );
+
 		for ( pLastHit = pFirstHit ; pLastHit ; pLastHit = pLastHit->m_pNext, nIndex++ )
 		{
 			pLastHit->ParseAttributes( oClientID, pVendor, nFlags, bChat, bBrowseHost, oPushProxyList );
 			pLastHit->Resolve();
 			if ( pXML ) pLastHit->ParseXML( pXML, nIndex );
+			pLastHit->m_tTimeCreated = tSeen;
 		}
 		
 		CheckBogus( pFirstHit );
@@ -511,7 +517,11 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops, SOCKADDR_IN* p
 		if ( ! bPush ) bPush = ( nPort == 0 || Network.IsFirewalledAddress( &nAddress ) );
 		
 		DWORD nIndex = 0;
-		
+		SYSTEMTIME tTime;
+		FILETIME tSeen;
+		GetSystemTime( &tTime );
+		SystemTimeToFileTime( &tTime, &tSeen );
+
 		for ( pLastHit = pFirstHit ; pLastHit ; pLastHit = pLastHit->m_pNext, nIndex++ )
 		{
 			if ( nGroupState[ pLastHit->m_nGroup ][0] == FALSE ) pLastHit->m_nGroup = 0;
@@ -533,6 +543,7 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops, SOCKADDR_IN* p
 			pLastHit->m_sNick		= strNick;
 			pLastHit->m_bPreview	&= pLastHit->m_bPush == TS_FALSE;
 			pLastHit->m_oHubList	= oHubList;
+			pLastHit->m_tTimeCreated= tSeen;
 			
 			if ( pLastHit->m_nUpSlots > 0 )
 			{
@@ -574,7 +585,11 @@ CQueryHit* CQueryHit::FromPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD
 	CQueryHit* pFirstHit	= NULL;
 	CQueryHit* pLastHit		= NULL;
     Hashes::Ed2kHash oHash;
-	
+	SYSTEMTIME tTime;
+	FILETIME tSeen;
+	GetSystemTime( &tTime );
+	SystemTimeToFileTime( &tTime, &tSeen );
+
 	if ( pPacket->m_nType == ED2K_S2C_SEARCHRESULTS ||
 		 pPacket->m_nType == ED2K_S2CG_SEARCHRESULT )
 	{
@@ -599,6 +614,7 @@ CQueryHit* CQueryHit::FromPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD
 			pHit->m_pVendor = VendorCache.m_pED2K;
 			if ( ! pHit->ReadEDPacket( pPacket, pServer, m_nServerFlags ) ) break;
 			pHit->Resolve();
+			pHit->m_tTimeCreated = tSeen;
 
 			if ( pHit->m_bPush == TS_TRUE )
 			{
@@ -629,6 +645,7 @@ CQueryHit* CQueryHit::FromPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD
 			pHit->m_pVendor = VendorCache.m_pED2K;
 			pHit->ReadEDAddress( pPacket, pServer );
 			pHit->Resolve();
+			pHit->m_tTimeCreated = tSeen;
 		}
 	}
 
@@ -1712,6 +1729,7 @@ void CQueryHit::Copy(CQueryHit* pOther)
 	m_nUpQueue		= pOther->m_nUpQueue;
 	m_bCollection	= pOther->m_bCollection;
 	m_nRating		= pOther->m_nRating;
+	m_tTimeCreated	= pOther->m_tTimeCreated;
 }
 
 void CQueryHit::Delete()

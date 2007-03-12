@@ -98,6 +98,8 @@ public:
 	std::list<SOCKADDR_IN> m_oHubList;
 	std::list<SOCKADDR_IN> m_oPushProxyList;
 	typedef std::list<SOCKADDR_IN>::iterator HubIndex;
+	FILETIME		m_tTimeCreated;
+
 
 // Static Decode Operations
 public:

@@ -131,6 +131,7 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, CQueryHit* pHit)
 	m_bBTH		= bool( pHit->m_oBTH );
 	m_oHubList	= pHit->m_oHubList;
 	m_oPushProxyList	= pHit->m_oPushProxyList;
+	m_tLastSeen = pHit->m_tTimeCreated;
 	
 	if ( pHit->m_nProtocol == PROTOCOL_G1 || pHit->m_nProtocol == PROTOCOL_G2 )
 	{
