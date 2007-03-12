@@ -169,6 +169,7 @@ public:
 	BOOL		IsReserved(IN_ADDR* pAddress, bool bCheckLocal=true);
 	WORD		RandomPort() const;
 	void		CreateID(Hashes::Guid& oID);
+	void		CreateMUID(Hashes::Guid& oID);
 	BOOL		IsFirewalledAddress(LPVOID pAddress, BOOL bIncludeSelf = FALSE, BOOL bForceCheck = FALSE );
 	void		TestRemoteFirewall(DWORD nAddress, WORD nPort);
 public:

@@ -585,7 +585,7 @@ void CSearchWnd::OnSearchSearch()
 		pSearch.reset( new CManagedSearch( pCriteria ) );
 	}
 	
-	Network.CreateID( pSearch->m_pSearch->m_oGUID );
+	Network.CreateMUID( pSearch->m_pSearch->m_oGUID );
 	
 	{
 

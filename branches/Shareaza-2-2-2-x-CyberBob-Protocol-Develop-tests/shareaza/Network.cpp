@@ -729,6 +729,40 @@ void CNetwork::CreateID(Hashes::Guid& oID)
 }
 
 //////////////////////////////////////////////////////////////////////
+// CNetwork GGUID generation
+
+void CNetwork::CreateMUID(Hashes::Guid& oID)
+{
+	oID = MyProfile.oGUID;
+	srand( GetTickCount() + m_nSequence++ );
+	*(DWORD*)(&oID[4])	+= DWORD( rand() * ( RAND_MAX + 1 ) * ( RAND_MAX + 1 ) + rand() * ( RAND_MAX + 1 ) + rand() );
+	*(DWORD*)(&oID[8])	+= DWORD( rand() * ( RAND_MAX + 1 ) * ( RAND_MAX + 1 ) + rand() * ( RAND_MAX + 1 ) + rand() );
+	*(WORD*)(&oID[15])	+= WORD( rand() );
+	oID[0]		= m_pHost.sin_addr.S_un.S_un_b.s_b1;
+	oID[1]		= m_pHost.sin_addr.S_un.S_un_b.s_b2;
+	oID[2]		= m_pHost.sin_addr.S_un.S_un_b.s_b3;
+	oID[3]		= m_pHost.sin_addr.S_un.S_un_b.s_b4;
+	oID[13]		= (BYTE)( ( m_pHost.sin_port >> 8 ) & 0xFF );
+	oID[14]		= (BYTE)( m_pHost.sin_port & 0xFF );
+/*
+	*i++ = m_pHost.sin_addr.S_un.S_un_b.s_b1;
+	*i++ = m_pHost.sin_addr.S_un.S_un_b.s_b2;
+	*i++ = m_pHost.sin_addr.S_un.S_un_b.s_b3;
+	*i++ = m_pHost.sin_addr.S_un.S_un_b.s_b4;
+	i++;
+	i++;
+	i++;
+	i++;
+	i++;
+	i++;
+	i++;
+	i++;
+    *i++ = (BYTE)( ( m_pHost.sin_port >> 8 ) & 0xFF );
+	*i   = (BYTE)( m_pHost.sin_port & 0xFF );
+*/
+}
+
+//////////////////////////////////////////////////////////////////////
 // CNetwork firewalled address checking
 
 BOOL CNetwork::IsFirewalledAddress(LPVOID pAddress, BOOL bIncludeSelf, BOOL bForceCheck)

@@ -68,7 +68,7 @@ CQuerySearch::CQuerySearch(BOOL bGUID)
 , m_oBTH()
 , m_oSimilarED2K()
 {
-	if ( bGUID ) Network.CreateID( m_oGUID );
+	if ( bGUID ) Network.CreateMUID( m_oGUID );
 	
 	m_pSchema	= NULL;
 	m_pXML		= NULL;
