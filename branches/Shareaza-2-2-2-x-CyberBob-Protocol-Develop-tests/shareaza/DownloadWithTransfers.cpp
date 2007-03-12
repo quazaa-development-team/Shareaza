@@ -437,7 +437,7 @@ BOOL CDownloadWithTransfers::OnAcceptPush(const Hashes::Guid& oClientID, CConnec
 BOOL CDownloadWithTransfers::OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept)
 {
 	CDownload* pDownload = (CDownload*)this;
-	if ( pDownload->IsMoving() || pDownload->IsPaused() ) return FALSE;
+	if ( pDownload->IsMoving() || pDownload->IsPaused() || pDownload->IsCompleted() ) return FALSE;
 	
 	CDownloadSource* pSource = NULL;
 //	DWORD tNow = GetTickCount();

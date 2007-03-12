@@ -246,6 +246,14 @@ void CDownloadWithSources::ClearSources()
 	for ( CDownloadSource* pSource = GetFirstSource() ; pSource ; )
 	{
 		CDownloadSource* pNext = pSource->m_pNext;
+		// just in case, clear Transfer attached to the Source.
+		// basically because AddAltURLs() call this function if the download is completed.
+		// this can be problem on BT.
+		CDownloadTransfer* pTransfer = pSource->m_pTransfer;
+		if ( pTransfer )
+		{
+			pTransfer->m_pSource = NULL;
+		}
 		delete pSource;
 		pSource = pNext;
 	}
