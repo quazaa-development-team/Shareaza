@@ -33,6 +33,7 @@
 #include "Skin.h"
 #include "CtrlDownloads.h"
 #include "WndDownloads.h"
+#include "ManagedSearch.h"
 #include "Flags.h"
 
 IMPLEMENT_DYNAMIC(CDownloadsCtrl, CWnd)
@@ -86,7 +87,9 @@ CDownloadsCtrl::CDownloadsCtrl() :
 	m_bDrag( FALSE ),
 	m_pDeselect1( NULL ),
 	m_pDeselect2( NULL ),
-	m_pbSortAscending( NULL )
+	m_pbSortAscending( NULL ),
+	m_bShowSearchOnStatus( FALSE ),
+	m_tSwitchStatus( 0 )
 {
 	// Try to get the number of lines to scroll when the mouse wheel is rotated
 	if( !SystemParametersInfo ( SPI_GETWHEELSCROLLLINES, 0, &m_nScrollWheelLines, 0) )
@@ -826,6 +829,17 @@ void CDownloadsCtrl::OnPaint()
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
 	CRect rcClient, rcItem;
 	CPaintDC dc( this );
+	DWORD tNow = GetTickCount();
+
+	if ( !m_tSwitchStatus || tNow - m_tSwitchStatus > 1000 )
+	{
+		m_tSwitchStatus = tNow;
+		if ( m_bShowSearchOnStatus )
+			m_bShowSearchOnStatus = FALSE;
+		else
+			m_bShowSearchOnStatus = TRUE;
+	}
+
 	if ( theApp.m_bRTL ) dc.SetTextAlign( TA_RTLREADING );
 
 	GetClientRect( &rcClient );
@@ -1042,7 +1056,7 @@ void CDownloadsCtrl::PaintDownload(CDC& dc, const CRect& rcRow, CDownload* pDown
 			break;
 
 		case DOWNLOAD_COLUMN_STATUS:
-			strText = GetDownloadStatus( pDownload );
+			strText = GetDownloadStatus( pDownload, m_bShowSearchOnStatus );
 			break;
 
 		case DOWNLOAD_COLUMN_CLIENT:
@@ -1477,12 +1491,14 @@ void CDownloadsCtrl::OnChangeHeader(NMHDR* /*pNotifyStruct*/, LRESULT* /*pResult
 	Update();
 }
 
-CString CDownloadsCtrl::GetDownloadStatus(CDownload *pDownload)
+CString CDownloadsCtrl::GetDownloadStatus(CDownload *pDownload, BOOL bSearch)
 {
 	CString strText;
 	int nSources = pDownload->GetEffectiveSourceCount();
 
-	if ( pDownload->IsCompleted() )
+	if ( bSearch && pDownload->m_pSearch && pDownload->m_pSearch->m_bActive )
+		LoadString( strText, IDS_STATUS_SEARCHING );
+	else if ( pDownload->IsCompleted() )
 		if ( pDownload->IsSeeding() )
 		{
 			if ( pDownload->m_bTorrentTrackerError )
@@ -1533,7 +1549,7 @@ CString CDownloadsCtrl::GetDownloadStatus(CDownload *pDownload)
 		else
 			LoadString( strText, IDS_STATUS_TORRENT );
 	}
-	else
+	else if ( pDownload->m_pSearch && pDownload->m_pSearch->m_bActive )
 		LoadString( strText, IDS_STATUS_SEARCHING );
 
 	return strText;
@@ -1598,7 +1614,7 @@ void CDownloadsCtrl::BubbleSortDownloads(int nColumn)  // BinaryInsertionSortDow
 							bRlBk = FALSE;
 						break;
 					case DOWNLOAD_COLUMN_STATUS:
-						if ( GetDownloadStatus( x ).CompareNoCase(GetDownloadStatus(y)) < 0 )
+						if ( GetDownloadStatus(x, FALSE).CompareNoCase( GetDownloadStatus(y, FALSE) ) < 0 )
 							bOK = TRUE;
 						else
 							bRlBk = FALSE;
@@ -1652,7 +1668,7 @@ void CDownloadsCtrl::BubbleSortDownloads(int nColumn)  // BinaryInsertionSortDow
 							bRlBk = FALSE;
 						break;
 					case DOWNLOAD_COLUMN_STATUS:
-						if ( GetDownloadStatus(x).CompareNoCase( GetDownloadStatus(y) ) > 0 )
+						if ( GetDownloadStatus(x, FALSE).CompareNoCase( GetDownloadStatus(y, FALSE) ) > 0 )
 							bOK = TRUE;
 						else
 							bRlBk = FALSE;
