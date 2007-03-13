@@ -157,7 +157,7 @@ BOOL CHandshakes::Listen()
 	if ( !bBound )
 	{
 		shutdown( m_hSocket, SD_RECEIVE );
-		ret = closesocket( m_hSocket );
+		closesocket( m_hSocket );
 		m_hSocket = INVALID_SOCKET;
 		return FALSE;
 	}
