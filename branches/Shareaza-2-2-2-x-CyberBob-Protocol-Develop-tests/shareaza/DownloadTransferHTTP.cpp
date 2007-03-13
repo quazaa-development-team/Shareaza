@@ -685,7 +685,7 @@ BOOL CDownloadTransferHTTP::OnRun()
 					CConnection::Close();									// Close Socket
 					m_bPushWaiting = TRUE;									// Set PUSH flag
 					m_tConnected  = tNow;									// Reset Connection time for Timeout
-					m_sAddress.Format( _T("Unknown - Attempting PUSH") );			// Set Message in Address field (Quick hack for GUI)
+					m_sAddress.Format( _T("Attempting PUSH") );				// Set Message in Address field (Quick hack for GUI)
 					m_pHost.sin_port = htons( (WORD)m_pSource->m_nPushAttempted );	// Set attempt count to Port number(Quick hack for GUI)
 					return TRUE;
 				}
