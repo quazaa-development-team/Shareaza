@@ -156,11 +156,14 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, CQueryHit* pHit)
 	
 	ResolveURL();
 
+	// ResolveURL will mark Protocol Type HTTP if it was G1/2. so if it was HTTP, get the Protocol type back to G1/2 from QueryHit.
+	// NOTE: do not change any other protocol types here. for BTIH on HTTP implementation, the protocol should not be changed here, but
+	//		instead, should be done on Uploader/Seeder side with packing HTTP URL into /QH2/H/URL.
+	//		ref to function member: void CLocalSearch::AddHit( CDownload*, int )
 	if ( m_nProtocol == PROTOCOL_HTTP )
 	{
 		m_nProtocol = pHit->m_nProtocol;
 	}
-
 }
 
 //////////////////////////////////////////////////////////////////////
