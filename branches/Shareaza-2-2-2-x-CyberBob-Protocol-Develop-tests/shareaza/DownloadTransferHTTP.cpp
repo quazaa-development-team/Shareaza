@@ -110,7 +110,6 @@ BOOL CDownloadTransferHTTP::Initiate()
 		CTransfer::AttachTo(this);		// Add this CTransfer derived object to CTransfers.
 		m_sAddress.Format( _T("Unknown - Attempting PUSH") );			// Set Message in Address field (Quick hack for GUI)
 		m_pHost.sin_port = htons( (WORD)m_pSource->m_nPushAttempted );	// Set attempt count to Port number(Quick hack for GUI)
-
 	}
 	else if ( ConnectTo( &m_pSource->m_pAddress, m_pSource->m_nPort ) )
 	{
@@ -121,6 +120,8 @@ BOOL CDownloadTransferHTTP::Initiate()
 	}
 	else
 	{
+		/* ??????? don't get this. at this point, no one can get Offline/online status. only thing it can get
+					is initiation success or failed. including the case the source was on security list.*/
 		// Couldn't connect, keep the source but add to the m_pFailedSources
 		// Mark it as an offline source, it might be good later...
 		m_pDownload->AddFailedSource( m_pSource, true, true );
@@ -669,7 +670,7 @@ BOOL CDownloadTransferHTTP::OnRun()
 				if ( m_pSource->m_bPushOnly )		// This is PUSH only source
 					Close( TS_TRUE );
 				else								// Not PUSH only source
-					Close( TS_UNKNOWN );	// Close connection with AttemptTime/FailureCount increased.
+					Close( TS_UNKNOWN );			// Close connection with AttemptTime/FailureCount increased.
 
 				return FALSE;
 			}
@@ -679,13 +680,13 @@ BOOL CDownloadTransferHTTP::OnRun()
 			if ( tNow - m_tConnected > Settings.Connection.TimeoutConnect )	// if time of trial is loger than Connection Timeout
 			{
 				theApp.Message( MSG_ERROR, IDS_CONNECTION_TIMEOUT_CONNECT, (LPCTSTR)m_sAddress );
-				m_pSource->m_bCloseConn = FALSE;							// Reset CloseConnection flag
-				if ( Network.IsListening() && m_pSource->PushRequest() )	// Try PUSH if Network core is ready for it
+				m_pSource->m_bCloseConn = FALSE;									// Reset CloseConnection flag
+				if ( Network.IsListening() && m_pSource->PushRequest() )			// Try PUSH if Network core is ready for it
 				{
-					CConnection::Close();									// Close Socket
-					m_bPushWaiting = TRUE;									// Set PUSH flag
-					m_tConnected  = tNow;									// Reset Connection time for Timeout
-					m_sAddress.Format( _T("Attempting PUSH") );				// Set Message in Address field (Quick hack for GUI)
+					CConnection::Close();											// Close Socket
+					m_bPushWaiting = TRUE;											// Set PUSH flag
+					m_tConnected  = tNow;											// Reset Connection time for Timeout
+					m_sAddress.Format( _T("Attempting PUSH") );						// Set Message in Address field (Quick hack for GUI)
 					m_pHost.sin_port = htons( (WORD)m_pSource->m_nPushAttempted );	// Set attempt count to Port number(Quick hack for GUI)
 					return TRUE;
 				}
