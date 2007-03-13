@@ -1253,8 +1253,8 @@ BOOL CMatchFile::Add(CQueryHit* pHit, BOOL bForce)
 			
 			if ( ! bForce && bName ) bForce = TRUE;
 
-			if ( bName && pHit->m_pAddress.S_un.S_addr == pOld->m_pAddress.S_un.S_addr &&
-				 pHit->m_nPort == pOld->m_nPort )
+			if ( bName && ( ( pHit->m_pAddress.S_un.S_addr == pOld->m_pAddress.S_un.S_addr &&
+				 pHit->m_nPort == pOld->m_nPort ) || validAndEqual( pOld->m_oClientID, pHit->m_oClientID ) ) )
 			{
 				if ( pOld->m_bFiltered )
 				{
