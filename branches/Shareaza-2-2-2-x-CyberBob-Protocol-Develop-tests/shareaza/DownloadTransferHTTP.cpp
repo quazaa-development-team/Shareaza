@@ -158,6 +158,10 @@ BOOL CDownloadTransferHTTP::AcceptPush(CConnection* pConnection)
 		m_bHeadRequest = TRUE;
 	}
 
+	m_pSource->m_sCountry = m_sCountry;
+	m_pSource->m_sCountryName = m_sCountryName;
+	m_pSource->m_pAddress.S_un.S_addr = m_pHost.sin_addr.S_un.S_addr;
+
 	m_pSource->m_bReConnect = FALSE;
 	if ( StartNextFragment() ) return TRUE;
 
