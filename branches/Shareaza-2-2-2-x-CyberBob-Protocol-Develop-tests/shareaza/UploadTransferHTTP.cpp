@@ -432,6 +432,7 @@ BOOL CUploadTransferHTTP::OnHeadersComplete()
 	{
 		// Assume Gnutella2 capability for certain user-agents
 		m_nGnutella |= 3;
+		m_bNotShareaza = TRUE;
 	}
 	else if ( m_nGnutella & 2 )
 	{
@@ -441,6 +442,7 @@ BOOL CUploadTransferHTTP::OnHeadersComplete()
 			// This is actually a G1-only client sending a fake header, so they can download 
 			// from (but not upload to) clients that are only connected to G2. 
 			m_nGnutella = 1;
+			m_bNotShareaza = TRUE;
 
 			if ( ! Settings.IsG1Allowed() )
 			{
@@ -458,6 +460,7 @@ BOOL CUploadTransferHTTP::OnHeadersComplete()
 		{
 			// This is actually a G1-only client somehow recognised as G2 (dont know why it happens, but)
 			m_nGnutella = 1;
+			m_bNotShareaza = TRUE;
 
 			if ( ! Settings.IsG1Allowed() )
 			{
@@ -467,6 +470,10 @@ BOOL CUploadTransferHTTP::OnHeadersComplete()
 				return FALSE;
 			}
 		}
+	}
+	else
+	{
+		m_bNotShareaza = TRUE;
 	}
 
 	if ( m_sRequest == _T("/") || StartsWith( m_sRequest, _T("/gnutella/browse/v1") ) )
