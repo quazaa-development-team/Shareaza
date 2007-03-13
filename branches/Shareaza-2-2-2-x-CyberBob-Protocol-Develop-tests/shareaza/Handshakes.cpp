@@ -154,6 +154,14 @@ BOOL CHandshakes::Listen()
 		}
 	}
 
+	if ( !bBound )
+	{
+		shutdown( m_hSocket, SD_RECEIVE );
+		ret = closesocket( m_hSocket );
+		m_hSocket = INVALID_SOCKET;
+		return FALSE;
+	}
+
 	// If our record of our IP address on the Internet in the network object is zeroed
 	if ( Network.m_pHost.sin_addr.S_un.S_addr == 0 )
 	{
