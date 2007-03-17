@@ -108,7 +108,7 @@ BOOL CDownloadTransferHTTP::Initiate()
 		m_bPushWaiting = TRUE;			// Set flag to indicate this is waiting for PUSH connection to come.
 		m_tConnected = GetTickCount();	// Set Connect time for Timeout calculation
 		CTransfer::AttachTo(this);		// Add this CTransfer derived object to CTransfers.
-		m_sAddress.Format( _T("Unknown - Attempting PUSH") );			// Set Message in Address field (Quick hack for GUI)
+		m_sAddress.Format( _T("Attempting PUSH") );			// Set Message in Address field (Quick hack for GUI)
 		m_pHost.sin_port = htons( (WORD)m_pSource->m_nPushAttempted );	// Set attempt count to Port number(Quick hack for GUI)
 	}
 	else if ( ConnectTo( &m_pSource->m_pAddress, m_pSource->m_nPort ) )
