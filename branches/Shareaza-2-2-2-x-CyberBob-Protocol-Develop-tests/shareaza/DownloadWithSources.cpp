@@ -743,6 +743,11 @@ int CDownloadWithSources::AddSourceURLs(LPCTSTR pszURLs, BOOL bURN, BOOL bFailed
 
 BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 {
+	if ( LookupFailedSource( pSource->m_sURL, FALSE ) )
+	{
+		delete pSource;
+		return FALSE;
+	}
 	//Check/Reject if source is invalid
 	if ( ! pSource->m_bPushOnly )
 	{
