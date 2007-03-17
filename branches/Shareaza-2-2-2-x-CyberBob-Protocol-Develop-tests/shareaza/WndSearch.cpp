@@ -102,7 +102,7 @@ END_MESSAGE_MAP()
 
 CSearchWnd::CSearchWnd(auto_ptr< CQuerySearch > pSearch)
 {
-	if ( pSearch.get() ) 
+	if ( pSearch.get() )
 	{
 		m_oSearches.push_back( new CManagedSearch( pSearch ) );
 	}
@@ -727,10 +727,12 @@ void CSearchWnd::ExecuteSearch()
 	
 	if ( pManaged )
 	{
-		pManaged->m_pSearch->m_sKeywords.Empty();
-		pManaged->m_pSearch->m_oURNs.clear();
-		pManaged->m_pSearch->m_oKeywordHashList.clear();
-		pManaged->m_pSearch->BuildWordList();
+		//CQuerySearch::PrepareCheck( &(*pManaged->m_pSearch) );
+		//pManaged->m_pSearch->m_sKeywords.Empty();
+		//pManaged->m_pSearch->m_oURNs.clear();
+		//pManaged->m_pSearch->m_oKeywordHashList.clear();
+		// shouldn't be needed since CheckValid() call it anyway.
+		//pManaged->m_pSearch->BuildWordList();
 
 		if ( pManaged->m_pSearch->CheckValid() )
 		{

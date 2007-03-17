@@ -1014,31 +1014,33 @@ BOOL CQueryHashTable::Check(const CQuerySearch* pSearch) const
 	
 	if ( !pSearch->m_oURNs.empty() )
 	{
-		std::list<DWORD>::const_iterator indexUrn = pSearch->urnBegin();
-		std::list<DWORD>::const_iterator indexUrnEnd = pSearch->urnEnd();
-		for ( ; indexUrn != indexUrnEnd ; indexUrn++ )
+		CQuerySearch::const_hash_iterator iUrn = pSearch->urnBegin();
+		CQuerySearch::const_hash_iterator iUrnEnd = pSearch->urnEnd();
+		for ( ; iUrn != iUrnEnd ; iUrn++ )
 		{
-			if ( CheckHash(*indexUrn) ) return TRUE;
+			if ( CheckHash(*iUrn) ) return TRUE;
 		}
 		return FALSE;
 	}
 
 	DWORD nWordHits		= 0;
+	DWORD nWords		= 0;
 
 	if ( !pSearch->m_oKeywordHashList.empty() )
 	{
-		std::list<DWORD>::const_iterator indexKeyword = pSearch->keywordBegin();
-		std::list<DWORD>::const_iterator indexKeywordEnd = pSearch->keywordEnd();
-		for ( ; indexKeyword != indexKeywordEnd ; indexKeyword++ )
+		CQuerySearch::const_hash_iterator iKeyword = pSearch->keywordBegin();
+		CQuerySearch::const_hash_iterator iKeywordEnd = pSearch->keywordEnd();
+		for ( ; iKeyword != iKeywordEnd ; iKeyword++ )
 		{
-			if ( CheckHash(*indexKeyword) ) nWordHits++;
+			nWords++;
+			if ( CheckHash(*iKeyword) ) nWordHits++;
 		}
 
 	}
 
-	return ( pSearch->tableSize() >= 3 )
-		? nWordHits * 3 / pSearch->tableSize() >= 2 // at least 2/3 matches
-		: nWordHits == pSearch->tableSize();
+	return ( nWords >= 3 )
+		? nWordHits * 3 / nWords >= 2 // at least 2/3 matches
+		: nWordHits == nWords;
 }
 
 //////////////////////////////////////////////////////////////////////
