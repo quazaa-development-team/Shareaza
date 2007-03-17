@@ -338,17 +338,20 @@ BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int /*nIndex*/)
 
 	// Pass 1: Calculate child group size
 	
-	if ( pFile->m_oTiger && pFile->m_oSHA1 )
+	if ( pFile->m_oSHA1 )
 	{
-        nGroup += 5 + 3 + Hashes::Sha1Hash::byteCount + Hashes::TigerHash::byteCount;
+		if ( pFile->m_oTiger )
+		{
+			nGroup += 5 + 3 + Hashes::Sha1Hash::byteCount + Hashes::TigerHash::byteCount;
+		}
+		else
+		{
+			nGroup += 5 + 5 + Hashes::Sha1Hash::byteCount;
+		}
 	}
 	else if ( pFile->m_oTiger )
 	{
 		nGroup += 5 + 4 + Hashes::TigerHash::byteCount;
-	}
-	else if ( pFile->m_oSHA1 )
-	{
-		nGroup += 5 + 5 + Hashes::Sha1Hash::byteCount;
 	}
 	
 	if ( pFile->m_oED2K )
@@ -479,12 +482,23 @@ BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int /*nIndex*/)
 
 	pPacket->WritePacket( G2_PACKET_HIT_DESCRIPTOR, nGroup, TRUE );
 	
-	if ( pFile->m_oTiger && pFile->m_oSHA1 ) //Send Bitprint hash
+	if ( pFile->m_oSHA1 ) //SHA1 is there hash
 	{
-		pPacket->WritePacket( G2_PACKET_URN, 3 + Hashes::Sha1Hash::byteCount + Hashes::TigerHash::byteCount );
-		pPacket->WriteString( "bp" );
-		pPacket->Write( pFile->m_oSHA1 );
-		pPacket->Write( pFile->m_oTiger );
+		if ( pFile->m_oTiger ) //Tiger is there
+		{
+			// Send BitPrint.
+			pPacket->WritePacket( G2_PACKET_URN, 3 + Hashes::Sha1Hash::byteCount + Hashes::TigerHash::byteCount );
+			pPacket->WriteString( "bp" );
+			pPacket->Write( pFile->m_oSHA1 );
+			pPacket->Write( pFile->m_oTiger );
+		}
+		else
+		{
+			// Send Sha1.
+			pPacket->WritePacket( G2_PACKET_URN, 4 + Hashes::TigerHash::byteCount );
+			pPacket->WriteString( "ttr" );
+			pPacket->Write( pFile->m_oTiger );
+		}
 	}
 	else if ( pFile->m_oTiger ) // send Tiger hash
 	{
@@ -492,13 +506,7 @@ BOOL CLocalSearch::AddHitG2(CLibraryFile* pFile, int /*nIndex*/)
 		pPacket->WriteString( "ttr" );
 		pPacket->Write( pFile->m_oTiger );
 	}
-	else if ( pFile->m_oSHA1 ) // Send SHA1 hash
-	{
-		pPacket->WritePacket( G2_PACKET_URN, 5 + Hashes::Sha1Hash::byteCount );
-		pPacket->WriteString( "sha1" );
-		pPacket->Write( pFile->m_oSHA1 );
-	}
-	
+
 	if ( pFile->m_oED2K ) // Send ED2K hash
 	{
         pPacket->WritePacket( G2_PACKET_URN, 5 + Hashes::Ed2kHash::byteCount );
