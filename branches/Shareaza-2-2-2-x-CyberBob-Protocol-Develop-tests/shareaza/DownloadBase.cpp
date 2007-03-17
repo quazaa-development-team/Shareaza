@@ -89,8 +89,13 @@ void CDownloadBase::GenerateDiskName(bool bTorrent)
 	// Get a meaningful (but safe) name. Used for previews, etc. Make sure we get extension if name is long.
 	m_sSafeName = CDownloadTask::SafeFilename( m_sDisplayName.Right( 64 ) );
 
+	// This function has been totally corrupt.
+	// Caution:
+	//		CDownload::Save() has been patched for when incomplete has allocated. however, if the incomplete has not been made yet,
+	//		there can be some situation the file gets overridden. need some filename existence check which can cause long process.
+
 	// Start disk file name with hash
-	if ( m_oSHA1 && m_oTiger ) 
+	if ( FALSE && m_oSHA1 && m_oTiger ) // disable for now, because the string can get too long.
 	{
 		m_sDiskName += _T("bitprint_");
 		m_sDiskName += m_oSHA1.toString();
@@ -132,12 +137,50 @@ void CDownloadBase::GenerateDiskName(bool bTorrent)
 		m_sDiskName.Format( _T("rand_%2i%2i%2i%2i"), rand() % 100, rand() % 100, rand() % 100, rand() % 100 );
 	}
 
-	// Add a .partial extension
-	m_sDiskName += _T(".partial");
+	// Append file size at the end of the file name if exist.
+	if ( m_nSize )
+	{
+		m_sDiskName.AppendFormat( _T("_%I64i"), m_nSize );
+	}
+	else // otherwise, "unknown"
+	{
+		m_sDiskName.AppendFormat( _T("_%s"), (LPCTSTR)_T("unknown") );
+	}
+
+	CString strTempName( Settings.Downloads.IncompletePath + _T("\\") + m_sDiskName );
+	// Add the path and a ".partial" extension
+	m_sDiskName = Settings.Downloads.IncompletePath + _T("\\") + m_sDiskName + _T(".partial");
+	CString strTestPath( m_sDiskName );
+
+	// check if the filename exist in list already.
+	for ( POSITION pos = Downloads.GetIterator() ; pos ; )
+	{
+		CDownloadBase* pTest = reinterpret_cast<CDownloadBase*>( Downloads.GetNext( pos ) );
+		if ( pTest != this && strTestPath.CompareNoCase( pTest->m_sDiskName ) == 0 )
+		{
+			CString strDiskName;
+			bool bExist;
+			do
+			{
+				bExist = false;
+				strDiskName.AppendFormat( _T("%s_%2i%2i.partial"), (LPCTSTR)strTempName, rand() % 100, rand() % 100 );
+				for ( POSITION pos2 = Downloads.GetIterator() ; pos2 && !bExist ; )
+				{
+					CDownloadBase* pTest2 = reinterpret_cast<CDownloadBase*>( Downloads.GetNext( pos2 ) );
+					if ( pTest2 != this && strDiskName.CompareNoCase( pTest2->m_sDiskName ) == 0 )
+					{
+						bExist = true;
+					}
+				}
+			}
+			while ( bExist );
+			m_sDiskName = strDiskName;
+			break;
+		}
+	}
+
 	// Create download directory if it doesn't exist
-		CreateDirectory( Settings.Downloads.IncompletePath, NULL );
-	// Add the path
-	m_sDiskName = Settings.Downloads.IncompletePath + _T("\\") + m_sDiskName;
+	CreateDirectory( Settings.Downloads.IncompletePath, NULL );
 
 	ASSERT( m_sDiskName.GetLength() < MAX_PATH - 1 );
 }
