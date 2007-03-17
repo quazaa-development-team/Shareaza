@@ -117,4 +117,7 @@ protected:
 	afx_msg void OnMDIActivate(BOOL bActivate, CWnd* pActivateWnd, CWnd* pDeactivateWnd);
 	afx_msg void OnUpdateFilters(CCmdUI* pCmdUI);
 	afx_msg void OnFilters(UINT nID);
+	/* Quick hash for overriding download command. */
+	afx_msg void OnSearchDownload();
+	afx_msg void OnSearchDownloadNow();
 };
