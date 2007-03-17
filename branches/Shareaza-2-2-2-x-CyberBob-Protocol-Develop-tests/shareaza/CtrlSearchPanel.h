@@ -217,6 +217,7 @@ public:
 	void						OnSkinChange();
 	void						Disable();
 	void						Enable();
+	void						GetQueryString(CString& strQuery);
 	
 // Overrides
 public:
