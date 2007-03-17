@@ -292,7 +292,6 @@ BOOL CNeighbour::OnRun()
 				m_pQueryTableLocal->m_nInfinity, m_pQueryTableLocal->GetPercent() );
 		}
 	}
-
 	// Report success
 	return TRUE;
 }

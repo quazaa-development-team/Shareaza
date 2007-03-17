@@ -144,7 +144,7 @@ public:
 	friend class CLibraryMaps;
 	friend class CLibraryRecent;
 	friend class CDeleteFileDlg;
-	
+
 // Automation
 protected:
 	BEGIN_INTERFACE_PART(LibraryFile, ILibraryFile)
@@ -170,9 +170,9 @@ protected:
 		STDMETHOD(Copy)(BSTR sNewPath);
 		STDMETHOD(Move)(BSTR sNewPath);
 	END_INTERFACE_PART(LibraryFile)
-	
+
 	DECLARE_INTERFACE_MAP()
-	
+
 };
 
 
@@ -226,7 +226,7 @@ public:
 		PROTOCOL_ALL = 15,		// node is Mix of all above (i.e. Shareaza, possibly some others)
 		PROTOCOL_URL = 16		// Address in m_pNode is URL (i.e. Web/FTP server)
 	};
-	
+
 
 // Construction
 public:
@@ -247,8 +247,5 @@ public:
 	BOOL	IsExpired(FILETIME& tNow);
 
 };
-
-
-
 
 #endif // !defined(AFX_SHAREDFILE_H__8FFCC311_D43C_445D_BAEB_575AE2AE8E99__INCLUDED_)

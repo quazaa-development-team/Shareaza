@@ -188,7 +188,7 @@ int CLibraryDictionary::ProcessPhrase(CLibraryFile* pFile, const CString& strPhr
 			nNextWord = nPos + nDistance;
 		}
 	}
-	
+
 	strWord = strTransformed.Mid( nPrevWord, nPos - nPrevWord );
 	nCount += MakeKeywords( pFile, strWord, bAdd );
 	return nCount;
@@ -244,7 +244,6 @@ int CLibraryDictionary::MakeKeywords(CLibraryFile* pFile, const CString& strWord
 				ProcessWord( pFile, strKeyword, bAdd );
 				nCount++;
 			}
-
 			if ( nLength >= 5 )
 			{
 				// take of first 1 & last 2 chars
@@ -383,7 +382,7 @@ BOOL CLibraryDictionary::BuildHashTable()
 		CString strWord;
 		
 		m_pWords.GetNextAssoc( pos, strWord, pWord );
-		
+
 		CLibraryFile* pFileTemp = *(pWord->m_pList); 
 
 		if (  pFileTemp->IsShared() || ( pFileTemp->IsGhost() ) /* || 

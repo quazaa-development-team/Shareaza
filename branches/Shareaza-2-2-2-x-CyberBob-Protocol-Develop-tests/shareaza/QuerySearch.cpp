@@ -139,14 +139,14 @@ CG1Packet* CQuerySearch::ToG1Packet()
 {
 	CG1Packet* pPacket = CG1Packet::New( G1_PACKET_QUERY,
 		min( Settings.Gnutella1.SearchTTL, 4ul ), m_oGUID );
-	
+
 	// Dont Think Shareaza support Dynamic Query
 	// WORD nFlags = G1_QF_TAG | G1_QF_BIN_HASH | G1_QF_DYNAMIC;
 	WORD nFlags = G1_QF_TAG | G1_QF_BIN_HASH | G1_QF_DYNAMIC /* | G1_QF_OOB */;
 	if ( ! Network.IsListening() ) nFlags |= G1_QF_FIREWALLED;
 	if ( m_bWantXML ) nFlags |= G1_QF_XML;
 	pPacket->WriteShortLE( nFlags );
-	
+
 	CString strExtra;
 
 	if ( !m_sPosKeywords.IsEmpty() )
@@ -171,7 +171,7 @@ CG1Packet* CQuerySearch::ToG1Packet()
 	{
 		pPacket->WriteByte( 0 );
 	}
-	
+
 	// Some Gnutella Node does not like forwarding Query containing URN with "HUGE" extension.
 	/* if ( m_oSHA1 )
 	{
@@ -196,7 +196,7 @@ CG1Packet* CQuerySearch::ToG1Packet()
 		strExtra += m_pXML->ToString( TRUE );
 		pPacket->WriteString( strExtra, FALSE );
 	}
-	
+
 	// use this for instead of Real URN to be added as HUGE. since it really looks like LimeWire ignore Query packet
 	// with URNs specified.
 	if ( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 || m_oBTH )
@@ -266,7 +266,7 @@ CG1Packet* CQuerySearch::ToG1Packet()
 CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 {
 	CG2Packet* pPacket = CG2Packet::New( G2_PACKET_QUERY, TRUE );
-	
+
 	if ( pUDP )
 	{
 		pPacket->WritePacket( G2_PACKET_UDP, nKey ? 10 : 6 );
@@ -309,6 +309,7 @@ CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 		pPacket->WriteString( "ttr" );
 		pPacket->Write( m_oTiger );
 	}
+
 	// If the target source has only ed2k hash (w/o SHA1) it will allow to find such files
 	if ( m_oED2K )
 	{
@@ -330,7 +331,7 @@ CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 		pPacket->WriteString( "btih" );
 		pPacket->Write( m_oBTH );
 	}
-	
+
 	if ( !m_sKeywords.IsEmpty() && !m_sSearch.IsEmpty() )
 	{
 		if ( m_sKeywords != m_sSearch )
@@ -345,11 +346,11 @@ CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 			pPacket->WriteString( m_sKeywords, FALSE );
 		}
 	}
-	
+
 	if ( !( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 ) && m_pXML != NULL )
 	{
 		CString strXML;
-		
+
 		if ( true )
 		{
 			if ( CXMLElement* pBody = m_pXML->GetFirstElement() )
@@ -359,11 +360,11 @@ CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 		{
 			strXML = m_pXML->ToString( TRUE );
 		}
-		
+
 		pPacket->WritePacket( G2_PACKET_METADATA, pPacket->GetStringLen( strXML ) );
 		pPacket->WriteString( strXML, FALSE );
 	}
-	
+
 	if ( m_nMinSize != 0 || m_nMaxSize != SIZE_UNKNOWN )
 	{
 		if ( m_nMinSize < 0xFFFFFFFF && ( m_nMaxSize < 0xFFFFFFFF || m_nMaxSize == SIZE_UNKNOWN ) )
@@ -379,26 +380,26 @@ CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 			pPacket->WriteInt64( m_nMaxSize );
 		}
 	}
-	
+
 	if ( m_bWantURL || m_bWantDN || m_bWantXML || m_bWantCOM || m_bWantPFS )
 	{
 		pPacket->WritePacket( G2_PACKET_INTEREST,
 			( m_bWantURL ? 4 : 0 ) + ( m_bWantDN ? 3 : 0 ) + ( m_bWantXML ? 3 : 0 ) +
 			( m_bWantCOM ? 4 : 0 ) + ( m_bWantPFS ? 4 : 0 ) );
-		
+
 		if ( m_bWantURL ) pPacket->WriteString( "URL" );
 		if ( m_bWantDN ) pPacket->WriteString( "DN" );
 		if ( m_bWantXML ) pPacket->WriteString( "MD" );
 		if ( m_bWantCOM ) pPacket->WriteString( "COM" );
 		if ( m_bWantPFS ) pPacket->WriteString( "PFS" );
 	}
-	
+
 	if ( m_bFirewall ) pPacket->WritePacket( G2_PACKET_NAT_DESC, 0 );
 	//if ( m_bAndG1 ) pPacket->WritePacket( G2_PACKET_G1, 0 );
-	
+
 	pPacket->WriteByte( 0 );
 	pPacket->Write( m_oGUID );
-	
+
 	return pPacket;
 }
 
@@ -981,7 +982,7 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 				CString strurn = m_oBTH.toUrn();
 				m_oURNs.push_back( CQueryHashTable::HashWord( strurn, 0, strurn.GetLength(), 32 ) );
 			}
-			
+
 			BuildWordList( false );
 			return TRUE;
 		}
@@ -1022,7 +1023,7 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 			nValidCharacters = 0;
 			TCHAR szChar = *(pWord->first);
 			int nLength = int(pWord->second);
-			
+
 			bExtendChar = false;	//  clear the flag used for extended char
 			// NOTE: because of how oWord act, each keywords in oWords gets sorted in ascending order with HEX code of char,
 			//		thus Extended chars are always located at end of oWords. Which means it is not necessary to Clear the flag
@@ -1081,7 +1082,6 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 				DWORD nHash = CQueryHashTable::HashWord( pWord->first, 0, pWord->second, 32 );
 				m_oKeywordHashList.push_back( nHash );
 			}
-
 		}
 
 		if ( m_pSchema != NULL ) // if schema has been selected
@@ -1524,7 +1524,6 @@ void CQuerySearch::BuildWordList(bool bExpression, bool /* bLocal */ )
 		m_sPosKeywords.AppendFormat( _T("%s "), LPCTSTR( CString( pWord->first, int(pWord->second) ) ) );
 	}
 	m_sPosKeywords.TrimRight();
-
 }
 
 // Function is used to split a phrase in asian languages to separate keywords
@@ -1689,7 +1688,7 @@ void CQuerySearch::AddStringToWordList(LPCTSTR pszString)
 	BOOL bQuote		= FALSE;
 	BOOL bNegate	= FALSE;
 	BOOL bSpace		= TRUE;
-	
+
 	for ( ; *pszPtr ; pszPtr++ )
 	{
 		if ( IsCharacter( *pszPtr ) )
@@ -1703,9 +1702,9 @@ void CQuerySearch::AddStringToWordList(LPCTSTR pszString)
 			{
 				m_oWords.insert( std::make_pair( pszWord, pszPtr - pszWord ) );
 			}
-			
+
 			pszWord = pszPtr + 1;
-			
+
 			if ( *pszPtr == '\"' )
 			{
 				bQuote = ! bQuote;
@@ -1720,7 +1719,7 @@ void CQuerySearch::AddStringToWordList(LPCTSTR pszString)
 			{
 				bSpace = ( *pszPtr == ' ' );
 			}
-			
+
 			if ( bNegate && ! bQuote && *pszPtr != '-' ) bNegate = FALSE;
 		}
 	}
