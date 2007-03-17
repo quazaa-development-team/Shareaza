@@ -46,6 +46,11 @@
 #include "Security.h"
 #include "ResultFilters.h"
 
+#include "Download.h"
+#include "Downloads.h"
+#include "Transfers.h"
+#include "WndDownloads.h"
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #undef THIS_FILE
@@ -79,6 +84,10 @@ BEGIN_MESSAGE_MAP(CSearchWnd, CBaseMatchWnd)
 	ON_WM_MDIACTIVATE()
 	ON_UPDATE_COMMAND_UI_RANGE(3000, 3100, OnUpdateFilters)
 	ON_COMMAND_RANGE(3000, 3100, OnFilters)
+	/* Quick hash for overriding download command. */
+	ON_COMMAND(ID_SEARCH_DOWNLOAD, OnSearchDownload)
+	ON_COMMAND(ID_SEARCH_DOWNLOADNOW, OnSearchDownloadNow)
+
 END_MESSAGE_MAP()
 
 #define SIZE_INTERNAL	1982
@@ -1058,4 +1067,191 @@ void CSearchWnd::OnFilters(UINT nID)
 
 	m_pMatches->Filter();
 	Invalidate();
+}
+
+void CSearchWnd::OnSearchDownload() 
+{
+	CSingleLock pSingleLock( &m_pMatches->m_pSection, TRUE );
+	CList< CMatchFile* > pFiles;
+	CList< CQueryHit* > pHits;
+	POSITION pos;
+
+	for ( pos = m_pMatches->m_pSelectedFiles.GetHeadPosition() ; pos ; )
+	{
+		CMatchFile* pFile = m_pMatches->m_pSelectedFiles.GetNext( pos );
+
+		pSingleLock.Unlock();
+
+		switch ( CheckExisting( pFile->m_oSHA1, pFile->m_oTiger, pFile->m_oED2K, pFile->m_oMD5, pFile->m_nSize ) )
+		{
+		case 1:
+			pFiles.AddTail( pFile );
+			break;
+		case 3:
+			return;
+		}
+
+		pSingleLock.Lock();
+	}
+
+	for ( pos = m_pMatches->m_pSelectedHits.GetHeadPosition() ; pos ; )
+	{
+		CQueryHit* pHit = m_pMatches->m_pSelectedHits.GetNext( pos );
+
+		pSingleLock.Unlock();
+
+		switch ( CheckExisting( pHit->m_oSHA1, pHit->m_oTiger, pHit->m_oED2K, pHit->m_oMD5, pHit->m_nSize ) )
+		{
+		case 1:
+			pHits.AddTail( pHit );
+			break;
+		case 3:
+			return;
+		}
+
+		pSingleLock.Lock();
+	}
+
+	pSingleLock.Unlock();
+
+	if ( pFiles.IsEmpty() && pHits.IsEmpty() ) return;
+
+	CSyncObject* pSync[2] = { &Network.m_pSection, &Transfers.m_pSection };
+	CMultiLock pMultiLock( pSync, 2, TRUE );
+
+	for ( pos = pFiles.GetHeadPosition() ; pos ; )
+	{
+		CMatchFile* pFile = pFiles.GetNext( pos );
+		if ( m_pMatches->m_pSelectedFiles.Find( pFile ) != NULL )
+		{
+			CDownload* pDownload = Downloads.Add( pFile );
+			if ( pDownload && pDownload->m_sSearchKeyword.GetLength() == 0 )
+			{
+				m_wndPanel.GetQueryString( pDownload->m_sSearchKeyword );
+			}
+		}
+	}
+
+	for ( pos = pHits.GetHeadPosition() ; pos ; )
+	{
+		CQueryHit* pHit = pHits.GetNext( pos );
+		if ( m_pMatches->m_pSelectedHits.Find( pHit ) != NULL ) 
+		{
+			CDownload *pDownload = Downloads.Add( pHit );
+			// Send any reviews to the download, so they can be viewed later
+			if ( pDownload )
+			{
+				if ( !pDownload->m_sSearchKeyword.GetLength() )
+				{
+					m_wndPanel.GetQueryString( pDownload->m_sSearchKeyword );
+				}
+				if ( pHit->m_nRating || ! pHit->m_sComments.IsEmpty() )
+				{
+					pDownload->AddReview( &pHit->m_pAddress, 2, pHit->m_nRating, pHit->m_sNick, pHit->m_sComments );
+				}
+			}
+		}
+	}
+
+	pMultiLock.Unlock();
+
+	m_wndList.Invalidate();
+
+	if ( Settings.Search.SwitchToTransfers && ! m_bContextMenu && GetTickCount() - m_tContextMenu > 5000 )
+	{
+		GetManager()->Open( RUNTIME_CLASS(CDownloadsWnd) );
+	}
+}
+
+void CSearchWnd::OnSearchDownloadNow() 
+{
+	CSingleLock pSingleLock( &m_pMatches->m_pSection, TRUE );
+	CList< CMatchFile* > pFiles;
+	CList< CQueryHit* > pHits;
+	POSITION pos;
+
+	for ( pos = m_pMatches->m_pSelectedFiles.GetHeadPosition() ; pos ; )
+	{
+		CMatchFile* pFile = m_pMatches->m_pSelectedFiles.GetNext( pos );
+
+		pSingleLock.Unlock();
+
+		switch ( CheckExisting( pFile->m_oSHA1, pFile->m_oTiger, pFile->m_oED2K, pFile->m_oMD5, pFile->m_nSize ) )
+		{
+		case 1:
+			pFiles.AddTail( pFile );
+			break;
+		case 3:
+			return;
+		}
+
+		pSingleLock.Lock();
+	}
+
+	for ( pos = m_pMatches->m_pSelectedHits.GetHeadPosition() ; pos ; )
+	{
+		CQueryHit* pHit = m_pMatches->m_pSelectedHits.GetNext( pos );
+
+		pSingleLock.Unlock();
+
+		switch ( CheckExisting( pHit->m_oSHA1, pHit->m_oTiger, pHit->m_oED2K, pHit->m_oMD5, pHit->m_nSize ) )
+		{
+		case 1:
+			pHits.AddTail( pHit );
+			break;
+		case 3:
+			return;
+		}
+
+		pSingleLock.Lock();
+	}
+
+	pSingleLock.Unlock();
+
+	if ( pFiles.IsEmpty() && pHits.IsEmpty() ) return;
+
+	CSyncObject* pSync[2] = { &Network.m_pSection, &Transfers.m_pSection };
+	CMultiLock pMultiLock( pSync, 2, TRUE );
+
+	for ( pos = pFiles.GetHeadPosition() ; pos ; )
+	{
+		CMatchFile* pFile = pFiles.GetNext( pos );
+		if ( m_pMatches->m_pSelectedFiles.Find( pFile ) != NULL )
+		{
+			CDownload* pDownload = Downloads.Add( pFile, TRUE );
+			if ( pDownload && pDownload->m_sSearchKeyword.GetLength() == 0 )
+			{
+				m_wndPanel.GetQueryString( pDownload->m_sSearchKeyword );
+			}
+		}
+	}
+
+	for ( pos = pHits.GetHeadPosition() ; pos ; )
+	{
+		CQueryHit* pHit = pHits.GetNext( pos );
+		if ( m_pMatches->m_pSelectedHits.Find( pHit ) != NULL )
+		{
+			CDownload* pDownload = Downloads.Add( pHit, TRUE );
+			if ( pDownload )
+			{
+				if ( pDownload->m_sSearchKeyword.GetLength() == 0 )
+				{
+					m_wndPanel.GetQueryString( pDownload->m_sSearchKeyword );
+				}
+				if ( pHit->m_nRating || ! pHit->m_sComments.IsEmpty() )
+				{
+					pDownload->AddReview( &pHit->m_pAddress, 2, pHit->m_nRating, pHit->m_sNick, pHit->m_sComments );
+				}
+			}
+		}
+	}
+
+	pMultiLock.Unlock();
+
+	m_wndList.Invalidate();
+
+	if ( Settings.Search.SwitchToTransfers && ! m_bContextMenu && GetTickCount() - m_tContextMenu > 5000 )
+	{
+		GetManager()->Open( RUNTIME_CLASS(CDownloadsWnd) );
+	}
 }
