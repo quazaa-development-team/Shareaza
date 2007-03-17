@@ -147,11 +147,16 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, CQueryHit* pHit)
 	}
 	else if ( pHit->m_nProtocol == PROTOCOL_ED2K )
 	{
+		m_oGUID.clear();	// clear GUID if ED2K, because GUID created from Hit packet is not really the GUID of the source
 		if ( ( m_sURL.Right( 3 ) == _T("/0/") ) && ( pDownload->m_nSize ) )
 		{	//Add the size if it was missing.
 			CString strTemp =  m_sURL.Left( m_sURL.GetLength() - 2 );
 			m_sURL.Format( _T("%s%I64i/"), strTemp, pDownload->m_nSize );
 		}
+	}
+	else
+	{
+		m_oGUID = pHit->m_oClientID;
 	}
 	
 	ResolveURL();
@@ -216,16 +221,17 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, const Hashes::BtGuid& oGU
 			(LPCTSTR)CString( inet_ntoa( *pAddress ) ), nPort,
             (LPCTSTR)oGUID.toString(),
 			(LPCTSTR)pDownload->m_oBTH.toString() );
+		m_oGUID	= transformGuid( oGUID );
 	}
 	else
 	{
 		m_sURL.Format( _T("btc://%s:%i//%s/"),
 			(LPCTSTR)CString( inet_ntoa( *pAddress ) ), nPort,
 			(LPCTSTR)pDownload->m_oBTH.toString() );
+		m_oGUID.clear();
 	}
 
 	m_bBTH		= TRUE;
-	m_oGUID	= transformGuid( oGUID );
 	m_sServer	= _T("BitTorrent");
 
 	ResolveURL();
@@ -240,14 +246,15 @@ CDownloadSource::CDownloadSource(CDownload* pDownload, LPCTSTR pszURL, BOOL /*bS
 : m_oAvailable( pDownload->m_nSize ), m_oPastFragments( pDownload->m_nSize )
 {
 	Construct( pDownload );
-	
+	m_oGUID.clear();
+
 	ASSERT( pszURL != NULL );
 	m_sURL = pszURL;
-	
+
 	if ( ! ResolveURL() ) return;
-	
+
 	m_bHashAuth		= bHashAuth;
-	
+
 	if ( pLastSeen != NULL )
 	{
 		FILETIME tNow = m_tLastSeen;
