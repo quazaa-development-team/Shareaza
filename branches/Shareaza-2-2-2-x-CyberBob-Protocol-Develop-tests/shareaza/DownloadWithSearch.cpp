@@ -230,10 +230,6 @@ void CDownloadWithSearch::PrepareSearch( BOOL bG1, BOOL bG2, BOOL bED2K )
 		{
 			pSearch->m_sSearch = m_sDisplayName;		
 		}
-		pSearch->m_oKeywordHashList.clear();
-		pSearch->m_oURNs.clear();
-		pSearch->BuildWordList( false );
-		pSearch->CheckValid( false );
 	}
 
 	if ( m_oSHA1 )
@@ -301,6 +297,9 @@ void CDownloadWithSearch::PrepareSearch( BOOL bG1, BOOL bG2, BOOL bED2K )
 		pSearch->m_nMinSize = m_nSize;
 		pSearch->m_nMaxSize = m_nSize;
 	}
+
+	CQuerySearch::PrepareCheck(pSearch);
+	pSearch->CheckValid( true );
 }
 
 //////////////////////////////////////////////////////////////////////
