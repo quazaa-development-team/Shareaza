@@ -44,6 +44,17 @@ public:
 	BOOL m_bED2KTrusted;
 	BOOL m_bMD5Trusted;
 
+	//Copy of data from Download
+	QWORD				m_nSize;
+	Hashes::Sha1Hash	m_oSHA1;
+	Hashes::TigerHash	m_oTiger;
+	Hashes::Ed2kHash	m_oED2K;
+	Hashes::Md5Hash		m_oMD5;
+	BOOL				m_bSHA1OldTrusted;
+	BOOL				m_bTigerOldTrusted;
+	BOOL				m_bED2KOldTrusted;
+	BOOL				m_bMD5OldTrusted;
+
 // Operations
 public:
 	BOOL	Commit();
