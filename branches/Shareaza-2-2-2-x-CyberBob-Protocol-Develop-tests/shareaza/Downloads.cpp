@@ -1327,19 +1327,47 @@ BOOL CDownloads::OnPush(const Hashes::Guid& oGUID, CConnection* pConnection, DWO
 //////////////////////////////////////////////////////////////////////
 // CDownloads eDonkey2000 callback handler
 
-BOOL CDownloads::OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept)
+BOOL CDownloads::OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept, CDownload* pSeekDownloadAfterThis)
 {
 	CSingleLock pLock( &Transfers.m_pSection );
 	if ( ! pLock.Lock( 250 ) ) return FALSE;
-	
+
 	if ( m_bClosing ) return FALSE;
-	
-	for ( POSITION pos = GetIterator() ; pos ; )
+
+	// if pSeekDownloadAfterThis is not NULL, then need to make sure that download look up does not look and try attach
+	// to same source which has been tried to connect within same lookup session.
+	// NOTE: one session: lookup -> attach -> failure -> look up, which does not happen in one loop because try attach
+	// result is depending on the answer from download source too. so when the first try resulted with failure it should
+	// try second, then when second failed, the third has to be tried, not going back to the first one. it include
+	// the situation when last one failed, the first one should not be tried until next connect event happen.
+	if ( pSeekDownloadAfterThis ) // Exception is set
 	{
-		CDownload* pDownload = GetNext( pos );
-		if ( pDownload->OnDonkeyCallback( pClient, pExcept ) ) return TRUE;
+		bool bFound =false;
+		for ( POSITION pos = GetIterator() ; pos ; )
+		{
+			CDownload* pDownload = GetNext( pos );
+			if ( bFound )	// has found the CDownload object match to pSeekDownloadAfterThis
+			{
+				// try callback on pDownload.
+				if ( pDownload->OnDonkeyCallback( pClient, pExcept ) ) return TRUE;
+			}
+			else	// has not found CDownload object which match to pSeekDownloadAfterThis yet.
+			{
+				// check if pDownload is equal to pSeekDownloadAfterThis or not. if it is, set bFound.
+				if ( pSeekDownloadAfterThis == pDownload ) bFound = true;
+			}
+		}
 	}
-	
+	else	// no exception.
+	{
+		for ( POSITION pos = GetIterator() ; pos ; )
+		{
+			CDownload* pDownload = GetNext( pos );
+			// try callback on pDownload.
+			if ( pDownload->OnDonkeyCallback( pClient, pExcept ) ) return TRUE;
+		}
+	}
+
 	return FALSE;
 }
 

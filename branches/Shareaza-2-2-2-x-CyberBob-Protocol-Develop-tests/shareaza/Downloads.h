@@ -133,7 +133,7 @@ public:
 	void		Save(BOOL bForce = TRUE);
 	void		OnRun();
 	BOOL		OnPush(const Hashes::Guid& oGUID, CConnection* pConnection, DWORD nFileIndex = 0);
-	BOOL		OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept = NULL);
+	BOOL		OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept, CDownload* pSeekDownloadAfterThis);
 	void		OnQueryHits(CQueryHit* pHits);
 	void		OnVerify(LPCTSTR pszPath, BOOL bVerified);
 	void		SetPerHostLimit(IN_ADDR* pAddress, int nLimit);

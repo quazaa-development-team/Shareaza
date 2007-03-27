@@ -99,7 +99,7 @@ public:
 	void	OnUploadClose();
 	CString	GetSourceURL();
 	void	WritePartStatus(CEDPacket* pPacket, CDownload* pDownload);
-	BOOL	SeekNewDownload(CDownloadSource* pExcept = NULL);
+	BOOL	SeekNewDownload(CDownloadSource* pExceptSource, CDownload* pSeekDownloadAfterThis);
 	inline  void OpenChat() { m_bOpenChat = TRUE; }
 	BOOL	SendCommentsPacket(int nRating, LPCTSTR pszComments);
 	void	SendPreviewRequest(CDownload* pDownload);

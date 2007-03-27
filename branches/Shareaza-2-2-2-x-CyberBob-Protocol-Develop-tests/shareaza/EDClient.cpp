@@ -335,20 +335,25 @@ BOOL CEDClient::AttachDownload(CDownloadTransferED2K* pDownload)
 void CEDClient::OnDownloadClose()
 {
 	CDownloadSource* pExcept = m_pDownload ? m_pDownload->m_pSource : NULL;
+	CDownload* pDownload = m_pDownload->m_pDownload;
 	m_pDownload = NULL;
 	m_mInput.pLimit = &Settings.Bandwidth.Request;
-	//SeekNewDownload( pExcept );
+
+	// this seek new download is code to look for next download in list, with same source.
+	// but this code may crash in certain condition, need some debug and optimization. if
+	// you encounter problem/crash on ED2K, comment out the SeekNewDownload(pExcept) below.
+	//SeekNewDownload( pExcept, pDownload );
 }
 
-BOOL CEDClient::SeekNewDownload(CDownloadSource* pExcept)
+BOOL CEDClient::SeekNewDownload(CDownloadSource* pExcept, CDownload* pSeekDownloadAfterThis)
 {
 	// Removed for a while
 	//return FALSE;
-	
+
 	if ( m_pDownload != NULL ) return FALSE;
 	if ( m_bSeeking ) return FALSE;
 	m_bSeeking = TRUE;
-	BOOL bSeek = Downloads.OnDonkeyCallback( this, pExcept );
+	BOOL bSeek = Downloads.OnDonkeyCallback( this, pExcept, pSeekDownloadAfterThis );
 	m_bSeeking = FALSE;
 	return bSeek;
 }
@@ -535,7 +540,7 @@ BOOL CEDClient::OnLoggedIn()
 	}
 	else
 	{
-		SeekNewDownload();
+		SeekNewDownload(NULL, NULL);
 	}
 	
 	if ( m_pUpload != NULL ) m_pUpload->OnConnected();

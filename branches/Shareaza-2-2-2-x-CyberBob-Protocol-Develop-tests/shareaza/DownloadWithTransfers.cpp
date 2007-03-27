@@ -464,15 +464,23 @@ BOOL CDownloadWithTransfers::OnDonkeyCallback(CEDClient* pClient, CDownloadSourc
 	
 	if ( pSource == NULL ) return FALSE;
 	
-	if ( pSource->m_pTransfer != NULL )
+	if ( pSource->m_pTransfer )
 	{
-		if ( pSource->m_pTransfer->m_nState > dtsConnecting ) return FALSE;
-		pSource->m_pTransfer->Close( TS_TRUE );
+		// this code seems something bad, or something which never possible to be executed.
+		//if ( pSource->m_pTransfer->m_nState > dtsConnecting ) return FALSE;
+		//pSource->m_pTransfer->Close( TS_TRUE );
 	}
-	
-	CDownloadTransferED2K* pTransfer = (CDownloadTransferED2K*)pSource->CreateTransfer();
-	ASSERT( pTransfer->m_nProtocol == PROTOCOL_ED2K );
-	return pTransfer->Initiate();
+	else
+	{
+		CDownloadTransferED2K* pTransfer = (CDownloadTransferED2K*)pSource->CreateTransfer();
+		if ( pTransfer )
+		{
+			ASSERT( pTransfer->m_nProtocol == PROTOCOL_ED2K );
+			return pTransfer->Initiate();
+		}
+	}
+
+	return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////
