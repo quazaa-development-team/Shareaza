@@ -1682,8 +1682,6 @@ BOOL CQueryHit::AutoDetectAudio(LPCTSTR pszInfo)
 
 void CQueryHit::Copy(CQueryHit* pOther)
 {
-	if ( m_pXML ) delete m_pXML;
-
 	m_oSearchID		= pOther->m_oSearchID;
 	m_oClientID		= pOther->m_oClientID;
 	m_pAddress		= pOther->m_pAddress;
@@ -1711,8 +1709,13 @@ void CQueryHit::Copy(CQueryHit* pOther)
 	m_sSchemaURI	= pOther->m_sSchemaURI;
 	m_sSchemaPlural	= pOther->m_sSchemaPlural;
 
-	m_pXML			= pOther->m_pXML;
-	pOther->m_pXML	= NULL;
+	if ( pOther->m_pXML )
+	{
+		if ( m_pXML ) delete m_pXML;
+		m_pXML		= pOther->m_pXML->Clone();
+	}
+	//m_pXML			= pOther->m_pXML;
+	//pOther->m_pXML	= NULL;
 
 	m_bMatched		= pOther->m_bMatched;
 	m_bExactMatch	= pOther->m_bExactMatch;
