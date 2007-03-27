@@ -182,8 +182,8 @@ int CNeighboursWithRouting::RouteQuery(CQuerySearch* pSearch, CPacket* pPacket, 
 					//pG2 = pG2Q1 = CG2Packet::New( G2_PACKET_QUERY_WRAP, pG1, Settings.Gnutella1.TranslateTTL );
 					theApp.Message( MSG_ERROR, _T("CNeighboursWithRouting::RouteQuery not relaying wrapped packet to leaf") );
 				}
-				// Send the packet to this remote computer
-				if ( pNeighbour->SendQuery( pSearch, pG2, FALSE ) ) nCount++;
+					// Send the packet to this remote computer
+				else if ( pNeighbour->SendQuery( pSearch, pG2, FALSE ) ) nCount++;
 
 			} // This remote computer is a hub, and the caller said we can send packets to hubs
 			else if ( bToHubs )
@@ -199,7 +199,7 @@ int CNeighboursWithRouting::RouteQuery(CQuerySearch* pSearch, CPacket* pPacket, 
 						theApp.Message( MSG_ERROR, _T("CNeighboursWithRouting::RouteQuery not relaying wrapped packet to hub") );
 					}
 					// Send the packet to this remote computer
-					if ( pNeighbour->SendQuery( pSearch, pG2, FALSE ) ) nCount++;
+					else if ( pNeighbour->SendQuery( pSearch, pG2, FALSE ) ) nCount++;
 
 				} // This is a Gnutella2 Q2 packet
 				else
