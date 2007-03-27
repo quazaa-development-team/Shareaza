@@ -45,7 +45,12 @@
 				LinkIncremental="2"
 				SuppressStartupBanner="TRUE"
 				IgnoreDefaultLibraryNames="kernel32.lib;advapi32.lib;user32.lib;gdi32.lib;shell32.lib;comdlg32.lib;version.lib;mpr.lib;rasapi32.lib;winmm.lib;winspool.lib;secur32.lib;oleacc.lib;oledlg.lib;sensapi.lib;vfw32.lib;Iphlpapi.lib;msi.lib"
-				GenerateDebugInformation="TRUE"/>
+				GenerateDebugInformation="TRUE"
+				ProgramDatabaseFile="$(SolutionDir)$(ConfigurationName)/$(ProjectName).pdb"
+				GenerateMapFile="TRUE"
+				MapFileName="$(SolutionDir)$(ConfigurationName)/$(ProjectName).map"
+				MapExports="TRUE"
+				MapLines="TRUE"/>
 			<Tool
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="_DEBUG"
@@ -114,6 +119,13 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
 				IgnoreDefaultLibraryNames="kernel32.lib;advapi32.lib;user32.lib;gdi32.lib;shell32.lib;comdlg32.lib;version.lib;mpr.lib;rasapi32.lib;winmm.lib;winspool.lib;secur32.lib;oleacc.lib;oledlg.lib;sensapi.lib;vfw32.lib;Iphlpapi.lib;msi.lib"
+				GenerateDebugInformation="TRUE"
+				AssemblyDebug="0"
+				ProgramDatabaseFile="$(SolutionDir)$(ConfigurationName)/$(ProjectName).pdb"
+				GenerateMapFile="TRUE"
+				MapFileName="$(SolutionDir)$(ConfigurationName)/$(ProjectName).map"
+				MapExports="TRUE"
+				MapLines="TRUE"
 				OptimizeReferences="2"/>
 			<Tool
 				Name="VCMIDLTool"
