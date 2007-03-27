@@ -34,6 +34,9 @@ class CDownloadSource;
 class CQueryHit;
 class CXMLElement;
 
+typedef boost::shared_ptr<CQueryHit>	CHitPtr;
+typedef std::list<CHitPtr>				CHitPtrs;
+
 #pragma pack(1)
 class CFailedSource
 {
@@ -112,6 +115,7 @@ public:
 									BOOL bFailed = FALSE, PROTOCOLID nProtocol = PROTOCOL_HTTP);
 	int					AddSourceURLs(LPCTSTR pszURLs, BOOL bURN = FALSE, BOOL bFailed = FALSE, PROTOCOLID nProtocol = PROTOCOL_HTTP);
 	virtual BOOL		OnQueryHits(CQueryHit* pHits);
+	virtual BOOL		OnQueryHits(CHitPtrs& m_oHits);
 	virtual void		Serialize(CArchive& ar, int nVersion);
 
 // Implementation

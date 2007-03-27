@@ -130,7 +130,54 @@ BOOL CDownloads::CITMQueryHit::OnProcess()
 	for ( POSITION pos = Downloads.GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = Downloads.GetNext( pos );
-		if ( !pDownload->IsMoving() ) pDownload->OnQueryHits( m_pHits );
+		pDownload->OnQueryHits( m_pHits );
+	}	
+
+	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CITMQueryHit construction
+
+CDownloads::CITMQueryHits::CITMQueryHits()
+: m_oHits()
+{
+}
+
+CDownloads::CITMQueryHits::CITMQueryHits(CHitPtrs& oHits)
+{
+	m_oHits.assign( oHits.begin(), oHits.end() );
+}
+
+CDownloads::CITMQueryHits::~CITMQueryHits()
+{
+}
+
+//////////////////////////////////////////////////////////////////////
+// CITMQueryHit Function member implementations
+
+CDownloads::CITMQueryHits* CDownloads::CITMQueryHits::CreateMessage(CHitPtrs& oHits)
+{
+	CITMQueryHits* pITMHit = NULL;
+
+	if ( oHits.size() )
+	{
+		pITMHit = new CITMQueryHits();
+		pITMHit->m_oHits.assign( oHits.begin(), oHits.end() );
+	}
+
+	return pITMHit;
+
+	//return ( (CITMQueue::CITMItem *) new CITMQueryHit( CQueryHit * pHits ) );
+}
+
+BOOL CDownloads::CITMQueryHits::OnProcess()
+{
+	CTransfers::Lock oLock;
+	for ( POSITION pos = Downloads.GetIterator() ; pos ; )
+	{
+		CDownload* pDownload = Downloads.GetNext( pos );
+		pDownload->OnQueryHits( m_oHits );
 	}	
 
 	return TRUE;
@@ -1304,6 +1351,25 @@ void CDownloads::OnQueryHits(CQueryHit* pHits)
 
 	if ( pHits != NULL )
 		Transfers.m_pMessageQueue.PushMessage( (CITMQueue::CITMItem*)CITMQueryHit::CreateMessage(pHits) );
+
+}
+
+void CDownloads::OnQueryHits(CHitPtrs& oHits)
+{
+
+	/*	CSingleLock pLock( &Transfers.m_pSection );
+
+	if ( ! pLock.Lock( 50 ) ) return;
+
+	for ( POSITION pos = GetIterator() ; pos ; )
+	{
+	CDownload* pDownload = GetNext( pos );
+	if ( pDownload->IsMoving() == FALSE ) pDownload->OnQueryHits( pHits );
+	}	
+	*/
+
+	if ( oHits.size() )
+		Transfers.m_pMessageQueue.PushMessage( (CITMQueue::CITMItem*)CITMQueryHits::CreateMessage(oHits) );
 
 }
 

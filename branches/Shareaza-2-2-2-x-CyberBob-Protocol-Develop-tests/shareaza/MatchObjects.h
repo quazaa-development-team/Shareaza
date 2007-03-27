@@ -31,6 +31,9 @@ class CQueryHit;
 class CMatchFile;
 class CResultFilters;
 
+typedef boost::shared_ptr<CQueryHit>	CHitPtr;
+typedef std::list<CHitPtr>				CHitPtrs;
+
 typedef struct
 {
 	BOOL	bHadSHA1;
@@ -171,7 +174,6 @@ public:
 	BOOL		m_bSuspicious;			// Appears to be a suspicious file (small exe, vbs, etc)
 	BOOL		m_bCollection;			// Appears to be a collection
 	BOOL		m_bTorrent;				// Appears to be a torrent
-
 public:
 	BOOL		m_bExpanded;
 	BOOL		m_bSelected;
@@ -184,7 +186,9 @@ public:
 	int			m_nColumns;
 	BYTE*		m_pPreview;
 	DWORD		m_nPreview;
-	
+	CHitPtrs	m_oHits;
+	CHitPtr		m_oBest;
+
 // Operations
 public:
 	BOOL		Add(CQueryHit* pHit, BOOL bForce = FALSE);

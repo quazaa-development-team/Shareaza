@@ -991,6 +991,18 @@ BOOL CDownloadWithSources::OnQueryHits(CQueryHit* pHits)
 	return TRUE;
 }
 
+BOOL CDownloadWithSources::OnQueryHits(CHitPtrs& oHits)
+{
+	CHitPtrs::iterator iIndex	= oHits.begin();
+	CHitPtrs::iterator iEnd		= oHits.end();
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		if ( (*iIndex)->m_sURL.GetLength() ) AddSourceHit( &(**iIndex) );
+	}
+
+	return TRUE;
+}
+
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithSources remove overlapping sources
 

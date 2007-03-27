@@ -139,6 +139,9 @@ public:
 	}
 };
 
+typedef boost::shared_ptr<CQueryHit>	CHitPtr;
+typedef std::list<CHitPtr>				CHitPtrs;
+
 #define HITEQUALS_NOT		0
 #define HITEQUALS_SIMILAR	1
 #define HITEQUALS_IDENTICAL	2

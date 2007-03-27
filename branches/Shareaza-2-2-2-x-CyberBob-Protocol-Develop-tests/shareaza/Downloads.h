@@ -35,6 +35,9 @@ class CBuffer;
 class CShareazaURL;
 class CEDClient;
 
+typedef boost::shared_ptr<CQueryHit>	CHitPtr;
+typedef std::list<CHitPtr>				CHitPtrs;
+
 class CDownloads
 {
 // Construction
@@ -77,7 +80,7 @@ public:
 		// Constructor
 	public:
 		CITMQueryHit();
-		CITMQueryHit( CQueryHit * pHits );
+		CITMQueryHit(CQueryHit * pHits);
 		~CITMQueryHit();
 
 		// Data Members
@@ -86,11 +89,30 @@ public:
 
 		// function members
 	public:
-		static CITMQueryHit* CreateMessage( CQueryHit * pHits );
+		static CITMQueryHit* CreateMessage(CQueryHit * pHits);
 		virtual BOOL OnProcess();
 
 	};
 	
+	class CITMQueryHits : CITMQueue::CITMItem
+	{
+		// Constructor
+	public:
+		CITMQueryHits();
+		CITMQueryHits(CHitPtrs& oHits);
+		~CITMQueryHits();
+
+		// Data Members
+	public:
+		CHitPtrs m_oHits;
+
+		// function members
+	public:
+		static CITMQueryHits* CreateMessage(CHitPtrs& oHits);
+		virtual BOOL OnProcess();
+
+	};
+
 // Operations
 public:
 	CDownload*	Add();
@@ -135,6 +157,7 @@ public:
 	BOOL		OnPush(const Hashes::Guid& oGUID, CConnection* pConnection, DWORD nFileIndex = 0);
 	BOOL		OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept, CDownload* pSeekDownloadAfterThis);
 	void		OnQueryHits(CQueryHit* pHits);
+	void		OnQueryHits(CHitPtrs& oHits);
 	void		OnVerify(LPCTSTR pszPath, BOOL bVerified);
 	void		SetPerHostLimit(IN_ADDR* pAddress, int nLimit);
 	BOOL		IsSpaceAvailable(QWORD nVolume, int nPath = dlPathNull);
