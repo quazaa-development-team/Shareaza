@@ -293,6 +293,9 @@ void CConnection::AttachTo(CConnection* pConnection)
 	ASSERT( pConnection != NULL );						// Make sure we got a CConnection object
 	ASSERT( pConnection->m_hSocket != INVALID_SOCKET ); // And make sure its socket exists
 
+	// sanity check.
+	if ( !pConnection || pConnection == this ) return;
+
 	// Copy values from the given CConnection object to this one
 	m_pHost			= pConnection->m_pHost;
 	m_pRealHost		= pConnection->m_pRealHost;

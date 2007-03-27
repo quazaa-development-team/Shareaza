@@ -402,7 +402,7 @@ DWORD CDownloadWithTransfers::GetMeasuredSpeed() const
 BOOL CDownloadWithTransfers::OnAcceptPush(const Hashes::Guid& oClientID, CConnection* pConnection, DWORD nFileIndex)
 {
 	CDownload* pDownload = (CDownload*)this;
-	if ( pDownload->IsMoving() || pDownload->IsPaused() ) return FALSE;
+	if ( pDownload->IsMoving() || pDownload->IsPaused() || pDownload->IsCompleted() ) return FALSE;
 	
 	CDownloadSource* pSource = NULL;
 	
@@ -417,16 +417,31 @@ BOOL CDownloadWithTransfers::OnAcceptPush(const Hashes::Guid& oClientID, CConnec
 	if ( pConnection->m_hSocket == INVALID_SOCKET || pSource == NULL ) return FALSE;
 
 	// Found PUSH source matches to condition.
-	CDownloadTransferHTTP* pHTTPTransfer = NULL;
+	CDownloadTransferHTTP* pTransfer = NULL;
 
 	// cast CDownloadTransfer to CDownloadTransferHTTP if exist.
-	if ( pSource->m_pTransfer ) pHTTPTransfer = static_cast<CDownloadTransferHTTP*>(pSource->m_pTransfer);
-
-	if ( pHTTPTransfer && pHTTPTransfer->m_bPushWaiting )	// Cast succeed and transfer is waiting for PUSH connection.
+	ASSERT( pSource->m_nProtocol == PROTOCOL_G1 || pSource->m_nProtocol == PROTOCOL_G2 || pSource->m_nProtocol == PROTOCOL_HTTP );
+	if ( pSource->m_pTransfer )
 	{
-		ASSERT( pSource->m_nProtocol == PROTOCOL_G1 || pSource->m_nProtocol == PROTOCOL_G2 || pSource->m_nProtocol == PROTOCOL_HTTP );
-		return pHTTPTransfer->AcceptPush( pConnection );	// Accept Connection if it can
+		pTransfer = static_cast<CDownloadTransferHTTP*>(pSource->m_pTransfer);
+		if ( pTransfer && pTransfer->m_bPushWaiting )	// Cast succeed and transfer is waiting for PUSH connection.
+		{
+			return pTransfer->AcceptPush( pConnection );	// Accept Connection if it can
+		}
 	}
+	else if ( nFileIndex && pSource->m_nIndex == nFileIndex )
+	{
+		pTransfer = (CDownloadTransferHTTP*)pSource->CreateTransfer();
+		if ( pTransfer )
+		{
+			ASSERT( pTransfer->m_nProtocol == PROTOCOL_HTTP );
+			pTransfer->CTransfer::AttachTo( NULL );
+			return pTransfer->AcceptPush( pConnection );	// Accept Connection if it can
+		}
+
+	}
+
+	// no CConnection object (not ready to accept incoming connection, maybe the one sent PUSH signal is some other download)
 	return FALSE;
 
 }
