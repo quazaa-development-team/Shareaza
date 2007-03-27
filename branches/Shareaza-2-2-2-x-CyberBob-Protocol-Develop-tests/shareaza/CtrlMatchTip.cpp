@@ -1,7 +1,7 @@
 //
 // CtrlMatchTip.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2005.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -186,9 +186,7 @@ void CMatchTipCtrl::OnDestroy()
 void CMatchTipCtrl::OnTimer(UINT_PTR /*nIDEvent*/)
 {
 	CPoint point;
-	GetCursorPos( &point );
-
-	if ( WindowFromPoint( point ) != m_pOwner )
+	if ( ! GetCursorPos( &point ) || WindowFromPoint( point ) != m_pOwner )
 	{
 		if ( m_bVisible ) Hide();
 		return;
@@ -404,7 +402,7 @@ void CMatchTipCtrl::LoadFromFile()
 
 	m_sStatus.Empty();
 
-	if ( m_pFile->m_bExisting )
+	if ( m_pFile->GetLibraryStatus() )
 	{
 		CLibraryFile* pExisting = NULL;
 
@@ -608,7 +606,7 @@ void CMatchTipCtrl::LoadFromHit()
 
 	m_sStatus.Empty();
 
-	if ( m_pFile->m_bExisting == 1 )
+	if ( m_pFile->GetLibraryStatus() == TS_FALSE )
 	{
 		LoadString( m_sStatus, IDS_TIP_EXISTS_LIBRARY );
 		m_crStatus = RGB( 0, 128, 0 );
@@ -630,7 +628,7 @@ void CMatchTipCtrl::LoadFromHit()
 		m_sStatus += m_pHit->m_sComments;
 		m_crStatus = RGB( 255, 0, 0 );
 	}
-	else if ( m_pFile->m_bExisting == 2 )  // ghost rated
+	else if ( m_pFile->GetLibraryStatus() == TS_TRUE )  // ghost rated
 	{
 		LoadString( m_sStatus, IDS_TIP_EXISTS_DELETED );
 		m_crStatus = RGB( 255, 0, 0 );

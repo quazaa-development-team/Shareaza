@@ -1,7 +1,7 @@
 //
 // CoolMenu.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -32,7 +32,6 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
-#define CM_DISABLEDBLEND	ILD_BLEND25
 #define CM_ICONWIDTH		16
 #define CM_ICONHEIGHT		16
 
@@ -44,7 +43,6 @@ CCoolMenu CoolMenu;
 
 CCoolMenu::CCoolMenu()
 {
-	m_nCheckIcon	= 0;
 	m_bEnable		= TRUE;
 	m_bUnhook		= FALSE;
 }
@@ -373,7 +371,7 @@ void CCoolMenu::OnDrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 
 	nIcon = CoolInterface.ImageForID( (DWORD)lpDrawItemStruct->itemID );
 
-	if ( bChecked && nIcon < 0 ) nIcon = m_nCheckIcon;
+	if ( bChecked && nIcon < 0 ) nIcon = CoolInterface.ImageForID( ID_CHECKMARK );
 
 	if ( nIcon >= 0 )
 	{
@@ -381,25 +379,25 @@ void CCoolMenu::OnDrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 
 		if ( bDisabled )
 		{
-			ImageList_DrawEx( CoolInterface.m_pImages.m_hImageList, nIcon, pDC->GetSafeHdc(),
-				pt.x, pt.y, 0, 0, CLR_NONE, CoolInterface.m_crDisabled, CM_DISABLEDBLEND );
+			CoolInterface.DrawEx( pDC, nIcon, 
+				pt, CSize( 0, 0 ), CLR_NONE, CoolInterface.m_crDisabled, ILD_BLEND50 );
 		}
 		else if ( bChecked )
 		{
-			CoolInterface.m_pImages.Draw( pDC, nIcon, pt, ILD_NORMAL );
+			CoolInterface.Draw( pDC, nIcon, pt, ILD_NORMAL );
 		}
 		else if ( bSelected )
 		{
 			pt.Offset( 1, 1 );
 			pDC->SetTextColor( CoolInterface.m_crShadow );
-			CoolInterface.m_pImages.Draw( pDC, nIcon, pt, ILD_MASK );
+			CoolInterface.Draw( pDC, nIcon, pt, ILD_MASK );
 			pt.Offset( -2, -2 );
-			CoolInterface.m_pImages.Draw( pDC, nIcon, pt, ILD_NORMAL );
+			CoolInterface.Draw( pDC, nIcon, pt, ILD_NORMAL );
 		}
 		else
 		{
-			ImageList_DrawEx( CoolInterface.m_pImages.m_hImageList, nIcon, pDC->GetSafeHdc(),
-				pt.x, pt.y, 0, 0, CLR_NONE, CoolInterface.m_crMargin, ILD_BLEND25 );
+			CoolInterface.DrawEx( pDC, nIcon,
+				pt, CSize( 0, 0 ), CLR_NONE, CoolInterface.m_crMargin, ILD_NORMAL );
 		}
 	}
 

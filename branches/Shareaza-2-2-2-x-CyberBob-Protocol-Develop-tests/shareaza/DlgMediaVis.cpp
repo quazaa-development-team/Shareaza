@@ -86,7 +86,7 @@ BOOL CMediaVisDlg::OnInitDialog()
 	m_wndList.GetClientRect( &rc );
 	rc.right -= GetSystemMetrics( SM_CXVSCROLL ) + 1;
 
-	m_wndList.SetImageList( &CoolInterface.m_pImages, LVSIL_SMALL );
+	CoolInterface.SetImageListTo( m_wndList, LVSIL_SMALL );
 	m_wndList.InsertColumn( 0, _T("Description"), LVCFMT_LEFT, rc.right, -1 );
 	m_wndList.InsertColumn( 1, _T("CLSID"), LVCFMT_LEFT, 0, 0 );
 	m_wndList.InsertColumn( 2, _T("Subpath"), LVCFMT_LEFT, 0, 1 );
@@ -95,8 +95,9 @@ BOOL CMediaVisDlg::OnInitDialog()
 		LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT );
 
 	m_nIcon = CoolInterface.ImageForID( ID_MEDIA_VIS );
-	m_hIcon = CoolInterface.ExtractIcon( ID_MEDIA_VIS );
-	SetIcon( m_hIcon, FALSE );
+	m_hIcon = CoolInterface.ExtractIcon( ID_MEDIA_VIS, FALSE );
+	if ( m_hIcon )
+		SetIcon( m_hIcon, FALSE );
 
 	LoadString( strMessage, IDS_MEDIAVIS_NOVIS );
 	AddPlugin( strMessage, NULL, NULL );
@@ -174,7 +175,7 @@ BOOL CMediaVisDlg::EnumerateWrapped(LPCTSTR pszName, REFCLSID pCLSID, LPCTSTR ps
 
 	HINSTANCE hRes = AfxGetResourceHandle();
 
-	HRESULT hr = CoCreateInstance( pCLSID, NULL, CLSCTX_INPROC_SERVER|CLSCTX_LOCAL_SERVER,
+	HRESULT hr = CoCreateInstance( pCLSID, NULL, CLSCTX_ALL,
 		IID_IWrappedPluginControl, (void**)&pPlugin );
 
 	AfxSetResourceHandle( hRes );
@@ -271,7 +272,7 @@ void CMediaVisDlg::OnSetup()
 
 	HINSTANCE hRes = AfxGetResourceHandle();
 
-	HRESULT hr = CoCreateInstance( pCLSID, NULL, CLSCTX_INPROC_SERVER|CLSCTX_LOCAL_SERVER,
+	HRESULT hr = CoCreateInstance( pCLSID, NULL, CLSCTX_ALL,
 		IID_IAudioVisPlugin, (void**)&pPlugin );
 
 	AfxSetResourceHandle( hRes );

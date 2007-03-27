@@ -1,7 +1,7 @@
 //
 // Skin.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
@@ -32,6 +32,7 @@
 #include "Plugins.h"
 #include "XML.h"
 #include "WndChild.h"
+#include "Buffer.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -226,33 +227,11 @@ BOOL CSkin::LoadFromFile(LPCTSTR pszFile)
 
 BOOL CSkin::LoadFromResource(HINSTANCE hInstance, UINT nResourceID)
 {
-	BOOL bRet = FALSE;
-	HMODULE hModule = hInstance != NULL ? (HMODULE)hInstance : GetModuleHandle( NULL );
-	HRSRC hRes = FindResource( hModule, MAKEINTRESOURCE( nResourceID ), MAKEINTRESOURCE( 23 ) );
-	if ( hRes )
-	{
-		DWORD nSize			= SizeofResource( hModule, hRes );
-		HGLOBAL hMemory		= LoadResource( hModule, hRes );
-		if ( hMemory )
-		{
-			LPCSTR pszInput	= (LPCSTR)LockResource( hMemory );
-			if ( pszInput )
-			{
-				CString strBody;
-				LPTSTR pszOutput = strBody.GetBuffer( nSize + 1 );
-				while ( nSize-- ) *pszOutput++ = *pszInput++;
-				*pszOutput++ = 0;
-				strBody.ReleaseBuffer();
-
-				CString strPath;
-				strPath.Format( _T("%lu$"), (DWORD)hModule );
-
-				bRet = LoadFromString( strBody, strPath );
-			}
-			FreeResource( hMemory );
-		}
-	}
-	return bRet;
+	HMODULE hModule = ( hInstance != NULL ) ? (HMODULE)hInstance : GetModuleHandle( NULL );
+	CString strBody( ::LoadHTML( hModule, nResourceID ) );
+	CString strPath;
+	strPath.Format( _T("%lu$"), (DWORD)hModule );
+	return LoadFromString( strBody, strPath );
 }
 
 BOOL CSkin::LoadFromString(const CString& strXML, const CString& strPath)
@@ -850,15 +829,7 @@ BOOL CSkin::Apply(LPCTSTR pszName, CDialog* pDialog, UINT nIconID, CToolTipCtrl*
 {
 	if ( nIconID )
 	{
-		HICON hIcon = CoolInterface.ExtractIcon( nIconID );
-		
-		if ( hIcon == NULL )
-		{
-			hIcon = (HICON)LoadImage( AfxGetInstanceHandle(),
-				MAKEINTRESOURCE( nIconID ), IMAGE_ICON, 16, 16, 0 );
-		}
-		
-		if ( hIcon != NULL ) pDialog->SetIcon( hIcon, FALSE );
+		CoolInterface.SetIcon( nIconID, FALSE, FALSE, pDialog );
 	}
 	
 	CString strName;
@@ -1413,6 +1384,7 @@ BOOL CSkin::LoadCommandImages(CXMLElement* pBase, const CString& strPath)
 				{
 					if ( theApp.m_bRTL ) hIcon = CreateMirroredIcon( hIcon );
 					CoolInterface.AddIcon( nID, hIcon );
+					VERIFY( DestroyIcon( hIcon ) );
 				}
 			}
 			else
@@ -1424,8 +1396,12 @@ BOOL CSkin::LoadCommandImages(CXMLElement* pBase, const CString& strPath)
 				if ( _stscanf( strFile.Mid( nPos + 1 ), _T("%lu"), &nIconID ) != 1 ) return TRUE;
 				
 				hIcon = (HICON)LoadImage( hInstance, MAKEINTRESOURCE(nIconID), IMAGE_ICON, 16, 16, 0 );
-				if ( hIcon != NULL ) 
-					CoolInterface.AddIcon( nID, theApp.m_bRTL ? CreateMirroredIcon( hIcon ) : hIcon );
+				if ( hIcon != NULL )
+				{
+					if ( theApp.m_bRTL ) hIcon = CreateMirroredIcon( hIcon );
+					CoolInterface.AddIcon( nID, hIcon );
+					VERIFY( DestroyIcon( hIcon ) );
+				}
 			}
 		}
 		else if ( pXML->IsNamed( _T("bitmap") ) )
@@ -1439,12 +1415,10 @@ BOOL CSkin::LoadCommandImages(CXMLElement* pBase, const CString& strPath)
 
 BOOL CSkin::LoadCommandBitmap(CXMLElement* pBase, const CString& strPath)
 {
-	static LPCTSTR pszNames[] = { _T("id"), _T("id1"), _T("id2"), _T("id3"), _T("id4"), _T("id5"), _T("id6"), _T("id7"), _T("id8"), _T("id9"), NULL };
-	
 	CString strFile = strPath;
 	strFile += pBase->GetAttributeValue( _T("id") );
 	strFile += pBase->GetAttributeValue( _T("path") );
-	
+
 	HBITMAP hBitmap = LoadBitmap( strFile );
 	if ( hBitmap == NULL ) return TRUE;
 	if ( theApp.m_bRTL ) hBitmap = CreateMirroredBitmap( hBitmap );
@@ -1460,44 +1434,10 @@ BOOL CSkin::LoadCommandBitmap(CXMLElement* pBase, const CString& strPath)
 		_stscanf( strFile.Mid( 4, 2 ), _T("%x"), &nBlue );
 		crMask = RGB( nRed, nGreen, nBlue );
 	}
-	
-	CoolInterface.ConfirmImageList();
-	int nBase = ImageList_AddMasked( CoolInterface.m_pImages.m_hImageList, hBitmap, crMask );
-	
-	if ( nBase < 0 )
-	{
-		DeleteObject( hBitmap );
-		return FALSE;
-	}
-	
-	int nIndex = 0;
-	// Total number of images
-	int nIndexRev = CoolInterface.m_pImages.GetImageCount() - 1;
-	
-	for ( POSITION pos = pBase->GetElementIterator() ; pos ; )
-	{
-		CXMLElement* pXML = pBase->GetNextElement( pos );
-		if ( ! pXML->IsNamed( _T("image") ) ) continue;
-		
-		strFile = pXML->GetAttributeValue( _T("index") );
-		if ( strFile.GetLength() ) _stscanf( strFile, _T("%i"), &nIndex );
-		nIndex += nBase;
 
-		for ( int nName = 0 ; pszNames[ nName ] ; nName++ )
-		{
-			UINT nID = LookupCommandID( pXML, pszNames[ nName ] );
-			if ( nID ) CoolInterface.m_pImageMap.SetAt( nID, 
-				theApp.m_bRTL ? nIndexRev : nIndex );
-			if ( nName && ! nID ) break;
-		}
-		nIndexRev--;	
-		nIndex -= nBase;
-		nIndex ++;
-	}
-	
+	BOOL bResult = CoolInterface.Add( this, pBase, hBitmap, crMask );
 	DeleteObject( hBitmap );
-	
-	return TRUE;
+	return bResult;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1531,7 +1471,12 @@ void CSkin::CreateDefault()
 	// Command Icons
 	
 	HICON hIcon = theApp.LoadIcon( IDI_CHECKMARK );
-	CoolInterface.AddIcon( ID_CHECKMARK, theApp.m_bRTL ? CreateMirroredIcon( hIcon ) : hIcon );
+	if ( hIcon )
+	{
+		if ( theApp.m_bRTL ) hIcon = CreateMirroredIcon( hIcon );
+		CoolInterface.AddIcon( ID_CHECKMARK, hIcon );
+		VERIFY( DestroyIcon( hIcon ) );
+	}
 	
 	// Default Menu
 	

@@ -98,7 +98,7 @@ BOOL CTorrentTrackersPage::OnInitDialog()
 	CRect rc;
 	m_wndTrackers.GetClientRect( &rc );
 	rc.right -= GetSystemMetrics( SM_CXVSCROLL );
-	m_wndTrackers.SetImageList( &CoolInterface.m_pImages, LVSIL_SMALL );
+	CoolInterface.SetImageListTo( m_wndTrackers, LVSIL_SMALL );
 	m_wndTrackers.InsertColumn( 0, _T("Tracker"), LVCFMT_LEFT, rc.right - 80, -1 );
 	m_wndTrackers.InsertColumn( 1, _T("Status"), LVCFMT_RIGHT, 80, 0 );
 	m_wndTrackers.InsertColumn( 2, _T("Type"), LVCFMT_LEFT, 0, 0 );
@@ -385,13 +385,13 @@ BOOL CTorrentTrackersPage::OnTree(CBENode* pNode)
 	if ( CBENode* pComplete = pFile->GetNode( "complete" ) )
 	{
 		if ( ! pComplete->IsType( CBENode::beInt ) ) return FALSE;	
-		m_nComplete = (int)pComplete->GetInt();
+		m_nComplete = (int)(pComplete->GetInt() & ~0xFFFF0000);
 	}
 	
 	if ( CBENode* pIncomplete = pFile->GetNode( "incomplete" ) )
 	{
 		if ( ! pIncomplete->IsType( CBENode::beInt ) ) return FALSE;	
-		m_nIncomplete = (int)pIncomplete->GetInt();
+		m_nIncomplete = (int)(pIncomplete->GetInt() & ~0xFFFF0000);
 	}
 	
 	return TRUE;

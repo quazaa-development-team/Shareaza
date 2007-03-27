@@ -1,11 +1,7 @@
 //
 // CtrlLibraryFileView.cpp
 //
-//	Date:			"$Date: 2006/02/23 21:10:12 $"
-//	Revision:		"$Revision: 1.26 $"
-//  Last change by:	"$Author: rolandas $"
-//
-// Copyright (c) Shareaza Development Team, 2002-2006.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it

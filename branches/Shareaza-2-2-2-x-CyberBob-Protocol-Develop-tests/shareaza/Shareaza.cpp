@@ -76,6 +76,7 @@ static char THIS_FILE[] = __FILE__;
 const LPCTSTR RT_BMP = _T("BMP");
 const LPCTSTR RT_JPEG = _T("JPEG");
 const LPCTSTR RT_PNG = _T("PNG");
+const LPCTSTR RT_GZIP = _T("GZIP");
 
 /////////////////////////////////////////////////////////////////////////////
 // CShareazaCommandLineInfo
@@ -1607,7 +1608,25 @@ void RecalcDropWidth(CComboBox* pWnd)
     pWnd->SetDroppedWidth( nWidth );
 }
 
-HICON CreateMirroredIcon(HICON hIconOrig)
+int AddIcon(UINT nIcon, CImageList& gdiImageList)
+{
+	return AddIcon( theApp.LoadIcon( nIcon ), gdiImageList );
+}
+
+int AddIcon(HICON hIcon, CImageList& gdiImageList)
+{
+	int num = -1;
+	if ( hIcon )
+	{
+		if ( theApp.m_bRTL )
+			hIcon = CreateMirroredIcon( hIcon );
+		num = gdiImageList.Add( hIcon );
+		VERIFY( DestroyIcon( hIcon ) );
+	}
+	return num;
+}
+
+HICON CreateMirroredIcon(HICON hIconOrig, BOOL bDestroyOriginal)
 {
 	HDC hdcScreen, hdcBitmap, hdcMask = NULL;
 	HBITMAP hbm, hbmMask, hbmOld,hbmOldMask;
@@ -1665,6 +1684,8 @@ HICON CreateMirroredIcon(HICON hIconOrig)
 
 	if ( hdcBitmap ) DeleteDC( hdcBitmap );
 	if ( hdcMask ) DeleteDC( hdcMask );
+	if ( hIcon && hIconOrig && bDestroyOriginal ) VERIFY( DestroyIcon( hIconOrig ) );
+	if ( ! hIcon ) hIcon = hIconOrig;
 	return hIcon;
 }
 
@@ -1748,12 +1769,34 @@ class CRazaThread : public CWinThread
 
 public:
 	CRazaThread(AFX_THREADPROC pfnThreadProc, LPVOID pParam) :
-		CWinThread( pfnThreadProc, pParam )
+		CWinThread( NULL, pParam ),
+		m_pfnThreadProcExt( pfnThreadProc )
 	{
 	}
 	virtual ~CRazaThread()
 	{
 		Remove( m_hThread );
+	}
+
+	virtual BOOL InitInstance()
+	{
+		ASSERT_VALID( this );
+		return TRUE;
+	}
+
+	virtual int Run()
+	{
+		ASSERT_VALID( this );
+		ASSERT( m_pfnThreadProcExt );
+
+		bool bCOM = SUCCEEDED( OleInitialize( NULL ) );
+
+		int nResult = ( *m_pfnThreadProcExt )( m_pThreadParams );
+
+		if ( bCOM )
+			OleUninitialize();
+
+		return nResult;
 	}
 
 	static void Add(CRazaThread* pThread, LPCSTR pszName)
@@ -1823,6 +1866,7 @@ protected:
 
 	static CCriticalSection	m_ThreadMapSection;	// Guarding of m_ThreadMap
 	static CThreadMap		m_ThreadMap;		// Map of running threads
+	AFX_THREADPROC			m_pfnThreadProcExt;
 };
 
 IMPLEMENT_DYNAMIC(CRazaThread, CWinThread)
@@ -1896,4 +1940,82 @@ LRESULT CALLBACK MouseHook(int nCode, WPARAM wParam, LPARAM lParam)
 		theApp.m_dwLastInput = (DWORD)time( NULL );
 
 	return ::CallNextHookEx( theApp.m_hHookMouse, nCode, wParam, lParam );
+}
+
+CString GetWindowsFolder()
+{
+	TCHAR pszWindowsPath[ MAX_PATH ] = { 0 };
+	GetWindowsDirectory( pszWindowsPath, MAX_PATH );
+	CharLower( pszWindowsPath );
+	return CString( pszWindowsPath );
+}
+
+CString GetProgramFilesFolder()
+{
+	TCHAR pszProgramsPath[ MAX_PATH ] = { 0 };
+	if ( HINSTANCE hShell = LoadLibrary( _T("shfolder.dll") ) )
+	{
+		HRESULT (WINAPI *pfnSHGetFolderPath)(HWND, int, HANDLE, DWORD, LPWSTR);
+		(FARPROC&)pfnSHGetFolderPath = GetProcAddress( hShell, "SHGetFolderPathW" );
+		if ( pfnSHGetFolderPath )
+		{
+			(*pfnSHGetFolderPath)( NULL, CSIDL_PROGRAM_FILES, NULL, NULL, pszProgramsPath );
+		}
+		FreeLibrary( hShell );
+	}
+	if ( ! *pszProgramsPath )
+	{
+		// Get drive letter
+		GetWindowsDirectory( pszProgramsPath, MAX_PATH );
+		_tcscpy( pszProgramsPath + 1, _T(":\\program files") );
+	}
+	CharLower( pszProgramsPath );
+	return CString( pszProgramsPath );
+}
+
+CString LoadHTML(HINSTANCE hInstance, UINT nResourceID)
+{
+	CString strBody;
+	BOOL bGZIP = FALSE;
+	HRSRC hRes = FindResource( hInstance, MAKEINTRESOURCE( nResourceID ), RT_HTML );
+	if ( ! hRes )
+	{
+		hRes = FindResource( hInstance, MAKEINTRESOURCE( nResourceID ), RT_GZIP );
+		bGZIP = ( hRes != NULL );
+	}
+	if ( hRes )
+	{
+		DWORD nSize			= SizeofResource( hInstance, hRes );
+		HGLOBAL hMemory		= LoadResource( hInstance, hRes );
+		if ( hMemory )
+		{
+			LPCSTR pszInput	= (LPCSTR)LockResource( hMemory );
+			if ( pszInput )
+			{
+				if ( bGZIP )
+				{
+					CBuffer buf;
+					buf.Add( pszInput, nSize );
+					if ( buf.Ungzip() )
+					{
+						int nWide = MultiByteToWideChar( 0, 0, (LPCSTR)buf.m_pBuffer, buf.m_nLength, NULL, 0 );
+						LPTSTR pszOutput = strBody.GetBuffer( nWide + 1 );
+						MultiByteToWideChar( 0, 0, (LPCSTR)buf.m_pBuffer, buf.m_nLength, pszOutput, nWide );
+						pszOutput[ nWide ] = _T('\0');
+						strBody.ReleaseBuffer();
+					}
+				}
+				else
+				{
+					int nWide = MultiByteToWideChar( 0, 0, pszInput, nSize, NULL, 0 );
+					LPTSTR pszOutput = strBody.GetBuffer( nWide + 1 );
+					MultiByteToWideChar( 0, 0, pszInput, nSize, pszOutput, nWide );
+					pszOutput[ nWide ] = _T('\0');
+					strBody.ReleaseBuffer();
+				}
+			}
+			FreeResource( hMemory );
+		}
+	}
+	return strBody;
 }

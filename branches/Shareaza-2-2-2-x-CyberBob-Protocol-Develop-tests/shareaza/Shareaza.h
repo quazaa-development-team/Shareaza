@@ -218,7 +218,13 @@ BOOL	TimeFromString(LPCTSTR psz, FILETIME* pTime);
 CString	TimeToString(FILETIME* pTime);
 
 void	RecalcDropWidth(CComboBox* pWnd);
-HICON	CreateMirroredIcon(HICON hIconOrig);
+// Load and add icon to CImageList, mirrored if needed
+int		AddIcon(UINT nIcon, CImageList& gdiImageList);
+// Add icon to CImageList, mirrored if needed
+int		AddIcon(HICON hIcon, CImageList& gdiImageList);
+// Create mirrored icon. Returns:
+// mirrored icon (original destroyed if needed) if succeed or original icon otherwise
+HICON	CreateMirroredIcon(HICON hIconOrig, BOOL bDestroyOriginal = TRUE);
 HBITMAP	CreateMirroredBitmap(HBITMAP hbmOrig);
 
 HANDLE BeginThread(LPCSTR pszName, AFX_THREADPROC pfnThreadProc,
@@ -228,6 +234,12 @@ void CloseThread(HANDLE* phThread, DWORD dwTimeout = 5000);
 
 LRESULT CALLBACK KbdHook(int nCode, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK MouseHook(int nCode, WPARAM wParam, LPARAM lParam);
+
+CString GetWindowsFolder();
+CString GetProgramFilesFolder();
+
+// Loads RT_HTML or RT_GZIP resource as string
+CString LoadHTML(HINSTANCE hInstance, UINT nResourceID);
 
 #ifdef _DEBUG
 #define MLOG(x) theApp.Message( MSG_DEBUG, x )
@@ -444,3 +456,4 @@ inline void IsType(LPCTSTR pszString, size_t nStart, size_t nLength, bool& bWord
 extern const LPCTSTR RT_BMP;
 extern const LPCTSTR RT_JPEG;
 extern const LPCTSTR RT_PNG;
+extern const LPCTSTR RT_GZIP;

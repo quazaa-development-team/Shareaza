@@ -1030,7 +1030,7 @@ void CMatchList::ClearNew()
 	
 	for ( DWORD nFile = 0 ; nFile < m_nFiles ; nFile++ )
 	{
-		m_pFiles[ nFile ]->ClearNew();
+		if ( m_pFiles[ nFile ] ) m_pFiles[ nFile ]->ClearNew();
 	}
 	
 	m_bNew = TRUE;
@@ -1189,7 +1189,7 @@ CMatchFile::CMatchFile(CMatchList* pList, CQueryHit* pHit)
 	
 	m_bExpanded		= Settings.Search.ExpandMatches;
 	m_bSelected		= FALSE;
-	m_bExisting		= FALSE;
+	m_bExisting		= TS_UNKNOWN;
 	m_bDownload		= FALSE;
 	m_bNew			= FALSE;
 	m_bOneValid		= FALSE;
@@ -1213,6 +1213,30 @@ CMatchFile::~CMatchFile()
 	
 	if ( m_pColumns ) delete [] m_pColumns;
 	if ( m_pPreview ) delete [] m_pPreview;
+}
+
+void CMatchFile::RefreshStatus()
+{
+	CMapStringToPtr oNameRatings;
+	LPVOID nVote;
+	DWORD nBestVote = 0;
+	for ( CQueryHit* pHit = m_pHits ; pHit ; pHit = pHit->m_pNext )
+	{
+		if ( oNameRatings.Lookup( pHit->m_sName, nVote ) )
+		{
+			oNameRatings [pHit->m_sName] = nVote = (LPVOID)( (DWORD)nVote + 1 );
+		}
+		else
+		{
+			oNameRatings [pHit->m_sName] = nVote = (LPVOID)1;
+		}
+		if ( (DWORD)nVote > nBestVote )
+		{
+			nBestVote = (DWORD)nVote;
+//			m_sName = pHit->m_sName;
+//			m_sURL = pHit->m_sURL;
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1282,44 +1306,20 @@ BOOL CMatchFile::Add(CQueryHit* pHit, BOOL bForce)
 		m_nTotal++;
 	}
 	
-	CSingleLock pLock1( &Library.m_pSection );
-	BOOL bLocked = FALSE;
-	
 	/*
 	if ( !m_oSHA1 && pHit->m_oSHA1 )
 	{
 		m_oSHA1 = pHit->m_oSHA1;
-		
-		if ( ! m_bExisting && pLock1.Lock( 100 ) )
-		{
-			if ( CLibraryFile* pExisting = LibraryMaps.LookupFileBySHA1( m_oSHA1 ) )
-				m_bExisting = pExisting->IsAvailable() ? 1 : 2;
-			bLocked = TRUE;
-		}
 	}
 	
 	if ( ! m_oTiger && pHit->m_oTiger )
 	{
 		m_oTiger = pHit->m_oTiger;
-		
-		if ( ! m_bExisting && ( bLocked || pLock1.Lock( 100 ) ) )
-		{
-			if ( CLibraryFile* pExisting = LibraryMaps.LookupFileByTiger( m_oTiger ) )
-				m_bExisting = pExisting->IsAvailable() ? 1 : 2;
-			bLocked = TRUE;
-		}
 	}
 	
 	if ( ! m_oED2K && pHit->m_oED2K )
 	{
 		m_oED2K = pHit->m_oED2K;
-		
-		if ( ! m_bExisting && ( bLocked || pLock1.Lock( 100 ) ) )
-		{
-			if ( CLibraryFile* pExisting = LibraryMaps.LookupFileByED2K( m_oED2K ) )
-				m_bExisting = pExisting->IsAvailable() ? 1 : 2;
-			bLocked = TRUE;
-		}
 	}
 
 	if ( ! m_oMD5 && pHit->m_oMD5 )
@@ -1341,6 +1341,7 @@ BOOL CMatchFile::Add(CQueryHit* pHit, BOOL bForce)
 	if ( !m_oED2K && pHit->m_oED2K ) m_oED2K = pHit->m_oED2K;
 	if ( !m_oMD5 && pHit->m_oMD5 ) m_oMD5 = pHit->m_oMD5;
 
+	/*
 	if ( pHit->m_oSHA1 || pHit->m_oTiger || pHit->m_oED2K || pHit->m_oMD5 )
 	{
 		if ( ! m_bExisting && pLock1.Lock( 100 ) )
@@ -1350,11 +1351,10 @@ BOOL CMatchFile::Add(CQueryHit* pHit, BOOL bForce)
 			bLocked = TRUE;
 		}
 	}
+	*/
 	// test code ends here -------------------------------------
 
-	if ( bLocked ) pLock1.Unlock();
-	
-	if ( ! m_bDownload && ! m_bExisting && ( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 ) )
+	if ( ! m_bDownload && GetLibraryStatus() == TS_UNKNOWN && ( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 ) )
 	{
 		CSingleLock pLock2( &Transfers.m_pSection );
 		
@@ -1393,6 +1393,8 @@ BOOL CMatchFile::Add(CQueryHit* pHit, BOOL bForce)
 	
 	if ( ! m_bOneValid && ! pHit->m_bBogus && pHit->m_bMatched ) m_bOneValid = TRUE;
 	
+	RefreshStatus();
+
 	return TRUE;
 }
 
@@ -1467,7 +1469,7 @@ DWORD CMatchFile::Filter()
 	}
 
 	if ( m_pBest == NULL ) return 0;	// If we filtered all hits, don't try to display
-	if ( m_pList->m_bFilterLocal && m_bExisting == 1 ) return 0;
+	if ( m_pList->m_bFilterLocal && GetLibraryStatus() == TS_FALSE ) return 0;
 	if ( m_pList->m_bFilterDRM && m_bDRM ) return 0;
 	if ( m_pList->m_bFilterSuspicious && m_bSuspicious ) return 0;
 
@@ -1895,4 +1897,27 @@ void CMatchFile::Serialize(CArchive& ar, int nVersion)
 			m_pHits->Serialize( ar, nVersion );
 		}
 	}
+}
+
+TRISTATE CMatchFile::GetLibraryStatus()
+{
+	// TODO: Is some cache needed?
+	if ( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 )
+	{
+		CSingleLock pLock( &Library.m_pSection );
+		if (  pLock.Lock( 100 ) )
+		{
+			CLibraryFile* pExisting = NULL;
+			if ( pExisting = LibraryMaps.LookupFileByHash( m_oSHA1, m_oTiger, m_oED2K, m_oMD5, m_nSize, m_nSize ) )
+			{
+				m_bExisting = pExisting->IsAvailable() ? TS_FALSE : TS_TRUE;
+			}
+			else
+			{
+				m_bExisting = TS_UNKNOWN;
+			}
+			pLock.Unlock();
+		}
+	}
+	return m_bExisting;
 }
