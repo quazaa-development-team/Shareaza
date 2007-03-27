@@ -398,7 +398,7 @@ BOOL CLibraryDictionary::BuildHashTable()
 
 		CLibraryFile* pFileTemp = *(pWord->m_pList); 
 
-		if ( IsValidKeyword( strWord ) && ( pFileTemp->IsShared() || ( pFileTemp->IsGhost() ) ) /* || 
+		if ( ( pFileTemp->IsShared() || ( pFileTemp->IsGhost() ) && IsValidKeyword( strWord ) ) /* ||
 			(UploadQueues.CanUpload( PROTOCOL_HTTP, pFileTemp, FALSE ) ) */) // Check if a queue exists
 		{
 			//Add the keywords to the table
