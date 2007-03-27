@@ -93,6 +93,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.General.HashIntegrity, 1, 0, 1 );
 	AddSetting( &Settings.General.MinTransfersRest, 1, 1, 100, _T(" ms") );
 	AddSetting( &Settings.General.ShowFilesizeInByte, 1, 0, 1 );
+	AddSetting( &Settings.General.DisableThumbnail, 1, 0, 1 );
 
 	AddSetting( &Settings.Community.ChatFilterED2K, 1, 0, 1 );
 	AddSetting( &Settings.Community.AwayMessageIdleTime, 60, 5, 60, _T(" m") );

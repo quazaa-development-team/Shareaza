@@ -52,6 +52,7 @@ void CSettings::Setup()
 	Add( _T(".DiskSpaceStop"), &General.DiskSpaceStop, 25 );
 	Add( _T(".MinTransfersRest"), &General.MinTransfersRest, 15 );
 	Add( _T(".ShowFilesizeInByte"), &General.ShowFilesizeInByte, FALSE );
+	Add( _T(".DisableThumbnail"), &General.DisableThumbnail, FALSE );
 	Add( _T("Settings.GUIMode"), &General.GUIMode, GUI_BASIC );
 	Add( _T("Settings.CloseMode"), &General.CloseMode, 0 );
 	Add( _T("Settings.TrayMinimise"), &General.TrayMinimise, FALSE );
