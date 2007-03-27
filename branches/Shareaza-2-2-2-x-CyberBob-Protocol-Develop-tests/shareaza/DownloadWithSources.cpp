@@ -803,32 +803,42 @@ BOOL CDownloadWithSources::AddSourceInternal(CDownloadSource* pSource)
 					pSource->m_nProtocol == PROTOCOL_G1 ||
 					pSource->m_nProtocol == PROTOCOL_G2 ) )
 				{
-					if ( pExisting->m_pTransfer == NULL ) // Not Downloading.
+					if ( CompareFileTime( &pExisting->m_tLastSeen, &pSource->m_tLastSeen ) < 0 )
 					{
-						if ( CompareFileTime( &pExisting->m_tLastSeen, &pSource->m_tLastSeen ) < 0 )
+						pExisting->m_tLastSeen = pSource->m_tLastSeen;
+						if ( pSource->m_oGUID != NULL ) pExisting->m_oGUID = pSource->m_oGUID;
+						pExisting->m_nIndex = pSource->m_nIndex;
+						pExisting->m_bClientExtended = pSource->m_bClientExtended;
+						pExisting->m_bPushOnly = pSource->m_bPushOnly;
+						pExisting->m_sURL = pSource->m_sURL;
+
+						if ( !pSource->m_oHubList.empty() )
 						{
-							pExisting->m_tLastSeen = pSource->m_tLastSeen;
-							pExisting->ChangeProtocolID( pSource->m_nProtocol );
-							if ( pSource->m_oGUID != NULL ) pExisting->m_oGUID = pSource->m_oGUID;
+							pExisting->m_oHubList = pSource->m_oHubList;
+							pExisting->m_nPushAttempted = 0;
+						}
+						if ( !pSource->m_oPushProxyList.empty() )
+						{
+							pExisting->m_oPushProxyList = pSource->m_oPushProxyList;
+							pExisting->m_nPushAttempted = 0;
+						}
+						if ( pExisting->m_pTransfer == NULL && // Not Downloading at the moment.
+							Network.IsFirewalledAddress( &(pSource->m_pAddress), TRUE, TRUE ) )	// the source address is firewalled.
+						{																			//e.g. Hit from LimeWire
 							pExisting->m_pAddress.S_un.S_addr = pSource->m_pAddress.S_un.S_addr;
 							pExisting->m_nPort = pSource->m_nPort;
-							pExisting->m_nIndex = pSource->m_nIndex;
-							pExisting->m_bClientExtended = pSource->m_bClientExtended;
-							pExisting->m_bPushOnly = pSource->m_bPushOnly;
-							pExisting->m_sURL = pSource->m_sURL;
-
-							if ( !pSource->m_oHubList.empty() )
-							{
-								pExisting->m_oHubList = pSource->m_oHubList;
-								pExisting->m_nPushAttempted = 0;
-							}
-							if ( !pSource->m_oPushProxyList.empty() )
-							{
-								pExisting->m_oPushProxyList = pSource->m_oPushProxyList;
-								pExisting->m_nPushAttempted = 0;
-							}
+							if ( pExisting->m_nProtocol == PROTOCOL_HTTP ) pExisting->ChangeProtocolID( pSource->m_nProtocol );
 						}
-					}				
+					}
+				}
+				else if ( pExisting->m_nProtocol == PROTOCOL_ED2K && pSource->m_nProtocol == PROTOCOL_ED2K )
+				{
+					if ( pExisting->m_pTransfer == NULL && validAndEqual(pExisting->m_oGUID, pSource->m_oGUID) && pExisting->m_bPushOnly )
+					{
+						pExisting->m_pServerAddress = pSource->m_pServerAddress;
+						pExisting->m_nServerPort = pSource->m_nServerPort;
+						pExisting->m_pAddress.S_un.S_addr = pSource->m_pAddress.S_un.S_addr;
+					}
 				}
 				delete pSource;
 				return FALSE;
