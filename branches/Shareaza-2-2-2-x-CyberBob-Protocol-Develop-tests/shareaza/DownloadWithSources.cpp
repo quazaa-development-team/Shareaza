@@ -1151,6 +1151,8 @@ void CDownloadWithSources::RemoveSource(CDownloadSource* pSource, BOOL bBan)
 	else
 		m_pSourceLast = pSource->m_pPrev;
 
+	if ( pSource->m_pTransfer ) pSource->m_pTransfer->m_pSource = NULL;
+
 	delete pSource;
 	SetModified();
 }
