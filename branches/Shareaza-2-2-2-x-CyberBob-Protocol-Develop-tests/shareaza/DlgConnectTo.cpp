@@ -49,10 +49,9 @@ CConnectToDlg::CConnectToDlg(CWnd* pParent, BOOL bBrowseHost) :
 	m_bNoUltraPeer( FALSE ),
 	m_nPort( GNUTELLA_DEFAULT_PORT ),
 	m_nProtocol( PROTOCOL_G2 ),
-	m_bBrowseHost( bBrowseHost )
+	m_bBrowseHost( bBrowseHost ),
+	m_bUDP( FALSE )
 {
-
-	m_bUDP = FALSE;
 }
 
 void CConnectToDlg::DoDataExchange(CDataExchange* pDX)
