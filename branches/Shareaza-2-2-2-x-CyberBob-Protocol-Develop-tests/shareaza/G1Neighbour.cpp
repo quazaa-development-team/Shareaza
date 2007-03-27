@@ -1446,3 +1446,11 @@ BOOL CG1Neighbour::OnHit(CG1Packet* pPacket)
 	// Have OnCommonHit process the query hit packet, and return the result it does (do)
 	return OnCommonHit( pPacket );
 }
+
+// quick & dirty hack, currently CNeighbour::OnCommonQueryHash() cause crash under certain situation. because of that, need
+// to over ride the handler.
+BOOL CG1Neighbour::OnCommonQueryHash(CPacket* /*pPacket*/)
+{
+	// do nothing
+	return TRUE;
+}

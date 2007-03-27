@@ -121,6 +121,10 @@ protected:
 	// Cluster advisor vendor specific packet
 	void SendClusterAdvisor();
 	BOOL OnClusterAdvisor(CG1Packet* pPacket);
+
+	// quick & dirty hack, currently CNeighbour::OnCommonQueryHash() cause crash under certain situation. because of that, need
+	// to over ride the handler.
+	BOOL OnCommonQueryHash(CPacket* pPacket);
 };
 
 // End the group of lines to only include once, pragma once doesn't require an endif at the bottom
