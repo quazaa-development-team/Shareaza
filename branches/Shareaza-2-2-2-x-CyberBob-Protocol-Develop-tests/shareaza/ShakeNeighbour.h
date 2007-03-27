@@ -48,81 +48,99 @@ protected:
 	BOOL		m_bCanDeflate;
 
 	// Set to true when we have sent the following handshake header
-	BOOL        m_bSentAddress;     // We told the remote computer our Internet IP address that we are listening on
+	BOOL        m_bSentAddress;		// We told the remote computer our Internet IP address that we are listening on
 									// We sent it a header like this
 									//
 									//    Listen-IP: 1.2.3.4:5
 									//
 
 	// Set to true when we have received the following handshake headers
-	BOOL        m_bG1Send;          // The remote computer is going to send us Gnutella1 packets
+	BOOL        m_bG1Send;			// The remote computer is going to send us Gnutella1 packets
 									// It Did not send any "Content-Type: " or sent us a header like one of these
 									//
 									//    Content-Type: application/x-gnutella-packets
 									//    
 									//
-	BOOL        m_bG1Accept;        // The remote computer accepts Gnutella1 packets
+	BOOL        m_bG1Accept;		// The remote computer accepts Gnutella1 packets
 									// It Did not send any "Accept: " or sent us a header like one of these
 									//
 									//    Accept: application/x-gnutella-packets
 									//
 									//
-	BOOL        m_bG2Send;          // The remote computer is going to send us Gnutella2 packets
+	BOOL        m_bG2Send;			// The remote computer is going to send us Gnutella2 packets
 									// It sent us a header like one of these
 									//
 									//    Content-Type: application/x-gnutella2
 									//    Content-Type: application/x-shareaza
 									//
-	BOOL        m_bG2Accept;        // The remote computer accepts Gnutella2 packets
+	BOOL        m_bG2Accept;		// The remote computer accepts Gnutella2 packets
 									// It sent us a header like one of these
 									//
 									//    Accept: application/x-gnutella2
 									//    Accept: application/x-shareaza
 									//
-	BOOL        m_bDeflateSend;     // All the data from the remote computer is going to be compressed
+	BOOL        m_bDeflateSend;		// All the data from the remote computer is going to be compressed
 									// It sent us a header like this
 									//
 									//    Content-Encoding: deflate
 									//
-	BOOL        m_bDeflateAccept;   // The remote computer accepts compressed data
+	BOOL        m_bDeflateAccept;	// The remote computer accepts compressed data
 									// It sent us a header like this
 									//
 									//    Accept-Encoding: deflate
 									//
-	TRISTATE    m_bUltraPeerSet;    // The remote computer is an ultrapeer or hub, true, a leaf, false, or hasn't told us yet, unknown
+	TRISTATE    m_tsUltraPeerSet;	// The remote computer is an ultrapeer, true, a leaf, false, or hasn't told us yet, unknown
 									// True if it sent us a header like this
 									//
 									//    X-Ultrapeer: True
-									//    X-Hub: True
 									//
 									// False if it sent us a header like this
 									//
 									//    X-Ultrapeer: False
-									//    X-Hub: False
 									//
 									// Unknown if it hasn't sent us any headers like that yet
-	TRISTATE    m_bUltraPeerNeeded; // True if the remote computer has told us it needs more connections to ultrapeers or hubs
+	TRISTATE    m_tsUltraPeerNeeded;// True if the remote computer has told us it needs more connections to ultrapeers
 									// True if it sent us a header like this
 									//
 									//    X-Ultrapeer-Needed: True
-									//    X-Hub-Needed: True
 									//
 									// False if it sent us a header like this
 									//
 									//    X-Ultrapeer-Needed: False
+									//
+									// Unknown if it hasn't sent us any headers like that yet
+
+	TRISTATE	m_tsUltraPeerLoaded;// Possibly not in use (do)
+
+	TRISTATE    m_tsHubSet;			// The remote computer is an hub, true, a leaf, false, or hasn't told us yet, unknown
+									// True if it sent us a header like this
+									//
+									//    X-Hub: True
+									//
+									// False if it sent us a header like this
+									//
+									//    X-Hub: False
+									//
+									// Unknown if it hasn't sent us any headers like that yet
+	TRISTATE    m_tsHubNeeded;		// True if the remote computer has told us it needs more connections to hubs
+									// True if it sent us a header like this
+									//
+									//    X-Hub-Needed: True
+									//
+									// False if it sent us a header like this
+									//
 									//    X-Hub-Needed: False
 									//
 									// Unknown if it hasn't sent us any headers like that yet
 
-	// Possibly not in use (do)
-	TRISTATE m_bUltraPeerLoaded;
+	TRISTATE	m_tsHubLoaded;		// Possibly not in use (do)
 
-	BOOL	m_bFirewallTest;		// Are we testing remote firewall? [Brov]
-	BOOL	m_bDelayClose;			// This is DelayClose
-	UINT	m_nDelayCloseReason;	// Reason for DelayClose;
-	CString	m_sTryUltrapeers;		// Storage of X-Try-Ultrapeers Header
-	CString	m_sTryHubs;				// Storage of X-Try-Hubs Header
-	CString	m_sTryDNAHubs;			// Storage of X-Try-DNA-Hubs Header
+	BOOL		m_bFirewallTest;	// Are we testing remote firewall? [Brov]
+	BOOL		m_bDelayClose;		// This is DelayClose
+	UINT		m_nDelayCloseReason;// Reason for DelayClose;
+	CString		m_sTryUltrapeers;	// Storage of X-Try-Ultrapeers Header
+	CString		m_sTryHubs;			// Storage of X-Try-Hubs Header
+	CString		m_sTryDNAHubs;		// Storage of X-Try-DNA-Hubs Header
 
 
 public:
@@ -153,9 +171,9 @@ protected:
 	BOOL ReadResponse();										// Read the first line of a new group of headers from the remote computer
 	void OnHandshakeComplete();									// Turn this object into one specialized for Gnutella or Gnutella2
 
-	BOOL IsClientObsolete();									// Checks the user agent to see if it's an old client.
-	BOOL IsClientBad();											// Checks to see if it's a GPL violator or glitchy client.
-	BOOL IsClientBanned();										// Checks to see if it's a leecher. (Clients are blocked)
+	BOOL IsClientObsolete(PROTOCOLID nProtocol);				// Checks the user agent to see if it's an old client.
+	BOOL IsClientBad(PROTOCOLID nProtocol);						// Checks to see if it's a GPL violator or glitchy client.
+	BOOL IsClientBanned(PROTOCOLID nProtocol);					// Checks to see if it's a leecher. (Clients are blocked)
 };
 
 // End the group of lines to only include once, pragma once doesn't require an endif at the bottom
