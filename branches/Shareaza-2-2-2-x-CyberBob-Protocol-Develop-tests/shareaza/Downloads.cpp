@@ -1414,8 +1414,8 @@ BOOL CDownloads::OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept, 
 			CDownload* pDownload = GetNext( pos );
 			if ( bFound )	// has found the CDownload object match to pSeekDownloadAfterThis
 			{
-				// try callback on pDownload.
-				if ( pDownload->OnDonkeyCallback( pClient, pExcept ) ) return TRUE;
+				// try callback on pDownload. (check ED2K source count first because no good trying if no ed2k sources)
+				if ( pDownload->m_nEdSourceCount && pDownload->OnDonkeyCallback( pClient, pExcept ) ) return TRUE;
 			}
 			else	// has not found CDownload object which match to pSeekDownloadAfterThis yet.
 			{
@@ -1429,8 +1429,8 @@ BOOL CDownloads::OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept, 
 		for ( POSITION pos = GetIterator() ; pos ; )
 		{
 			CDownload* pDownload = GetNext( pos );
-			// try callback on pDownload.
-			if ( pDownload->OnDonkeyCallback( pClient, pExcept ) ) return TRUE;
+			// try callback on pDownload. (check ED2K source count first because no good trying if no ed2k sources)
+			if ( pDownload->m_nEdSourceCount && pDownload->OnDonkeyCallback( pClient, pExcept ) ) return TRUE;
 		}
 	}
 
