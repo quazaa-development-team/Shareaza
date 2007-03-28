@@ -113,7 +113,7 @@ BOOL CDownloadsSettingsPage::OnInitDialog()
 	}
 	else
 	{
-		m_wndMaxDownFiles.SetRange( 1, 100 );
+		m_wndMaxDownFiles.SetRange( 1, 1024 );
 		if ( Settings.GetOutgoingBandwidth() >= 16 ) 
 			m_wndMaxDownTransfers.SetRange( 1, 250 );
 		else 
@@ -319,7 +319,7 @@ void CDownloadsSettingsPage::OnOK()
 	else
 	{
 		// For other systems we can guestimate a good value based on available bandwidth
-	m_nMaxDownFiles = min ( m_nMaxDownFiles, 100 );
+	m_nMaxDownFiles = min ( m_nMaxDownFiles, 1024 );
 	if ( Settings.GetOutgoingBandwidth() < 16 )
 		m_nMaxDownTransfers = min ( m_nMaxDownTransfers, 200 );
 		else if ( Settings.GetOutgoingBandwidth() <= 32 )

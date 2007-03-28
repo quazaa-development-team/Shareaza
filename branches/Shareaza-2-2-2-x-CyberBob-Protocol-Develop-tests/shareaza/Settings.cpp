@@ -598,7 +598,7 @@ void CSettings::Load()
 	Downloads.SearchPeriod		= min( Downloads.SearchPeriod, 4*60*1000u );
 	Downloads.StarveTimeout		= max( Downloads.StarveTimeout, 45*60u );
 	Downloads.ConnectThrottle	= max( Downloads.ConnectThrottle, Connection.ConnectThrottle + 50 );
-	Downloads.MaxFiles			= min( Downloads.MaxFiles, 100 );
+	Downloads.MaxFiles			= min( Downloads.MaxFiles, 1024 );
 	eDonkey.QueryGlobalThrottle = max( eDonkey.QueryGlobalThrottle, 1000u );
 	Gnutella1.RequeryDelay		= max( Gnutella1.RequeryDelay, 45*60u );
 	Gnutella2.RequeryDelay		= max( Gnutella2.RequeryDelay, 60*60u );
