@@ -620,14 +620,24 @@ void CDownload::OnMoved(CDownloadTask* pTask)
 
 	LibraryBuilder.RequestPriority( m_sDiskName );
 
-    if ( m_oSHA1 || m_oED2K )
+    if ( m_oSHA1 )
 	{
-		LibraryHistory.Add( m_sDiskName, m_oSHA1,
-			m_oED2K, GetSourceURLs( NULL, 0, PROTOCOL_NULL, NULL ) );
+		if ( m_oED2K )
+		{
+			LibraryHistory.Add( m_sDiskName, m_oSHA1, m_oED2K, GetSourceURLs( NULL, 0, PROTOCOL_NULL, NULL ) );
+		}
+		else
+		{
+			LibraryHistory.Add( m_sDiskName, m_oSHA1, Hashes::Ed2kHash(), GetSourceURLs( NULL, 0, PROTOCOL_NULL, NULL ) );
+		}
+	}
+	else if ( m_oED2K )
+	{
+        LibraryHistory.Add( m_sDiskName, Hashes::Sha1Hash(), m_oED2K, NULL );
 	}
 	else
 	{
-        LibraryHistory.Add( m_sDiskName, Hashes::Sha1Hash(), m_oED2K, NULL );
+		LibraryHistory.Add( m_sDiskName, Hashes::Sha1Hash(), Hashes::Ed2kHash(), NULL );
 	}
 	// should check if it is Torrent or not.
 	if ( !m_pTorrent.IsAvailable() ) ClearSources();
