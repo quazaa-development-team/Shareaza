@@ -121,10 +121,12 @@ BOOL CDownloadTransferHTTP::Initiate()
 	else
 	{
 		/* ??????? don't get this. at this point, no one can get Offline/online status. only thing it can get
-					is initiation success or failed. including the case the source was on security list.*/
+					is initiation success or failed. including the case the source was on security list,
+					when socket creation is failed with Running out of handles(not rare on Win9x) thus it
+					is totally not good at all to add the source to failed list.*/
 		// Couldn't connect, keep the source but add to the m_pFailedSources
 		// Mark it as an offline source, it might be good later...
-		m_pDownload->AddFailedSource( m_pSource, true, true );
+		//m_pDownload->AddFailedSource( m_pSource, true, true );
 		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_CONNECT_ERROR, (LPCTSTR)m_sAddress );
 		Close( TS_UNKNOWN );
 		return FALSE;
