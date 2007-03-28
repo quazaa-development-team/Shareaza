@@ -1325,13 +1325,6 @@ BOOL CMatchFile::Add(CQueryHit* pHit, BOOL bForce)
 	if ( ! m_oMD5 && pHit->m_oMD5 )
 	{
 		m_oMD5 = pHit->m_oMD5;
-
-		if ( ! m_bExisting && ( bLocked || pLock1.Lock( 100 ) ) )
-		{
-			if ( CLibraryFile* pExisting = LibraryMaps.LookupFileByMD5( m_oMD5 ) )
-				m_bExisting = pExisting->IsAvailable() ? 1 : 2;
-			bLocked = TRUE;
-		}
 	}
 	*/
 
