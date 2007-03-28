@@ -403,7 +403,7 @@ BOOL CG2Neighbour::OnRun()
 	if ( m_bUDP && m_nState == nrsConnecting )
 	{
 		DWORD tNow = GetTickCount();
-		if ( tNow - m_tLastPingOut >= 1000 )
+		if ( tNow - m_tLastPingOut >= 5000 )
 			return SendUDPConnect( tNow );
 	}
 
