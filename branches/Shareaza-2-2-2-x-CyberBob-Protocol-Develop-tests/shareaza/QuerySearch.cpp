@@ -143,8 +143,8 @@ CG1Packet* CQuerySearch::ToG1Packet()
 		min( Settings.Gnutella1.SearchTTL, 4ul ), m_oGUID );
 
 	// Dont Think Shareaza support Dynamic Query
-	// WORD nFlags = G1_QF_TAG | G1_QF_BIN_HASH | G1_QF_DYNAMIC;
-	WORD nFlags = G1_QF_TAG | G1_QF_BIN_HASH | G1_QF_DYNAMIC /* | G1_QF_OOB */;
+	// WORD nFlags = G1_QF_TAG | G1_QF_BIN_HASH | G1_QF_DYNAMIC | G1_QF_OOB;
+	WORD nFlags = G1_QF_TAG | G1_QF_BIN_HASH;
 	if ( ! Network.IsListening() ) nFlags |= G1_QF_FIREWALLED;
 	if ( m_bWantXML ) nFlags |= G1_QF_XML;
 	pPacket->WriteShortLE( nFlags );
