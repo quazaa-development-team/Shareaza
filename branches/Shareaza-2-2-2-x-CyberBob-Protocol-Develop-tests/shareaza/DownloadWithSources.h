@@ -80,7 +80,7 @@ public:
 	CXMLElement*		m_pXML;
 	int					m_nSourceCount;
 
-protected:
+private:
 	int					m_nG1SourceCount;
 	int					m_nG2SourceCount;
 	int					m_nEdSourceCount;
@@ -136,6 +136,7 @@ public:
 		return m_pSourceFirst;
 	}
 	
+	friend class CDownloads; // access to m_n[G1|G2|Ed|HTTP|BT|FTP]SourceCount
 	friend class CDownloadSource; // RemoveSource && GetSourceColour
 	friend class CDownloadTransfer; // SortSource
 	friend class CDownloadWithSearch; // access to m_n[G1|G2|Ed|HTTP|BT|FTP]SourceCount
