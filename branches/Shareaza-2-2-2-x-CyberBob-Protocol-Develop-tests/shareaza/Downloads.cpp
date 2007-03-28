@@ -1380,13 +1380,13 @@ BOOL CDownloads::OnPush(const Hashes::Guid& oGUID, CConnection* pConnection, DWO
 {
 	CSingleLock pLock( &Transfers.m_pSection );
 	if ( ! pLock.Lock( 250 ) ) return FALSE;
-	
+
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = GetNext( pos );
 		if ( pDownload->OnAcceptPush( oGUID, pConnection, nFileIndex ) ) return TRUE;
 	}
-	
+
 	return FALSE;
 }
 
@@ -1506,7 +1506,7 @@ void CDownloads::Load()
 			}
 		}
 		while ( FindNextFile( hSearch, &pFind ) );
-		
+
 		FindClose( hSearch );
 	}
 	

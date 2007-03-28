@@ -318,7 +318,7 @@ void CDownloadsSettingsPage::OnOK()
 	}
 	else
 	{
-		// For other systems we can guestimate a good value based on available bandwidth
+		// For other systems we can guesstimate a good value based on available bandwidth
 	m_nMaxDownFiles = min ( m_nMaxDownFiles, 1024 );
 	if ( Settings.GetOutgoingBandwidth() < 16 )
 		m_nMaxDownTransfers = min ( m_nMaxDownTransfers, 200 );

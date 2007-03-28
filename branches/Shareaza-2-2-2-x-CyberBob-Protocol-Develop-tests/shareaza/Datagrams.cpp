@@ -2682,8 +2682,8 @@ BOOL CDatagrams::OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket)
 				 !Network.IsReserved( (IN_ADDR*)(&nAddress), false ) )
 				 Network.m_pHost.sin_addr.S_un.S_addr = nAddress;
 		}
-		else if ( nType == G2_PACKET_NEIGHBOUR_HUB ||
-			nType == G2_PACKET_CACHED_HUB )
+		else if (	nType == G2_PACKET_NEIGHBOUR_HUB ||
+					nType == G2_PACKET_CACHED_HUB )
 		{
 			DWORD nAddress = 0, tSeen = tNow, nLeafCount = 0, nLeafLimit = 0;
 			WORD nPort = 0;
