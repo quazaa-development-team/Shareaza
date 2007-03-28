@@ -80,7 +80,7 @@ public:
 	CXMLElement*		m_pXML;
 	int					m_nSourceCount;
 
-private:
+protected:
 	int					m_nG1SourceCount;
 	int					m_nG2SourceCount;
 	int					m_nEdSourceCount;
