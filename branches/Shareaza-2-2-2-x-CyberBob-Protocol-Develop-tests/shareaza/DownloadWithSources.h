@@ -30,6 +30,7 @@
 
 #include "DownloadBase.h"
 
+class CDownloads;
 class CDownloadSource;
 class CQueryHit;
 class CXMLElement;
