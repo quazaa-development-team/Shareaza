@@ -21,6 +21,7 @@
 
 #include "StdAfx.h"
 #include "Shareaza.h"
+#include "Settings.h"
 #include "QueryHashMaster.h"
 #include "QueryHashGroup.h"
 #include "Neighbour.h"
@@ -29,6 +30,8 @@
 #include "Transfers.h"
 #include "Downloads.h"
 #include "Download.h"
+// added for QHT GUID storing
+#include "GProfile.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -132,6 +135,13 @@ void CQueryHashMaster::Build()
 		if ( tNow - m_nCookie < 20000 ) return;
 	}
 
+
+	// Dynamic QHT Size Change
+	if ( m_nBits != Settings.Library.QueryRouteSize )
+	{
+		Create();
+	}
+
 	{
 		CSingleLock oLock( &Library.m_pSection );
 		if ( !oLock.Lock( 500 ) ) return;
@@ -158,12 +168,22 @@ void CQueryHashMaster::Build()
 			{
 				AddExactString( pDownload->m_oSHA1.toUrn() );
 			}
-			
+
+			if ( pDownload->m_oTiger )
+			{
+				AddExactString( pDownload->m_oTiger.toUrn() );
+			}
+
 			if ( pDownload->m_oED2K )
 			{
                 AddExactString( pDownload->m_oED2K.toUrn() );
 			}
-			
+
+			if ( pDownload->m_oMD5 )
+			{
+				AddExactString( pDownload->m_oMD5.toUrn() );
+			}
+
 			if ( pDownload->m_oBTH )
 			{
 				AddExactString( _T("BTIH") );
@@ -173,6 +193,18 @@ void CQueryHashMaster::Build()
 
 		Transfers.m_pSection.Unlock();
 	}
+
+	// 
+	// store Profile GUID in QHT for GUID search
+	//
+	// warning: this feature is not used yet. this is new stuff.
+	//
+//	wchar_t szGUID[39];
+//	Hashes::Guid tmp( MyProfile.oGUID );
+//	szGUID[ StringFromGUID2( *(GUID*)&tmp[ 0 ], szGUID, 39 ) - 2 ] = 0;
+//	CString sGUID = (CString)&szGUID[1];
+
+//	AddString( "urn:guid:" + sGUID );
 
 	m_bValid	= TRUE;
 	m_bLive		= TRUE;

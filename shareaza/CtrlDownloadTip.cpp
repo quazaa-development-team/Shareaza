@@ -31,6 +31,7 @@
 #include "DownloadTransfer.h"
 #include "DownloadTransferBT.h"
 #include "DownloadTransferED2K.h"
+#include "BTClient.h"
 #include "EDClient.h"
 #include "Flags.h"
 #include "FragmentedFile.h"
@@ -163,6 +164,11 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownload* pDownload)
 		AddSize( pDC, m_sTiger );
 		m_sz.cy += TIP_TEXTHEIGHT;
 	}
+	if ( m_sMD5.GetLength() )
+	{
+		AddSize( pDC, m_sMD5 );
+		m_sz.cy += TIP_TEXTHEIGHT;
+	}
 
 	m_sz.cy += TIP_RULE;
 	AddSize( pDC, m_sSize, 80 );
@@ -255,6 +261,11 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownload* pDownload)
 	if ( !m_sED2K.IsEmpty() )
 	{
 		DrawText( pDC, &pt, m_sED2K );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+	if ( !m_sMD5.IsEmpty() )
+	{
+		DrawText( pDC, &pt, m_sMD5 );
 		pt.y += TIP_TEXTHEIGHT;
 	}
 	if ( !m_sBTH.IsEmpty() )
@@ -387,7 +398,7 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownload* pDownload)
 		LoadString( strVolume, IDS_TIP_NA );
 	}
 
-	if ( pDownload->m_oBTH )
+	if ( pDownload->m_nTorrentUploaded )
 	{
 		if ( theApp.m_bRTL )
 		{
@@ -506,6 +517,7 @@ void CDownloadTipCtrl::PrepareFileInfo(CDownload* pDownload)
 	m_sSHA1.Empty();
 	m_sTiger.Empty();
 	m_sED2K.Empty();
+	m_sMD5.Empty();
 	m_sBTH.Empty();
 	m_sURL.Empty();
 	
@@ -517,7 +529,7 @@ void CDownloadTipCtrl::PrepareFileInfo(CDownload* pDownload)
 		LoadString( strUntrusted, IDS_TIP_UNTRUSTED );
 
 		m_sSHA1 = pDownload->m_oSHA1.toShortUrn();
-		if ( m_sSHA1.GetLength() && Settings.General.Debug )
+		if ( m_sSHA1.GetLength() )
 		{
 			if ( ! pDownload->m_oSHA1.isTrusted() )
 			{
@@ -526,7 +538,7 @@ void CDownloadTipCtrl::PrepareFileInfo(CDownload* pDownload)
 		}
 
 		m_sTiger = pDownload->m_oTiger.toShortUrn();
-		if ( m_sTiger.GetLength() && Settings.General.Debug )
+		if ( m_sTiger.GetLength() )
 		{
 			if ( ! pDownload->m_pTigerBlock )
 			{
@@ -546,7 +558,7 @@ void CDownloadTipCtrl::PrepareFileInfo(CDownload* pDownload)
 		}
 
 		m_sED2K = pDownload->m_oED2K.toShortUrn();
-		if ( m_sED2K.GetLength() && Settings.General.Debug )
+		if ( m_sED2K.GetLength() )
 		{
 			if ( ! pDownload->m_pHashsetBlock )
 			{
@@ -565,8 +577,17 @@ void CDownloadTipCtrl::PrepareFileInfo(CDownload* pDownload)
 			}
 		}
 
+		m_sMD5 = pDownload->m_oMD5.toShortUrn();
+		if ( m_sMD5.GetLength() )
+		{
+			if ( ! pDownload->m_oMD5.isTrusted() )
+			{
+				m_sMD5 += _T(" (") + strUntrusted + _T(")");
+			}
+		}
+
 		m_sBTH = pDownload->m_oBTH.toShortUrn();
-		if ( m_sBTH.GetLength() && Settings.General.Debug )
+		if ( m_sBTH.GetLength() )
 		{
 			if ( ! pDownload->m_pTorrentBlock )
 			{
@@ -622,18 +643,33 @@ void CDownloadTipCtrl::PrepareFileInfo(CDownload* pDownload)
 void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 {
 //	CDownload* pDownload = pSource->m_pDownload;
+	m_sServer.Empty();
+	m_sGUID.Empty();
 
 	if ( pSource->m_sNick.GetLength() > 0 )
 	{
 		m_sName = pSource->m_sNick;
-		if ( ( pSource->m_nProtocol == PROTOCOL_ED2K ) && ( pSource->m_bPushOnly == TRUE ) )
+		if ( pSource->m_nProtocol == PROTOCOL_ED2K )
 		{
-			m_sName.AppendFormat( _T(" (%lu@%s:%u)"), pSource->m_pAddress.S_un.S_addr, 
-				(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+			if ( pSource->m_bPushOnly )
+			{
+				m_sName.AppendFormat( _T(" (%lu@%s:%u)(PUSH)"), pSource->m_pAddress.S_un.S_addr, 
+					(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+			}
+			else
+			{
+				m_sName.AppendFormat( _T(" (%s:%u)"), (LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pAddress ) ), pSource->m_nPort );
+				if ( pSource->m_pServerAddress.S_un.S_addr )
+				{
+					m_sServer.Format( _T("%lu@%s:%u"), pSource->m_pAddress.S_un.S_addr, 
+						(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+					m_sz.cy += TIP_TEXTHEIGHT;
+				}
+			}
 		}
 		else if ( pSource->m_bPushOnly )
 		{
-			m_sName.AppendFormat( _T(" (%s)"), (LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pAddress ) ) );
+			m_sName.AppendFormat( _T(" (%s)(PUSH)"), (LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pAddress ) ) );
 		}
 		else
 		{
@@ -642,10 +678,28 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 	}
 	else
 	{
-		if ( ( pSource->m_nProtocol == PROTOCOL_ED2K ) && ( pSource->m_bPushOnly == TRUE ) )
+		if ( pSource->m_nProtocol == PROTOCOL_ED2K )
 		{
-			m_sName.Format( _T("%lu@%s:%u"), (DWORD)pSource->m_pAddress.S_un.S_addr,
-				(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+			if ( pSource->m_bPushOnly == TRUE )
+			{
+				m_sName.Format( _T("%lu@%s:%u (PUSH)"), (DWORD)pSource->m_pAddress.S_un.S_addr,
+					(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+			}
+			else
+			{
+				m_sName = inet_ntoa( pSource->m_pAddress );
+				m_sName.AppendFormat( _T(":%u"), pSource->m_nPort );
+				if ( pSource->m_pServerAddress.S_un.S_addr )
+				{
+					m_sServer.Format( _T("%lu@%s:%u"), pSource->m_pAddress.S_un.S_addr, 
+						(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pServerAddress) ), pSource->m_nServerPort );
+					m_sz.cy += TIP_TEXTHEIGHT;
+				}
+			}
+		}
+		else if ( pSource->m_bPushOnly )
+		{
+			m_sName.Format( _T("%s (PUSH)"), (LPCTSTR)CString( inet_ntoa( (IN_ADDR&)pSource->m_pAddress ) ) );
 		}
 		else
 		{
@@ -654,13 +708,7 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 		}
 	}
 
-	if ( pSource->m_bPushOnly )
-	{
-		m_sName += _T(" (push)");
-	}
-
 	m_sCountryName = pSource->m_sCountryName;
-
 	m_sURL = pSource->m_sURL;
 
 	if ( m_sURL.GetLength() > 128 )
@@ -669,6 +717,50 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 		{
 			int nFirst = static_cast< int >( pszSlash - (LPCTSTR)m_sSize );
 			m_sURL = m_sURL.Left( nFirst + 1 ) + _T("...") + m_sURL.Right( 10 );
+		}
+	}
+
+	m_sHubList = "";
+	m_sPushProxyList = "";
+	if ( pSource->m_nProtocol == PROTOCOL_G1 ||
+		pSource->m_nProtocol == PROTOCOL_G2 ||
+		pSource->m_nProtocol == PROTOCOL_HTTP )
+	{
+		if ( !pSource->m_oPushProxyList.empty() )
+		{
+			CDownloadSource::HubList::iterator oHubListIndex = pSource->m_oPushProxyList.begin();
+			CDownloadSource::HubList::iterator oHubListEndMark = pSource->m_oPushProxyList.end();
+			unsigned int nHubCount = 0;
+
+			for (;oHubListIndex != oHubListEndMark && nHubCount < 5 ;oHubListIndex++)
+			{
+				if ( nHubCount ) m_sPushProxyList += _T(",");
+				m_sPushProxyList += CString( inet_ntoa( (*oHubListIndex).sin_addr ) ) + _T(':');
+				m_sPushProxyList.AppendFormat( _T("%hu") ,ntohs( (*oHubListIndex).sin_port ) );
+				nHubCount++;
+			}
+			if ( nHubCount != pSource->m_oPushProxyList.size() )
+			{
+				m_sPushProxyList.AppendFormat( _T(", (%i more)"), (pSource->m_oPushProxyList.size() - nHubCount) );
+			}
+		}
+		if ( !pSource->m_oHubList.empty() )
+		{
+			CDownloadSource::HubList::iterator oHubListIndex = pSource->m_oHubList.begin();
+			CDownloadSource::HubList::iterator oHubListEndMark = pSource->m_oHubList.end();
+			unsigned int nHubCount = 0;
+
+			for (;oHubListIndex != oHubListEndMark && nHubCount < 5;oHubListIndex++)
+			{
+				if ( nHubCount ) m_sHubList += _T(",");
+				m_sHubList += CString( inet_ntoa( (*oHubListIndex).sin_addr ) ) + _T(':');
+				m_sHubList.AppendFormat( _T("%hu") ,ntohs( (*oHubListIndex).sin_port ) );
+				nHubCount++;
+			}
+			if ( nHubCount != pSource->m_oHubList.size() )
+			{
+				m_sHubList.AppendFormat( _T(", (%i more)"), (pSource->m_oHubList.size() - nHubCount) );
+			}
 		}
 	}
 
@@ -697,7 +789,33 @@ void CDownloadTipCtrl::OnCalcSize(CDC* pDC, CDownloadSource* pSource)
 	m_sz.cy += TIP_TEXTHEIGHT + TIP_RULE;
 
 	AddSize( pDC, m_sURL, 80 );
-	m_sz.cy += TIP_TEXTHEIGHT * 4;
+	m_sz.cy += TIP_TEXTHEIGHT * 5;
+
+	if ( pSource->m_oGUID.isValid() )
+	{
+		Hashes::Guid oID( pSource->m_oGUID );
+		// Compose the X-MyGUID string, which is like "X-MyGUID: " with two newlines at the end (do)
+		// MFC's CString::Format is like sprintf, "%.2X" formats a byte into 2 hexidecimal characters like "ff"
+		m_sGUID.Format(	_T("%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X"),
+			int( oID[0] ),  int( oID[1] ),  int( oID[2] ),  int( oID[3] ),		// Our GUID
+			int( oID[4] ),  int( oID[5] ),  int( oID[6] ),  int( oID[7] ),
+			int( oID[8] ),  int( oID[9] ),  int( oID[10] ), int( oID[11] ),
+			int( oID[12] ), int( oID[13] ), int( oID[14] ), int( oID[15] ) );
+		m_sz.cy += TIP_TEXTHEIGHT;
+	}
+
+
+	if ( m_sPushProxyList.GetLength() != 0 )
+	{
+		AddSize( pDC, m_sPushProxyList, 80 );
+		m_sz.cy += TIP_TEXTHEIGHT;
+	}
+
+	if ( m_sHubList.GetLength() != 0 )
+	{
+		AddSize( pDC, m_sHubList, 80 );
+		m_sz.cy += TIP_TEXTHEIGHT;
+	}
 
 	m_sz.cy += TIP_GAP;
 	m_sz.cy += TIP_TEXTHEIGHT;
@@ -799,6 +917,94 @@ void CDownloadTipCtrl::OnPaint(CDC* pDC, CDownloadSource* pSource)
 	DrawText( pDC, &pt, strText );
 	DrawText( pDC, &pt, pSource->m_sServer, 80 );
 	pt.y += TIP_TEXTHEIGHT;
+
+	strText = "Connection:";
+	DrawText( pDC, &pt, strText );
+	if ( pSource->m_pTransfer )
+	{
+		switch( pSource->m_nProtocol )
+		{
+			case PROTOCOL_G1:
+			case PROTOCOL_G2:
+			case PROTOCOL_HTTP:
+				if ( !pSource->m_pTransfer->m_bConnected )
+					DrawText( pDC, &pt, _T("Not Connected"), 80 );
+				else if ( pSource->m_pTransfer->m_bInitiated )
+					DrawText( pDC, &pt, _T("Locally Initiated"), 80 );
+				else
+					DrawText( pDC, &pt, _T("Remotely Initiated"), 80 );
+				break;
+			case PROTOCOL_ED2K:
+				{
+					CDownloadTransferED2K* pTransfer = static_cast<CDownloadTransferED2K*>(pSource->m_pTransfer);
+					if ( pTransfer != NULL && pTransfer->m_pClient != NULL && pTransfer->m_pClient->m_bConnected )
+					{
+						if ( pTransfer->m_pClient->m_bInitiated )
+							DrawText( pDC, &pt, _T("Locally Initiated"), 80 );
+						else
+							DrawText( pDC, &pt, _T("Remotely Initiated"), 80 );
+					}
+					else
+						DrawText( pDC, &pt, _T("Not connected"), 80 );
+				}
+				break;
+			case PROTOCOL_BT:
+				{
+					CDownloadTransferBT* pTransfer = static_cast<CDownloadTransferBT*>(pSource->m_pTransfer);
+					if ( pTransfer != NULL && pTransfer->m_pClient != NULL && pTransfer->m_pClient->m_bConnected )
+					{
+						if ( pTransfer->m_pClient->m_bInitiated )
+							DrawText( pDC, &pt, _T("Locally Initiated"), 80 );
+						else
+							DrawText( pDC, &pt, _T("Remotely Initiated"), 80 );
+					}
+					else
+						DrawText( pDC, &pt, _T("Not connected"), 80 );
+				}
+				break;
+			default:
+				DrawText( pDC, &pt, _T("Unknown"), 80 );
+				break;
+		}
+	}
+	else
+	{
+		DrawText( pDC, &pt, _T("Not connected"), 80 );
+	}
+	pt.y += TIP_TEXTHEIGHT;
+
+	if ( m_sServer.GetLength() )
+	{
+		strText = _T("Server:");
+		DrawText( pDC, &pt, strText );
+		DrawText( pDC, &pt, m_sServer, 80 );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+
+	if ( m_sGUID.GetLength() )
+	{
+		strText = _T("GUID:");
+		DrawText( pDC, &pt, strText );
+		DrawText( pDC, &pt, m_sGUID, 80 );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+
+	if ( m_sPushProxyList.GetLength() )
+	{
+		strText = _T("PushProxies:");
+		DrawText( pDC, &pt, strText );
+
+		DrawText( pDC, &pt, m_sPushProxyList, 80 );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+
+	if ( m_sHubList.GetLength() )
+	{
+		strText = _T("Hubs:");
+		DrawText( pDC, &pt, strText );
+		DrawText( pDC, &pt, m_sHubList, 80 );
+		pt.y += TIP_TEXTHEIGHT;
+	}
 
 	pt.y += TIP_GAP;
 

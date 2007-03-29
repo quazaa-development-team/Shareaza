@@ -32,6 +32,7 @@
 #include "G1Neighbour.h"
 #include "RouteCache.h"
 #include "PongCache.h"
+#include "HostCache.h"
 
 // If we are compiling in debug mode, replace the text "THIS_FILE" in the code with the name of this file
 #ifdef _DEBUG
@@ -44,7 +45,10 @@ static char THIS_FILE[]=__FILE__;
 // CNeighboursWithG1 construction
 
 // When the program makes the single global CNeighbours object, this constructor runs to setup the Gnutella part of it
-CNeighboursWithG1::CNeighboursWithG1()
+CNeighboursWithG1::CNeighboursWithG1() :
+m_oG1Peers(),
+m_oG1Ultrapeers(),
+m_oG1Leafs()
 {
 	// Create the ping route and pong caches, and have the CNeighbours object point to them
 	m_pPingRoute = new CRouteCache();
@@ -143,8 +147,9 @@ void CNeighboursWithG1::OnG1Pong(CG1Neighbour* pFrom, IN_ADDR* pAddress, WORD nP
 	CPongItem* pPongCache = m_pPongCache->Add( pFrom, pAddress, nPort, nHops, nFiles, nVolume );
 	if ( pPongCache == NULL ) return; // If Add didn't return a CPongItem, (do)
 
-	CSingleLock pLock( &Network.m_pSection, TRUE );
+	CPongItem pPong = *pPongCache;
 
+	CSingleLock pLock( &Network.m_pSection, TRUE );
 	// Loop through each neighbour we're connected to
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
@@ -155,7 +160,137 @@ void CNeighboursWithG1::OnG1Pong(CG1Neighbour* pFrom, IN_ADDR* pAddress, WORD nP
 		if ( pNeighbour->m_nProtocol == PROTOCOL_G1 && pNeighbour != pFrom )
 		{
 			// Send the pong to this remote computer, if it needs it according to its pong needed array
-			pNeighbour->OnNewPong( pPongCache );
+			pNeighbour->OnNewPong( &pPong );
 		}
 	}
+}
+
+int CNeighboursWithG1::WriteCachedHosts(CGGEPItem* pItem)
+{
+	if ( !pItem ) return 0;
+	pItem->UnsetCOBS();
+	pItem->UnsetSmall();
+
+	DWORD nCount = min( DWORD(Settings.Gnutella1.MaxHostsInPongs), HostCache.Gnutella1.CountHosts(FALSE) );
+
+	CHostCacheHost* pHost = NULL;
+	pHost = HostCache.Gnutella1.GetNewest();
+
+	while ( pHost && nCount )
+	{
+		// We won't provide Shareaza hosts for G1 cache, since users may disable
+		// G1 and it will pollute the host caches ( ??? )
+		if ( pHost && pHost->CanQuote() )
+		{
+			pItem->Write( (void*)&pHost->m_pAddress, 4 );
+			pItem->Write( (void*)&pHost->m_nPort, 2 );
+			theApp.Message( MSG_DEBUG, _T("Sending G1 host through pong (%s:%i)"), 
+				(LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&pHost->m_pAddress ) ), pHost->m_nPort ); 
+			nCount--;
+		}
+		pHost = pHost->m_pPrevTime;
+	}
+	return Settings.Gnutella1.MaxHostsInPongs - nCount;
+}
+
+// Takes an IP address
+// Finds the CG1Neighbour object in the m_pUniques map that represents the remote computer with that address
+// Returns it, or null if not found
+CG1Neighbour* CNeighboursWithG1::GetG1Node(IN_ADDR* pAddress) const // Saying const here means this method won't change any member variables
+{
+	std::list<CG1Neighbour*>::const_iterator iIndex;
+	std::list<CG1Neighbour*>::const_iterator iEnd;
+
+	iIndex = m_oG1Peers.begin();
+	iEnd = m_oG1Peers.end();
+	// Loop through each neighbour in the m_oG1Peers
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG1Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the IP address we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) return pNeighbour;
+	}
+
+	iIndex = m_oG1Ultrapeers.begin();
+	iEnd = m_oG1Ultrapeers.end();
+	// Loop through each neighbour in the m_oG1Ultrapeers
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG1Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the IP address we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) return pNeighbour;
+	}
+
+	iIndex = m_oG1Leafs.begin();
+	iEnd = m_oG1Leafs.end();
+	// Loop through each neighbour in the m_oG1Leafs
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG1Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the IP address we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) return pNeighbour;
+	}
+
+	// None of the neighbour objects in the map had the IP address we are looking for
+	return NULL; // Not found
+}
+
+// Takes an SOCKADDR
+// Finds the CG1Neighbour object in the m_pUniques map that represents the remote computer with that address
+// Returns it, or null if not found
+CG1Neighbour* CNeighboursWithG1::GetG1Node(SOCKADDR_IN* pAddress) const // Saying const here means this method won't change any member variables
+{
+	std::list<CG1Neighbour*>::const_iterator iIndex;
+	std::list<CG1Neighbour*>::const_iterator iEnd;
+
+	iIndex = m_oG1Peers.begin();
+	iEnd = m_oG1Peers.end();
+	// Loop through each neighbour in the m_oG1Peers
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG1Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the SOCKADDR we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->sin_addr.S_un.S_addr &&
+			pNeighbour->m_pRealHost.sin_port == pAddress->sin_port &&
+			pNeighbour->m_pRealHost.sin_family == pAddress->sin_family ) return pNeighbour;
+	}
+
+	iIndex = m_oG1Ultrapeers.begin();
+	iEnd = m_oG1Ultrapeers.end();
+	// Loop through each neighbour in the m_oG1Ultrapeers
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG1Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the SOCKADDR we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->sin_addr.S_un.S_addr &&
+			pNeighbour->m_pRealHost.sin_port == pAddress->sin_port &&
+			pNeighbour->m_pRealHost.sin_family == pAddress->sin_family ) return pNeighbour;
+	}
+
+	iIndex = m_oG1Leafs.begin();
+	iEnd = m_oG1Leafs.end();
+	// Loop through each neighbour in the m_oG1Leafs
+	for ( ; iIndex != iEnd ; iIndex++ )
+	{
+		// Get the neighbour object at the current position, and move pos to the next position
+		CG1Neighbour* pNeighbour = *iIndex;
+
+		// If this neighbour object has the SOCKADDR we are looking for, return it
+		if ( pNeighbour->m_pRealHost.sin_addr.S_un.S_addr == pAddress->sin_addr.S_un.S_addr &&
+			pNeighbour->m_pRealHost.sin_port == pAddress->sin_port &&
+			pNeighbour->m_pRealHost.sin_family == pAddress->sin_family ) return pNeighbour;
+	}
+
+	// None of the neighbour objects in the map had the IP address we are looking for
+	return NULL; // Not found
 }

@@ -43,6 +43,7 @@ public:
 		DWORD		DiskSpaceWarning;			// Value at which to warn the user about low disk space
 		DWORD		DiskSpaceStop;				// Value at which to pause all downloads due to low disk space
 		DWORD		MinTransfersRest;			// For how long at least to suspend Transfers each round
+		BOOL		ShowFilesizeInByte;			// Display filesizes in exact byte instead of rounded value
 		INT			GUIMode;
 		BOOL		CloseMode;
 		BOOL		TrayMinimise;
@@ -57,6 +58,7 @@ public:
 		BOOL		IgnoreXPsp2;				// Ignore the presence of Windows XPsp2 limits
 		BOOL		DebugUPnP;
 		BOOL		ItWasLimited;				// If the user path the half-open connection limit we change the settings back to gain full speed
+		BOOL		DisableThumbnail;
 	} General;
 
 	struct sInterface
@@ -204,6 +206,9 @@ public:
 		BOOL		DeleteUPnPPorts;			// Delete forwarded ports on shutdown (UPnP)
 		BOOL		SkipWANPPPSetup;			// Skip WANPPPConn1 device setup (UPnP)
 		BOOL		SkipWANIPSetup;				// Skip WANIPConn1 device setup (UPnP)
+		DWORD		FWTestWait;
+		DWORD		MaxFWTestQueue;
+		BOOL		LosePacketHandling;
 	} Connection;
 
 	struct sBandwidth
@@ -241,6 +246,10 @@ public:
 		DWORD		FailureLimit;
 		DWORD		UpdatePeriod;
 		DWORD		DefaultUpdate;
+		BOOL		DisableAutoQuery;
+		BOOL		DisableAutoUpdate;
+		BOOL		DisableManualQuery;
+		BOOL		DisableService;
 		DWORD		BootstrapCount;
 		CString		G2DAddress;
 		DWORD		G2DRetryAfter;
@@ -287,7 +296,6 @@ public:
 		DWORD		RequeryDelay;
 		DWORD		HostExpire;
 		DWORD		PingFlood;
-		DWORD		PongUpdate;					// Will we update host cache?
 		DWORD		PingRate;
 		DWORD		PongCache;
 		int			PongCount;
@@ -295,6 +303,7 @@ public:
 		BOOL		QueryHitUTF8;				// Use UTF-8 encoding to read Gnutella1 QueryHit packets
 		BOOL		QuerySearchUTF8;			// Use UTF-8 encoding to create Gnutella1 Query packets
 		int			MaxHostsInPongs;			// The number of hosts included in the response of pings having SCP GGEP block
+		DWORD		HostCacheSize;
 	} Gnutella1;
 
 	struct sGnutella2
@@ -327,6 +336,9 @@ public:
 		DWORD		RequeryDelay;
 		DWORD		HubHorizonSize;
 		DWORD		QueryLimit;
+		DWORD		HostCacheSize;
+		DWORD		MaxHubsOnRemoteLeaf;
+		DWORD		BadLeafHandler;
 	} Gnutella2;
 	
 	struct seDonkey
@@ -366,6 +378,7 @@ public:
 		DWORD		DefaultServerFlags;			// Default server flags (for UDP searches)
 		BOOL		Endgame;					// Allow endgame mode when completing downloads. (Download same chunk from multiple sources)
 		BOOL		LargeFileSupport;			// Allow 64 bit file sizes
+		DWORD		ServerCacheSize;
 	} eDonkey;
 	
 	struct sBitTorrent
@@ -435,6 +448,7 @@ public:
 		BOOL		RequestURLENC;
 		DWORD		SaveInterval;
 		BOOL		FlushSD;
+		BOOL		SavePushSource;
 		BOOL		ShowSources;
 		BOOL		SimpleBar;					// Displays a simplified progress bar (lower CPU use)
 		BOOL		ShowPercent;				// Display small green % complete bar on progress graphic
@@ -448,6 +462,9 @@ public:
 		BOOL		SortSources;				// Automatically sort sources (Status, protocol, queue)
 		int			SourcesWanted;				// Number of sources Shareaza 'wants'. (Will not request more than this number of sources from ed2k/BT)
 		int			MaxReviews;					// Maximum number of reviews to store per download
+		BOOL		IgnoreED2KPushSource;
+		DWORD		ManualSearchDuration;
+		DWORD		AutoSearchDuration;
 	} Downloads;
 	
 	struct sUploads
@@ -515,6 +532,7 @@ public:
 	struct sExperimental
 	{
 		BOOL		EnableDIPPSupport;			// Handle GDNA host cache exchange
+		BOOL		LoadDownloadsAsPaused;
 	} Experimental;
 
 // Attributes : Item List
@@ -549,6 +567,7 @@ public:
 	CString	SmartAgent();
 	CString	SmartVolume(QWORD nVolume, BOOL bInKB, BOOL bRateInBits = FALSE, BOOL bTruncate = FALSE );
 	QWORD	ParseVolume(LPCTSTR psz, BOOL bSpeedInBits);
+	CString ExactVolume(QWORD nVolume, BOOL bForceEnabled = FALSE);
 	DWORD	GetOutgoingBandwidth();						//Returns available outgoing bandwidth in KB/s
 	BOOL	CheckStartup();
 	void	SetStartup(BOOL bStartup);

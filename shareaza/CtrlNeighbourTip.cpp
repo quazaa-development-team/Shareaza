@@ -34,6 +34,7 @@
 
 #include "EDPacket.h"
 #include "EDNeighbour.h"
+#include "VendorCache.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -156,10 +157,16 @@ void CNeighbourTipCtrl::OnCalcSize(CDC* pDC)
 		m_sz.cy += TIP_TEXTHEIGHT;
 	}
 
+	if ( pNeighbour->m_pVendor && pNeighbour->m_pVendor->m_sCode.GetLength() != 0 )
+	{
+		AddSize( pDC, pNeighbour->m_sUserAgent );
+		m_sz.cy += TIP_TEXTHEIGHT;
+	}
+
 	m_sz.cy += TIP_TEXTHEIGHT;
 	m_sz.cy += TIP_RULE;
 
-	m_sz.cy += TIP_TEXTHEIGHT * 6;
+	m_sz.cy += TIP_TEXTHEIGHT * 7;
 
 	m_sz.cx = max( m_sz.cx, 128 + 160 );
 	m_sz.cy += 40;
@@ -247,6 +254,9 @@ void CNeighbourTipCtrl::OnPaint(CDC* pDC)
 		case PROTOCOL_G1:
 			switch ( pNeighbour->m_nNodeType )
 			{
+			case ntNull:
+				str = _T("Unknown Connection");
+				break;
 			case ntNode:
 				LoadString( str, IDS_NEIGHBOUR_G1PP );
 				break;
@@ -256,11 +266,17 @@ void CNeighbourTipCtrl::OnPaint(CDC* pDC)
 			case ntLeaf:
 				LoadString( str, IDS_NEIGHBOUR_G1UL );
 				break;
+			case ntSpecial:
+				str = _T("Special Connection");
+				break;
 			}
 			break;
 		case PROTOCOL_G2:
 			switch ( pNeighbour->m_nNodeType )
 			{
+			case ntNull:
+				str = _T("Unknown Connection");
+				break;
 			case ntNode:
 				LoadString( str, IDS_NEIGHBOUR_G2HH );
 				break;
@@ -269,6 +285,9 @@ void CNeighbourTipCtrl::OnPaint(CDC* pDC)
 				break;
 			case ntLeaf:
 				LoadString( str, IDS_NEIGHBOUR_G2HL );
+				break;
+			case ntSpecial:
+				str = _T("Special Connection");
 				break;
 			}
 			break;
@@ -296,6 +315,23 @@ void CNeighbourTipCtrl::OnPaint(CDC* pDC)
 	if ( pNeighbour->m_sUserAgent.GetLength() )
 	{
 		DrawText( pDC, &pt, pNeighbour->m_sUserAgent );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+
+	if ( pNeighbour->m_pVendor && pNeighbour->m_pVendor->m_sCode.GetLength() != 0 )
+	{
+		DrawText( pDC, &pt, pNeighbour->m_pVendor->m_sCode );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+
+	if ( pNeighbour->m_bInitiated )
+	{
+		DrawText( pDC, &pt, _T("Locally Initiated") );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+	else
+	{
+		DrawText( pDC, &pt, _T("Remotely Initiated") );
 		pt.y += TIP_TEXTHEIGHT;
 	}
 

@@ -207,6 +207,33 @@ void CUploadTransfer::SetSpeedLimit(DWORD nLimit)
 
 BOOL CUploadTransfer::OnRun()
 {
+	switch ( m_nProtocol )
+	{
+	case PROTOCOL_G1:
+		if ( !Settings.IsG1Allowed() )
+		{
+			Close(TS_UNKNOWN);
+			return FALSE;
+		}
+		break;
+	case PROTOCOL_G2:
+		if ( !Settings.IsG2Allowed() )
+		{
+			Close(TS_UNKNOWN);
+			return FALSE;
+		}
+		break;
+	case PROTOCOL_ED2K:
+		if ( !Settings.IsEdAllowed() )
+		{
+			Close(TS_UNKNOWN);
+			return FALSE;
+		}
+		break;
+	default:
+		break;
+	}
+
 	DWORD tNow = GetTickCount();
 
 	LongTermAverage( tNow );
@@ -379,14 +406,57 @@ void CUploadTransfer::ClearHashes()
 {
     m_oSHA1.clear();
     m_oTiger.clear();
-    m_oED2K.clear();
+	m_oED2K.clear();
+	m_oMD5.clear();
 }
 
 BOOL CUploadTransfer::HashesFromURN(LPCTSTR pszURN)
 {
-	if ( !m_oSHA1 ) m_oSHA1.fromUrn( pszURN );
-	if ( !m_oTiger ) m_oTiger.fromUrn( pszURN );
-	if ( !m_oED2K ) m_oED2K.fromUrn( pszURN );
+	Hashes::Sha1Hash oSHA1;
+	Hashes::TigerHash oTiger;
+	Hashes::Ed2kHash oED2K;
+	Hashes::Md5Hash oMD5;
+
+	oSHA1.fromUrn( pszURN );
+	if ( validAndUnequal( m_oSHA1,oSHA1 ) )
+	{
+		// some how request sent Two different SHA1s on one request
+		oSHA1.clear();
+		m_oSHA1.clear();
+		return FALSE;
+	}
+
+	oTiger.fromUrn( pszURN );
+	if ( validAndUnequal( m_oTiger,oTiger ) )
+	{
+		// some how request sent Two different TigerTreeRoots on one request
+		oTiger.clear();
+		m_oTiger.clear();
+		return FALSE;
+	}
+
+	oED2K.fromUrn( pszURN );
+	if ( validAndUnequal( m_oED2K,oED2K ) )
+	{
+		// some how request sent Two different ED2KHashes on one request
+		oED2K.clear();
+		m_oED2K.clear();
+		return FALSE;
+	}
+
+	oMD5.fromUrn( pszURN );
+	if ( validAndUnequal( m_oMD5,oMD5 ) )
+	{
+		// some how request sent Two different MD5s on one request
+		oMD5.clear();
+		m_oMD5.clear();
+		return FALSE;
+	}
+
+	if ( !m_oSHA1 ) m_oSHA1 = oSHA1;
+	if ( !m_oTiger ) m_oTiger = oTiger;
+	if ( !m_oED2K ) m_oED2K = oED2K;
+	if ( !m_oMD5 ) m_oMD5 = oMD5;
 	return TRUE;
 }
 
@@ -419,6 +489,7 @@ BOOL CUploadTransfer::RequestComplete(CLibraryFile* pFile)
 	if ( validAndUnequal( m_oSHA1, pFile->m_oSHA1 ) ) return FALSE;
 	if ( validAndUnequal( m_oTiger, pFile->m_oTiger ) ) return FALSE;
 	if ( validAndUnequal( m_oED2K, pFile->m_oED2K ) ) return FALSE;
+	if ( validAndUnequal( m_oMD5, pFile->m_oMD5 ) ) return FALSE;
 	
 	m_sFileName	= pFile->m_sName;
 	m_sFilePath	= pFile->GetPath();
@@ -430,6 +501,7 @@ BOOL CUploadTransfer::RequestComplete(CLibraryFile* pFile)
 	m_oSHA1 = pFile->m_oSHA1;
 	m_oTiger = pFile->m_oTiger;
 	m_oED2K = pFile->m_oED2K;
+	m_oMD5 = pFile->m_oMD5;
 	
 	return TRUE;
 }
@@ -441,6 +513,7 @@ BOOL CUploadTransfer::RequestPartial(CDownload* pFile)
 	if ( validAndUnequal( m_oSHA1, pFile->m_oSHA1 ) ) return FALSE;
 	if ( validAndUnequal( m_oTiger, pFile->m_oTiger ) ) return FALSE;
 	if ( validAndUnequal( m_oED2K, pFile->m_oED2K ) ) return FALSE;
+	if ( validAndUnequal( m_oMD5, pFile->m_oMD5 ) ) return FALSE;
 	
 	m_sFileName	= pFile->m_sDisplayName;
 	m_sFilePath	= pFile->m_sDiskName;
@@ -474,6 +547,15 @@ BOOL CUploadTransfer::RequestPartial(CDownload* pFile)
 	else
 	{
 		m_oED2K = pFile->m_oED2K;
+	}
+
+	if ( m_oMD5 && ! pFile->m_oMD5 )
+	{
+		pFile->m_oMD5 = m_oMD5;
+	}
+	else
+	{
+		m_oMD5 = pFile->m_oMD5;
 	}
 
 	return TRUE;

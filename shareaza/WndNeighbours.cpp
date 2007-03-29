@@ -256,6 +256,9 @@ void CNeighboursWnd::Update()
 				
 				switch ( pNeighbour->m_nNodeType )
 				{
+				case ntNull:
+					str = _T("Unknown");
+					break;
 				case ntNode:
 					LoadString ( str,IDS_NEIGHBOUR_G1PEER );
 					break;
@@ -264,6 +267,9 @@ void CNeighboursWnd::Update()
 					break;
 				case ntLeaf:
 					LoadString ( str,IDS_NEIGHBOUR_G1LEAF );
+					break;
+				case ntSpecial:
+					str = _T("Special");
 					break;
 				}
 				
@@ -276,6 +282,9 @@ void CNeighboursWnd::Update()
 				
 				switch ( pNeighbour->m_nNodeType )
 				{
+				case ntNull:
+					str = _T("Unknown");
+					break;
 				case ntNode:
 					LoadString ( str,IDS_NEIGHBOUR_G2PEER );
 					break;
@@ -285,10 +294,13 @@ void CNeighboursWnd::Update()
 				case ntLeaf:
 					LoadString ( str,IDS_NEIGHBOUR_G2LEAF );
 					break;
+				case ntSpecial:
+					str = _T("Special");
+					break;
 				}
 				pItem->Set( 8, str );
 				
-				if ( pG2->m_nLeafCount > 0 )
+				if ( pG2->m_nNodeType != ntLeaf )
 				{
 					if ( pG2->m_nLeafLimit > 0 )
 					{
@@ -435,7 +447,7 @@ void CNeighboursWnd::OnUpdateNeighboursDisconnect(CCmdUI* pCmdUI)
 	pCmdUI->Enable( m_wndList.GetSelectedCount() > 0 );
 }
 
-void CNeighboursWnd::OnNeighboursDisconnect() 
+void CNeighboursWnd::OnNeighboursDisconnect()
 {
 	CSingleLock pLock( &Network.m_pSection, TRUE );
 	

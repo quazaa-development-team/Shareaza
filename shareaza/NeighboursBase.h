@@ -65,8 +65,9 @@ public:
 	CNeighbour* GetNext(POSITION& pos) const; // Give the POSITION to GetNext to get the neighbour beneath it and move to the next one
 
 	// Lookup a neighbour in the list
-	CNeighbour* Get(DWORD_PTR nUnique)     const; // By its unique number, like 2, 3, 4, and so on
-	CNeighbour* Get(IN_ADDR* pAddress) const; // By the remote computer's IP address
+	CNeighbour*	Get(DWORD_PTR nUnique)	const;	// By its unique number, like 2, 3, 4, and so on
+	CNeighbour*	Get(IN_ADDR* pAddress)	const;	// By the remote computer's IP address
+	CNeighbour*	Get(SOCKADDR_IN* pAddress)	const;	// By the remote computer's SOCKET address
 
 	// Count how many computers we are connected to, specifying various filtering characteristics
 	int  GetCount(PROTOCOLID nProtocol, int nState, int nNodeType)        const; // Pass -1 to not filter by protocol, state, or node type
@@ -79,6 +80,14 @@ public:
 	virtual void Close();   // Calls Close on all the neighbours in the list, and resets member variables back to 0
 	virtual void OnRun();   // Calls DoRun on each neighbour in the list, making them send and receive data
 
+	// Network specific Initialization functions.
+	virtual void ConnectG2();			// Connect to Gnutella2
+	virtual void DisconnectG2();		// Disconnect from Gnutella2
+	virtual void ConnectG1();			// Connect to Gnutella1
+	virtual void DisconnectG1();		// Disconnect from Gnutella1
+	virtual void ConnectED2K();			// Connect to eDonkey2000
+	virtual void DisconnectED2K();		// Disconnect from eDonkey2000
+
 protected:
 
 	// Add and remove neighbour objects from the list
@@ -89,6 +98,7 @@ protected:
 	friend class CNeighbour;
 	friend class CShakeNeighbour;
 	friend class CEDNeighbour;
+	friend class CG2Neighbour;
 };
 
 // End the group of lines to only include once, pragma once doesn't require an endif at the bottom

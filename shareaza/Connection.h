@@ -67,29 +67,30 @@ public:
 public:
 
 	// The remote computer's IP address, who connected to the other, are we connected, and when it happened
-	SOCKADDR_IN m_pHost;        // The remote computer's IP address in Windows Sockets format
-	CString     m_sAddress;     // The same IP address in a string like "1.2.3.4"
-	CString		m_sCountry;     // The two letter country code of this host
-	CString		m_sCountryName; // The full name of the country
-	BOOL        m_bInitiated;   // True if we initiated the connection, false if the remote computer connected to us
-	BOOL        m_bConnected;   // True when the socket is connected
-	DWORD       m_tConnected;   // The tick count when the socket connection was made
+	SOCKADDR_IN	m_pHost;		// The remote computer's IP address in Windows Sockets format
+	CString		m_sAddress;		// The same IP address in a string like "1.2.3.4"
+	CString		m_sCountry;		// The country of this host
+	CString		m_sCountryName;	// The full name of the country
+	BOOL		m_bInitiated;	// True if we initiated the connection, false if the remote computer connected to us
+	BOOL		m_bConnected;	// True when the socket is connected
+	DWORD		m_tConnected;	// The tick count when the socket connection was made
+	SOCKADDR_IN	m_pRealHost;	// The remote computer's Real IP address in Windows Sockets format
 
 public:
 
 	// The actual socket, buffers for reading and writing bytes, and some headers from the other computer
-	SOCKET   m_hSocket;     // The actual Windows socket for the Internet connection to the remote computer
-	CBuffer* m_pInput;      // Data from the remote computer, will be compressed if the remote computer is sending compressed data
-	CBuffer* m_pOutput;     // Data to send to the remote computer, will be compressed if we are sending the remote computer compressed data
-	CString  m_sUserAgent;  // The name of the program the remote computer is running
-	CString  m_sLastHeader; // The handshake header that ReadHeaders most recently read
+	SOCKET   m_hSocket;		// The actual Windows socket for the Internet connection to the remote computer
+	CBuffer* m_pInput;		// Data from the remote computer, will be compressed if the remote computer is sending compressed data
+	CBuffer* m_pOutput;		// Data to send to the remote computer, will be compressed if we are sending the remote computer compressed data
+	CString  m_sUserAgent;	// The name of the program the remote computer is running
+	CString  m_sLastHeader;	// The handshake header that ReadHeaders most recently read
 
 public:
 
 	// Structures to control bandwidth in each direction
-	TCPBandwidthMeter m_mInput;     // Input and output TCP bandwidth meters
-	TCPBandwidthMeter m_mOutput;
-	int               m_nQueuedRun; // The queued run state of 0, 1, or 2 (do)
+	TCPBandwidthMeter	m_mInput;		// Input and output TCP bandwidth meters
+	TCPBandwidthMeter	m_mOutput;
+	int					m_nQueuedRun;	// The queued run state of 0, 1, or 2 (do)
 
 public:
 
@@ -103,24 +104,25 @@ public:
 public:
 
 	// Exchange data with the other computer, measure bandwidth, and work with headers
-	BOOL DoRun();          // Communicate with the other computer, reading and writing everything we can right now
-	void QueueRun();       // (do) may no longer be in use
-	void Measure();        // Measure the bandwidth, setting nMeasure in the bandwidth meters for each direction
-	BOOL ReadHeaders();    // Read text headers sitting in the input buffer
-	BOOL SendMyAddress();  // If we are listening on a port, tell the other computer our IP address and port number
-	BOOL IsAgentBlocked(); // Check the other computer's software title against our list of programs not to talk to
-	
-	void UpdateCountry();  // Call whenever the IP address is set
+	virtual BOOL DoRun();						// Communicate with the other computer, reading and writing everything we can right now
+	virtual void QueueRun();					// (do) may no longer be in use
+	virtual void Measure();						// Measure the bandwidth, setting nMeasure in the bandwidth meters for each direction
+	virtual BOOL ReadHeaders();					// Read text headers sitting in the input buffer
+	virtual BOOL SendMyAddress();				// If we are listening on a port, tell the other computer our IP address and port number
+	virtual BOOL IsAgentBlocked();				// Check the other computer's software title against our list of programs not to talk to
+
+	void UpdateCountry();						// Call whenever the IP address is set
 protected:
 
 	// Read and write data through the socket, and look at headers
-	virtual BOOL OnRun();                // (do) just returns true
-	virtual BOOL OnConnected();          // (do) just returns true
-	virtual BOOL OnRead();               // Read data waiting in the socket into the input buffer
-	virtual BOOL OnWrite();              // Move the contents of the output buffer into the socket
-	virtual void OnDropped(BOOL bError); // (do) empty
-	virtual BOOL OnHeaderLine(CString& strHeader, CString& strValue); // Processes a single line from the headers
-	virtual BOOL OnHeadersComplete();    // (do) just returns true
+	virtual BOOL OnRun();						// (do) just returns true
+	virtual BOOL OnConnected();					// (do) just returns true
+	virtual BOOL OnRead();						// Read data waiting in the socket into the input buffer
+	virtual BOOL OnWrite();						// Move the contents of the output buffer into the socket
+	virtual void OnDropped(BOOL bError);		// (do) empty
+	virtual BOOL OnHeaderLine(CString& strHeader,
+							CString& strValue); // Processes a single line from the headers
+	virtual BOOL OnHeadersComplete();			// (do) just returns true
 
 public:
 

@@ -299,6 +299,10 @@ void CURLActionDlg::Update()
 		{
 			m_sHashValue = pURL->m_oED2K.toShortUrn();
 		}
+		else if ( pURL->m_oMD5 )
+		{
+			m_sHashValue = pURL->m_oMD5.toShortUrn();
+		}
 		else
 		{
 			LoadString(m_sHashValue, IDS_URL_UNSPECIFIED );
@@ -357,8 +361,8 @@ void CURLActionDlg::OnUrlDownload()
 
 			{
 				CSingleLock oLock( &Library.m_pSection, TRUE );
-				if ( ( pFile = LibraryMaps.LookupFileBySHA1( pURL->m_oSHA1 ) ) != NULL
-					|| ( pFile = LibraryMaps.LookupFileByED2K( pURL->m_oED2K ) ) != NULL )
+				if ( ( pFile = LibraryMaps.LookupFileByHash( pURL->m_oSHA1, pURL->m_oTiger, pURL->m_oED2K, pURL->m_oMD5, 
+															pURL->m_nSize, pURL->m_nSize ) ) != NULL )
 				{
 					CString strFormat, strMessage;
 					::Skin.LoadString( strFormat, IDS_URL_ALREADY_HAVE );

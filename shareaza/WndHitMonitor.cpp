@@ -87,11 +87,18 @@ int CHitMonitorWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	LoadState( _T("CHitMonitorWnd"), TRUE );
 
+	CSingleLock pLock( &(theApp.m_mHitMonitorList), TRUE );
+	theApp.m_oHitMonitorList.push_front(this);
+
 	return 0;
 }
 
 void CHitMonitorWnd::OnDestroy()
 {
+	CSingleLock pListLock( &(theApp.m_mHitMonitorList), TRUE );
+	theApp.m_oHitMonitorList.remove(this);
+	pListLock.Unlock();
+
 	Settings.Search.MonitorFilter = m_pMatches->m_sFilter;
 
 	if ( m_wndList.m_pSchema )

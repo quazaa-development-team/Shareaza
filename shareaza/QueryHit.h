@@ -64,6 +64,7 @@ public:
     Hashes::Sha1Hash m_oSHA1;
     Hashes::TigerHash m_oTiger;
     Hashes::Ed2kHash m_oED2K;
+	Hashes::Md5Hash m_oMD5;
     Hashes::BtHash m_oBTH;
 	CString			m_sURL;
 	CString			m_sName;
@@ -93,16 +94,22 @@ public:
 	BOOL			m_bSelected;
 protected:
 	BOOL			m_bResolveURL;
+public:
+	std::list<SOCKADDR_IN> m_oHubList;
+	std::list<SOCKADDR_IN> m_oPushProxyList;
+	typedef std::list<SOCKADDR_IN>::iterator HubIndex;
+	FILETIME		m_tTimeCreated;
+
 
 // Static Decode Operations
 public:
 	static CQueryHit*	FromPacket(CG1Packet* pPacket, int* pnHops = NULL);
-	static CQueryHit*	FromPacket(CG2Packet* pPacket, int* pnHops = NULL);
+	static CQueryHit*	FromPacket(CG2Packet* pPacket, int* pnHops = NULL, SOCKADDR_IN* pSender = NULL );
 	static CQueryHit*	FromPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_nServerFlags, const Hashes::Guid& pSearchID = Hashes::Guid());
 protected:
 	static BOOL			CheckBogus(CQueryHit* pFirstHit);
 	static CXMLElement*	ReadXML(CG1Packet* pPacket, int nSize);
-	static BOOL			ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat);
+	static BOOL			ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat, std::list<SOCKADDR_IN> * oPushProxyList );
 
 // Operations
 public:
@@ -112,7 +119,8 @@ public:
 	void		Serialize(CArchive& ar, int nVersion);
 protected:
 	void		ReadG1Packet(CG1Packet* pPacket);
-	void		ParseAttributes(const Hashes::Guid& pClientID, CVendor* pVendor, BYTE* nFlags, BOOL bChat, BOOL bBrowseHost);
+	void		ParseAttributes(const Hashes::Guid& pClientID, CVendor* pVendor, BYTE* nFlags, 
+				BOOL bChat, BOOL bBrowseHost, std::list<SOCKADDR_IN> & oPushProxyList );
 	void		ReadG2Packet(CG2Packet* pPacket, DWORD nLength);
 	BOOL		ReadEDPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD m_nServerFlags = 0);
 	void		ReadEDAddress(CEDPacket* pPacket, SOCKADDR_IN* pServer);
@@ -130,6 +138,9 @@ public:
 			? m_nSources : ( m_nSources ? 1 : 0 );
 	}
 };
+
+typedef boost::shared_ptr<CQueryHit>	CHitPtr;
+typedef std::list<CHitPtr>				CHitPtrs;
 
 #define HITEQUALS_NOT		0
 #define HITEQUALS_SIMILAR	1

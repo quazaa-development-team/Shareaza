@@ -47,6 +47,8 @@ public:
 	BOOL	m_bNoUltraPeer;
 	int		m_nPort;
 	PROTOCOLID	m_nProtocol;
+	CButton	m_wndUDP;
+	BOOL	m_bUDP;
 	//}}AFX_DATA
 
 	CImageList	m_pImages;

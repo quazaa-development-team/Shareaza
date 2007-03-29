@@ -115,15 +115,23 @@ BOOL CDownloadTransferED2K::Initiate()
 	{
 		SetState( dtsNull );
 		m_pClient = NULL;
-		Close( TS_TRUE );
+		// this needs to be changed somehow, because CEDClient has download attached already, but it does not mean the source
+		// is not invalid nor off-line. thus this has to be something like non-destructive/non-error-counted close with re-order
+		// of the source to bottom.
+		// for now, do it with short retry time.
+		Close( TS_TRUE, 5 * 60 );	// Non-destructive close with retry in 5min.
 		return FALSE;
 	}
 	
 	m_pHost			= m_pClient->m_pHost;
 	m_sAddress		= m_pClient->m_sAddress;
+
 	if( m_sAddress.IsEmpty() )
 		m_sAddress	= inet_ntoa( m_pHost.sin_addr );
-	UpdateCountry();
+
+	if ( !CEDPacket::IsLowID( m_pSource->m_pAddress.S_un.S_addr ) )
+		UpdateCountry();
+
 	m_pClient->m_mInput.pLimit = &m_nBandwidth;
 	
 	return TRUE;
@@ -176,19 +184,27 @@ BOOL CDownloadTransferED2K::OnRun()
 
 BOOL CDownloadTransferED2K::OnRunEx(DWORD tNow)
 {
-	if ( !Network.IsConnected() || ( !Settings.eDonkey.EnableToday && Settings.Connection.RequireForTransfers ) )
+	if ( !CDownloadTransfer::OnRun() )
 	{
-		Close( TS_TRUE );
 		return FALSE;
 	}
 
 	switch ( m_nState )
 	{
 	case dtsConnecting:
-		if ( tNow > m_tConnected && tNow - m_tConnected > Settings.Connection.TimeoutConnect * 2 )
+		if ( m_pSource && m_pSource->m_bPushOnly )
+		{
+			if ( tNow > m_tConnected && tNow - m_tConnected > Settings.Downloads.PushTimeout )
+			{
+				theApp.Message( MSG_ERROR, IDS_CONNECTION_TIMEOUT_CONNECT, (LPCTSTR)m_sAddress );
+				Close( TS_UNKNOWN );
+				return FALSE;
+			}
+		}
+		else if ( tNow > m_tConnected && tNow - m_tConnected > Settings.Connection.TimeoutConnect * 2 )
 		{
 			theApp.Message( MSG_ERROR, IDS_CONNECTION_TIMEOUT_CONNECT, (LPCTSTR)m_sAddress );
-			Close( TS_TRUE );
+			Close( TS_UNKNOWN );
 			return FALSE;
 		}
 		break;
@@ -229,12 +245,23 @@ BOOL CDownloadTransferED2K::OnConnected()
 	m_pHost		= m_pClient->m_pHost;
 	m_sAddress	= m_pClient->m_sAddress;
 	UpdateCountry();
-	
+	if ( Network.IsFirewalledAddress( &m_pHost.sin_addr, TRUE, TRUE ) )
+		m_sCountry = _T("N/A");
+
 	m_pSource->m_oGUID		= m_pClient->m_oGUID;
 	m_pSource->m_sServer	= m_sUserAgent = m_pClient->m_sUserAgent;
 	m_pSource->m_sNick		= m_pClient->m_sNick;
 	m_pSource->SetLastSeen();
-	
+	m_pSource->m_sCountry	= m_sCountry;
+	m_pSource->m_sCountryName	= m_sCountryName;
+	m_pSource->m_pServerAddress.S_un.S_addr = m_pClient->m_pServer.sin_addr.S_un.S_addr;
+	m_pSource->m_nServerPort	= ntohs( m_pClient->m_pServer.sin_port );
+
+	m_pSource->m_nPushAttempted = 0;
+	m_pSource->m_nBusyCount = 0;
+	m_pSource->m_nFailures = 0;
+	m_pSource->m_oAvailable.clear();
+
 	theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_CONNECTED, (LPCTSTR)m_sAddress );
 	
 	return SendPrimaryRequest();
@@ -564,8 +591,8 @@ BOOL CDownloadTransferED2K::OnCompressedPart(CEDPacket* pPacket)
 		return TRUE;
 	}
 
-	QWORD nBaseOffset = pPacket->ReadLongLE();
-	QWORD nBaseLength = pPacket->ReadLongLE();
+	QWORD nBaseOffset = (QWORD)pPacket->ReadLongLE();
+	QWORD nBaseLength = (QWORD)pPacket->ReadLongLE();
 
 	z_streamp pStream = (z_streamp)m_pInflatePtr;
 
@@ -685,7 +712,7 @@ BOOL CDownloadTransferED2K::SendPrimaryRequest()
 	SetState( dtsRequesting );
 
 	//Set the 'last requested' time
-	m_tRequest	= tNow;		
+	m_tRequest	= tNow;
 
 	ClearRequests();
 	
@@ -693,13 +720,13 @@ BOOL CDownloadTransferED2K::SendPrimaryRequest()
 	CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_FILEREQUEST );
 	pPacket->Write( m_pDownload->m_oED2K );
 
-	if ( Settings.eDonkey.ExtendedRequest >= 1 && m_pClient->m_bEmRequest >= 1 )
+	if ( Settings.eDonkey.ExtendedRequest >= 1 && m_pClient->m_nEmRequest >= 1 )
 	{
 		m_pClient->WritePartStatus( pPacket, m_pDownload );
 	}
 
 	//It's not very accurate
-	if ( Settings.eDonkey.ExtendedRequest >= 2 && m_pClient->m_bEmRequest >= 2 ) 
+	if ( Settings.eDonkey.ExtendedRequest >= 2 && m_pClient->m_nEmRequest >= 2 )
 	{
 		pPacket->WriteShortLE( (WORD) m_pDownload->GetED2KCompleteSourceCount() );
 	}
@@ -754,7 +781,7 @@ BOOL CDownloadTransferED2K::SendSecondaryRequest()
 		SetState( dtsHashset );
 		m_pClient->m_mInput.tLast = GetTickCount();
 	}
-	else if ( m_pSource->HasUsefulRanges() )
+	else if ( !m_pAvailable || m_pSource->HasUsefulRanges() )
 	{
 		CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_QUEUEREQUEST );
 		pPacket->Write( m_pDownload->m_oED2K );
@@ -766,7 +793,8 @@ BOOL CDownloadTransferED2K::SendSecondaryRequest()
 	else
 	{
 		m_pSource->m_tAttempt = GetTickCount() + Settings.eDonkey.ReAskTime * 500;
-		m_pSource->SetAvailableRanges( NULL );
+		// forgetting state can cause Users to think malfunctioning when there are no sources available
+		// m_pSource->SetAvailableRanges( NULL );
 		theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_FRAGMENT_END, (LPCTSTR)m_sAddress );
 		Close( TS_TRUE );
 		return FALSE;
@@ -816,7 +844,7 @@ BOOL CDownloadTransferED2K::SendFragmentRequests()
 		if ( SelectFragment( oPossible, nOffset, nLength ) )
 		{
 			ChunkifyRequest( &nOffset, &nLength, Settings.eDonkey.RequestSize, FALSE );
-
+			
 			Fragments::Fragment Selected( nOffset, nOffset + nLength );
 			oPossible.erase( Selected );
 
@@ -998,7 +1026,7 @@ BOOL CDownloadTransferED2K::RunQueued(DWORD tNow)
 		return FALSE;
 	}
 	else if ( !( CEDPacket::IsLowID( m_pSource->m_pAddress.S_un.S_addr ) || m_pSource->m_bPushOnly ) &&
-				/*!Network.IsFirewalled(CHECK_BOTH)*/!Network.IsFirewalled(CHECK_UDP) && m_pClient->m_nUDP > 0 && ! m_bUDP && tNow > m_tRequest && // Temp disable
+				Network.IsFirewalled(CHECK_BOTH) == TS_FALSE && m_pClient->m_nUDP > 0 && ! m_bUDP && tNow > m_tRequest &&
 				tNow - m_tRequest > Settings.eDonkey.ReAskTime * 1000 - 20000 )
 	{
 		CEDPacket* pPing = CEDPacket::New( ED2K_C2C_UDP_REASKFILEPING, ED2K_PROTOCOL_EMULE );
@@ -1068,11 +1096,12 @@ BOOL CDownloadTransferED2K::OnSendingPart64(CEDPacket* pPacket)
 		return TRUE;
 	}
 
-	QWORD	nOffset = pPacket->ReadLongLE();
-			nOffset = ( (QWORD)pPacket->ReadLongLE() << 32 ) | nOffset;
-	
-	QWORD	nLength = pPacket->ReadLongLE();
-			nLength = ( (QWORD)pPacket->ReadLongLE() << 32 ) | nLength;
+	QWORD nOffset = 0;
+	QWORD nLength = 0;
+
+	// Tiny optimization of code: RAZA is only working on Little endian Platform at the moment.
+	pPacket->Read(&nOffset, 8);
+	pPacket->Read(&nLength, 8);
 
 	if ( nLength <= nOffset )
 	{
@@ -1127,10 +1156,12 @@ BOOL CDownloadTransferED2K::OnCompressedPart64(CEDPacket* pPacket)
 		return TRUE;
 	}
 
-	QWORD	nBaseOffset = pPacket->ReadLongLE();
-			nBaseOffset = ( (QWORD)pPacket->ReadLongLE() << 32 ) | nBaseOffset;
+	QWORD nBaseOffset = 0;
+	QWORD nBaseLength = 0;
 
-	QWORD	nBaseLength = pPacket->ReadLongLE();	// Length of compressed data is 32bit
+	// Tiny optimization of code: RAZA is only working on Little endian Platform at the moment.
+	pPacket->Read(&nBaseOffset, 8);
+	pPacket->Read(&nBaseLength, 4);	// Length of compressed data is 32bit
 
 
 	z_streamp pStream = (z_streamp)m_pInflatePtr;

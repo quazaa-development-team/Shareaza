@@ -42,6 +42,7 @@
 #include "TigerTree.h"
 #include "SHA.h"
 #include "ED2K.h"
+#include "MD5.h"
 
 #include "CtrlMatch.h"
 #include "LiveList.h"
@@ -117,6 +118,7 @@ CMatchList::CMatchList()
 	m_pMapSHA1	= new CMatchFile*[ MAP_SIZE ];
 	m_pMapTiger	= new CMatchFile*[ MAP_SIZE ];
 	m_pMapED2K	= new CMatchFile*[ MAP_SIZE ];
+	m_pMapMD5	= new CMatchFile*[ MAP_SIZE ];
 	m_pszFilter	= NULL;
 	m_pColumns	= NULL;
 	m_nColumns	= 0;
@@ -127,6 +129,7 @@ CMatchList::CMatchList()
 	ZeroMemory( m_pMapSHA1, MAP_SIZE * sizeof *m_pMapSHA1 );
 	ZeroMemory( m_pMapTiger, MAP_SIZE * sizeof *m_pMapTiger );
 	ZeroMemory( m_pMapED2K, MAP_SIZE * sizeof *m_pMapED2K );
+	ZeroMemory( m_pMapMD5, MAP_SIZE * sizeof *m_pMapMD5 );
 	
 	SetSortColumn( MATCH_COL_COUNT, TRUE );
 }
@@ -142,6 +145,7 @@ CMatchList::~CMatchList()
 	delete [] m_pMapED2K;
 	delete [] m_pMapTiger;
 	delete [] m_pMapSHA1;
+	delete [] m_pMapMD5;
 	delete [] m_pSizeMap;
 	
 	if ( m_pFiles ) delete [] m_pFiles;
@@ -177,14 +181,15 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 		
 		if ( pFilter != NULL )
 		{
-			if ( BOOL bName = _tcsistr( pFilter->m_sKeywords, pHit->m_sName ) == 0 )
+			if ( BOOL bName = _tcsistr( pFilter->m_sSearch, pHit->m_sName ) != 0 )
 				pHit->m_bExactMatch = TRUE;
 
 			pHit->m_bMatched = pFilter->Match(
 				pHit->m_sName, pHit->m_nSize, pHit->m_sSchemaURI, pHit->m_pXML,
 				pHit->m_oSHA1,
 				pHit->m_oTiger,
-				pHit->m_oED2K );
+				pHit->m_oED2K,
+				pHit->m_oMD5 );
 			
 			if ( bRequire && ! pHit->m_bMatched )
 			{
@@ -193,18 +198,19 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 				continue;
 			}
 			
-			// ToDo: Change to pHit->m_bMatched when we will be able to get folder name
-			// from hits. Raza sends hits if folder name matches the search keywords too.
-			// For now, just move such files to bogus.
-			if ( Settings.Search.SchemaTypes && pFilter->m_pSchema )
+			if ( Settings.Search.SchemaTypes && pFilter->m_pSchema && pHit->m_bMatched )
 			{
-				if ( !pHit->m_bMatched && pFilter->m_pSchema->CheckURI( pHit->m_sSchemaURI ) )
+				if ( pFilter->m_pSchema->FilterType( pHit->m_sName, TRUE ) )
 				{
-					pHit->m_bBogus = TRUE;
+					pHit->m_bMatched = TRUE;
+				}
+				else if ( pFilter->m_pSchema->CheckURI( pHit->m_sSchemaURI ) )
+				{
+					pHit->m_bMatched = TRUE;
 				}
 				else
 				{
-					pHit->m_bBogus = !pFilter->m_pSchema->FilterType( pHit->m_sName, TRUE );
+					pHit->m_bMatched = FALSE;
 				}
 			}
 		}
@@ -223,17 +229,21 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 		{
 			pFile = FindFileAndAddHit( pHit, fSHA1, &Stats );
 		}
-		if ( pFile == NULL && pHit->m_oTiger )
+		else if ( pFile == NULL && pHit->m_oTiger )
 		{
 			pFile = FindFileAndAddHit( pHit, fTiger, &Stats );
 		}
-		if ( pFile == NULL && pHit->m_oED2K )
+		else if ( pFile == NULL && pHit->m_oED2K )
 		{
 			pFile = FindFileAndAddHit( pHit, fED2K, &Stats );
 		}
+		else if ( pFile == NULL && pHit->m_oMD5 )
+		{
+			pFile = FindFileAndAddHit( pHit, fMD5, &Stats );
+		}
 		
 		if ( pFile == NULL
-            && ( ( !pHit->m_oSHA1 && !pHit->m_oTiger && ! pHit->m_oED2K )
+            && ( ( !pHit->m_oSHA1 && !pHit->m_oTiger && ! pHit->m_oED2K && ! pHit->m_oMD5 )
                 || !Settings.General.HashIntegrity ) )
 		{
 			pFile = FindFileAndAddHit( pHit, fSize, &Stats );
@@ -279,8 +289,8 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 					m_nED2KHits -= Stats.nHadFiltered;
 					break;
 				default:
-//					ASSERT( 0 )
-					;
+					//ASSERT( 0 );
+					break;
 				}
 			}
 		}
@@ -336,6 +346,12 @@ void CMatchList::AddHits(CQueryHit* pHit, CQuerySearch* pFilter, BOOL bRequire)
 			pFile->m_pNextED2K = *pMap;
 			*pMap = pFile;
 		}
+		if ( ! Stats.bHadMD5 && pFile->m_oMD5 )
+		{
+			pMap = m_pMapMD5 + pFile->m_oMD5[ 0 ];
+			pFile->m_pNextMD5 = *pMap;
+			*pMap = pFile;
+		}
 		
 		Stats.nHadCount = pFile->GetItemCount();
 		
@@ -373,6 +389,7 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 	bool bSHA1	= nFindFlag == fSHA1 && pHit->m_oSHA1;
 	bool bTiger	= nFindFlag == fTiger && pHit->m_oTiger;
 	bool bED2K	= nFindFlag == fED2K && pHit->m_oED2K;
+	bool bMD5	= nFindFlag == fMD5 && pHit->m_oMD5;
 	bool bSize	= nFindFlag == fSize;
 
 	if ( bSHA1 )
@@ -381,6 +398,8 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 		pMap = m_pMapTiger + pHit->m_oTiger[ 0 ];
 	else if ( bED2K )
 		pMap = m_pMapED2K + ( pHit->m_oED2K[ 0 ] );
+	else if ( bMD5 )
+		pMap = m_pMapMD5 + ( pHit->m_oMD5[ 0 ] );
 	else if ( bSize )
 		pMap = m_pSizeMap + (DWORD)( pHit->m_nSize & 0xFF );
 	else
@@ -389,20 +408,35 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 		return NULL;
 	}
 
-	bool bValid = false;
 
 	for ( pSeek = *pMap ; pSeek ; )
 	{
-		if ( bSHA1 )
+	// Does not look like it is checking All avilable hash
+	// bool bValid = false;
+	/*	if ( bSHA1 )
 			bValid = validAndEqual( pSeek->m_oSHA1, pHit->m_oSHA1 );
 		else if ( bTiger )
 			bValid = validAndEqual( pSeek->m_oTiger, pHit->m_oTiger );
 		else if ( bED2K )
 			bValid = validAndEqual( pSeek->m_oED2K, pHit->m_oED2K );
+		else if ( bMD5 )
+			bValid = validAndEqual( pSeek->m_oMD5, pHit->m_oMD5 );
 		else if ( bSize )
 			bValid = pSeek->m_nSize == pHit->m_nSize;
+	*/
 
-		if ( bValid )
+		// this should be the one for it.
+		bool bSHA1Valid = ( pSeek->m_oSHA1 && pHit->m_oSHA1 );
+		bool bTigerValid = ( pSeek->m_oTiger && pHit->m_oTiger );
+		bool bED2KValid = ( pSeek->m_oED2K && pHit->m_oED2K );
+		bool bMD5Valid = ( pSeek->m_oMD5 && pHit->m_oMD5 );
+		bool bSizeValid = ( pSeek->m_nSize != SIZE_UNKNOWN && pHit->m_nSize != SIZE_UNKNOWN &&
+							pSeek->m_nSize != 0 && pHit->m_nSize != 0 );
+		if ( ( ( bSHA1Valid && validAndEqual( pSeek->m_oSHA1, pHit->m_oSHA1 ) ) ||
+			( bTigerValid && validAndEqual( pSeek->m_oTiger, pHit->m_oTiger ) ) ||
+			( bED2KValid && validAndEqual( pSeek->m_oED2K, pHit->m_oED2K ) ) ||
+			( bMD5Valid && validAndEqual( pSeek->m_oMD5, pHit->m_oMD5 ) ) ) &&
+			( bSizeValid && pSeek->m_nSize == pHit->m_nSize ) )
 		{
 
 			Stats->nHadCount	= pSeek->GetItemCount();
@@ -413,6 +447,7 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 				Stats->bHadSHA1		= bool( pSeek->m_oSHA1 );
 				Stats->bHadTiger	= bool( pSeek->m_oTiger );
 				Stats->bHadED2K		= bool( pSeek->m_oED2K );
+				Stats->bHadMD5		= bool( pSeek->m_oMD5 );
 
 				// ToDo: Fixme. 
 				// pSeek->Add( pHit ) returns pHit->m_pNext with a bad memory address sometimes.
@@ -428,6 +463,7 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 				Stats->bHad[0] = bool( pSeek->m_oSHA1 );
 				Stats->bHad[1] = bool( pSeek->m_oTiger );
 				Stats->bHad[2] = bool( pSeek->m_oED2K );
+				Stats->bHad[3] = bool( pSeek->m_oMD5 );
 
 				if ( pSeek->Add( pHit, TRUE ) )
 				{
@@ -435,13 +471,14 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 					Stats->bHadSHA1	 |= Stats->bHad[0];
 					Stats->bHadTiger |= Stats->bHad[1];
 					Stats->bHadED2K	 |= Stats->bHad[2];
+					Stats->bHadMD5	 |= Stats->bHad[3];
 					break;
 				}
 			}
 		}
 
 		if ( bSize && !pFile ) 
-			Stats->bHadSHA1 = Stats->bHadTiger = Stats->bHadED2K = FALSE;
+			Stats->bHadSHA1 = Stats->bHadTiger = Stats->bHadED2K = Stats->bHadMD5 = FALSE;
 
 		if ( bSHA1 )
 			pSeek = pSeek->m_pNextSHA1;
@@ -449,6 +486,8 @@ CMatchFile* CMatchList::FindFileAndAddHit(CQueryHit* pHit, findType nFindFlag, F
 			pSeek = pSeek->m_pNextTiger;
 		else if ( bED2K )
 			pSeek = pSeek->m_pNextED2K;
+		else if ( bMD5 )
+			pSeek = pSeek->m_pNextMD5;
 		else if ( bSize )
 			pSeek = pSeek->m_pNextSize;
 	}
@@ -528,6 +567,7 @@ void CMatchList::Clear()
 	ZeroMemory( m_pMapSHA1, MAP_SIZE * sizeof *m_pMapSHA1 );
 	ZeroMemory( m_pMapTiger, MAP_SIZE * sizeof *m_pMapTiger );
 	ZeroMemory( m_pMapED2K, MAP_SIZE * sizeof *m_pMapED2K );
+	ZeroMemory( m_pMapMD5, MAP_SIZE * sizeof *m_pMapMD5 );
 
 	UpdateRange();
 }
@@ -1126,13 +1166,14 @@ CMatchFile::CMatchFile(CMatchList* pList, CQueryHit* pHit)
 	m_pNextSHA1		= NULL;
 	m_pNextTiger	= NULL;
 	m_pNextED2K		= NULL;
+	m_pNextMD5		= NULL;
 	
 //	m_bSHA1		= FALSE;
 //	m_bTiger	= FALSE;
 //	m_bED2K		= FALSE;
 	// TODO: Change to SIZE_UNKNOWN without the size
 	m_nSize		= ( pHit && pHit->m_bSize ) ? pHit->m_nSize : 0;
-	m_sSize		= Settings.SmartVolume( m_nSize, FALSE );
+	m_sSize		= Settings.ExactVolume( m_nSize );
 	
 	m_bBusy			= TS_UNKNOWN;
 	m_bPush			= TS_UNKNOWN;
@@ -1236,8 +1277,8 @@ BOOL CMatchFile::Add(CQueryHit* pHit, BOOL bForce)
 			
 			if ( ! bForce && bName ) bForce = TRUE;
 
-			if ( bName && pHit->m_pAddress.S_un.S_addr == pOld->m_pAddress.S_un.S_addr &&
-				 pHit->m_nPort == pOld->m_nPort )
+			if ( bName && ( ( pHit->m_pAddress.S_un.S_addr == pOld->m_pAddress.S_un.S_addr &&
+				 pHit->m_nPort == pOld->m_nPort ) || validAndEqual( pOld->m_oClientID, pHit->m_oClientID ) ) )
 			{
 				if ( pOld->m_bFiltered )
 				{
@@ -1265,7 +1306,8 @@ BOOL CMatchFile::Add(CQueryHit* pHit, BOOL bForce)
 		m_nTotal++;
 	}
 	
-	if ( ! m_oSHA1 && pHit->m_oSHA1 )
+	/*
+	if ( !m_oSHA1 && pHit->m_oSHA1 )
 	{
 		m_oSHA1 = pHit->m_oSHA1;
 	}
@@ -1279,13 +1321,39 @@ BOOL CMatchFile::Add(CQueryHit* pHit, BOOL bForce)
 	{
 		m_oED2K = pHit->m_oED2K;
 	}
-	
-	if ( ! m_bDownload && GetLibraryStatus() == TS_UNKNOWN && ( m_oSHA1 || m_oTiger || m_oED2K ) )
+
+	if ( ! m_oMD5 && pHit->m_oMD5 )
+	{
+		m_oMD5 = pHit->m_oMD5;
+	}
+	*/
+
+	// test code which replace above commented out code
+	if ( !m_oSHA1 && pHit->m_oSHA1 ) m_oSHA1 = pHit->m_oSHA1;
+	if ( !m_oTiger && pHit->m_oTiger ) m_oTiger = pHit->m_oTiger;
+	if ( !m_oED2K && pHit->m_oED2K ) m_oED2K = pHit->m_oED2K;
+	if ( !m_oMD5 && pHit->m_oMD5 ) m_oMD5 = pHit->m_oMD5;
+
+	/*
+	if ( pHit->m_oSHA1 || pHit->m_oTiger || pHit->m_oED2K || pHit->m_oMD5 )
+	{
+		if ( ! m_bExisting && pLock1.Lock( 100 ) )
+		{
+			if ( CLibraryFile* pExisting = LibraryMaps.LookupFileByHash( m_oSHA1, m_oTiger, m_oED2K, m_oMD5, m_nSize, m_nSize ) )
+				m_bExisting = pExisting->IsAvailable() ? 1 : 2;
+			bLocked = TRUE;
+		}
+	}
+	*/
+	// test code ends here -------------------------------------
+
+	if ( ! m_bDownload && GetLibraryStatus() == TS_UNKNOWN && ( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 ) )
 	{
 		CSingleLock pLock2( &Transfers.m_pSection );
 		
 		if ( pLock2.Lock( 50 ) )
 		{
+			/*
 			if ( m_oSHA1 && Downloads.FindBySHA1( m_oSHA1 ) != NULL )
 			{
 				m_bDownload = TRUE;
@@ -1298,6 +1366,19 @@ BOOL CMatchFile::Add(CQueryHit* pHit, BOOL bForce)
 			{
 				m_bDownload = TRUE;
 			}
+			else if ( m_oMD5 && Downloads.FindByMD5( m_oMD5 ) != NULL )
+			{
+				m_bDownload = TRUE;
+			}
+			*/
+
+			// test code which replace above commented out code
+			if ( ( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 )
+				&& Downloads.FindByHash( m_oSHA1, m_oTiger, m_oED2K, m_oMD5, Hashes::BtHash(), m_nSize, m_nSize ) != NULL )
+			{
+				m_bDownload = TRUE;
+			}
+			// test code ends here -------------------------------------
 		}
 	}
 	
@@ -1715,6 +1796,10 @@ CString CMatchFile::GetURN() const
 	{
 		strURN = m_oED2K.toUrn();
 	}
+	else if ( m_oMD5 )
+	{
+		strURN = m_oMD5.toUrn();
+	}
 	
 	return strURN;
 }
@@ -1810,22 +1895,22 @@ void CMatchFile::Serialize(CArchive& ar, int nVersion)
 TRISTATE CMatchFile::GetLibraryStatus()
 {
 	// TODO: Is some cache needed?
-
-	CSingleLock pLock( &Library.m_pSection );
-	if (  pLock.Lock( 100 ) )
+	if ( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 )
 	{
-		CLibraryFile* pExisting = NULL;
-		if ( ( m_oSHA1 && ( pExisting = LibraryMaps.LookupFileBySHA1( m_oSHA1 ) ) != NULL ) ||
-			 ( m_oTiger && ( pExisting = LibraryMaps.LookupFileByTiger( m_oTiger ) ) != NULL ) ||
-			 ( m_oED2K && ( pExisting = LibraryMaps.LookupFileByED2K( m_oED2K ) ) != NULL ) )
+		CSingleLock pLock( &Library.m_pSection );
+		if (  pLock.Lock( 100 ) )
 		{
-			m_bExisting = pExisting->IsAvailable() ? TS_FALSE : TS_TRUE;
+			CLibraryFile* pExisting = NULL;
+			if ( pExisting = LibraryMaps.LookupFileByHash( m_oSHA1, m_oTiger, m_oED2K, m_oMD5, m_nSize, m_nSize ) )
+			{
+				m_bExisting = pExisting->IsAvailable() ? TS_FALSE : TS_TRUE;
+			}
+			else
+			{
+				m_bExisting = TS_UNKNOWN;
+			}
+			pLock.Unlock();
 		}
-		else
-		{
-			m_bExisting = TS_UNKNOWN;
-		}
-		pLock.Unlock();
 	}
 	return m_bExisting;
 }

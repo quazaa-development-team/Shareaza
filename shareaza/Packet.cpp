@@ -33,6 +33,7 @@
 #include "Buffer.h"
 #include "WndMain.h"
 #include "WndPacket.h"
+#include "Neighbour.h"
 
 // If we are compiling in debug mode, replace the text "THIS_FILE" in the code with the name of this file
 #ifdef _DEBUG
@@ -73,7 +74,7 @@ CPacket::CPacket(PROTOCOLID nProtocol)
 CPacket::~CPacket()
 {
 	// Make sure the reference count is zero
-	ASSERT( m_nReference == 0 ); // If it's not, then this packet is being deleted when something still needs it
+	// ASSERT( m_nReference == 0 ); // If it's not, then this packet is being deleted when something still needs it
 
 	// If the packet points to some memory, delete it
 	if ( m_pBuffer ) delete [] m_pBuffer;
@@ -86,7 +87,7 @@ CPacket::~CPacket()
 void CPacket::Reset()
 {
 	// Make sure Reset is only called when nothing is referencing this packet object
-	ASSERT( m_nReference == 0 );
+//	ASSERT( m_nReference == 0 );
 
 	// Reset the member variables to null and 0 defaults
 	m_pNext      = NULL;
@@ -128,7 +129,7 @@ void CPacket::Shorten(DWORD nLength)
 //////////////////////////////////////////////////////////////////////
 // CPacket strings
 
-// Takes the number of bytes to look at from our position in the packet as ASCII text
+// Takes the number of bytes to look at from our position in the packet as ANSI text
 // Reads those up to the next null terminator as text
 // Returns a string
 CString CPacket::ReadString(UINT cp, DWORD nMaximum)
@@ -166,7 +167,7 @@ CString CPacket::ReadString(UINT cp, DWORD nMaximum)
 
 	// Convert the ASCII bytes into wide characters
 	MultiByteToWideChar(
-		cp,                       // Use the UTF8 code page
+		cp,							  // Use the UTF8 code page
 		0,                            // No character type options
 		pszInput,                     // Pointer to ANSI text
 		nLength,                      // Number of bytes to read there, the number of bytes before we found the null terminator
@@ -183,7 +184,7 @@ CString CPacket::ReadString(UINT cp, DWORD nMaximum)
 // Returns a string
 CString CPacket::ReadStringASCII(DWORD nMaximum)
 {
-	return ReadString(CP_ACP, nMaximum);
+	return ReadString(CP_ACP, nMaximum); // NOTE: CP_ACP is local ANSI codepage, not always ASCII(codepage 437)
 }
 
 // Takes text, and true to also write a null terminator
@@ -473,9 +474,7 @@ void CPacket::Debug(LPCTSTR pszReason) const
 // Only include these lines in the program if it is being compiled in debug mode
 #ifdef _DEBUG
 
-	// Do not display binary data in the system log
-	// Some conversions may crash application
-	// theApp.Message( MSG_DEBUG, pszReason );
+	theApp.Message( MSG_DEBUG, pszReason );
 	CString strOutput;
 
 	// Loop the index i down each byte in the packet buffer
@@ -500,8 +499,9 @@ void CPacket::Debug(LPCTSTR pszReason) const
 
 // Takes a CNeighbour object, an IP address without a port number, and true if we are sending the packet, false if we received it
 // Gives this packet and related objects to each window in the tab bar for them to process it
-void CPacket::SmartDump(CNeighbour* pNeighbour, IN_ADDR* pUDP, BOOL bOutgoing) const
+void CPacket::SmartDump(CNeighbour* pNeighbour, IN_ADDR* pUDP, BOOL bOutgoing)
 {
+	/*
 	// Get exclusive access to the program's critical section while this method runs
 	CSingleLock pLock( &theApp.m_pSection ); // When the method exits, pLock will go out of scope, be destructed, and release the lock
 	if ( pLock.Lock( 50 ) ) // If we wait more than 1/20th of a second for access, Lock will return false so we can just give up
@@ -520,6 +520,43 @@ void CPacket::SmartDump(CNeighbour* pNeighbour, IN_ADDR* pUDP, BOOL bOutgoing) c
 				pWnd->Process( pNeighbour, pUDP, bOutgoing, this );
 			}
 		}
+	}
+	*/
+	/*
+	CSingleLock pListLock( &theApp.m_mPacketWndList );
+	CSingleLock pLock( &theApp.m_pSection );
+
+	if ( !theApp.m_oPacketWndList.empty() && pLock.Lock( 50 ) )
+	{
+		if ( pListLock.Lock( 10 ) )
+		{
+			std::list<CPacketWnd*>::iterator iIndex = theApp.m_oPacketWndList.begin();
+			std::list<CPacketWnd*>::iterator iEnd = theApp.m_oPacketWndList.end();
+			while ( iIndex != iEnd )
+			{
+				(*iIndex)->Process( pNeighbour, pUDP, bOutgoing, this );
+				iIndex++;
+			}
+			pLock.Unlock();
+		}
+		pListLock.Unlock();
+	}
+	*/
+
+	// static CITMPacketDump* CreateMessage( const IN_ADDR* pAddr, WORD nPort, BOOL bUDP, BOOL bOutgoing, DWORD nUnique, CPacket * pPacket );
+
+
+	if ( pNeighbour != NULL )
+	{
+		theApp.m_pMessageQueue.PushMessage(
+			(CITMQueue::CITMItem*)CShareazaApp::CITMPacketDump::CreateMessage( &( pNeighbour->m_pHost.sin_addr ),
+																				ntohs(pNeighbour->m_pHost.sin_port), FALSE,
+																				bOutgoing, pNeighbour->m_nUnique, this ) );
+	}
+	else if ( pUDP != NULL )
+	{
+		theApp.m_pMessageQueue.PushMessage(
+			(CITMQueue::CITMItem*)CShareazaApp::CITMPacketDump::CreateMessage( pUDP, NULL, TRUE, bOutgoing, 0, this) );
 	}
 }
 

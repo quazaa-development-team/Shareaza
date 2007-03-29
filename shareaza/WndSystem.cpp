@@ -135,8 +135,8 @@ int CSystemWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndText.Create( WS_VISIBLE, rc, this, 100 );
 
 	LoadState( _T("CSystemWnd"), FALSE );
-	theApp.Message( MSG_DEBUG, _T("IsG2HubCapable() = %i"), Neighbours.IsG2HubCapable() );
-	theApp.Message( MSG_DEBUG, _T("IsG1UltrapeerCapable() = %i"), Neighbours.IsG1UltrapeerCapable() );
+	theApp.Message( MSG_DEBUG, _T("IsG2HubCapable() = %i"), Neighbours.IsG2HubCapable( TRUE, Settings.General.Debug ) );
+	theApp.Message( MSG_DEBUG, _T("IsG1UltrapeerCapable() = %i"), Neighbours.IsG1UltrapeerCapable( TRUE, Settings.General.Debug ) );
 
 	return 0;
 }

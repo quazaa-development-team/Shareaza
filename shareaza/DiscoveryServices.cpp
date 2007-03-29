@@ -325,9 +325,6 @@ BOOL CDiscoveryServices::CheckMinimumServices()
 //////////////////////////////////////////////////////////////////////
 // CDiscoveryServices execute a service to get hosts
 
-/* THIS FUNCTION IS NO LONGER NEEDED */
-
-/*
 // WARNING: Way too agressive for general use- Be very careful where this is called!
 // This is a public function, and should be called once when setting up/installing the program. 
 // IE: In the Quickstart Wizard *only*
@@ -345,7 +342,6 @@ BOOL CDiscoveryServices::QueryForHosts( PROTOCOLID nProtocol )
 
 	return FALSE;
 }
-*/
 
 DWORD CDiscoveryServices::MetQueried() const
 {
@@ -538,10 +534,10 @@ BOOL CDiscoveryServices::EnoughServices() const
 		}
 	}
 
-	return ( ( nWebCacheCount   >= 1 ) &&	// At least 1 webcache
-		     ( nG2Count			>= 5 ) &&	// At least 5 G2 services
-			 ( nG1Count			>= 3 ) &&	// At least 3 G1 services
-			 ( nServerMetCount  >= 2 ) );	// At least 2 server.met
+	return ( ( nWebCacheCount   > 4 ) &&	// At least 5 webcaches
+		     ( nG2Count			> 2 ) &&	// At least 3 G2 services
+			 ( nG1Count			> 0 ) &&	// At least 1 G1 service
+			 ( nServerMetCount  > 0 ) );	// At least 1 server.met
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -605,9 +601,25 @@ void CDiscoveryServices::AddDefaults()
 	if ( !EnoughServices() )
 	{
 		theApp.Message( MSG_DISPLAYED_ERROR, _T("Default discovery service load failed") );
-		/*
+
 		CString strServices;
-		strServices.LoadString( IDS_DISCOVERY_DEFAULTS );
+
+
+		HMODULE hModule = GetModuleHandle( NULL );
+		HRSRC hRes = FindResource( hModule, MAKEINTRESOURCE( IDR_DEFAULTSERVICES ), _T("FILE") );
+
+		if ( hRes == NULL ) return;
+
+		DWORD nSize			= SizeofResource( hModule, hRes );
+		HGLOBAL hMemory		= ::LoadResource( hModule, hRes );
+		LPTSTR pszOutput	= strServices.GetBuffer( nSize + 1 );
+		LPCSTR pszInput		= (LPCSTR)LockResource( hMemory );
+
+		while ( nSize-- ) *pszOutput++ = *pszInput++;
+		*pszOutput++ = 0;
+
+		strServices.ReleaseBuffer();
+
 
 		for ( strServices += '\n' ; strServices.GetLength() ; )
 		{
@@ -616,13 +628,33 @@ void CDiscoveryServices::AddDefaults()
 
 			if ( strService.GetLength() > 0 )
 			{
-				if ( _tcsistr( strService, _T("server.met") ) == NULL )
-					Add( strService, CDiscoveryService::dsWebCache );
-				else
-					Add( strService, CDiscoveryService::dsServerMet, PROTOCOL_ED2K );
+				TCHAR cType;
+				cType = strService.GetAt( 0 );
+				strService = strService.Right( strService.GetLength() - 2 );
+
+				switch( cType )
+				{
+				case '1': Add( strService, CDiscoveryService::dsWebCache, PROTOCOL_G1 );	// G1 service
+					break;
+				case '2': Add( strService, CDiscoveryService::dsWebCache, PROTOCOL_G2 );	// G2 service
+					break;
+				case 'M': Add( strService, CDiscoveryService::dsWebCache );					// Multinetwork service
+					break;
+				case 'D': Add( strService, CDiscoveryService::dsServerMet, PROTOCOL_ED2K );	// eDonkey service
+					break;
+				case 'U': Add( strService, CDiscoveryService::dsGnutella );					// Bootstrap and UDP Discovery Service
+					break;
+				case 'X': Add( strService, CDiscoveryService::dsBlocked );					// Blocked service
+					break;
+				case '#':																	// Comment line
+					break;
+				}
+				//if ( _tcsistr( strService, _T("server.met") ) == NULL )
+				//	Add( strService, CDiscoveryService::dsWebCache );
+				//else
+				//	Add( strService, CDiscoveryService::dsServerMet, PROTOCOL_ED2K );
 			}
 		}
-		*/
 	}
 }
 
@@ -631,6 +663,9 @@ void CDiscoveryServices::AddDefaults()
 
 BOOL CDiscoveryServices::Update()
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService ) return TRUE;
+
 	PROTOCOLID nProtocol;
 	DWORD tNow = (DWORD)time( NULL );
 	
@@ -700,6 +735,9 @@ BOOL CDiscoveryServices::Execute(BOOL bDiscovery, PROTOCOLID nProtocol, BOOL bFo
 			PROTOCOL_GED2K	- Execute entry for ED2K
 	*/
 
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService ) return TRUE;
+
 	CSingleLock pLock( &Network.m_pSection );
 	if ( ! pLock.Lock( 250 ) ) return FALSE;
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );	// The time (in seconds) 
@@ -707,16 +745,16 @@ BOOL CDiscoveryServices::Execute(BOOL bDiscovery, PROTOCOLID nProtocol, BOOL bFo
 	if ( bDiscovery ) // If this is a user-initiated manual query, or AutoStart with Cache empty
 	{
 		if ( m_hInternet ) return FALSE;
-		if ( m_tExecute != 0 && tNow - m_tExecute < 5 ) return FALSE;
+		if ( m_tExecute != 0 && tNow - m_tExecute < 10 ) return FALSE;
 		if ( m_tQueried != 0 && tNow - m_tQueried < 60 && !bForceDiscovery ) return FALSE;
 		if ( bForceDiscovery && nProtocol == PROTOCOL_NULL ) return FALSE;
 
 		m_tExecute = tNow;
-		BOOL	bG1Required = Settings.Gnutella1.EnableToday && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_G1) && ( bForceDiscovery || HostCache.Gnutella1.CountHosts(TRUE) < 15 );
-		BOOL	bG2Required = Settings.Gnutella2.EnableToday && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_G2) && ( bForceDiscovery || HostCache.Gnutella2.CountHosts(TRUE) < 25 );
+		BOOL	bG1Required = Settings.Gnutella1.EnableToday && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_G1) && ( bForceDiscovery || HostCache.Gnutella1.CountHosts(TRUE) == 0 );
+		BOOL	bG2Required = Settings.Gnutella2.EnableToday && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_G2) && ( bForceDiscovery || HostCache.Gnutella2.CountHosts(TRUE) == 0 );
 		BOOL	bEdRequired = Settings.eDonkey.EnableToday && ( nProtocol == PROTOCOL_NULL || nProtocol == PROTOCOL_ED2K ) && Settings.eDonkey.MetAutoQuery && ( m_tMetQueried == 0 || tNow - m_tMetQueried >= 60 * 60 ) && ( bForceDiscovery || !HostCache.eDonkey.EnoughED2KServers() );
 
-		if ( nProtocol == PROTOCOL_NULL )								// G1 + G2 + Ed hosts are wanted
+		if ( nProtocol == PROTOCOL_NULL )					// G1 + G2 + Ed hosts are wanted
 		{
 			BOOL bOK = TRUE;
 
@@ -737,6 +775,10 @@ BOOL CDiscoveryServices::Execute(BOOL bDiscovery, PROTOCOLID nProtocol, BOOL bFo
 		else if ( bG2Required && RequestRandomService( PROTOCOL_G2 ) )	// Only G2
 			return TRUE;
 		else if ( bEdRequired )											// Only Ed
+		// Note: Do not enable MetAutoQuery until we have a MET file set up!
+		if ( Settings.eDonkey.EnableToday && ( Settings.eDonkey.MetAutoQuery ||
+			 HostCache.eDonkey.CountHosts(FALSE) < 3 || m_tMetQueried == 0 ) &&
+			 ( nProtocol == PROTOCOL_ED2K || nProtocol == PROTOCOL_NULL ) )
 		{
 			m_tMetQueried = tNow;		// Execute this maximum one time each 60 min only when the number of eDonkey servers is too low (Very important).
 			if ( RequestRandomService( PROTOCOL_ED2K ) )
@@ -836,6 +878,9 @@ void CDiscoveryServices::OnGnutellaFailed(IN_ADDR* /*pAddress*/)
 
 BOOL CDiscoveryServices::RequestRandomService(PROTOCOLID nProtocol)
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService) return TRUE;
+
 	//CSingleLock pLock( &Network.m_pSection );	// Note: This shouldn't be necessary, since the
 	//if ( ! pLock.Lock( 250 ) ) return FALSE;	// calling functions should lock...
 
@@ -867,6 +912,9 @@ BOOL CDiscoveryServices::RequestRandomService(PROTOCOLID nProtocol)
 
 CDiscoveryService* CDiscoveryServices::GetRandomService(PROTOCOLID nProtocol)
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService) return NULL;
+
 	CArray< CDiscoveryService* > pServices;
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
 
@@ -878,10 +926,10 @@ CDiscoveryService* CDiscoveryServices::GetRandomService(PROTOCOLID nProtocol)
 		switch ( nProtocol )
 		{
 		case PROTOCOL_G1:
-			/*if ( ( pService->m_nType == CDiscoveryService::dsWebCache ) && ( pService->m_bGnutella1 ) &&
+			if ( ( pService->m_nType == CDiscoveryService::dsWebCache ) && ( pService->m_bGnutella1 ) &&
 				( tNow - pService->m_tAccessed > pService->m_nAccessPeriod ) )
 				pServices.Add( pService );
-			else */if ( ( pService->m_nType == CDiscoveryService::dsGnutella ) && ( pService->m_nSubType == 3 ) &&
+			else if ( ( pService->m_nType == CDiscoveryService::dsGnutella ) && ( pService->m_nSubType == 3 ) &&
 				time( NULL ) - pService->m_tAccessed >= 300 )
 				pServices.Add( pService );
 			break;
@@ -920,7 +968,11 @@ CDiscoveryService* CDiscoveryServices::GetRandomService(PROTOCOLID nProtocol)
 // CDiscoveryServices select a random webcache (For updates, etc)
 
 CDiscoveryService* CDiscoveryServices::GetRandomWebCache(PROTOCOLID nProtocol, BOOL bWorkingOnly, CDiscoveryService* pExclude, BOOL bForUpdate)
-{	// Select a random webcache (G1/G2 only)
+{	
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService) return NULL;
+
+	// Select a random webcache (G1/G2 only)
 	CArray< CDiscoveryService* > pWebCaches;
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
 
@@ -975,6 +1027,9 @@ CDiscoveryService* CDiscoveryServices::GetRandomWebCache(PROTOCOLID nProtocol, B
 
 BOOL CDiscoveryServices::RequestWebCache(CDiscoveryService* pService, int nMode, PROTOCOLID nProtocol)
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService) return TRUE;
+
 	DWORD tNow = (DWORD)time( NULL );
 	StopWebRequest();
 	DWORD nHosts = 0;
@@ -1100,6 +1155,9 @@ UINT CDiscoveryServices::ThreadStart(LPVOID pParam)
 
 void CDiscoveryServices::OnRun()
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService) return;
+
 	BOOL bSuccess = TRUE;
 	
 	if ( m_nWebCache == wcmServerMet )
@@ -1166,6 +1224,9 @@ void CDiscoveryServices::OnRun()
 
 BOOL CDiscoveryServices::RunWebCacheGet(BOOL bCaches)
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService) return TRUE;
+
 	CSingleLock pLock( &Network.m_pSection, TRUE );
 	CString strURL, strOutput;
 	
@@ -1337,6 +1398,9 @@ BOOL CDiscoveryServices::RunWebCacheGet(BOOL bCaches)
 
 BOOL CDiscoveryServices::RunWebCacheUpdate()
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService ) return TRUE;
+
 	CSingleLock pLock( &Network.m_pSection, TRUE );
 	CString strURL, strOutput;
 
@@ -1490,6 +1554,9 @@ BOOL CDiscoveryServices::SendWebCacheRequest(CString strURL, CString& strOutput)
 
 BOOL CDiscoveryServices::RunServerMet()
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService ) return TRUE;
+
 	CSingleLock pLock( &Network.m_pSection, TRUE );
 	CString strURL;
 	
@@ -1650,6 +1717,9 @@ void CDiscoveryService::Serialize(CArchive& ar, int /*nVersion*/)
 // Note: This is used by wndDiscovery only
 BOOL CDiscoveryService::Execute(int nMode)
 {
+	//new option to disable Discovery for private/test use
+	if ( Settings.Discovery.DisableService || Settings.Discovery.DisableManualQuery ) return TRUE;
+
 	CSingleLock pLock( &Network.m_pSection );
 	if ( ! pLock.Lock( 250 ) ) return FALSE;
 	

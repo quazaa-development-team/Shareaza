@@ -120,8 +120,8 @@ BOOL CConnectionSettingsPage::OnInitDialog()
 	m_wndCanAccept.AddString( str );
 	LoadString( str, IDS_GENERAL_YES );
 	m_wndCanAccept.AddString( str );
-	/*m_wndCanAccept.AddString( _T("TCP-Only") );
-	m_wndCanAccept.AddString( _T("UDP-Only") );*/ // Temp disabled
+	m_wndCanAccept.AddString( _T("TCP-Only") );
+	m_wndCanAccept.AddString( _T("UDP-Only") );
 
 	m_wndCanAccept.SetCurSel( Settings.Connection.FirewallState );
 
@@ -142,6 +142,7 @@ BOOL CConnectionSettingsPage::OnInitDialog()
 	char mib[ sizeof(MIB_IPADDRTABLE) + 32 * sizeof(MIB_IPADDRROW) ];
 	ULONG nSize = sizeof(mib);
 	PMIB_IPADDRTABLE ipAddr = (PMIB_IPADDRTABLE)mib;
+	DWORD nIndexCount = 1;
 
 	if ( GetIpAddrTable( ipAddr, &nSize, TRUE ) == NO_ERROR )
 	{
@@ -161,8 +162,9 @@ BOOL CConnectionSettingsPage::OnInitDialog()
 				( ( ip & 0x00ff00 ) >> 8 ), ( ( ip & 0xff0000 ) >> 16 ),
 				( ip >> 24 ) );
 
-			m_wndInHost.InsertString( -1, (LPCTSTR)strIP );
-			m_wndOutHost.InsertString( -1, (LPCTSTR)strIP );
+			m_wndInHost.InsertString( nIndexCount, (LPCTSTR)strIP );
+			m_wndOutHost.InsertString( nIndexCount, (LPCTSTR)strIP );
+			nIndexCount++;
 		}
 	}
 
@@ -174,7 +176,7 @@ BOOL CConnectionSettingsPage::OnInitDialog()
 
 	UpdateData( FALSE );
 
-	m_wndInBind.EnableWindow( m_sInHost != strAutomatic);
+	m_wndInBind.EnableWindow( m_sInHost != strAutomatic );
 	
 	if ( theApp.m_bServer || theApp.m_dwWindowsVersion < 5 && !theApp.m_bWinME )
 	{

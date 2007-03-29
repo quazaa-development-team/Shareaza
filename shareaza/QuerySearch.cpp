@@ -22,8 +22,12 @@
 #include "StdAfx.h"
 #include "Shareaza.h"
 #include "Settings.h"
+#include "Buffer.h"
 #include "QuerySearch.h"
 #include "Network.h"
+#include "Neighbour.h"	// temp add
+#include "Neighbours.h"	// temp add
+#include "RouteCache.h"	// temp add
 #include "Datagrams.h"
 #include "G1Packet.h"
 #include "G2Packet.h"
@@ -57,8 +61,14 @@ static char THIS_FILE[]=__FILE__;
 
 CQuerySearch::CQuerySearch(BOOL bGUID)
 : m_oWords()
+, m_oSHA1()
+, m_oTiger()
+, m_oED2K()
+, m_oMD5()
+, m_oBTH()
+, m_oSimilarED2K()
 {
-	if ( bGUID ) Network.CreateID( m_oGUID );
+	if ( bGUID ) Network.CreateMUID( m_oGUID );
 	
 	m_pSchema	= NULL;
 	m_pXML		= NULL;
@@ -95,6 +105,7 @@ CQuerySearch::CQuerySearch(const CQuerySearch* pOrigin)
   m_oSHA1( pOrigin->m_oSHA1 ),
   m_oTiger( pOrigin->m_oTiger ),
   m_oED2K( pOrigin->m_oED2K ),
+  m_oMD5( pOrigin->m_oMD5 ),
   m_oBTH( pOrigin->m_oBTH ),
   m_oSimilarED2K(),         //! \todo verify this
 
@@ -130,12 +141,14 @@ CG1Packet* CQuerySearch::ToG1Packet()
 {
 	CG1Packet* pPacket = CG1Packet::New( G1_PACKET_QUERY,
 		min( Settings.Gnutella1.SearchTTL, 4ul ), m_oGUID );
-	
-	WORD nFlags = G1_QF_TAG | G1_QF_BIN_HASH | G1_QF_DYNAMIC;
+
+	// Dont Think Shareaza support Dynamic Query
+	// WORD nFlags = G1_QF_TAG | G1_QF_BIN_HASH | G1_QF_DYNAMIC | G1_QF_OOB;
+	WORD nFlags = G1_QF_TAG | G1_QF_BIN_HASH;
 	if ( ! Network.IsListening() ) nFlags |= G1_QF_FIREWALLED;
 	if ( m_bWantXML ) nFlags |= G1_QF_XML;
 	pPacket->WriteShortLE( nFlags );
-	
+
 	CString strExtra;
 
 	if ( !m_sPosKeywords.IsEmpty() )
@@ -160,8 +173,8 @@ CG1Packet* CQuerySearch::ToG1Packet()
 	{
 		pPacket->WriteByte( 0 );
 	}
-	
-	// Some Gnutella Node does not like forwarding Query containing URN
+
+	// Some Gnutella Node does not like forwarding Query containing URN with "HUGE" extension.
 	/* if ( m_oSHA1 )
 	{
 		strExtra = m_oSHA1.toUrn();
@@ -175,18 +188,77 @@ CG1Packet* CQuerySearch::ToG1Packet()
 		strExtra = m_oED2K.toUrn();
 	}
 	else
-	{ 
+	{
 		strExtra = _T("urn:");
 	}*/
-	
+
 	if ( m_pXML )
 	{
 		//if ( strExtra.GetLength() ) strExtra += '\x1C';
-		pPacket->WriteString( m_pXML->ToString( TRUE ) );
+		strExtra += m_pXML->ToString( TRUE );
+		pPacket->WriteString( strExtra, FALSE );
 	}
-	
+
+	// use this for instead of Real URN to be added as HUGE. since it really looks like LimeWire ignore Query packet
+	// with URNs specified.
+	if ( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 || m_oBTH )
+	{
+		CGGEPBlock pBlock;
+		CGGEPItem* pItem;
+		if ( strExtra.GetLength() )
+		{
+			pPacket->WriteByte( 0x1C );
+		}
+		strExtra.Empty();
+
+		if ( m_oBTH )
+		{
+			pItem = pBlock.Add( L"u" );
+			pItem->SetCOBS();
+			pItem->SetSmall();
+			strExtra = "btih:"+ m_oBTH.toString();
+			pItem->WriteUTF8(strExtra);
+		}
+		else if ( m_oED2K )
+		{
+			pItem = pBlock.Add( L"u" );
+			pItem->SetCOBS();
+			pItem->SetSmall();
+			strExtra = "ed2k:"+ m_oED2K.toString();
+			pItem->WriteUTF8(strExtra);
+		}
+
+		if ( m_oSHA1 &&  m_oTiger )
+		{
+			CGGEPItem* pItem = pBlock.Add( _T("H") );
+			pItem->SetCOBS();
+			pItem->SetSmall();
+			pItem->WriteByte( 2 );
+			pItem->Write( &m_oSHA1[ 0 ], 20 );
+			pItem->Write( &m_oTiger[ 0 ], 24 );
+		}
+		else if ( m_oSHA1 )
+		{
+			CGGEPItem* pItem = pBlock.Add( _T("H") );
+			pItem->SetCOBS();
+			pItem->SetSmall();
+			pItem->WriteByte( 1 );
+			pItem->Write( &m_oSHA1[ 0 ], 20 );
+		}
+		else if ( m_oMD5 )
+		{
+			CGGEPItem* pItem = pBlock.Add( _T("H") );
+			pItem->SetCOBS();
+			pItem->SetSmall();
+			pItem->WriteByte( 3 );
+			pItem->Write( &m_oMD5[ 0 ], 16 );
+		}
+
+		pBlock.Write( pPacket );
+	}	
+
 	pPacket->WriteByte( 0 );
-		
+
 	return pPacket;
 }
 
@@ -196,7 +268,7 @@ CG1Packet* CQuerySearch::ToG1Packet()
 CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 {
 	CG2Packet* pPacket = CG2Packet::New( G2_PACKET_QUERY, TRUE );
-	
+
 	if ( pUDP )
 	{
 		pPacket->WritePacket( G2_PACKET_UDP, nKey ? 10 : 6 );
@@ -208,6 +280,16 @@ CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 	{
 		pPacket->WritePacket( G2_PACKET_QKY, 4 );
 		pPacket->WriteLongBE( nKey );
+	}
+
+	if ( !m_oHubList.empty() )
+	{
+		for ( HubIndex index = m_oHubList.begin();index != m_oHubList.end();index++)
+		{
+			pPacket->WritePacket( G2_PACKET_NEIGHBOUR_HUB, 6 );
+			pPacket->WriteLongLE( index->sin_addr.S_un.S_addr );
+			pPacket->WriteShortBE( htons( index->sin_port ) );
+		}
 	}
 
 	if ( m_oTiger && m_oSHA1 )
@@ -229,6 +311,7 @@ CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 		pPacket->WriteString( "ttr" );
 		pPacket->Write( m_oTiger );
 	}
+
 	// If the target source has only ed2k hash (w/o SHA1) it will allow to find such files
 	if ( m_oED2K )
 	{
@@ -236,7 +319,14 @@ CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 		pPacket->WriteString( "ed2k" );
 		pPacket->Write( m_oED2K );
 	}
-	
+
+	if ( m_oMD5 )
+	{
+		pPacket->WritePacket( G2_PACKET_URN, Hashes::Md5Hash::byteCount + 4 );
+		pPacket->WriteString( "md5" );
+		pPacket->Write( m_oMD5 );
+	}
+
 	if ( m_oBTH )
 	{
 		pPacket->WritePacket( G2_PACKET_URN, Hashes::BtHash::byteCount + 5 );
@@ -258,11 +348,16 @@ CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 			pPacket->WriteString( m_sSearch, FALSE );
 		}
 	}
-	
-	if ( m_pXML != NULL )
+	else if ( !m_sSearch.IsEmpty() )
+	{
+		pPacket->WritePacket( G2_PACKET_DESCRIPTIVE_NAME, pPacket->GetStringLen( m_sSearch ) );
+		pPacket->WriteString( m_sSearch, FALSE );
+	}
+
+	if ( !( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 ) && m_pXML != NULL )
 	{
 		CString strXML;
-		
+
 		if ( true )
 		{
 			if ( CXMLElement* pBody = m_pXML->GetFirstElement() )
@@ -272,11 +367,11 @@ CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 		{
 			strXML = m_pXML->ToString( TRUE );
 		}
-		
+
 		pPacket->WritePacket( G2_PACKET_METADATA, pPacket->GetStringLen( strXML ) );
 		pPacket->WriteString( strXML, FALSE );
 	}
-	
+
 	if ( m_nMinSize != 0 || m_nMaxSize != SIZE_UNKNOWN )
 	{
 		if ( m_nMinSize < 0xFFFFFFFF && ( m_nMaxSize < 0xFFFFFFFF || m_nMaxSize == SIZE_UNKNOWN ) )
@@ -292,25 +387,26 @@ CG2Packet* CQuerySearch::ToG2Packet(SOCKADDR_IN* pUDP, DWORD nKey)
 			pPacket->WriteInt64( m_nMaxSize );
 		}
 	}
-	
-	if ( ! m_bWantURL || ! m_bWantDN || ! m_bWantXML || ! m_bWantCOM || ! m_bWantPFS )
+
+	if ( m_bWantURL || m_bWantDN || m_bWantXML || m_bWantCOM || m_bWantPFS )
 	{
 		pPacket->WritePacket( G2_PACKET_INTEREST,
 			( m_bWantURL ? 4 : 0 ) + ( m_bWantDN ? 3 : 0 ) + ( m_bWantXML ? 3 : 0 ) +
 			( m_bWantCOM ? 4 : 0 ) + ( m_bWantPFS ? 4 : 0 ) );
-		
+
 		if ( m_bWantURL ) pPacket->WriteString( "URL" );
 		if ( m_bWantDN ) pPacket->WriteString( "DN" );
 		if ( m_bWantXML ) pPacket->WriteString( "MD" );
 		if ( m_bWantCOM ) pPacket->WriteString( "COM" );
 		if ( m_bWantPFS ) pPacket->WriteString( "PFS" );
 	}
-	
+
+	if ( m_bFirewall ) pPacket->WritePacket( G2_PACKET_NAT_DESC, 0 );
 	//if ( m_bAndG1 ) pPacket->WritePacket( G2_PACKET_G1, 0 );
-	
+
 	pPacket->WriteByte( 0 );
 	pPacket->Write( m_oGUID );
-	
+
 	return pPacket;
 }
 
@@ -544,7 +640,8 @@ BOOL CQuerySearch::ReadG1Packet(CPacket* pPacket)
 	{
 		m_oGUID = ((CG1Packet*)pPacket)->m_oGUID;
 	}
-	
+
+	m_oGUID.validate();
 	if ( pPacket->GetRemaining() < 4 ) return FALSE;
 	
 	WORD nFlags = pPacket->ReadShortLE();
@@ -570,14 +667,20 @@ BOOL CQuerySearch::ReadG1Packet(CPacket* pPacket)
 	//ToLower( m_sKeywords );
 	//MakeKeywords( m_sKeywords, false );
 
-	if ( pPacket->GetRemaining() >= 1 )
+//	if ( pPacket->GetRemaining() >= 1 )
+//	{
+//		strData = pPacket->ReadStringASCII();
+//		if ( strData.GetLength() > 1024 ) strData.Empty();
+//	}
+
+	if ( !pPacket->GetRemaining() )
 	{
-		strData = pPacket->ReadStringASCII();
-		if ( strData.GetLength() > 1024 ) strData.Empty();
+		m_bAndG1 = TRUE;
+		return CheckValid( false );
 	}
-	
-	LPCTSTR pszData	= strData;
-	LPCTSTR pszEnd	= pszData + _tcslen( pszData );
+
+	LPCSTR pszData	= (LPCSTR)(pPacket->m_pBuffer + pPacket->m_nPosition);
+	LPCSTR pszEnd	= pszData + (pPacket->m_nLength - pPacket->m_nPosition + 1);
 	int nIterations = 0;
 	
 	while ( *pszData && pszData < pszEnd )
@@ -589,47 +692,74 @@ BOOL CQuerySearch::ReadG1Packet(CPacket* pPacket)
 			if ( ! Settings.Gnutella1.EnableGGEP ) break;
 			
 			CGGEPBlock pGGEP;
-			pGGEP.ReadFromString( pszData );
+			pGGEP.ReadFromBuffer( (LPVOID)pszData, pszEnd - pszData + 1);
 			
-			if ( CGGEPItem* pItem = pGGEP.Find( _T("H"), 21 ) )
+			CGGEPItem* pItemPos = pGGEP.m_pFirst;
+			if ( pItemPos != NULL && pGGEP.m_nItemCount != 0 )
 			{
-				if ( pItem->m_pBuffer[0] > 0 && pItem->m_pBuffer[0] < 3 )
+				BYTE nItemCount = 0;
+				while ( nItemCount < pGGEP.m_nItemCount )
 				{
-					m_oSHA1 = reinterpret_cast< Hashes::Sha1Hash::RawStorage& >(
-						pItem->m_pBuffer[ 1 ] );
-				}
-				if ( pItem->m_pBuffer[0] == 2 && pItem->m_nLength >= 24 + 20 + 1 )
-				{
-					m_oTiger = reinterpret_cast< Hashes::TigerHash::RawStorage& >(
-						pItem->m_pBuffer[ 21 ] );
-				}
-			}
-			else if ( CGGEPItem* pItem = pGGEP.Find( _T("u") ) )
-			{
-				strData = pItem->ToString();
+					if ( pItemPos->IsNamed( _T("H") ) )
+					{
+						if ( pItemPos->m_pBuffer[0] > 0 && pItemPos->m_pBuffer[0] < 3 && pItemPos->m_nLength >= 20 + 1 )
+						{
+							std::copy( &pItemPos->m_pBuffer[1], &pItemPos->m_pBuffer[1] + 20, &m_oSHA1[ 0 ] );
+							m_oSHA1.validate();
+						}
+						if ( pItemPos->m_pBuffer[0] == 2 && pItemPos->m_nLength >= 24 + 20 + 1 )
+						{
+							std::copy( &pItemPos->m_pBuffer[21], &pItemPos->m_pBuffer[21] + 24, &m_oTiger[ 0 ] );
+							m_oTiger.validate();
+						}
+						if ( pItemPos->m_pBuffer[0] == 3 && pItemPos->m_nLength >= 17 )
+						{
+							std::copy( &pItemPos->m_pBuffer[1], &pItemPos->m_pBuffer[1] + 16, &m_oMD5[ 0 ] );
+							m_oMD5.validate();
+						}
+					}
+					else if ( pItemPos->IsNamed( _T("u") ) )
+					{
+						strData = "urn:" + pItemPos->ToString();
+						theApp.Message( MSG_SYSTEM, _T("CQuerySearch::ReadG1Packet GGEP u extension with content: %s"),
+							(LPCTSTR)strData );
 
-				if ( !m_oSHA1 ) m_oSHA1.fromUrn( strData );
-				if ( !m_oTiger ) m_oTiger.fromUrn( strData );
-				if ( !m_oED2K ) m_oED2K.fromUrn( strData );
+						if ( !m_oSHA1 ) m_oSHA1.fromUrn( strData );
+						if ( !m_oTiger ) m_oTiger.fromUrn( strData );
+						if ( !m_oED2K ) m_oED2K.fromUrn( strData );
+						if ( !m_oMD5 ) m_oMD5.fromUrn( strData );
+						if ( !m_oBTH ) m_oBTH.fromUrn( strData );
+					}
+
+					pItemPos = pItemPos->m_pNext;
+					nItemCount++;
+				}
+				break;
 			}
-			
-			break;
+
 		}
-		
-		LPCTSTR pszSep = _tcschr( pszData, 0x1C );
-		size_t nLength = ( pszSep && *pszSep == 0x1C ) ? pszSep - pszData : _tcslen( pszData );
+
+		LPCSTR pszSep = strchr( pszData, 0x1C );
+		int nLength = ( pszSep && *pszSep == 0x1C ) ? pszSep - pszData : static_cast<int>( strlen( pszData ) );
 		
 		if ( !IsCharacter( *pszData ) ) nLength = 0;
 		
-		if ( nLength >= 4 && _tcsncmp( pszData, _T("urn:"), 4 ) == 0 )
+		if ( nLength >= 4 && strncmp( pszData, "urn:", 4 ) == 0 )
 		{
-			if ( !m_oSHA1 ) m_oSHA1.fromUrn( pszData );
-			if ( !m_oTiger ) m_oTiger.fromUrn( pszData );
-			if ( !m_oED2K ) m_oED2K.fromUrn( pszData );
+			CString urnString(pszData, nLength);
+			if ( !m_oSHA1 ) m_oSHA1.fromUrn( urnString );
+			if ( !m_oTiger ) m_oTiger.fromUrn( urnString );
+			if ( !m_oED2K ) m_oED2K.fromUrn( urnString );
+			if ( !m_oMD5 ) m_oMD5.fromUrn( urnString );
+			if ( !m_oBTH ) m_oBTH.fromUrn( urnString );
 		}
-		else if ( nLength > 5 && _tcsncmp( pszData, _T("<?xml"), 5 ) == 0 )
+		else if ( nLength > 5 && strncmp( pszData, "<?xml", 5 ) == 0 )
 		{
-			m_pXML = CXMLElement::FromString( pszData, TRUE );
+			CBuffer pConvertWork;
+			pConvertWork.Print( pszData );
+			CString xmlString = pConvertWork.ReadString( nLength, CP_UTF8 );
+
+			m_pXML = CXMLElement::FromString( xmlString, TRUE );
 			
 			if ( m_pXML == NULL ) continue;
 			
@@ -654,6 +784,7 @@ BOOL CQuerySearch::ReadG2Packet(CG2Packet* pPacket, SOCKADDR_IN* pEndpoint)
 	
 	G2_PACKET nType;
 	DWORD nLength;
+	Hashes::Guid oClientID, oIncrID;
 
 	m_bAndG1 = FALSE;
 	
@@ -688,6 +819,14 @@ BOOL CQuerySearch::ReadG2Packet(CG2Packet* pPacket, SOCKADDR_IN* pEndpoint)
 				*pZero = 0;
 			}
 		}
+		else if ( nType == G2_PACKET_NEIGHBOUR_HUB && nLength >= 6 )
+		{
+			SOCKADDR_IN pHub;
+
+			pHub.sin_addr.S_un.S_addr	= pPacket->ReadLongLE();
+			pHub.sin_port				= htons( pPacket->ReadShortBE() );
+			m_oHubList.push_back(pHub);
+		}
 		else if ( nType == G2_PACKET_INTEREST )
 		{
 			m_bWantURL = m_bWantDN = m_bWantXML = m_bWantCOM = m_bWantPFS = FALSE;
@@ -714,23 +853,34 @@ BOOL CQuerySearch::ReadG2Packet(CG2Packet* pPacket, SOCKADDR_IN* pEndpoint)
 			if ( nLength >= 20 && strURN == _T("sha1") )
 			{
 				pPacket->Read( m_oSHA1 );
+				m_oSHA1.validate();
 			}
 			else if ( nLength >= 44 && ( strURN == _T("bp") || strURN == _T("bitprint") ) )
 			{
 				pPacket->Read( m_oSHA1 );
 				pPacket->Read( m_oTiger );
+				m_oSHA1.validate();
+				m_oTiger.validate();
 			}
 			else if ( nLength >= 24 && ( strURN == _T("ttr") || strURN == _T("tree:tiger/") ) )
 			{
 				pPacket->Read( m_oTiger );
+				m_oTiger.validate();
 			}
 			else if ( nLength >= 16 && strURN == _T("ed2k") )
 			{
 				pPacket->Read( m_oED2K );
+				m_oED2K.validate();
+			}
+			else if ( nLength >= 16 && strURN == _T("md5") )
+			{
+				pPacket->Read( m_oMD5 );
+				m_oMD5.validate();
 			}
 			else if ( nLength >= 20 && strURN == _T("btih") )
 			{
 				pPacket->Read( m_oBTH );
+				m_oBTH.validate();
 			}
 		}
 		else if ( nType == G2_PACKET_DESCRIPTIVE_NAME )
@@ -780,7 +930,11 @@ BOOL CQuerySearch::ReadG2Packet(CG2Packet* pPacket, SOCKADDR_IN* pEndpoint)
 		}
 		else if ( nType == G2_PACKET_G1 )
 		{
-			m_bAndG1 = TRUE;
+//			m_bAndG1 = TRUE;
+		}
+		else if ( nType == G2_PACKET_NAT_DESC )
+		{
+			m_bFirewall = TRUE;
 		}
 		
 		pPacket->m_nPosition = nOffset;
@@ -789,7 +943,9 @@ BOOL CQuerySearch::ReadG2Packet(CG2Packet* pPacket, SOCKADDR_IN* pEndpoint)
 	if ( pPacket->GetRemaining() < 16 ) return FALSE;
 	
 	pPacket->Read( m_oGUID );
-	
+	m_oGUID.validate();
+
+
 	return CheckValid( true );
 }
 
@@ -801,7 +957,7 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 	bool bHashOk = false;
 
 	// Searches by hash are ok
-	if ( m_oSHA1 || m_oTiger || m_oED2K || m_oBTH )
+	if ( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 || m_oBTH )
 	{
 		if ( m_oURNs.empty() )
 		{
@@ -820,6 +976,12 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 			if ( m_oED2K )
 			{
 				CString strurn = m_oED2K.toUrn();
+				m_oURNs.push_back( CQueryHashTable::HashWord( strurn, 0, strurn.GetLength(), 32 ) );
+			}
+
+			if ( m_oMD5 )
+			{
+				CString strurn = m_oMD5.toUrn();
 				m_oURNs.push_back( CQueryHashTable::HashWord( strurn, 0, strurn.GetLength(), 32 ) );
 			}
 
@@ -969,23 +1131,62 @@ BOOL CQuerySearch::CheckValid(bool bExpression)
 //////////////////////////////////////////////////////////////////////
 // CQuerySearch matching
 
-BOOL CQuerySearch::Match(LPCTSTR pszFilename, QWORD nSize, LPCTSTR pszSchemaURI, CXMLElement* pXML, const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, const Hashes::Ed2kHash& oED2K)
+BOOL CQuerySearch::Match(LPCTSTR pszFilename, QWORD nSize, LPCTSTR pszSchemaURI, CXMLElement* pXML, const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, const Hashes::Ed2kHash& oED2K, const Hashes::Md5Hash& oMD5)
 {
-	if ( nSize == SIZE_UNKNOWN || nSize < m_nMinSize || nSize > m_nMaxSize ) return FALSE;
-	
-	if ( m_oSHA1 )
+	BOOL bHashCheck = FALSE;
+
+	if ( nSize < m_nMinSize || nSize > m_nMaxSize ) return FALSE;
+
+	if ( m_oSHA1 && oSHA1 )
 	{
-		return validAndEqual( m_oSHA1, oSHA1 );
+		if ( m_oSHA1 != oSHA1 )
+		{
+			return FALSE;
+		}
+		else
+		{
+			bHashCheck = TRUE;
+		}
 	}
-	else if ( m_oTiger )
+
+	if ( m_oTiger && oTiger )
 	{
-		return validAndEqual( oTiger, m_oTiger );
+		if ( m_oTiger != oTiger )
+		{
+			return FALSE;
+		}
+		else
+		{
+			bHashCheck = TRUE;
+		}
 	}
-	else if ( m_oED2K )
+
+	if ( m_oED2K && oED2K )
 	{
-		return validAndEqual( oED2K, m_oED2K );
+		if ( m_oED2K != oED2K )
+		{
+			return FALSE;
+		}
+		else
+		{
+			bHashCheck = TRUE;
+		}
 	}
-	
+
+	if ( m_oMD5 && oMD5 )
+	{
+		if ( m_oMD5 != oMD5 )
+		{
+			return FALSE;
+		}
+		else
+		{
+			bHashCheck = TRUE;
+		}
+	}
+
+	if ( bHashCheck == TRUE ) return TRUE;
+
 	if ( pszSchemaURI && *pszSchemaURI && pXML )
 	{
 		TRISTATE bResult = MatchMetadata( pszSchemaURI, pXML );
@@ -998,13 +1199,13 @@ BOOL CQuerySearch::Match(LPCTSTR pszFilename, QWORD nSize, LPCTSTR pszSchemaURI,
 			if ( MatchMetadataShallow( pszSchemaURI, pXML, &bReject ) )
 			{
 				// If searching in Local library return true
-				if ( !m_oSHA1 && !m_oTiger && !m_oED2K && !m_oSimilarED2K )
+				if ( !m_oSHA1 && !m_oTiger && !m_oED2K && !m_oSimilarED2K && !m_oMD5)
 					return TRUE;
 
 				// Otherwise, only return WordMatch when negative terms are used
 				// to filter out filenames from the search window
 				BOOL bNegative = FALSE;
-				if ( m_sKeywords.GetLength() > 1 )
+				if ( m_sSearch.GetLength() > 1 )
 				{
 					int nMinusPos = -1;
 					while ( !bNegative )
@@ -1026,7 +1227,7 @@ BOOL CQuerySearch::Match(LPCTSTR pszFilename, QWORD nSize, LPCTSTR pszSchemaURI,
 		}
 	}
 	// If it's a search for similar files, the text doesn't have to match
-	return m_oSimilarED2K || m_sKeywords.GetLength() && WordMatch( pszFilename, m_sKeywords );
+	return m_oSimilarED2K || m_sSearch.GetLength() && WordMatch( pszFilename, m_sKeywords );
 }
 
 TRISTATE CQuerySearch::MatchMetadata(LPCTSTR pszSchemaURI, CXMLElement* pXML)
@@ -1234,7 +1435,7 @@ void CQuerySearch::BuildWordList(bool bExpression, bool /* bLocal */ )
 	if ( m_sKeywords.IsEmpty() )
 		m_sKeywords = m_sSearch;
 
-	BOOL bHash = ( m_oSHA1 || m_oTiger || m_oED2K ) && m_sSearch.IsEmpty();
+	BOOL bHash = ( m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 ) && m_sSearch.IsEmpty();
 	
 	if ( 0 == _tcsncmp( m_sSearch, _T("magnet:?"), 8 ) )
 	{
@@ -1268,6 +1469,14 @@ void CQuerySearch::BuildWordList(bool bExpression, bool /* bLocal */ )
 		if ( ! m_oED2K )
 		{
 			if ( m_oED2K.fromUrn( m_sSearch ) )
+			{
+				bHash = TRUE;
+			}
+		}
+
+		if ( ! m_oMD5 )
+		{
+			if ( m_oMD5.fromUrn( m_sSearch ) )
 			{
 				bHash = TRUE;
 			}
@@ -1528,7 +1737,7 @@ void CQuerySearch::BuildWordTable(LPCTSTR pszString)
 	BOOL bQuote		= FALSE;
 	BOOL bNegate	= FALSE;
 	BOOL bSpace		= TRUE;
-	
+
 	for ( ; *pszPtr ; pszPtr++ )
 	{
 		if ( IsCharacter( *pszPtr ) )
@@ -1551,9 +1760,9 @@ void CQuerySearch::BuildWordTable(LPCTSTR pszString)
 						m_oWords.insert( std::make_pair( pszWord, pszPtr - pszWord ) );
 				}
 			}
-			
+
 			pszWord = pszPtr + 1;
-			
+
 			if ( *pszPtr == '\"' )
 			{
 				bQuote = ! bQuote;
@@ -1568,7 +1777,7 @@ void CQuerySearch::BuildWordTable(LPCTSTR pszString)
 			{
 				bSpace = ( *pszPtr == ' ' );
 			}
-			
+
 			if ( bNegate && ! bQuote && *pszPtr != '-' ) bNegate = FALSE;
 		}
 	}

@@ -59,10 +59,13 @@ private:
 	BOOL		m_bShared;
 	BOOL		m_bComplete;
 	DWORD		m_tSaved;
-	DWORD		m_tBegan;		// The time when this download began trying to download (Started
-								// searching, etc). 0 means has not tried this session.
-	BOOL		m_bDownloading;	// This is used to store if a download is downloading. (Performance tweak)
-								// You should count the transfers if you need a 100% current answer.
+	DWORD		m_tBegan;			// The time when this download began trying to download (Started
+									// searching, etc). 0 means has not tried this session.
+	BOOL		m_bDownloading;		// This is used to store if a download is downloading. (Performance tweak)
+									// You should count the transfers if you need a 100% current answer.
+	DWORD		m_tLastSourceCheck;	// Time you checked Source list last time ( this is only for source cache on completed
+									// Downloads )
+
 // Operations
 public:
 	void        	Pause(BOOL bRealPause = TRUE);
@@ -73,12 +76,12 @@ public:
 	BOOL        	Rename(LPCTSTR pszName);
 	void        	SetStartTimer();
 	BOOL        	IsStarted() const;		//Has the download actually downloaded anything?
-	virtual BOOL	IsPaused( BOOL bRealState = FALSE ) const;
+	virtual BOOL	IsPaused(BOOL bRealState = FALSE) const;
 	virtual BOOL	IsDownloading() const;	//Is the download receiving data?
 	virtual BOOL	IsMoving() const;
 	virtual BOOL	IsCompleted() const;
 	BOOL        	IsBoosted() const;
-	BOOL        	IsShared() const;
+	BOOL        	IsShared(BOOL bSavedState = FALSE) const;
 	virtual BOOL	IsTrying() const;		//Is the download currently trying to download?
 	BOOL			Load(LPCTSTR pszPath);
 	BOOL			Save(BOOL bFlush = FALSE);
@@ -92,12 +95,12 @@ private:
 	void			OnDownloaded();
 	void			OnMoved(CDownloadTask* pTask);
 	void			SerializeOld(CArchive& ar, int nVersion);
-	
-	friend class CDownloadTask; // m_pTask && OnTaskComplete
-	friend class CDownloadTransfer; // GetVerifyLength
-	friend class CDownloadWithTorrent; // m_bComplete
-	friend class CDownloadsWnd; // m_pTask
-	friend class CDownloads;	// m_bComplete for Load()
+
+	friend class CDownloadTask;			// m_pTask && OnTaskComplete
+	friend class CDownloadTransfer;		// GetVerifyLength
+	friend class CDownloadWithTorrent;	// m_bComplete
+	friend class CDownloadsWnd;			// m_pTask
+	friend class CDownloads;			// m_bComplete for Load()
 };
 
 #endif // !defined(AFX_DOWNLOAD_H__156689EC_D090_4285_BB8C_9AD058024BB5__INCLUDED_)

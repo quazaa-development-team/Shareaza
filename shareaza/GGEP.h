@@ -95,6 +95,8 @@ public:
 	void		WriteByte(BYTE nValue);
 	CString		ToString();
 	void		WriteUTF8( LPCWSTR pszText);
+// not yet implemented
+//	CString		ReadAscii();
 
 protected:
 	BOOL		ReadFrom(CGGEPBlock* pBlock, BYTE nFlags);

@@ -58,6 +58,14 @@ CThumbCache::~CThumbCache()
 
 BOOL CThumbCache::Prepare(LPCTSTR pszPath, CSize* pszThumb, BOOL bCreate)
 {
+	if ( Settings.General.DisableThumbnail )
+	{
+		if ( m_bOpen )
+		{
+			Close();
+		}
+		return FALSE;
+	}
 	CString strPath( pszPath );
 
 	int nSlash = strPath.ReverseFind( '\\' );

@@ -27,6 +27,7 @@
 #include "Handshakes.h"
 #include "Neighbours.h"
 #include "Neighbour.h"
+#include "EDNeighbour.h"
 #include "Datagrams.h"
 #include "HostCache.h"
 #include "RouteCache.h"
@@ -34,6 +35,7 @@
 #include "GProfile.h"
 #include "Transfers.h"
 #include "Downloads.h"
+#include "DownloadSource.h"
 #include "Statistics.h"
 #include "DiscoveryServices.h"
 #include "HttpRequest.h"
@@ -47,6 +49,7 @@
 #include "Buffer.h"
 #include "G1Packet.h"
 #include "G2Packet.h"
+#include "EDpacket.h"
 #include "GGEP.h"
 #include "G1Neighbour.h"
 
@@ -54,6 +57,7 @@
 #include "WndChild.h"
 #include "WndSearchMonitor.h"
 #include "WndHitMonitor.h"
+#include "Uploads.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -63,11 +67,247 @@ static char THIS_FILE[]=__FILE__;
 
 CNetwork Network;
 
+//////////////////////////////////////////////////////////////////////
+// CITMSendPush construction
+
+CNetwork::CITMSendPush::CITMSendPush() : m_oGUID(), m_oPushProxies(), m_oG2Hubs()
+{
+	m_nProtocol				= PROTOCOL_NULL;
+	m_pAddress.S_un.S_addr	= 0;
+	m_nPort					= 0;
+	m_nIndex				= 0;
+}
+
+CNetwork::CITMSendPush::~CITMSendPush()
+{
+	m_oGUID.clear();
+	m_oPushProxies.clear();
+	m_oG2Hubs.clear();
+}
+
+//////////////////////////////////////////////////////////////////////
+// CITMSendPush Function member implementations
+
+CNetwork::CITMSendPush* CNetwork::CITMSendPush::CreateMessage( PROTOCOLID nProtocol, const Hashes::Guid& oGUID, const DWORD nIndex,
+															IN_ADDR pAddress, WORD nPort, const HubList& oPushProxies,
+															const HubList& oG2Hubs )
+{
+	CITMSendPush* tempSP	= new CITMSendPush();
+	tempSP->m_nProtocol = nProtocol;
+
+	if ( nProtocol == PROTOCOL_HTTP || nProtocol == PROTOCOL_G1 || nProtocol == PROTOCOL_G2 )
+	{
+		tempSP->m_oGUID = oGUID;
+		tempSP->m_nIndex = nIndex;
+		tempSP->m_pAddress.S_un.S_addr = pAddress.S_un.S_addr;
+		tempSP->m_nPort = nPort;
+		if ( oPushProxies.empty() ) tempSP->m_oPushProxies = oPushProxies;
+		if ( oG2Hubs.empty() ) tempSP->m_oG2Hubs = oG2Hubs;
+	}
+	else if ( nProtocol == PROTOCOL_ED2K )
+	{
+		tempSP->m_nIndex = nIndex; // ClientID
+		tempSP->m_pAddress.S_un.S_addr = pAddress.S_un.S_addr; // Server address
+		tempSP->m_nPort = nPort; // Server Port
+	}
+	return tempSP;
+}
+
+BOOL CNetwork::CITMSendPush::OnProcess()
+{
+	if ( ! Network.IsListening() ) return FALSE;
+
+	// error, protocol can not be PROTOCOL_NULL
+	if ( m_nProtocol == PROTOCOL_NULL ) return FALSE;
+
+	CSingleLock pLock( &Network.m_pSection, TRUE );
+	//if ( ! pLock.Lock( 250 ) ) return TRUE;
+
+	int nCount = 0;
+	SOCKADDR_IN pEndpoint;
+
+	if ( m_nProtocol == PROTOCOL_HTTP || m_nProtocol == PROTOCOL_G1 || m_nProtocol == PROTOCOL_G2 )
+	{
+		Hashes::Guid oGUID2 = m_oGUID;
+		CNeighbour* pOrigin;
+
+		if ( !m_oGUID.isValid() ) return TRUE;
+
+		while ( Network.GetNodeRoute( oGUID2, &pOrigin, &pEndpoint ) )
+		{
+			if ( pOrigin != NULL && pOrigin->m_nProtocol == PROTOCOL_G1 )
+			{
+				CG1Packet* pPacket = CG1Packet::New( G1_PACKET_PUSH,
+					Settings.Gnutella1.MaximumTTL - 1 );
+
+				pPacket->Write( m_oGUID );
+				pPacket->WriteLongLE( m_nIndex );
+				pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
+				pPacket->WriteShortLE( htons( Network.m_pHost.sin_port ) );
+
+				pOrigin->Send( pPacket );
+				nCount++;
+			}
+			else
+			{
+
+				if ( pOrigin != NULL )
+				{
+					CG2Packet* pPacket = CG2Packet::New( G2_PACKET_PUSH, TRUE );
+
+					pPacket->WritePacket( G2_PACKET_TO, 16 );
+					pPacket->Write( m_oGUID );
+
+					pPacket->WriteByte( 0 );
+					pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
+					pPacket->WriteShortBE( htons( Network.m_pHost.sin_port ) );
+
+					pOrigin->Send( pPacket );
+					nCount++;
+				}
+				else
+				{
+					pLock.Unlock();
+					//Datagrams.Send( &pEndpoint, pPacket, TRUE, NULL, FALSE  );
+					HubIndex iTemp = m_oG2Hubs.begin();
+					HubIndex iEnd = m_oG2Hubs.end();
+					BOOL bFound = FALSE;
+
+					for (;iTemp != iEnd;iTemp++)
+					{
+						if ( (*iTemp).sin_addr.S_un.S_addr == pEndpoint.sin_addr.S_un.S_addr &&
+							(*iTemp).sin_port == pEndpoint.sin_port )
+							bFound = TRUE;
+					}
+					if ( !bFound ) m_oG2Hubs.push_back( pEndpoint );
+					pLock.Lock();
+				}
+			}
+			oGUID2[15]++;
+		}
+
+	}
+	else if ( m_nProtocol == PROTOCOL_ED2K )
+	{
+		BOOL bReqSucceed = FALSE;
+
+		// If we don't have a socket listening for incoming connections, leave now
+		if ( ! Network.IsListening() ) return FALSE;
+
+		// Get the neighbour with the given IP address, and look at it as an eDonkey2000 computer
+		CEDNeighbour* pNeighbour = (CEDNeighbour*)Neighbours.Get( &m_pAddress );
+
+		// If we found it, and it really is running eDonkey2000
+		if ( ( pNeighbour != NULL ) && ( pNeighbour->m_nProtocol == PROTOCOL_ED2K ) && ( ! CEDPacket::IsLowID( pNeighbour->m_nClientID ) ) )
+		{
+			// Make a new eDonkey2000 call back request packet, write in the client ID, and send it to the eDonkey2000 computer
+			CEDPacket* pPacket = CEDPacket::New( ED2K_C2S_CALLBACKREQUEST );
+			pPacket->WriteLongLE( m_nIndex );
+			bReqSucceed = pNeighbour->Send( pPacket );
+		}
+
+		if ( !bReqSucceed )
+		{
+			// lugdunum requests no more of this
+			CEDPacket* pPacket = CEDPacket::New( ED2K_C2SG_CALLBACKREQUEST );
+			pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
+			pPacket->WriteShortLE( htons( Network.m_pHost.sin_port ) );
+			pPacket->WriteLongLE( m_nIndex );
+			bReqSucceed = Datagrams.Send( &m_pAddress, m_nPort + 4, pPacket );
+		}
+
+		return bReqSucceed;
+	}
+	else
+	{
+		return FALSE;
+	}
+
+	pLock.Unlock();
+
+	if ( m_nProtocol == PROTOCOL_G1 )
+	{
+		SOCKADDR_IN	pEndPoint;
+		HubIndex iTemp = m_oPushProxies.begin();
+		HubIndex iEnd = m_oPushProxies.end();
+		BOOL bFound = FALSE;
+
+		pEndPoint.sin_addr.S_un.S_addr = m_pAddress.S_un.S_addr;
+		pEndPoint.sin_port = htons( m_nPort );
+
+		for (;iTemp != iEnd;iTemp++)
+		{
+			if ( (*iTemp).sin_addr.S_un.S_addr == pEndpoint.sin_addr.S_un.S_addr &&
+				(*iTemp).sin_port == pEndpoint.sin_port )
+				bFound = TRUE;
+		}
+		if ( !bFound ) m_oPushProxies.push_back( pEndPoint );
+	}
+
+	if ( m_nProtocol == PROTOCOL_G2 )
+	{
+		SOCKADDR_IN	pEndPoint;
+		HubIndex iTemp = m_oG2Hubs.begin();
+		HubIndex iEnd = m_oG2Hubs.end();
+		BOOL bFound = FALSE;
+
+		pEndPoint.sin_addr.S_un.S_addr = m_pAddress.S_un.S_addr;
+		pEndPoint.sin_port = htons( m_nPort );
+
+		for (;iTemp != iEnd;iTemp++)
+		{
+			if ( (*iTemp).sin_addr.S_un.S_addr == pEndpoint.sin_addr.S_un.S_addr &&
+				(*iTemp).sin_port == pEndpoint.sin_port )
+				bFound = TRUE;
+		}
+		if ( !bFound ) m_oG2Hubs.push_back( pEndPoint );
+	}
+
+	pLock.Lock();
+	if ( !m_oPushProxies.empty() )
+	{
+		for ( HubIndex POS = m_oPushProxies.begin();POS != m_oPushProxies.end();POS++)
+		{
+			CPacket* pPacket = CG1Packet::New( G1_PACKET_PUSH,
+				Settings.Gnutella1.MaximumTTL - 1 );
+
+			pPacket->Write( m_oGUID );
+			pPacket->WriteLongLE( m_nIndex );
+			pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
+			pPacket->WriteShortLE( htons( Network.m_pHost.sin_port ) );
+
+			Datagrams.Send( &(*POS), pPacket );
+			nCount++;
+		}
+	}
+
+	if ( !m_oG2Hubs.empty() )
+	{
+		for ( HubIndex POS = m_oG2Hubs.begin();POS != m_oG2Hubs.end();POS++)
+		{
+			CG2Packet* pPacket = CG2Packet::New( G2_PACKET_PUSH, TRUE );
+
+			pPacket->WritePacket( G2_PACKET_TO, 16 );
+			pPacket->Write( m_oGUID );
+
+			pPacket->WriteByte( 0 );
+			pPacket->WriteLongLE( Network.m_pHost.sin_addr.S_un.S_addr );
+			pPacket->WriteShortBE( htons( Network.m_pHost.sin_port ) );
+			Datagrams.Send( &(*POS), pPacket, TRUE, NULL, FALSE  );
+			nCount++;
+		}
+	}
+
+	// need some code to send reply message to Source if failed to PUSH;
+
+	return TRUE;
+
+}
 
 //////////////////////////////////////////////////////////////////////
 // CNetwork construction
 
-CNetwork::CNetwork()
+CNetwork::CNetwork() : m_pMessageQueue()
 {
 	NodeRoute				= new CRouteCache();
 	QueryRoute				= new CRouteCache();
@@ -83,8 +323,14 @@ CNetwork::CNetwork()
 
 	m_nSequence				= 0;
 	m_hThread				= NULL;
+
 	ZeroMemory( &m_pHost, sizeof( m_pHost ) );
 	m_pHost.sin_family		= AF_INET;
+
+	ZeroMemory( &m_pOutBind, sizeof( m_pOutBind ) );
+	m_pOutBind.sin_family		= AF_INET;
+
+	m_tLastFirewallTest		= 0;
 }
 
 CNetwork::~CNetwork()
@@ -131,27 +377,102 @@ BOOL CNetwork::IsStable() const
 	return IsListening() && ( Handshakes.m_nStableCount > 0 );
 }
 
-BOOL CNetwork::IsFirewalled(int nCheck)
+TRISTATE CNetwork::IsFirewalled(int nCheck)
 {
-	if ( Settings.Connection.FirewallState == CONNECTION_OPEN )	// CHECK_BOTH, CHECK_TCP, CHECK_UDP
-		return FALSE;		// We know we are not firewalled on both TCP and UDP
+	if ( !IsConnected() ) return TS_UNKNOWN;	// Not connected, so how the hell I know if it is or not.
+	else if ( Settings.Connection.FirewallState == CONNECTION_OPEN )	// CHECK_BOTH, CHECK_TCP, CHECK_UDP
+		return ( m_bTCPListeningReady && m_bUDPListeningReady ) ? TS_FALSE : TS_TRUE;		// We know we are not firewalled on both TCP and UDP unless failed to bind on port
 	else if ( Settings.Connection.FirewallState == CONNECTION_OPEN_TCPONLY && nCheck == CHECK_TCP )
-		return FALSE;		// We know we are not firewalled on TCP port
+		return ( m_bTCPListeningReady ) ? TS_FALSE : TS_TRUE;		// We know we are not firewalled on TCP port unless failed to bind on port
 	else if ( Settings.Connection.FirewallState == CONNECTION_OPEN_UDPONLY && nCheck == CHECK_UDP )
-		return FALSE;		// We know we are not firewalled on UDP port
+		return ( m_bUDPListeningReady ) ? TS_FALSE : TS_TRUE;		// We know we are not firewalled on UDP port unless failed to bind on port
 	else if ( Settings.Connection.FirewallState == CONNECTION_AUTO )
 	{
-		BOOL bTCPOpened = IsStable();
-		BOOL bUDPOpened = Datagrams.IsStable();
-		if( nCheck == CHECK_BOTH && bTCPOpened && bUDPOpened )
-			return FALSE;	// We know we are not firewalled on both TCP and UDP
-		else if ( nCheck == CHECK_TCP && bTCPOpened )
-			return FALSE;	// We know we are not firewalled on TCP port
-		else if ( nCheck == CHECK_UDP && bUDPOpened )
-			return FALSE;	// We know we are not firewalled on UDP port
+		TRISTATE tsTCPOpened = !m_bTCPListeningReady ? TS_FALSE // port could not be opened so same as firewalled.
+			: IsStable() ? TS_TRUE								// port is Stable, so the port is Opened.
+			: ( Uploads.IsStable() ? TS_FALSE					// Upload is stable, without port is stable, so must be firewalled
+			: TS_UNKNOWN );										// not yet known if firewalled ot not.
+		TRISTATE tsUDPOpened = !m_bUDPListeningReady ? TS_FALSE	// port could not be opened so same as firewalled.
+			: Datagrams.IsStable() ? TS_TRUE					// port is Stable, so the port is Opened.
+			: ( ( IsTestingUDPFW() || !Settings.Gnutella2.EnableToday )? TS_UNKNOWN	// is still testing or G2 is not enabled so do not know if UDP is opened or not
+			: TS_FALSE );										// none of above, means UDP is firewalled
+		if( nCheck == CHECK_BOTH )
+		{
+			if ( tsTCPOpened == TS_TRUE && tsUDPOpened == TS_TRUE )
+				return TS_FALSE;	// We know we are not firewalled on both TCP and UDP
+			else if ( tsTCPOpened == TS_FALSE || tsUDPOpened == TS_FALSE )
+				return TS_TRUE;	// We know we are not firewalled on both TCP and UDP
+			else
+				return TS_UNKNOWN;
+		}
+		else if ( nCheck == CHECK_TCP )
+		{
+			switch ( tsTCPOpened )
+			{
+			case TS_UNKNOWN:
+				return TS_UNKNOWN;
+			case TS_FALSE:
+				return TS_TRUE;			// We know we are firewalled on TCP
+			case TS_TRUE:
+				return TS_FALSE;	// We know we are not firewalled on TCP port
+			}
+		}
+		else if ( nCheck == CHECK_UDP )
+		{
+			switch ( tsUDPOpened )
+			{
+			case TS_UNKNOWN:
+				return TS_UNKNOWN;
+			case TS_FALSE:
+				return TS_TRUE;			// We know we are firewalled on UDP
+			case TS_TRUE:
+				return TS_FALSE;	// We know we are not firewalled on UDP port
+			}
+		}
 	}
 
-	return TRUE;			// We know we are firewalled
+	return TS_TRUE;			// We know we are firewalled
+}
+
+BOOL CNetwork::IsTestingUDPFW()
+{
+	return m_tStartTestingUDPFW != 0 && ( m_nNetworkGlobalTime - m_tStartTestingUDPFW < 3600 );
+}
+
+void CNetwork::BeginTestG2UDPFW()
+{
+	m_tStartTestingUDPFW = static_cast<DWORD>( time( NULL ) );
+	Datagrams.SetStable(FALSE);
+}
+
+void CNetwork::EndTestG2UDPFW(TRISTATE bFirewalled)
+{
+	m_tStartTestingUDPFW = 0;
+	if ( bFirewalled == TS_TRUE )
+		Datagrams.SetStable(FALSE);
+	else if ( bFirewalled == TS_FALSE )
+		Datagrams.SetStable(TRUE);
+}
+
+BOOL CNetwork::CanTestFirewall() 
+{
+	DWORD tNow = GetTickCount();
+
+	if ( ( tNow - m_tLastFirewallTest ) >= Settings.Connection.FWTestWait * 1000 )	// One test in 3 min.
+		return TRUE;
+
+	return FALSE;
+}
+
+void CNetwork::TestRemoteFirewall(DWORD nAddress, WORD nPort)
+{
+	if ( nAddress != 0 && nPort != 0 && (DWORD)m_FWTestQueue.GetSize() <= Settings.Connection.MaxFWTestQueue )	// max 20 queued tests to avoid flooding
+	{
+		sockaddr_in pHost;
+		pHost.sin_addr = *(in_addr*)&nAddress;
+		pHost.sin_port = nPort;
+		m_FWTestQueue.AddTail( pHost );
+	}
 }
 
 DWORD CNetwork::GetStableTime() const
@@ -195,15 +516,20 @@ BOOL CNetwork::ReadyToTransfer(DWORD tNow) const
 
 BOOL CNetwork::Connect(BOOL bAutoConnect)
 {
-	CSingleLock pLock( &m_pSection, TRUE );
-
-	Settings.Live.AutoClose = FALSE;
-	if ( bAutoConnect ) 
+	if ( bAutoConnect && !m_bEnabled )
 	{
-		m_bAutoConnect = TRUE;
-		// Remove really old G1 hosts before trying to connect to G1
-		if ( Settings.Gnutella1.EnableToday ) HostCache.Gnutella1.PruneOldHosts();
+		Settings.Gnutella1.EnableToday = ( Settings.Gnutella1.EnableAlways ? TRUE : Settings.Gnutella1.EnableToday );
+		Settings.Gnutella2.EnableToday = ( Settings.Gnutella2.EnableAlways ? TRUE : Settings.Gnutella2.EnableToday );
+		Settings.eDonkey.EnableToday = ( Settings.eDonkey.EnableAlways ? TRUE : Settings.eDonkey.EnableToday );
 	}
+
+	CSingleLock pLock( &m_pSection, TRUE );
+	Settings.Live.AutoClose = FALSE;
+	m_bAutoConnect = bAutoConnect ? TRUE : m_bAutoConnect;
+
+
+	m_nNetworkGlobalTime = static_cast<DWORD>( time( NULL ) );
+	m_nNetworkGlobalTickCount = GetTickCount();
 
 	// Make sure WinINet is connected (IE is not in offline mode)
 	if ( Settings.Connection.ForceConnectedState )
@@ -225,9 +551,6 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 
 	Resolve( Settings.Connection.InHost, Settings.Connection.InPort, &m_pHost );
 
-	if ( /*IsFirewalled()*/Settings.Connection.FirewallState == CONNECTION_FIREWALLED ) // Temp disable
-		theApp.Message( MSG_DEFAULT, IDS_NETWORK_FIREWALLED );
-
 	SOCKADDR_IN pOutgoing;
 
 	if ( Resolve( Settings.Connection.OutHost, 0, &pOutgoing ) )
@@ -245,6 +568,8 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 	m_bTCPListeningReady = Handshakes.Listen();
 	m_bUDPListeningReady = Datagrams.Listen();
 
+	Uploads.SetStable( 0 );
+
 	if ( !m_bTCPListeningReady || !m_bUDPListeningReady )
 	{
 		theApp.Message( MSG_DISPLAYED_ERROR, _T("The connection process is failed.") );
@@ -258,13 +583,23 @@ BOOL CNetwork::Connect(BOOL bAutoConnect)
 	NodeRoute->SetDuration( Settings.Gnutella.RouteCache );
 	QueryRoute->SetDuration( Settings.Gnutella.RouteCache );
 
+	if ( IsFirewalled(CHECK_BOTH) == TS_TRUE )
+		theApp.Message( MSG_DEFAULT, IDS_NETWORK_FIREWALLED );
+
 	m_bEnabled				= TRUE;
 	m_tStartedConnecting	= GetTickCount();
+	CITMQueue::EnableITM( &(Network.m_pMessageQueue) );
+	if ( Settings.Gnutella2.EnableToday ) BeginTestG2UDPFW();
+    
 	m_hThread				= BeginThread( "Network", ThreadStart, this );
 
-	// It will check if it is needed inside the function
-	DiscoveryServices.Execute(TRUE, PROTOCOL_NULL, FALSE);
-
+	if ( Settings.Gnutella1.EnableToday)
+		DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G1 );
+	if ( Settings.Gnutella2.EnableToday)
+		DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G2 );
+	// No BootStrap for ED2K at all but maybe in future.
+	//if ( Settings.eDonkey.EnableToday )
+	//	DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_ED2K );
 	return TRUE;
 }
 
@@ -275,7 +610,13 @@ void CNetwork::Disconnect()
 {
 	CSingleLock pLock( &m_pSection, TRUE );
 
+	CITMQueue::DisableITM( &(Network.m_pMessageQueue) );
+	if ( Settings.Gnutella2.EnableToday ) EndTestG2UDPFW( TS_UNKNOWN );
 	if ( ! m_bEnabled ) return;
+	
+	Settings.Gnutella1.EnableToday = FALSE;
+	Settings.Gnutella2.EnableToday = FALSE;
+	Settings.eDonkey.EnableToday = FALSE;
 
 	theApp.Message( MSG_DEFAULT, _T("") );
 	theApp.Message( MSG_SYSTEM, IDS_NETWORK_DISCONNECTING );
@@ -285,6 +626,7 @@ void CNetwork::Disconnect()
 	m_bTCPListeningReady	= FALSE;
 	m_bUDPListeningReady	= FALSE;
 	m_tStartedConnecting	= 0;
+	m_tStartTestingUDPFW	= 0;
 	Datagrams.SetStable(FALSE);
 
 	Neighbours.Close();
@@ -320,7 +662,12 @@ void CNetwork::Disconnect()
 
 	pLock.Unlock();
 
+	m_nNetworkGlobalTime = static_cast<DWORD>( time( NULL ) );
+	m_nNetworkGlobalTickCount = GetTickCount();
+
 	DiscoveryServices.Stop();
+
+	Uploads.SetStable( 0 );
 
 	theApp.Message( MSG_SYSTEM, IDS_NETWORK_DISCONNECTED ); 
 	theApp.Message( MSG_SYSTEM, _T("") );
@@ -329,7 +676,7 @@ void CNetwork::Disconnect()
 //////////////////////////////////////////////////////////////////////
 // CNetwork host connection
 
-BOOL CNetwork::ConnectTo(LPCTSTR pszAddress, int nPort, PROTOCOLID nProtocol, BOOL bNoUltraPeer)
+BOOL CNetwork::ConnectTo(LPCTSTR pszAddress, int nPort, PROTOCOLID nProtocol, BOOL bNoUltraPeer, BOOL bUDP)
 {
 	CSingleLock pLock( &m_pSection, TRUE );
 	
@@ -338,7 +685,7 @@ BOOL CNetwork::ConnectTo(LPCTSTR pszAddress, int nPort, PROTOCOLID nProtocol, BO
 	if ( nPort == 0 ) nPort = GNUTELLA_DEFAULT_PORT;
 	theApp.Message( MSG_DEFAULT, IDS_NETWORK_RESOLVING, pszAddress );
 	
-	if ( AsyncResolve( pszAddress, (WORD)nPort, nProtocol, bNoUltraPeer ? 2 : 1 ) ) return TRUE;
+	if ( AsyncResolve( pszAddress, (WORD)nPort, nProtocol, ( bUDP ? 4 : ( bNoUltraPeer ? 2 : 1 ) ) ) ) return TRUE;
 	
 	theApp.Message( MSG_ERROR, IDS_NETWORK_RESOLVE_FAIL, pszAddress );
 	
@@ -382,6 +729,40 @@ void CNetwork::CreateID(Hashes::Guid& oID)
 }
 
 //////////////////////////////////////////////////////////////////////
+// CNetwork GGUID generation
+
+void CNetwork::CreateMUID(Hashes::Guid& oID)
+{
+	oID = MyProfile.oGUID;
+	srand( GetTickCount() + m_nSequence++ );
+	*(DWORD*)(&oID[4])	+= DWORD( rand() * ( RAND_MAX + 1 ) * ( RAND_MAX + 1 ) + rand() * ( RAND_MAX + 1 ) + rand() );
+	*(DWORD*)(&oID[8])	+= DWORD( rand() * ( RAND_MAX + 1 ) * ( RAND_MAX + 1 ) + rand() * ( RAND_MAX + 1 ) + rand() );
+	*(WORD*)(&oID[15])	+= WORD( rand() );
+	oID[0]		= m_pHost.sin_addr.S_un.S_un_b.s_b1;
+	oID[1]		= m_pHost.sin_addr.S_un.S_un_b.s_b2;
+	oID[2]		= m_pHost.sin_addr.S_un.S_un_b.s_b3;
+	oID[3]		= m_pHost.sin_addr.S_un.S_un_b.s_b4;
+	oID[13]		= (BYTE)( ( m_pHost.sin_port >> 8 ) & 0xFF );
+	oID[14]		= (BYTE)( m_pHost.sin_port & 0xFF );
+/*
+	*i++ = m_pHost.sin_addr.S_un.S_un_b.s_b1;
+	*i++ = m_pHost.sin_addr.S_un.S_un_b.s_b2;
+	*i++ = m_pHost.sin_addr.S_un.S_un_b.s_b3;
+	*i++ = m_pHost.sin_addr.S_un.S_un_b.s_b4;
+	i++;
+	i++;
+	i++;
+	i++;
+	i++;
+	i++;
+	i++;
+	i++;
+    *i++ = (BYTE)( ( m_pHost.sin_port >> 8 ) & 0xFF );
+	*i   = (BYTE)( m_pHost.sin_port & 0xFF );
+*/
+}
+
+//////////////////////////////////////////////////////////////////////
 // CNetwork firewalled address checking
 
 BOOL CNetwork::IsFirewalledAddress(LPVOID pAddress, BOOL bIncludeSelf, BOOL bForceCheck)
@@ -397,7 +778,7 @@ BOOL CNetwork::IsFirewalledAddress(LPVOID pAddress, BOOL bIncludeSelf, BOOL bFor
 	if ( ( nAddress & 0xFF ) == 0x0A ) return TRUE;
 	if ( ( nAddress & 0xFF ) == 0x7F ) return TRUE;		// 127.*
 	
-	if ( bIncludeSelf && nAddress == *(DWORD*)(&m_pHost.sin_addr) ) return TRUE;
+	if ( ( bIncludeSelf || bForceCheck ) && nAddress == *(DWORD*)(&m_pHost.sin_addr) ) return TRUE;
 	
 	return FALSE;
 }
@@ -580,9 +961,12 @@ void CNetwork::OnRun()
 {
 	while ( m_bEnabled )
 	{
-		Sleep( 50 );
+		Sleep(50);
 		WaitForSingleObject( m_pWakeup, 100 );
-	
+
+		m_nNetworkGlobalTime = static_cast<DWORD>( time( NULL ) );
+		m_nNetworkGlobalTickCount = GetTickCount();
+
 		if ( ! theApp.m_bLive ) continue;
 		if ( theApp.m_pUPnPFinder && theApp.m_pUPnPFinder->IsAsyncFindRunning() )
 			continue;
@@ -594,11 +978,27 @@ void CNetwork::OnRun()
 			QueryHashMaster.Build();
 			
 			if ( CrawlSession.m_bActive ) CrawlSession.OnRun();
+
+			if ( m_FWTestQueue.GetSize() )
+			{
+				if ( CanTestFirewall() )
+				{
+					sockaddr_in pHost;
+					pHost = m_FWTestQueue.GetHead();
+
+					theApp.Message( MSG_SYSTEM, _T("Making a firewall test for %s, port %lu"), (CString)inet_ntoa( pHost.sin_addr ), pHost.sin_port );
+					Neighbours.ConnectTo( (IN_ADDR*)&pHost.sin_addr, pHost.sin_port, PROTOCOL_G2, FALSE, FALSE, TRUE );
+					m_tLastFirewallTest = m_nNetworkGlobalTickCount;
+
+                    m_FWTestQueue.RemoveHead();
+				}	
+			}
 			
 			m_pSection.Unlock();
 		}
 		
 		Neighbours.OnRun();
+		m_pMessageQueue.ProcessMessages();
 	}
 }
 
@@ -618,20 +1018,28 @@ void CNetwork::OnWinsock(WPARAM wParam, LPARAM lParam)
 
 	if ( WSAGETASYNCERROR(lParam) == 0 )
 	{
-		if ( pResolve->m_nCommand == 0 )
+		if ( pResolve->m_nCommand == 0 ) // Old Bootstrap
 		{
 			HostCache.ForProtocol( pResolve->m_nProtocol )->Add( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort );
 		}
-		else if ( pResolve->m_nCommand == 1 || pResolve->m_nCommand == 2 )
+		else if ( pResolve->m_nCommand == 1 ) // 1 = normal
 		{
-			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, pResolve->m_nCommand );
+			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, FALSE, FALSE, FALSE );
 		}
-		else if ( pResolve->m_nCommand == 3 )
+		else if ( pResolve->m_nCommand == 2 ) // 2 = No Ultrapeer
+		{
+			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, TRUE, FALSE, FALSE );
+		}
+		else if ( pResolve->m_nCommand == 4 ) // 4 = UDP (ToDo) currently only for G2.
+		{
+			Neighbours.ConnectTo( (IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, pResolve->m_nProtocol, FALSE, FALSE, FALSE, TRUE );
+		}
+		else if ( pResolve->m_nCommand == 3 ) // 3 = UHC/UKHL bootstraps.
 		{
 			// code to invoke UDPHC/UDPKHL Sender.
 			if ( pResolve->m_nProtocol == PROTOCOL_G1 )
 			{
-				strAddress = L"uhc:" + *(pResolve->m_sAddress);
+				strAddress.Format( _T("uhc:%s"), LPCTSTR(*(pResolve->m_sAddress)) );
 				pService = DiscoveryServices.GetByAddress( strAddress );
 				if ( pService == NULL )
 				{
@@ -644,11 +1052,11 @@ void CNetwork::OnWinsock(WPARAM wParam, LPARAM lParam)
 					pService->m_pAddress = *((IN_ADDR*)pResolve->m_pHost.h_addr);
 					pService->m_nPort =  pResolve->m_nPort;
 				}
-				UDPHostCache((IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort);
+				Datagrams.SendUDPHostCache((IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, ubsDiscovery );
 			}
 			else if ( pResolve->m_nProtocol == PROTOCOL_G2 )
 			{
-				strAddress = L"ukhl:" + *(pResolve->m_sAddress);
+				strAddress.Format( _T("ukhl:%s"), LPCTSTR(*(pResolve->m_sAddress)) );
 				pService = DiscoveryServices.GetByAddress( strAddress );
 				if ( pService == NULL )
 				{
@@ -661,7 +1069,7 @@ void CNetwork::OnWinsock(WPARAM wParam, LPARAM lParam)
 					pService->m_pAddress =  *((IN_ADDR*)pResolve->m_pHost.h_addr);
 					pService->m_nPort =  pResolve->m_nPort;
 				}
-				UDPKnownHubCache((IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort);
+				Datagrams.SendUDPKnownHubCache((IN_ADDR*)pResolve->m_pHost.h_addr, pResolve->m_nPort, ubsDiscovery );
 			}
 		}
 	}
@@ -675,7 +1083,7 @@ void CNetwork::OnWinsock(WPARAM wParam, LPARAM lParam)
 		{
 			if ( pResolve->m_nProtocol == PROTOCOL_G1 )
 			{
-				strAddress = L"uhc:" + *(pResolve->m_sAddress);
+				strAddress.Format( _T("uhc:%s"), LPCTSTR(*(pResolve->m_sAddress)) );
 				pService = DiscoveryServices.GetByAddress( strAddress );
 				if ( pService == NULL )
 				{
@@ -690,7 +1098,7 @@ void CNetwork::OnWinsock(WPARAM wParam, LPARAM lParam)
 			}
 			else if ( pResolve->m_nProtocol == PROTOCOL_G2 )
 			{
-				strAddress = L"ukhl:" + *(pResolve->m_sAddress);
+				strAddress.Format( _T("ukhl:%s"), LPCTSTR(*(pResolve->m_sAddress)) );
 				pService = DiscoveryServices.GetByAddress( strAddress );
 				if ( pService == NULL )
 				{
@@ -754,9 +1162,10 @@ BOOL CNetwork::RoutePacket(CG2Packet* pPacket)
 			if ( pOrigin->m_nProtocol == PROTOCOL_G1 &&
 				 pPacket->IsType( G2_PACKET_PUSH ) )
 			{
-				CG1Neighbour* pG1 = (CG1Neighbour*)pOrigin;
-				pPacket->SkipCompound();
-				pG1->SendG2Push( oGUID, pPacket );
+				//CG1Neighbour* pG1 = (CG1Neighbour*)pOrigin;
+				//pPacket->SkipCompound();
+				//pG1->SendG2Push( oGUID, pPacket );
+				return TRUE;
 			}
 			else
 			{
@@ -777,58 +1186,24 @@ BOOL CNetwork::RoutePacket(CG2Packet* pPacket)
 //////////////////////////////////////////////////////////////////////
 // CNetwork send a push request
 
-BOOL CNetwork::SendPush(const Hashes::Guid& oGUID, DWORD nIndex)
+BOOL CNetwork::SendPush(const Hashes::Guid& oGUID, DWORD nIndex, PROTOCOLID nProtocol, IN_ADDR pAddress, WORD nPort,
+						HubList& oPushProxyList, HubList& oHubList)
 {
-	CSingleLock pLock( &Network.m_pSection );
-	if ( ! pLock.Lock( 250 ) ) return TRUE;
+	if ( !m_bEnabled ) return FALSE;
+	m_pMessageQueue.PushMessage( (CITMQueue::CITMItem*)CITMSendPush::CreateMessage( nProtocol, oGUID, nIndex, pAddress, nPort,
+								oPushProxyList, oHubList ) );
 
-	if ( ! IsListening() ) return FALSE;
-	
-	Hashes::Guid oGUID2 = oGUID;
-	SOCKADDR_IN pEndpoint;
-	CNeighbour* pOrigin;
-	int nCount = 0;
-	
-	while ( GetNodeRoute( oGUID2, &pOrigin, &pEndpoint ) )
-	{
-		if ( pOrigin != NULL && pOrigin->m_nProtocol == PROTOCOL_G1 )
-		{
-			CG1Packet* pPacket = CG1Packet::New( G1_PACKET_PUSH,
-				Settings.Gnutella1.MaximumTTL - 1 );
-			
-			pPacket->Write( oGUID );
-			pPacket->WriteLongLE( nIndex );
-			pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
-			pPacket->WriteShortLE( htons( m_pHost.sin_port ) );
-			
-			pOrigin->Send( pPacket );
-		}
-		else
-		{
-			CG2Packet* pPacket = CG2Packet::New( G2_PACKET_PUSH, TRUE );
-			
-			pPacket->WritePacket( G2_PACKET_PUSH_TO, 16 );
-			pPacket->Write( oGUID );
-			
-			pPacket->WriteByte( 0 );
-			pPacket->WriteLongLE( m_pHost.sin_addr.S_un.S_addr );
-			pPacket->WriteShortBE( htons( m_pHost.sin_port ) );
-			
-			if ( pOrigin != NULL )
-			{
-				pOrigin->Send( pPacket );
-			}
-			else
-			{
-				Datagrams.Send( &pEndpoint, pPacket );
-			}
-		}
-		
-		oGUID2[15] ++;
-		nCount++;
-	}
-	
-	return nCount > 0;
+	return TRUE;
+}
+
+BOOL CNetwork::SendPush( CDownloadSource * pSource )
+{
+	if ( !m_bEnabled ) return FALSE;
+	m_pMessageQueue.PushMessage( (CITMQueue::CITMItem*)CITMSendPush::CreateMessage( pSource->m_nProtocol, pSource->m_oGUID,
+								pSource->m_nIndex, pSource->m_pAddress, pSource->m_nPort, pSource->m_oPushProxyList,
+								pSource->m_oHubList ) );
+	return TRUE;
+
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -841,7 +1216,7 @@ BOOL CNetwork::RouteHits(CQueryHit* pHits, CPacket* pPacket)
 	
 	if ( ! QueryRoute->Lookup( pHits->m_oSearchID, &pOrigin, &pEndpoint ) ) return FALSE;
 	
-	BOOL bWrapped = FALSE;
+	//BOOL bWrapped = FALSE;
 	
 	if ( pPacket->m_nProtocol == PROTOCOL_G1 )
 	{
@@ -860,12 +1235,12 @@ BOOL CNetwork::RouteHits(CQueryHit* pHits, CPacket* pPacket)
 		}
 		else if ( pG2->IsType( G2_PACKET_HIT_WRAP ) )
 		{
-			if ( ! pG2->SeekToWrapped() ) return FALSE;
-			GNUTELLAPACKET* pG1 = (GNUTELLAPACKET*)( pPacket->m_pBuffer + pPacket->m_nPosition );
-			if ( pG1->m_nTTL == 0 ) return FALSE;
-			pG1->m_nTTL --;
-			pG1->m_nHops ++;
-			bWrapped = TRUE;
+			//if ( ! pG2->SeekToWrapped() ) return FALSE;
+			//GNUTELLAPACKET* pG1 = (GNUTELLAPACKET*)( pPacket->m_pBuffer + pPacket->m_nPosition );
+			//if ( pG1->m_nTTL == 0 ) return FALSE;
+			//pG1->m_nTTL --;
+			//pG1->m_nHops ++;
+			//bWrapped = TRUE;
 		}
 	}
 	
@@ -873,18 +1248,18 @@ BOOL CNetwork::RouteHits(CQueryHit* pHits, CPacket* pPacket)
 	{
 		if ( pOrigin->m_nProtocol == pPacket->m_nProtocol )
 		{
-			pOrigin->Send( pPacket, FALSE, FALSE );	// Dont buffer
+			pOrigin->Send( pPacket, FALSE, FALSE );	// Don't buffer
 		}
 		else if ( pOrigin->m_nProtocol == PROTOCOL_G1 && pPacket->m_nProtocol == PROTOCOL_G2 )
 		{
-			if ( ! bWrapped ) return FALSE;
-			pPacket = CG1Packet::New( (GNUTELLAPACKET*)( pPacket->m_pBuffer + pPacket->m_nPosition ) );
-			pOrigin->Send( pPacket, TRUE, TRUE );
+			//if ( ! bWrapped ) return FALSE;
+			//pPacket = CG1Packet::New( (GNUTELLAPACKET*)( pPacket->m_pBuffer + pPacket->m_nPosition ) );
+			//pOrigin->Send( pPacket, TRUE, TRUE );
 		}
 		else if ( pOrigin->m_nProtocol == PROTOCOL_G2 && pPacket->m_nProtocol == PROTOCOL_G1 )
 		{
-			pPacket = CG2Packet::New( G2_PACKET_HIT_WRAP, (CG1Packet*)pPacket );
-			pOrigin->Send( pPacket, TRUE, FALSE );	// Dont buffer
+			//pPacket = CG2Packet::New( G2_PACKET_HIT_WRAP, (CG1Packet*)pPacket );
+			//pOrigin->Send( pPacket, TRUE, FALSE );	// Don't buffer
 		}
 		else
 		{
@@ -900,8 +1275,8 @@ BOOL CNetwork::RouteHits(CQueryHit* pHits, CPacket* pPacket)
 	else
 	{
 		if ( pEndpoint.sin_addr.S_un.S_addr == Network.m_pHost.sin_addr.S_un.S_addr ) return FALSE;
-		pPacket = CG2Packet::New( G2_PACKET_HIT_WRAP, (CG1Packet*)pPacket );
-		Datagrams.Send( &pEndpoint, (CG2Packet*)pPacket, TRUE );
+		//pPacket = CG2Packet::New( G2_PACKET_HIT_WRAP, (CG1Packet*)pPacket );
+		//Datagrams.Send( &pEndpoint, (CG2Packet*)pPacket, TRUE );
 	}
 	
 	if ( pPacket->m_nProtocol == PROTOCOL_G1 )
@@ -915,10 +1290,15 @@ BOOL CNetwork::RouteHits(CQueryHit* pHits, CPacket* pPacket)
 //////////////////////////////////////////////////////////////////////
 // CNetwork common handler functions
 
-void CNetwork::OnQuerySearch(CQuerySearch* pSearch)
+void CNetwork::OnQuerySearch(CQuerySearch* pSearch, BOOL bOUT)
 {
+	
+	if (bOUT) return;
+
+	CSingleLock pListLock( &theApp.m_mSearchMonitorList );
 	CSingleLock pLock( &theApp.m_pSection );
 	
+	/*
 	if ( pLock.Lock( 10 ) )
 	{
 		if ( CMainWnd* pMainWnd = theApp.SafeMainWnd() )
@@ -929,18 +1309,37 @@ void CNetwork::OnQuerySearch(CQuerySearch* pSearch)
 
 			while ( ( pChildWnd = pWindows->Find( pClass, pChildWnd ) ) != NULL )
 			{
-				pChildWnd->OnQuerySearch( pSearch );
+				pChildWnd->OnQuerySearch( pSearch, bOUT );
 			}
 		}
 
 		pLock.Unlock();
+	}
+	*/
+
+	if ( !theApp.m_oSearchMonitorList.empty() && pLock.Lock( 50 ) )
+	{
+		if ( pListLock.Lock( 10 ) )
+		{
+			std::list<CSearchMonitorWnd*>::iterator iIndex = theApp.m_oSearchMonitorList.begin();
+			std::list<CSearchMonitorWnd*>::iterator iEnd = theApp.m_oSearchMonitorList.end();
+			while ( iIndex != iEnd )
+			{
+				(*iIndex)->OnQuerySearch( pSearch, bOUT );
+				iIndex++;
+			}
+			pLock.Unlock();
+		}
+		pListLock.Unlock();
 	}
 }
 
 void CNetwork::OnQueryHits(CQueryHit* pHits)
 {
 	Downloads.OnQueryHits( pHits );
+	theApp.OnQueryHits( pHits );
 
+/*
 	CSingleLock pLock( &theApp.m_pSection );
 
 	if ( pLock.Lock( 250 ) )
@@ -972,28 +1371,7 @@ void CNetwork::OnQueryHits(CQueryHit* pHits)
 
 		pLock.Unlock();
 	}
+*/
 
 	pHits->Delete();
-}
-
-void CNetwork::UDPHostCache(IN_ADDR* pAddress, WORD nPort)
-{
-	CG1Packet* pPing = CG1Packet::New( G1_PACKET_PING, 1, Hashes::Guid( MyProfile.oGUID ) );
-
-	CGGEPBlock pBlock;
-	CGGEPItem* pItem;
-	
-	pItem = pBlock.Add( L"SCP" );
-	pItem->UnsetCOBS();
-	pItem->UnsetSmall();
-	pItem->WriteByte( Neighbours.IsG1Ultrapeer() ? 1 : 0 );
-
-	pBlock.Write( pPing );
-	Datagrams.Send( pAddress, nPort, pPing, TRUE, NULL, FALSE );
-}
-
-void CNetwork::UDPKnownHubCache(IN_ADDR* pAddress, WORD nPort)
-{
-	CG2Packet* pKHLR = CG2Packet::New( G2_PACKET_KHL_REQ );
-	Datagrams.Send( pAddress, nPort, pKHLR, TRUE, NULL, FALSE );
 }

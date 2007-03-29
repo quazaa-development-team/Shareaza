@@ -43,6 +43,8 @@ private:
 	CQuerySearch(const CQuerySearch* pOrigin);
 public:
 	auto_ptr< CQuerySearch > clone() const;
+	typedef std::list<SOCKADDR_IN>				HubList;
+	typedef std::list<SOCKADDR_IN>::iterator	HubIndex;
 	typedef std::vector<DWORD>					Hash32List;
 // Attributes
 public:
@@ -60,6 +62,7 @@ public:
 	Hashes::Sha1Hash	m_oSHA1;
 	Hashes::TigerHash	m_oTiger;
 	Hashes::Ed2kHash	m_oED2K;
+	Hashes::Md5Hash		m_oMD5;
 	Hashes::BtHash		m_oBTH;
 	Hashes::Ed2kHash	m_oSimilarED2K;
 public:
@@ -74,10 +77,12 @@ public:
 	SOCKADDR_IN			m_pEndpoint;
 	DWORD				m_nKey;
 	BOOL				m_bFirewall;
-
-
+	
+	
+	HubList				m_oHubList;			// For Helping search by firewalled node (under development)
 	Hash32List			m_oURNs;			// Hashed URNs
 	Hash32List			m_oKeywordHashList;	// list of hashed keywords to BOOST QUery Routing.
+
 private:
 	typedef std::pair< LPCTSTR, size_t > WordEntry;
 	struct CompareWordEntries
@@ -135,7 +140,7 @@ private:
 // Operations
 public:
 	BOOL					Match(LPCTSTR pszFilename, QWORD nSize, LPCTSTR pszSchemaURI, CXMLElement* pXML, const Hashes::Sha1Hash& oSHA1,
-								const Hashes::TigerHash& oTiger, const Hashes::Ed2kHash& oED2K);
+								const Hashes::TigerHash& oTiger, const Hashes::Ed2kHash& oED2K, const Hashes::Md5Hash& oMD5);
 	TRISTATE				MatchMetadata(LPCTSTR pszSchemaURI, CXMLElement* pXML);
 	BOOL					MatchMetadataShallow(LPCTSTR pszSchemaURI, CXMLElement* pXML, bool* bReject=NULL);
 	void					BuildWordList(bool bExpression=true, bool bLocal=false);

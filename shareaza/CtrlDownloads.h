@@ -58,7 +58,7 @@ protected:
 	BOOL		GetAt(int nSelect, CDownload** ppDownload, CDownloadSource** ppSource);
 	BOOL		GetRect(CDownload* pSelect, RECT* prcItem);
 	void		MoveSelected(int nDelta);
-	CString		GetDownloadStatus(CDownload *pDownload);
+	CString		GetDownloadStatus(CDownload *pDownload, BOOL bSearch);
 	int			GetClientStatus(CDownload *pDownload);
 	void		PaintDownload(CDC& dc, const CRect& rcRow, CDownload* pDownload, BOOL bFocus, BOOL bDrop);
 	void		PaintSource(CDC& dc, const CRect& rcRow, CDownload* pDownload, CDownloadSource* pSource, BOOL bFocus);
@@ -85,6 +85,8 @@ protected:
 	CDownloadSource*	m_pDeselect2;
 	BOOL*				m_pbSortAscending;
 	int					m_nScrollWheelLines;
+	BOOL				m_bShowSearchOnStatus;
+	DWORD				m_tSwitchStatus;
 
 // Implementation
 protected:

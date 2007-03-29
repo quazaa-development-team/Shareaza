@@ -123,12 +123,19 @@ IDI_COLORS              ICON                    "res\\colors.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
+// FILE
+//
+
+IDR_DEFAULTSERVICES     FILE                    "res\\DefaultServices.dat"
+
+/////////////////////////////////////////////////////////////////////////////
+//
 // Version
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,2,5,1
- PRODUCTVERSION 2,2,5,1
+ FILEVERSION 2,2,5,0
+ PRODUCTVERSION 2,2,5,0
  FILEFLAGSMASK 0x1fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -146,12 +153,12 @@ BEGIN
             VALUE "Comments", "Shareaza Ultimate File Sharing"
             VALUE "CompanyName", "Shareaza Development Team"
             VALUE "FileDescription", "Shareaza Ultimate File Sharing"
-            VALUE "FileVersion", "2, 2, 5, 1"
+            VALUE "FileVersion", "2, 2, 5, 0"
             VALUE "InternalName", "Shareaza"
             VALUE "LegalCopyright", "Copyright © Shareaza Development Team, 2002-2007."
             VALUE "OriginalFilename", "Shareaza.exe"
             VALUE "ProductName", "Shareaza"
-            VALUE "ProductVersion", "2, 2, 5, 1"
+            VALUE "ProductVersion", "2, 2, 5, 0"
         END
     END
     BLOCK "VarFileInfo"
@@ -178,6 +185,7 @@ BEGIN
         MENUITEM "Connect &To...\tCtrl+T",      ID_NETWORK_CONNECT_TO
         MENUITEM "&Browse User...",             ID_NETWORK_BROWSE_TO
         MENUITEM SEPARATOR
+        MENUITEM "Manual Connect Mode",         ID_NETWORK_MANUALCONNECT
         MENUITEM "Connect to &Gnutella2",       ID_NETWORK_G2
         MENUITEM "Connect to &eDonkey2000",     ID_NETWORK_ED2K
         MENUITEM "Connect to Gnutella&1",       ID_NETWORK_G1
@@ -976,7 +984,7 @@ IDB_NAVBAR_ALPHA_RTL    BITMAP                  "Res\\NavbarAlphaRTL.bmp"
 // Dialog
 //
 
-IDD_CONNECT_TO DIALOGEX 0, 0, 242, 111
+IDD_CONNECT_TO DIALOGEX 0, 0, 242, 133
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Connect To|Browse Host"
 FONT 8, "Tahoma", 0, 0, 0x1
@@ -987,14 +995,16 @@ BEGIN
                     WS_VSCROLL | WS_TABSTOP
     EDITTEXT        IDC_CONNECT_PORT,190,20,35,12,ES_CENTER | ES_AUTOHSCROLL | 
                     ES_NUMBER
-    GROUPBOX        "Network &Protocol:",IDC_CONNECT_ADVANCED,5,50,230,39
+    GROUPBOX        "Network &Protocol:",IDC_CONNECT_ADVANCED,5,50,230,55
     COMBOBOX        IDC_CONNECT_PROTOCOL,15,65,95,75,CBS_DROPDOWNLIST | 
                     CBS_OWNERDRAWFIXED | CBS_HASSTRINGS | WS_VSCROLL | 
                     WS_TABSTOP
     CONTROL         "&Suppress Ultrapeer",IDC_CONNECT_ULTRAPEER,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,137,65,91,15
-    DEFPUSHBUTTON   "Connect",IDOK,130,93,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,185,93,50,14
+    DEFPUSHBUTTON   "Connect",IDOK,130,112,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,185,112,50,14
+    CONTROL         "Virtual &UDP Connection",IDC_CONNECT_UDP,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,137,83,91,15
 END
 
 IDD_NEW_SEARCH DIALOG  0, 0, 238, 60
@@ -1172,7 +1182,7 @@ FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
     GROUPBOX        "Gnutella2 Network:",IDC_STATIC,7,13,131,60,WS_GROUP
     CONTROL         "Always connect to Gnutella2",IDC_G2_ALWAYS,"Button",
-                    BS_AUTO3STATE | WS_TABSTOP,10,25,127,8
+                    BS_AUTOCHECKBOX | WS_TABSTOP,10,25,127,8
     CONTROL         "Connect to Gnutella2 today",IDC_G2_TODAY,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,10,38,127,8
     LTEXT           "Mode: ",IDC_STATIC,16,56,55,8,0,WS_EX_RIGHT
@@ -2920,52 +2930,76 @@ BEGIN
                     11
 END
 
-IDD_DOWNLOAD_EDIT DIALOGEX 0, 0, 274, 294
-STYLE DS_SETFONT | DS_MODALFRAME | DS_3DLOOK | WS_POPUP | WS_CAPTION | 
-    WS_SYSMENU
-CAPTION "Edit Download"
-FONT 8, "Tahoma", 0, 0, 0x1
+IDD_DOWNLOADEDITPAGE_GENERAL DIALOGEX 0, 0, 273, 191
+STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Property Page"
+FONT 8, "Tahoma", 400, 0, 0x0
 BEGIN
     LTEXT           "WARNING: This dialog provides advanced download editing features for power users which if used incorrectly can and probably will cause corruption.",
-                    IDC_STATIC,6,6,258,18
-    GROUPBOX        "Filename and Si&ze:",IDC_STATIC,6,28,258,50,WS_GROUP
-    LTEXT           "Filename:",IDC_STATIC,14,42,50,10
-    EDITTEXT        IDC_NAME,69,40,186,12,ES_AUTOHSCROLL
-    EDITTEXT        IDC_DISKNAME,14,58,110,12,ES_AUTOHSCROLL | ES_READONLY
-    RTEXT           "Filesize (Byte):",IDC_STATIC,128,59,60,11
-    EDITTEXT        IDC_FILESIZE,191,58,64,12,ES_RIGHT | ES_AUTOHSCROLL
-    GROUPBOX        "&URNs:",IDC_STATIC,6,80,258,74,WS_GROUP
-    LTEXT           "Trusted",IDC_STATIC,236,87,26,11
-    LTEXT           "SHA1:",IDC_STATIC,14,96,36,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_URN_SHA1,56,96,180,12,ES_AUTOHSCROLL
-    CONTROL         "",IDC_TRUST_SHA1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    245,98,16,8
-    LTEXT           "Tiger-Root:",IDC_STATIC,14,114,36,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_URN_TIGER,56,114,180,12,ES_AUTOHSCROLL
-    CONTROL         "",IDC_TRUST_TIGER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    245,116,16,8
-    LTEXT           "ED2K:",IDC_STATIC,14,132,36,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_URN_ED2K,56,132,180,12,ES_AUTOHSCROLL
-    CONTROL         "",IDC_TRUST_ED2K,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    245,135,16,8
-    GROUPBOX        "&Actions:",IDC_STATIC,6,156,258,61,WS_GROUP
+                    IDC_STATIC,8,11,258,32
+    GROUPBOX        "Filename and Keywords:",IDC_STATIC,8,49,258,67,WS_GROUP
+    LTEXT           "Filename:",IDC_STATIC,16,63,59,10
+    EDITTEXT        IDC_NAME,74,61,185,12,ES_AUTOHSCROLL
+    LTEXT           "DiskName:",IDC_STATIC,12,98,59,9
+    EDITTEXT        IDC_DISKNAME,74,96,185,12,ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "SearchKeywords:",IDC_STATIC,14,81,59,9
+    EDITTEXT        IDC_SEARCHKEYWORD,74,79,185,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "Apply",IDC_DOWNLOADEDITPAGE_GENERAL_APPLY,207,166,59,12
+END
+
+IDD_DOWNLOADEDITPAGE_HASHES DIALOGEX 0, 0, 273, 191
+STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Property Page"
+FONT 8, "Tahoma", 400, 0, 0x0
+BEGIN
+    LTEXT           "WARNING: This dialog provides advanced download editing features for power users which if used incorrectly can and probably will cause corruption.",
+                    IDC_STATIC,8,11,258,33
+    GROUPBOX        "&URNs:",IDC_STATIC,7,48,259,114,WS_GROUP
+    LTEXT           "Filesize (Byte):",IDC_STATIC,15,59,110,11
+    EDITTEXT        IDC_FILESIZE,153,58,104,12,ES_RIGHT | ES_AUTOHSCROLL
+    LTEXT           "SHA1:",IDC_STATIC,14,76,36,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_URN_SHA1,56,76,201,12,ES_AUTOHSCROLL
+    LTEXT           "Tiger-Root:",IDC_STATIC,14,93,36,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_URN_TIGER,56,93,201,12,ES_AUTOHSCROLL
+    LTEXT           "ED2K:",IDC_STATIC,14,110,36,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_URN_ED2K,56,110,201,12,ES_AUTOHSCROLL
+    LTEXT           "MD5:",IDC_STATIC,14,128,36,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_URN_MD5,56,128,201,12,ES_AUTOHSCROLL
+    LTEXT           "Trusted Flags:",IDC_STATIC,14,146,62,11
+    CONTROL         "SHA1",IDC_TRUST_SHA1,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,64,147,33,8
+    CONTROL         "Tiger-Root",IDC_TRUST_TIGER,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,99,147,48,8
+    CONTROL         "ED2K",IDC_TRUST_ED2K,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,150,147,34,8
+    CONTROL         "MD5",IDC_TRUST_MD5,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,184,147,34,8
+    PUSHBUTTON      "Apply",IDC_DOWNLOADEDITPAGE_HASHES_APPLY,207,166,59,12
+END
+
+IDD_DOWNLOADEDITPAGE_ACTIONS DIALOGEX 0, 0, 273, 191
+STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Property Page"
+FONT 8, "Tahoma", 400, 0, 0x0
+BEGIN
+    LTEXT           "WARNING: This dialog provides advanced download editing features for power users which if used incorrectly can and probably will cause corruption.",
+                    IDC_STATIC,8,11,258,32
+    GROUPBOX        "&Actions:",IDC_STATIC,8,49,258,78,WS_GROUP
+    LTEXT           "Purge Hashset",IDC_PURGE_HASHSET,14,63,236,8
     LTEXT           "Forget current verification status and reverify",
-                    IDC_FORGET_VERIFY,14,167,236,8
+                    IDC_FORGET_VERIFY,14,75,236,8
     LTEXT           "Assume file is 100% complete and reverify",
-                    IDC_COMPLETE_AND_VERIFY,14,179,236,8
-    LTEXT           "Forget all known sources",IDC_FORGET_SOURCES,14,191,236,
+                    IDC_COMPLETE_AND_VERIFY,14,87,236,8
+    LTEXT           "Forget all known sources",IDC_FORGET_SOURCES,14,99,236,
                     8
     LTEXT           "Merge with local file and verify",IDC_MERGE_AND_VERIFY,
-                    14,203,236,8
-    GROUPBOX        "Data &Eraser:",IDC_STATIC,6,221,258,38,WS_GROUP
-    LTEXT           "Byte range:",IDC_STATIC,14,236,48,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_ERASE_FROM,59,236,65,12,ES_AUTOHSCROLL
-    CTEXT           "to",IDC_STATIC,128,236,12,12,SS_CENTERIMAGE
-    EDITTEXT        IDC_ERASE_TO,141,236,65,12,ES_AUTOHSCROLL
-    PUSHBUTTON      "Erase",IDC_ERASE,214,235,40,15
-    PUSHBUTTON      "&Torrent Info...",IDC_TORRENT_INFO,6,266,60,14
-    DEFPUSHBUTTON   "OK",IDOK,160,266,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,214,266,50,14
+                    14,111,236,8
+    GROUPBOX        "Data &Eraser:",IDC_STATIC,8,130,258,38,WS_GROUP
+    LTEXT           "Byte range:",IDC_STATIC,14,145,46,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_ERASE_FROM,59,145,65,12,ES_AUTOHSCROLL
+    CTEXT           "to",IDC_STATIC,128,145,12,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_ERASE_TO,141,145,65,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "Erase",IDC_ERASE,214,144,40,15
 END
 
 IDD_SETTINGS_REMOTE DIALOGEX 0, 0, 282, 220
@@ -3227,7 +3261,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 235
         TOPMARGIN, 7
-        BOTTOMMARGIN, 105
+        BOTTOMMARGIN, 127
     END
 
     IDD_NEW_SEARCH, DIALOG
@@ -3818,12 +3852,28 @@ BEGIN
         BOTTOMMARGIN, 122
     END
 
-    IDD_DOWNLOAD_EDIT, DIALOG
+    IDD_DOWNLOADEDITPAGE_GENERAL, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 267
+        RIGHTMARGIN, 266
         TOPMARGIN, 7
-        BOTTOMMARGIN, 280
+        BOTTOMMARGIN, 184
+    END
+
+    IDD_DOWNLOADEDITPAGE_HASHES, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 266
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 184
+    END
+
+    IDD_DOWNLOADEDITPAGE_ACTIONS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 266
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 184
     END
 
     IDD_SETTINGS_REMOTE, DIALOG
@@ -3955,6 +4005,14 @@ IDR_HTML_BUSY           HTML                    "Res\\Busy.htm"
 IDR_HTML_BADRANGE       HTML                    "Res\\BadRange.htm"
 IDR_HTML_DISABLED       HTML                    "Res\\Disabled.htm"
 
+// these are ones for non-compressed versions. developers who hasn't got gzip use these ones instead of the ones under gzip section.
+// to use non-compressed version, uncomment them. and comment ones under gzip section. then make the files on project as excluded
+// in property.
+//IDR_HTML_ABOUT          HTML                    "Res\\About.htm"
+//IDR_HTML_BROWSER        HTML                    "Res\\Browser.htm"
+//IDR_XML_DEFAULT         HTML                    "Res\\Default.xml"
+//IDR_XML_DEFINITIONS     HTML                    "Res\\Definitions.xml"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -4048,6 +4106,8 @@ BEGIN
 0x5747, 0x6265, 0x6143, 0x6863, 0x0065, 
     IDC_SERVICE_TYPE, 0x403, 15, 0
 0x6553, 0x7672, 0x7265, 0x6d2e, 0x7465, 0x5520, 0x4c52, "\000" 
+    IDC_SERVICE_TYPE, 0x403, 6, 0
+0x6c42, 0x636f, 0x006b, 
     0
 END
 
@@ -4965,7 +5025,7 @@ BEGIN
     IDS_UPLOAD_QUEUE_HTTP_GUARD "HTTP Guard"
     IDS_DOWNLOAD_416_WITHOUT_RANGE 
                             "Host ""%s"" sent a 416, without providing available ranges. Closing connection."
-    IDS_UPLOAD_QUEUE_LIBRARY "Library Files"
+    IDS_UPLOAD_QUEUE_LIBRARY "Library"
 END
 
 STRINGTABLE 
@@ -5897,6 +5957,11 @@ BEGIN
     ID_WINDOW_CASCADE       "Expand all open windows to fill the screen."
     ID_WINDOW_TILE_HORZ     "Arrange open windows as horizontal, non-overlapping tiles."
     ID_WINDOW_TILE_VERT     "Arrange open windows as vertical, non-overlapping tiles."
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_DOWNLOAD_EDIT       "Advanced Edit"
 END
 
 #endif    // English (Australia) resources

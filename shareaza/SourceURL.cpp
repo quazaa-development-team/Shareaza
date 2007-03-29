@@ -57,7 +57,9 @@ void CSourceURL::Clear()
 	m_nServerPort = 0;
 	m_sPath.Empty();
     m_oSHA1.clear();
+	m_oTiger.clear();
 	m_oED2K.clear();
+	m_oMD5.clear();
     m_oBTH.clear();
     m_oBTC.clear();
 	m_bSize	= FALSE;
@@ -116,6 +118,19 @@ BOOL CSourceURL::ParseHTTP(LPCTSTR pszURL, BOOL bResolve)
 	else if ( _tcsnicmp( m_sPath, _T("/uri-res/N2R?urn:bitprint:"), 26 ) == 0 )
 	{
 		m_oSHA1.fromUrn( m_sPath.Mid( 13 ) );
+		m_oTiger.fromUrn( m_sPath.Mid( 13 ) );
+	}
+	else if ( _tcsnicmp( m_sPath, _T("/uri-res/N2R?urn:ed2k:"), 22 ) == 0 )
+	{
+		m_oED2K.fromUrn( m_sPath.Mid( 13 ) );
+	}
+	else if ( _tcsnicmp( m_sPath, _T("/uri-res/N2R?urn:ed2khash:"), 26 ) == 0 )
+	{
+		m_oED2K.fromUrn( m_sPath.Mid( 13 ) );
+	}
+	else if ( _tcsnicmp( m_sPath, _T("/uri-res/N2R?urn:md5:"), 21 ) == 0 )
+	{
+		m_oMD5.fromUrn( m_sPath.Mid( 13 ) );
 	}
 	
 	SOCKADDR_IN saHost;
@@ -280,7 +295,7 @@ BOOL CSourceURL::ParseBTC(LPCTSTR pszURL, BOOL bResolve)
     if ( !m_oBTH.fromString( strURL ) ) return FALSE;
 	
 	SOCKADDR_IN saHost;
-	BOOL bResult = Network.Resolve( m_sAddress, ED2K_DEFAULT_PORT, &saHost, bResolve );
+	BOOL bResult = Network.Resolve( m_sAddress, 6881, &saHost, bResolve );
 	
 	m_pAddress	= saHost.sin_addr;
 	m_nPort		= htons( saHost.sin_port );

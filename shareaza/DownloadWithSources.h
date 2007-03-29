@@ -30,9 +30,13 @@
 
 #include "DownloadBase.h"
 
+class CDownloads;
 class CDownloadSource;
 class CQueryHit;
 class CXMLElement;
+
+typedef boost::shared_ptr<CQueryHit>	CHitPtr;
+typedef std::list<CHitPtr>				CHitPtrs;
 
 #pragma pack(1)
 class CFailedSource
@@ -91,8 +95,10 @@ public:
 	CString				GetTopFailedSources(int nMaximum, PROTOCOLID nProtocol);
 	int					GetEffectiveSourceCount() const;
 	int					GetSourceCount(BOOL bNoPush = FALSE, BOOL bSane = FALSE) const;
+	int					GetG2SourceCount(BOOL bNoPush = FALSE, BOOL bSane = FALSE) const;
 	int					GetBTSourceCount(BOOL bNoPush = FALSE) const;
 	int					GetED2KCompleteSourceCount() const;
+	void				GetMultiSourceCount(BOOL bSane, int* nHTTPSources = NULL, int* nG1Sources = NULL, int* nG2Sources = NULL, int* nED2KSources = NULL, int* nBTSources = NULL);
 	BOOL				CheckSource(CDownloadSource* pSource) const;
 	void				AddFailedSource(CDownloadSource* pSource, bool bLocal = true, bool bOffline = false);
 	void				AddFailedSource(LPCTSTR pszUrl, bool bLocal = true, bool bOffline = false);
@@ -100,14 +106,17 @@ public:
 	void				ExpireFailedSources();
 	void				VoteSource(LPCTSTR pszUrl, bool bPositively);
 	void				ClearSources();
+	void				ClearOldSources();
 	void				ClearFailedSources();
 public:
 	BOOL				AddSourceHit(CQueryHit* pHit, BOOL bForce = FALSE);
 	BOOL				AddSourceED2K(DWORD nClientID, WORD nClientPort, DWORD nServerIP, WORD nServerPort, const Hashes::Guid& oGUID);
     BOOL				AddSourceBT(const Hashes::BtGuid& oGUID, IN_ADDR* pAddress, WORD nPort);
-	BOOL				AddSourceURL(LPCTSTR pszURL, BOOL bURN = FALSE, FILETIME* pLastSeen = NULL, int nRedirectionCount = 0, BOOL bFailed = FALSE);
-	int					AddSourceURLs(LPCTSTR pszURLs, BOOL bURN = FALSE, BOOL bFailed = FALSE);
+	BOOL				AddSourceURL(LPCTSTR pszURL, BOOL bURN = FALSE, FILETIME* pLastSeen = NULL, int nRedirectionCount = 0,
+									BOOL bFailed = FALSE, PROTOCOLID nProtocol = PROTOCOL_HTTP);
+	int					AddSourceURLs(LPCTSTR pszURLs, BOOL bURN = FALSE, BOOL bFailed = FALSE, PROTOCOLID nProtocol = PROTOCOL_HTTP);
 	virtual BOOL		OnQueryHits(CQueryHit* pHits);
+	virtual BOOL		OnQueryHits(CHitPtrs& m_oHits);
 	virtual void		Serialize(CArchive& ar, int nVersion);
 
 // Implementation
@@ -128,8 +137,10 @@ public:
 		return m_pSourceFirst;
 	}
 	
+	friend class CDownloads; // access to m_n[G1|G2|Ed|HTTP|BT|FTP]SourceCount
 	friend class CDownloadSource; // RemoveSource && GetSourceColour
 	friend class CDownloadTransfer; // SortSource
+	friend class CDownloadWithSearch; // access to m_n[G1|G2|Ed|HTTP|BT|FTP]SourceCount
 };
 
 #endif // !defined(AFX_DOWNLOADWITHSOURCES_H__D6932F45_0557_4098_B2F3_AE35BC43ECC0__INCLUDED_)

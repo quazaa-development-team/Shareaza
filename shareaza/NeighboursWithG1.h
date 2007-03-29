@@ -31,6 +31,7 @@
 
 // Copy in the contents of these files here before compiling
 #include "NeighboursBase.h"
+#include "GGEP.h"
 
 // Tell the compiler these classes exist, and it will find out more about them soon
 class CG1Neighbour;
@@ -52,6 +53,9 @@ public:
 	// The ping route and pong caches
 	CRouteCache* m_pPingRoute;
 	CPongCache*  m_pPongCache;
+	std::list<CG1Neighbour*>	m_oG1Peers;			// list of Ultrapeer-to-Ultrapeer(PEER) connections
+	std::list<CG1Neighbour*>	m_oG1Ultrapeers;	// list of Leaf-to-Ultrapeer(ULTRAPEER) connections
+	std::list<CG1Neighbour*>	m_oG1Leafs;			// list of Ultrapeer-to-Leaf(LEAF) connections
 
 public:
 
@@ -69,6 +73,9 @@ public:
 	// Relay ping and pong packets to other neighbours
 	void OnG1Ping();
 	void OnG1Pong(CG1Neighbour* pFrom, IN_ADDR* pAddress, WORD nPort, BYTE nHops, DWORD nFiles, DWORD nVolume);
+	int WriteCachedHosts(CGGEPItem* pItem);
+	CG1Neighbour*	GetG1Node(IN_ADDR* pAddress) const;		// By the remote computer's IP address
+	CG1Neighbour*	GetG1Node(SOCKADDR_IN* pAddress) const;	// By the remote computer's SOCKET address
 };
 
 // End the group of lines to only include once, pragma once doesn't require an endif at the bottom

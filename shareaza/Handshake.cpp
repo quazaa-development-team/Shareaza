@@ -273,6 +273,12 @@ BOOL CHandshake::OnRead()
 			OnWrite();
 		}
 	}
+	else if ( _tcsnicmp( strLine, _T("CONNECT BACK"), 12 ) == 0 ) 
+	{
+		// "CONNECT BACK" TCP firewall test succeed.
+		theApp.Message( MSG_DEBUG, _T("CONNECT BACK from %s: TCP incomming connection test has passed, you are not Firewalled "), 
+						(LPCTSTR)m_sAddress );
+	}
 	else
 	{
 		// The first header starts with something else, report that we couldn't figure out the handshake
@@ -375,7 +381,7 @@ BOOL CHandshake::OnAcceptGive()
 	oClientID.validate();
 
 	// If a child window recognizes this guid, return true
-	if ( OnPush( oClientID ) ) return TRUE;
+	if ( OnPush( oClientID, nFileIndex ) ) return TRUE;
 
 	// If the file name is longer than 256 characters, change it to the text "Invalid Filename"
 	if ( strFile.GetLength() > 256 ) strFile = _T("Invalid Filename");
@@ -391,13 +397,13 @@ BOOL CHandshake::OnAcceptGive()
 // Takes the GUID of a remote computer which has sent us a Gnutella2-style PUSH handshake
 // Sees if any child windows recognize the GUID
 // Returns true or false
-BOOL CHandshake::OnPush(const Hashes::Guid& oGUID)
+BOOL CHandshake::OnPush(const Hashes::Guid& oGUID, DWORD nFileIndex)
 {
 	// Make sure the socket is valid
 	if ( m_hSocket == INVALID_SOCKET ) return FALSE;
 
 	// Look for the remote computer's GUID in our list of downloads and the chat interface
-	if ( Downloads.OnPush( oGUID, this ) ) return TRUE; // Return true if it's found
+	if ( Downloads.OnPush( oGUID, this, nFileIndex ) ) return TRUE; // Return true if it's found
 	if ( ChatCore.OnPush( oGUID, this ) ) return TRUE;
 
 	// Make sure this is the only thread doing this right now

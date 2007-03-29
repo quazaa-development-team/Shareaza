@@ -335,6 +335,7 @@
 		<button id="ID_BROWSE_LAUNCH" text="Browse User"/>
 		<button id="ID_NEIGHBOURS_CHAT" text="Chat to User"/>
 		<button id="ID_SECURITY_BAN" text="Ban Host"/>
+		<button id="ID_NETWORK_MANUALCONNECT" text="ManualConnectMode"/>
 		<rightAlign/>
 		<button id="ID_NETWORK_G2" text="Gnutella2"/>
 		<button id="ID_NETWORK_ED2K" text="eDonkey2000"/>
@@ -434,7 +435,10 @@
 			</menu>
 			<separator/>
 			<item id="ID_VIEW_BASIC" text="_Normal Mode"/>
-			<item id="ID_VIEW_TABBED" text="_Power Mode"/>
+			<menu text="_Power Mode">
+				<item id="ID_VIEW_TABBED" text="T_abbed Mode"/>
+				<item id="ID_VIEW_WINDOWED" text="_Windowed Mode"/>
+			</menu>
 		</menu>
 		<menu text="_Tools">
 			<item id="ID_LIBRARY_FOLDERS" text="Share _Files..."/>
@@ -484,6 +488,7 @@
 			<separator/>
 			<item id="ID_NETWORK_CONNECT_TO" text="Connect _To..." shortcut="Ctrl+T"/>
 			<item id="ID_NETWORK_BROWSE_TO" text="_Browse Host..."/>
+			<item id="ID_NETWORK_MANUALCONNECT" text="ManualConnectMode"/>
 			<separator/>
 			<item id="ID_NETWORK_AUTO_CLOSE" text="Exit _After Transfers"/>
 			<item id="ID_NETWORK_EXIT" text="E_xit"/>
@@ -518,8 +523,10 @@
 			</menu>
 			<separator/>
 			<item id="ID_VIEW_BASIC" text="N_ormal Mode"/>
-			<item id="ID_VIEW_TABBED" text="T_abbed Mode"/>
-			<item id="ID_VIEW_WINDOWED" text="_Windowed Mode"/>
+			<menu text="_Power Mode">
+				<item id="ID_VIEW_TABBED" text="T_abbed Mode"/>
+				<item id="ID_VIEW_WINDOWED" text="_Windowed Mode"/>
+			</menu>
 		</menu>
 		<menu text="_Tools">
 			<item id="ID_LIBRARY_FOLDERS" text="Share _Files..."/>
@@ -573,6 +580,7 @@
 			<separator/>
 			<item id="ID_NETWORK_CONNECT_TO" text="Connect _To..." shortcut="Ctrl+T"/>
 			<item id="ID_NETWORK_BROWSE_TO" text="_Browse Host..."/>
+			<item id="ID_NETWORK_MANUALCONNECT" text="ManualConnectMode"/>
 			<separator/>
 			<menu text="Choose _Networks">
 				<item id="ID_NETWORK_G2" text="Connect to _Gnutella2"/>
@@ -601,8 +609,10 @@
 			<item id="ID_VIEW_RESULTS_MONITOR" text="H_it Monitor" shortcut="Ctrl+F3"/>
 			<separator/>
 			<item id="ID_VIEW_BASIC" text="Normal Mode"/>
-			<item id="ID_VIEW_TABBED" text="Tabbed Mode"/>
-			<item id="ID_VIEW_WINDOWED" text="Windowed Mode"/>
+			<menu text="_Power Mode">
+				<item id="ID_VIEW_TABBED" text="T_abbed Mode"/>
+				<item id="ID_VIEW_WINDOWED" text="_Windowed Mode"/>
+			</menu>
 		</menu>
 		<menu text="_Tools">
 			<item id="ID_LIBRARY_FOLDERS" text="Share _Files..."/>
@@ -1477,19 +1487,19 @@
 			<link target="raza:upgrade">Click here to upgrade</link>
 			<newline gap="18" indent="0"/>
 		</group>
-
+		
 		<group id="4">
 			<icon res="252" width="32" height="32"/><gap size="8"/>
 			<heading align="middle">W A R N I N G &#160; - &#160; Y O U &#160; A R E &#160; F I R E W A L L E D</heading>
 			<newline gap="8" indent="42"/>
 			<text colour="FF0000">Shareaza has detected that you are behind a NAT router or firewall,
 			and are unable to receive connections from the Internet. &#160;</text>
-			<text colour="FF0000" format="b">This may cause poor download and search performance.</text>
+			<text colour="FF0000" format="b">This may cause poor download performance.</text>
 			<newline gap="6"/>
 			<link target="raza:command:ID_HELP_ROUTER">Click here to learn how to configure your router or firewall</link>
 			<newline gap="18" indent="0"/>
 		</group>
-
+		
 		<group id="6">
 			<icon res="252" width="32" height="32"/><gap size="8"/>
 			<heading align="middle">W A R N I N G &#160; - &#160; Y O U R &#160; T C P &#160; P O R T &#160; I S &#160; F I R E W A L L E D</heading>
@@ -1501,7 +1511,7 @@
 			<link target="raza:command:ID_HELP_ROUTER">Click here to learn how to configure your router or firewall</link>
 			<newline gap="18" indent="0"/>
 		</group>
-
+		
 		<group id="7">
 			<icon res="252" width="32" height="32"/><gap size="8"/>
 			<heading align="middle">W A R N I N G &#160; - &#160; Y O U R &#160; U D P &#160; P O R T &#160; I S &#160; F I R E W A L L E D</heading>
@@ -1517,7 +1527,7 @@
 		<icon res="236" width="32" height="32"/><gap size="8"/>
 		<heading align="middle">C U S T O M I S E &#160; S H A R E A Z A</heading>
 		<newline gap="12" indent="42"/>
-
+		
 		<icon res="237" width="32" height="32" target="raza:command:ID_TOOLS_SKIN"/>
 		<gap size="8"/>
 		<link target="raza:command:ID_TOOLS_SKIN" format="bu" align="middle">Skins</link>
@@ -2503,11 +2513,6 @@
 		<image id="ID_CHILD_RESTORE"/>
 		<image id="ID_CHILD_MINIMISE"/>
 		<image id="ID_CHILD_CLOSE"/>
-	</bitmap>
-	<bitmap id="222">
-		<image id="ID_MEDIA_STATE_STOP"/>
-		<image id="ID_MEDIA_STATE_PAUSE"/>
-		<image id="ID_MEDIA_STATE_PLAY"/>
 	</bitmap>
 	<bitmap id="227">
 		<image id="ID_NETWORK_NULL"/>

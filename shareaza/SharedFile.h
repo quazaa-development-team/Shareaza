@@ -48,6 +48,7 @@ public:
 	CLibraryFile*	m_pNextSHA1;
 	CLibraryFile*	m_pNextTiger;
 	CLibraryFile*	m_pNextED2K;
+	CLibraryFile*	m_pNextMD5;
 	DWORD			m_nScanCookie;
 	DWORD			m_nUpdateCookie;
 	DWORD			m_nSelectCookie;
@@ -93,6 +94,7 @@ public:
 // Operations
 public:
 	CString			GetPath() const;
+	CString			GetFolderName() const;
 	CString			GetSearchName() const;
 	BOOL			IsShared() const;
 	inline BOOL		IsGhost() const { return m_pFolder == NULL; }
@@ -142,7 +144,7 @@ public:
 	friend class CLibraryMaps;
 	friend class CLibraryRecent;
 	friend class CDeleteFileDlg;
-	
+
 // Automation
 protected:
 	BEGIN_INTERFACE_PART(LibraryFile, ILibraryFile)
@@ -168,9 +170,9 @@ protected:
 		STDMETHOD(Copy)(BSTR sNewPath);
 		STDMETHOD(Move)(BSTR sNewPath);
 	END_INTERFACE_PART(LibraryFile)
-	
+
 	DECLARE_INTERFACE_MAP()
-	
+
 };
 
 
@@ -193,5 +195,57 @@ public:
 
 };
 
+
+// Still Under construction
+class CSharedSourceAddr
+{
+public:
+	// Node type
+	enum NodeType
+	{
+	/*
+		Bit
+		5	4	3	2	1
+		|	|	|	|	|
+		|	|	|	|	-- Gnutella1 ( store only IP and PORT in format of "ip:port")
+		|	|	|	------ Gnutella2 ( store only IP and PORT in format of "ip:port")
+		|	|	---------- eDonkey2000 ( store only IP and PORT in format of "ip:port")
+		|	-------------- Torrent ( store only IP and PORT in format of "ip:port")
+		------------------ URL (This bit set means the String is URL, which can be HTTP/ed2kftp/ftp,
+		                         the corresponding bit G1/2, ed2k can be set if the URL is for them, but
+								 Strongly not recommended to do it.)
+	*/
+
+
+		PROTOCOL_NULL = 0,		// node is Unknown Type (Useless but needed for Constructor)
+		PROTOCOL_G1 = 1,		// node is Gnutella1
+		PROTOCOL_G2 = 2,		// node is Gnutella2
+		PROTOCOL_GMIX = 3,		// node is Gnutella1/2 Mix (i.e. Shareaza, GnucDNA)
+		PROTOCOL_ED2K = 4,		// node is eDonkey
+		PROTOCOL_TORRENT = 8,	// node is Torrent (This is useless in Library for now, but might get supported in future.)
+		PROTOCOL_ALL = 15,		// node is Mix of all above (i.e. Shareaza, possibly some others)
+		PROTOCOL_URL = 16		// Address in m_pNode is URL (i.e. Web/FTP server)
+	};
+
+
+// Construction
+public:
+	CSharedSourceAddr( NodeType nType, CString pNode, FILETIME* pTime = NULL, FILETIME* pMinLastTime = NULL);
+
+// Attributes
+public:
+	NodeType	m_nType;			// Node Type
+	CString		m_pNode;			// SourceNode Address/URL
+									// Reason to use String for node address is making compatible to URL and DDNS support.
+	FILETIME	m_pTime;			// Time last seen
+	FILETIME	m_pMinLastTime;		// Minimum time source should last (Override m_pTime, basically for Web Servers)
+
+// Operations
+public:
+	void	Serialize(CArchive& ar, int nVersion);
+	void	Freshen(FILETIME* pTime = NULL);
+	BOOL	IsExpired(FILETIME& tNow);
+
+};
 
 #endif // !defined(AFX_SHAREDFILE_H__8FFCC311_D43C_445D_BAEB_575AE2AE8E99__INCLUDED_)

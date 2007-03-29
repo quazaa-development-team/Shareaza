@@ -252,6 +252,8 @@ BEGIN_MESSAGE_MAP(CMainWnd, CMDIFrameWnd)
 	ON_COMMAND(ID_MEDIA_ADD_FOLDER, OnMediaCommand)
 	ON_COMMAND(ID_HELP, OnHelpFaq)
 	ON_COMMAND(ID_HELP_TEST, OnHelpConnectiontest)
+	ON_UPDATE_COMMAND_UI(ID_NETWORK_MANUALCONNECT, OnUpdateNetworkManualConnect)
+	ON_COMMAND(ID_NETWORK_MANUALCONNECT, OnNetworkManualConnect)
 END_MESSAGE_MAP()
 
 
@@ -317,11 +319,12 @@ int CMainWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	
 	// Status Bar
 	
-	UINT wID[2] = { ID_SEPARATOR, ID_SEPARATOR };
+	UINT wID[3] = { ID_SEPARATOR, ID_SEPARATOR, ID_SEPARATOR };
 	if ( ! m_wndStatusBar.Create( this ) ) return -1;
-	m_wndStatusBar.SetIndicators( wID, 2 );
+	m_wndStatusBar.SetIndicators( wID, 3 );
 	m_wndStatusBar.SetPaneInfo( 0, ID_SEPARATOR, SBPS_STRETCH, 0 );
 	m_wndStatusBar.SetPaneInfo( 1, ID_SEPARATOR, SBPS_NORMAL, 210 );
+	m_wndStatusBar.SetPaneInfo( 2, ID_SEPARATOR, SBPS_NORMAL, 210 );
 	
 	EnableDocking( CBRS_ALIGN_ANY );
 	
@@ -705,6 +708,8 @@ void CMainWnd::OnTimer(UINT_PTR /*nIDEvent*/)
 	
 	if ( m_bTimer ) return;
 	m_bTimer = TRUE;
+
+	theApp.m_pMessageQueue.ProcessMessages();
 	
 	for ( POSITION pos = m_pWindows.GetIterator() ; pos ; )
 	{
@@ -1246,6 +1251,7 @@ void CMainWnd::UpdateMessages()
 			}
 			strMessage.Format( strFormat, nCount,
 								(LPCTSTR)Settings.SmartVolume( nLocalVolume, TRUE ) );
+			strMessage += Network.m_bAutoConnect ? _T(" (AutoConnect)") : _T(" (ManualConnect)");
 		}
 	}
 	else if ( Network.IsConnected() )
@@ -1261,10 +1267,12 @@ void CMainWnd::UpdateMessages()
 		}
 		else	//Trying to connect
 			LoadString( strMessage, IDS_STATUS_BAR_CONNECTING );
+		strMessage += Network.m_bAutoConnect ? _T(" (AutoConnect)") : _T(" (ManualConnect)");
 	}
 	else
 	{	//Idle
 		LoadString( strMessage, IDS_STATUS_BAR_DISCONNECTED );
+		strMessage += Network.m_bAutoConnect ? _T(" (AutoConnect)") : _T(" (ManualConnect)");
 		m_bNoNetWarningShowed = FALSE;
 	}
 
@@ -1289,8 +1297,14 @@ void CMainWnd::UpdateMessages()
 		(int)CGraphItem::GetValue( GRC_DOWNLOADS_TRANSFERS, 0 ),
 		(int)CGraphItem::GetValue( GRC_UPLOADS_TRANSFERS, 0 ) );
 
-	m_wndStatusBar.GetPaneText( 1, strOld );
-	if ( strOld != strMessage ) m_wndStatusBar.SetPaneText( 1, strMessage );
+	m_wndStatusBar.GetPaneText( 2, strOld );
+	if ( strOld != strMessage ) m_wndStatusBar.SetPaneText( 2, strMessage );
+	
+	TRISTATE tsTCP = Network.IsFirewalled(CHECK_TCP);
+	TRISTATE tsUDP = Network.IsFirewalled(CHECK_UDP);
+	strMessage.Format( _T("TCP : %s  /  UDP : %s"), ( tsTCP == TS_TRUE ) ? _T("Firewalled") : ( ( tsTCP == TS_UNKNOWN ) ? _T("Unknown") : _T("No Problem") ),
+											( tsUDP == TS_TRUE ) ? _T("Firewalled") : ( ( tsUDP == TS_UNKNOWN ) ? _T("Unknown") : _T("No Problem") ) );
+	m_wndStatusBar.SetPaneText( 1, strMessage );
 
 	if ( m_bTrayIcon )
 	{
@@ -1444,7 +1458,7 @@ void CMainWnd::LocalSystemChecks()
 		if ( ( Settings.Live.DonkeyServerWarning == FALSE ) && ( Settings.eDonkey.EnableToday ) )
 		{
 			Settings.Live.DonkeyServerWarning = TRUE;
-			if ( ( ! Settings.eDonkey.MetAutoQuery ) && ( HostCache.eDonkey.CountHosts(TRUE) < 1 ) )
+			if ( ( ! Settings.eDonkey.MetAutoQuery ) && ( HostCache.eDonkey.CountHosts(FALSE) < 1 ) )
 				PostMessage( WM_COMMAND, ID_HELP_DONKEYSERVERS );
 		}
 
@@ -1461,12 +1475,12 @@ void CMainWnd::LocalSystemChecks()
 /////////////////////////////////////////////////////////////////////////////
 // CMainWnd network menu
 
-void CMainWnd::OnUpdateNetworkSearch(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateNetworkSearch(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable( IsWindowEnabled() );
 }
 
-void CMainWnd::OnNetworkSearch() 
+void CMainWnd::OnNetworkSearch()
 {
 	if ( ! Network.IsWellConnected() ) Network.Connect( TRUE );
 	
@@ -1484,7 +1498,7 @@ void CMainWnd::OnNetworkSearch()
 	OpenFromTray();
 }
 
-void CMainWnd::OnUpdateNetworkConnect(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateNetworkConnect(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable( TRUE );
 
@@ -1514,34 +1528,50 @@ void CMainWnd::OnUpdateNetworkConnect(CCmdUI* pCmdUI)
 	pCmdUI->SetText( strText );
 }
 
-void CMainWnd::OnNetworkConnect() 
+void CMainWnd::OnNetworkConnect()
 {
-	Network.Connect( TRUE );
+	if ( !Network.IsConnected() )
+	{
+		Network.Connect( TRUE );
+	}
+	else
+	{
+		if ( Settings.Gnutella1.EnableToday)
+			DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G1 );
+		if ( Settings.Gnutella2.EnableToday)
+			DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_G2 );
+	}
+	// No BootStrap for ED2K at all but maybe in future.
+	//if ( Settings.eDonkey.EnableToday )
+	//	DiscoveryServices.ExecuteBootstraps( Settings.Discovery.BootstrapCount, FALSE, PROTOCOL_ED2K );
 }
 
-void CMainWnd::OnUpdateNetworkDisconnect(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateNetworkDisconnect(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable( Network.IsConnected() );
 }
 
-void CMainWnd::OnNetworkDisconnect() 
+void CMainWnd::OnNetworkDisconnect()
 {
+	Settings.Gnutella1.EnableToday = FALSE;
+	Settings.Gnutella2.EnableToday = FALSE;
+	Settings.eDonkey.EnableToday = FALSE;
 	Network.Disconnect();
 }
 
-void CMainWnd::OnUpdateNetworkConnectTo(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateNetworkConnectTo(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable( TRUE );
 }
 
-void CMainWnd::OnNetworkConnectTo() 
+void CMainWnd::OnNetworkConnectTo()
 {
 	CConnectToDlg dlg;
 	if ( dlg.DoModal() != IDOK ) return;
-	Network.ConnectTo( dlg.m_sHost, dlg.m_nPort, PROTOCOLID( dlg.m_nProtocol + 1 ), dlg.m_bNoUltraPeer );
+	Network.ConnectTo( dlg.m_sHost, dlg.m_nPort, PROTOCOLID( dlg.m_nProtocol + 1 ), dlg.m_bNoUltraPeer, dlg.m_bUDP );
 }
 
-void CMainWnd::OnNetworkBrowseTo() 
+void CMainWnd::OnNetworkBrowseTo()
 {
 	CConnectToDlg dlg( NULL, TRUE );
 	if ( dlg.DoModal() != IDOK ) return;
@@ -1554,78 +1584,121 @@ void CMainWnd::OnNetworkBrowseTo()
 	}
 }
 
-void CMainWnd::OnUpdateNetworkG2(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateNetworkG2(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck( Settings.Gnutella2.EnableToday );
 }
 
-void CMainWnd::OnNetworkG2() 
+void CMainWnd::OnNetworkG2()
 {
-	if( Settings.Gnutella2.EnableToday )
+	if ( Network.IsConnected() && Settings.Gnutella2.EnableToday )
 	{
 		CString strMessage;
 		LoadString( strMessage, IDS_NETWORK_DISABLE_G2 );
-
-		if ( AfxMessageBox( strMessage, MB_ICONEXCLAMATION|MB_YESNO|MB_DEFBUTTON2 ) != IDYES )
-			return;
+		
+		if ( AfxMessageBox( strMessage, MB_ICONEXCLAMATION|MB_YESNO|MB_DEFBUTTON2 ) == IDYES )
+		{
+			Settings.Gnutella2.EnableToday = FALSE;
+			Neighbours.DisconnectG2();
+			//if ( !Settings.Gnutella1.EnableToday && !Settings.eDonkey.EnableToday &&
+			//	Settings.Connection.RequireForTransfers )
+			//	Network.Disconnect();
+		}
 	}
-
-	Settings.Gnutella2.EnableToday = !Settings.Gnutella2.EnableToday;
-
-	if( Settings.Gnutella2.EnableToday )
+	else
 	{
-		if( !Network.IsConnected() )
-			Network.Connect( TRUE );
+		if ( Network.IsConnected() )
+		{
+			Settings.Gnutella2.EnableToday = TRUE;
+			Neighbours.ConnectG2();
+		}
 		else
-			DiscoveryServices.Execute( FALSE, PROTOCOL_G2, FALSE );
+		{
+			Settings.Gnutella1.EnableToday = FALSE;
+			Settings.Gnutella2.EnableToday = TRUE;
+			Settings.eDonkey.EnableToday = FALSE;
+			Network.Connect( TRUE );
+		}
+		DiscoveryServices.Execute( FALSE, PROTOCOL_G2, FALSE );
 	}
 }
 
-void CMainWnd::OnUpdateNetworkG1(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateNetworkG1(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck( Settings.Gnutella1.EnableToday );
 	pCmdUI->Enable( Settings.GetOutgoingBandwidth() >= 2 );
 }
 
-void CMainWnd::OnNetworkG1() 
+void CMainWnd::OnNetworkG1()
 {
-	Settings.Gnutella1.EnableToday = !Settings.Gnutella1.EnableToday;
-
-	if( Settings.Gnutella1.EnableToday )
+	if ( Network.IsConnected() && Settings.Gnutella1.EnableToday )
 	{
-		if( !Network.IsConnected() )
-			Network.Connect( TRUE );
+		Settings.Gnutella1.EnableToday = FALSE;
+		Neighbours.DisconnectG1();
+		//if ( !Settings.Gnutella2.EnableToday && !Settings.eDonkey.EnableToday &&
+		//	  Settings.Connection.RequireForTransfers )
+		//	Network.Disconnect();
+	}
+	else
+	{
+		if ( Network.IsConnected() )
+		{
+			Settings.Gnutella1.EnableToday = TRUE;
+			Neighbours.ConnectG1();
+		}
 		else
-			DiscoveryServices.Execute( FALSE, PROTOCOL_G1, FALSE );
+		{
+			Settings.Gnutella1.EnableToday = TRUE;
+			Settings.Gnutella2.EnableToday = FALSE;
+			Settings.eDonkey.EnableToday = FALSE;
+			Network.Connect( TRUE );
+		}
+		DiscoveryServices.Execute( FALSE, PROTOCOL_G1, FALSE );
 	}
 }
 
-void CMainWnd::OnUpdateNetworkED2K(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateNetworkED2K(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck( Settings.eDonkey.EnableToday );
 	pCmdUI->Enable( Settings.GetOutgoingBandwidth() >= 2 );
 }
 
-void CMainWnd::OnNetworkED2K() 
+void CMainWnd::OnNetworkED2K()
 {
-	Settings.eDonkey.EnableToday = !Settings.eDonkey.EnableToday;
-
-	if( Settings.eDonkey.EnableToday )
+	if ( Network.IsConnected() && Settings.eDonkey.EnableToday )
 	{
-		if( !Network.IsConnected() )
+		Neighbours.DisconnectED2K();
+		Settings.eDonkey.EnableToday = FALSE;
+		//if ( !Settings.Gnutella1.EnableToday && !Settings.Gnutella2.EnableToday &&
+		//	  Settings.Connection.RequireForTransfers )
+		//	Network.Disconnect();
+	}
+	else
+	{
+		if ( Network.IsConnected() )
+		{
+			Settings.eDonkey.EnableToday = TRUE;
+			Neighbours.ConnectED2K();
+		}
+		else
+		{
+			Settings.Gnutella1.EnableToday = FALSE;
+			Settings.Gnutella2.EnableToday = FALSE;
+			Settings.eDonkey.EnableToday = TRUE;
 			Network.Connect( TRUE );
+		}
+		DiscoveryServices.Execute( FALSE, PROTOCOL_ED2K, FALSE );
 	}
 }
 
-void CMainWnd::OnUpdateNetworkAutoClose(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateNetworkAutoClose(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable( Settings.Connection.RequireForTransfers && 
-					( Settings.Live.AutoClose || ( Transfers.GetActiveCount() > 0 ) )
-				  );
+					( Settings.Live.AutoClose || ( Transfers.GetActiveCount() > 0 ) ) );
 	pCmdUI->SetCheck( Settings.Connection.RequireForTransfers && Settings.Live.AutoClose );
 }
 
-void CMainWnd::OnNetworkAutoClose() 
+void CMainWnd::OnNetworkAutoClose()
 {
 	if ( Settings.Live.AutoClose )
 	{
@@ -1647,7 +1720,7 @@ void CMainWnd::OnNetworkAutoClose()
 	}
 }
 
-void CMainWnd::OnNetworkExit() 
+void CMainWnd::OnNetworkExit()
 {
 	PostMessage( WM_CLOSE );
 }
@@ -1655,12 +1728,12 @@ void CMainWnd::OnNetworkExit()
 /////////////////////////////////////////////////////////////////////////////
 // CMainWnd view menu
 
-void CMainWnd::OnUpdateViewBasic(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateViewBasic(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck( Settings.General.GUIMode == GUI_BASIC );
 }
 
-void CMainWnd::OnViewBasic() 
+void CMainWnd::OnViewBasic()
 {
 	if ( Settings.General.GUIMode == GUI_BASIC ) return;
 	CString strMessage;
@@ -1670,12 +1743,12 @@ void CMainWnd::OnViewBasic()
 	SetGUIMode( GUI_BASIC );
 }
 
-void CMainWnd::OnUpdateViewTabbed(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateViewTabbed(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck( Settings.General.GUIMode == GUI_TABBED );
 }
 
-void CMainWnd::OnViewTabbed() 
+void CMainWnd::OnViewTabbed()
 {
 	if ( Settings.General.GUIMode == GUI_TABBED ) return;
 	CString strMessage;
@@ -1685,7 +1758,7 @@ void CMainWnd::OnViewTabbed()
 	SetGUIMode( GUI_TABBED );
 }
 
-void CMainWnd::OnUpdateViewWindowed(CCmdUI* pCmdUI) 
+void CMainWnd::OnUpdateViewWindowed(CCmdUI* pCmdUI)
 {
 	pCmdUI->SetCheck( Settings.General.GUIMode == GUI_WINDOWED );
 }
@@ -1870,7 +1943,7 @@ void CMainWnd::OnViewSecurity()
 void CMainWnd::OnUpdateTabConnect(CCmdUI* /*pCmdUI*/) 
 {
 	CCoolBarItem* pItem = m_wndToolBar.GetID( ID_TAB_CONNECT );
-
+	
 	UINT nTextID = 0;
 	UINT nTipID = 0;
 	bool bNetworksEnabled = ( Settings.Gnutella1.EnableToday || Settings.Gnutella2.EnableToday || Settings.eDonkey.EnableToday );
@@ -1924,6 +1997,9 @@ void CMainWnd::OnTabConnect()
 			 ! Network.IsWellConnected() ||
 			AfxMessageBox( strMessage, MB_ICONQUESTION|MB_YESNO ) == IDYES )
 		{
+			Settings.Gnutella1.EnableToday = FALSE;
+			Settings.Gnutella2.EnableToday = FALSE;
+			Settings.eDonkey.EnableToday = FALSE;
 			Network.Disconnect();
 		}
 	}
@@ -2298,8 +2374,8 @@ void CMainWnd::OnHelpAbout()
 {
 	CAboutDlg dlg;
 	dlg.DoModal();
-	Neighbours.IsG1UltrapeerCapable( TRUE );
-	Neighbours.IsG2HubCapable( TRUE );
+	Neighbours.IsG1UltrapeerCapable( TRUE, Settings.General.Debug );
+	Neighbours.IsG2HubCapable( TRUE, Settings.General.Debug );
 }
 
 void CMainWnd::OnHelpHomepage() 
@@ -2548,4 +2624,24 @@ BOOL CMainWnd::OnDrop(IDataObject* pDataObj, DWORD /* grfKeyState */, POINT /* p
 		}
 	}
 	return FALSE;
+}
+
+void CMainWnd::OnUpdateNetworkManualConnect(CCmdUI* pCmdUI) 
+{
+	pCmdUI->SetCheck( Network.IsConnected() && !Network.m_bAutoConnect );
+}
+
+void CMainWnd::OnNetworkManualConnect()
+{
+	if ( Network.IsConnected() )
+	{
+		if ( Network.m_bAutoConnect )
+			Network.m_bAutoConnect = FALSE;
+		else
+			Network.m_bAutoConnect = TRUE;
+	}
+	else
+	{
+		Network.Connect( FALSE );
+	}
 }

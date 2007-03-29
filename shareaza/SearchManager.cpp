@@ -194,8 +194,8 @@ BOOL CSearchManager::OnQueryAck(CG2Packet* pPacket, SOCKADDR_IN* pHost, Hashes::
 			WORD nPort		= pPacket->ReadShortBE();
 			DWORD tSeen		= ( nLength >= 10 ) ? pPacket->ReadLongBE() + tAdjust : tNow;
 
-			theApp.Message( MSG_DEBUG, _T("  Try %s:%lu"),
-				(LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nAddress ) ), nPort );
+//			theApp.Message( MSG_DEBUG, _T("  Try %s:%lu"),
+//				(LPCTSTR)CString( inet_ntoa( *(IN_ADDR*)&nAddress ) ), nPort );
 
 			if ( ! Network.IsFirewalledAddress( &nAddress, TRUE ) && nPort )
 			{

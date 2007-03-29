@@ -97,6 +97,7 @@ BOOL CLibraryTipCtrl::OnPrepare()
 		m_sSHA1.Empty();
 		m_sTTH.Empty();
 		m_sED2K.Empty();
+		m_sMD5.Empty();
 
 		// Type information and icons
 
@@ -109,6 +110,7 @@ BOOL CLibraryTipCtrl::OnPrepare()
 			m_sSHA1 = pFile->m_oSHA1.toShortUrn();
 			m_sTTH = pFile->m_oTiger.toShortUrn();
 			m_sED2K = pFile->m_oED2K.toShortUrn();
+			m_sMD5	= pFile->m_oMD5.toShortUrn();
 		}
 
 		// Metadata
@@ -171,6 +173,11 @@ void CLibraryTipCtrl::OnCalcSize(CDC* pDC)
 		AddSize( pDC, m_sED2K );
 		m_sz.cy += TIP_TEXTHEIGHT;
 	}
+	if ( m_sMD5.GetLength() )
+	{
+		AddSize( pDC, m_sMD5 );
+		m_sz.cy += TIP_TEXTHEIGHT;
+	}
 
 	m_sz.cy += TIP_RULE;
 
@@ -211,6 +218,11 @@ void CLibraryTipCtrl::OnPaint(CDC* pDC)
 	if ( m_sED2K.GetLength() )
 	{
 		DrawText( pDC, &pt, m_sED2K );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+	if ( m_sMD5.GetLength() )
+	{
+		DrawText( pDC, &pt, m_sMD5 );
 		pt.y += TIP_TEXTHEIGHT;
 	}
 

@@ -195,7 +195,7 @@ BOOL CDownloadWithTransfers::CanStartTransfers(DWORD tNow)
 }
 
 // This functions starts a new download transfer if needed and allowed.
-BOOL CDownloadWithTransfers::StartTransfersIfNeeded(DWORD tNow)
+BOOL CDownloadWithTransfers::StartTransfersIfNeeded(DWORD tNow, BOOL bSeeding)
 {
 	if ( tNow == 0 ) tNow = GetTickCount();
 
@@ -205,6 +205,12 @@ BOOL CDownloadWithTransfers::StartTransfersIfNeeded(DWORD tNow)
 	//BitTorrent limiting
 	if ( m_oBTH )
 	{
+		if ( bSeeding && StartNewTransfer( tNow, bSeeding ) )
+		{
+			Downloads.UpdateAllows( TRUE );
+			return TRUE;
+		}
+
 		// Max connections
 		if ( ( GetTransferCount( dtsCountTorrentAndActive ) ) > Settings.BitTorrent.DownloadConnections ) return FALSE;	
 	}
@@ -225,7 +231,7 @@ BOOL CDownloadWithTransfers::StartTransfersIfNeeded(DWORD tNow)
 				if ( ( ( tNow - Downloads.m_tBandwidthAtMax ) > 5000 ) ) 
 				{
 					// Start a new download
-					if ( StartNewTransfer( tNow ) )
+					if ( StartNewTransfer( tNow, bSeeding ) )
 					{
 						Downloads.UpdateAllows( TRUE );
 						return TRUE;
@@ -239,71 +245,9 @@ BOOL CDownloadWithTransfers::StartTransfersIfNeeded(DWORD tNow)
 }
 
 //////////////////////////////////////////////////////////////////////
-// CDownloadSource check (INLINE)
-
-BOOL CDownloadSource::CanInitiate(BOOL bNetwork, BOOL bEstablished) const
-{
-	if( !Network.IsConnected() ) return FALSE;
-
-	if ( Settings.Connection.RequireForTransfers )
-	{
-		switch ( m_nProtocol )
-		{
-		case PROTOCOL_G1:
-			if ( ! Settings.Gnutella1.EnableToday ) return FALSE;
-			break;
-		case PROTOCOL_G2:
-			if ( ! Settings.Gnutella2.EnableToday ) return FALSE;
-			break;
-		case PROTOCOL_ED2K:
-			if ( ! Settings.eDonkey.EnableToday ) return FALSE;
-			if ( ! bNetwork ) return FALSE;
-			break;
-		case PROTOCOL_HTTP:
-			if ( m_nGnutella == 2 )
-			{
-				if ( ! Settings.Gnutella2.EnableToday ) return FALSE;
-			}
-			else if ( m_nGnutella == 1 )
-			{
-				if ( ! Settings.Gnutella1.EnableToday ) return FALSE;
-			}
-			else
-			{
-				if ( ! Settings.Gnutella1.EnableToday &&
-					 ! Settings.Gnutella2.EnableToday ) return FALSE;
-			}
-			break;
-		case PROTOCOL_FTP:
-			if ( ! bNetwork ) return FALSE;
-			break;
-		case PROTOCOL_BT:
-			if ( ! bNetwork ) return FALSE;
-			break;
-		default:
-			theApp.Message( MSG_ERROR, _T("Source with invalid protocol found") );
-			return FALSE;
-		}
-	}
-
-	if ( !bEstablished && !Settings.Downloads.NeverDrop && m_pDownload->LookupFailedSource( m_sURL ) != NULL )
-	{
-		// Don't try to connect to sources which we determined were bad
-		// We will check them later after 2 hours cleanup
-		m_pDownload->RemoveSource( (CDownloadSource*)this, TRUE );
-		return FALSE;
-	}
-
-	if ( ( Settings.Connection.IgnoreOwnIP ) && ( m_pAddress.S_un.S_addr == Network.m_pHost.sin_addr.S_un.S_addr ) ) 
-		return FALSE;
-	
-	return bEstablished || Downloads.AllowMoreTransfers( (IN_ADDR*)&m_pAddress );
-}
-
-//////////////////////////////////////////////////////////////////////
 // CDownloadWithTransfers start a new transfer
 
-BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
+BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow, BOOL bSeeding)
 {
 	if ( tNow == 0 ) tNow = GetTickCount();
 	
@@ -311,32 +255,37 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 	CDownloadSource* pConnectHead = NULL;
 
 	// If BT preferencing is on, check them first
-	if ( ( m_oBTH ) && ( Settings.BitTorrent.PreferenceBTSources ) )
+	if ( ( m_oBTH ) && ( Settings.BitTorrent.PreferenceBTSources || bSeeding ) )
 	{
 		for ( CDownloadSource* pSource = m_pSourceFirst ; pSource ; )
 		{
 			CDownloadSource* pNext = pSource->m_pNext;
 			
-			if ( ( pSource->m_pTransfer == NULL ) &&		// does not have a transfer
-				 ( pSource->m_bPushOnly == FALSE ) &&		// Not push
-				 ( pSource->m_nProtocol == PROTOCOL_BT ) &&	// Is a BT source
-				 ( pSource->m_tAttempt == 0 ) )				// Is a "fresh" source from the tracker
+			if ( ( pSource->m_pTransfer == NULL ) &&						// does not have a transfer
+				 ( pSource->m_bPushOnly == FALSE ) &&						// Not push
+				 ( pSource->m_nProtocol == PROTOCOL_BT ) &&					// Is a BT source
+				 ( pSource->m_tAttempt == 0 ||								// Is a "fresh" source from the tracker
+				 ( ( tNow - pSource->m_tAttempt ) >= 0 && bSeeding ) ) )	// or Seeding.
 			{
 				if ( pSource->CanInitiate( bConnected, FALSE ) )
 				{
 					CDownloadTransfer* pTransfer = pSource->CreateTransfer();
 					return pTransfer != NULL && pTransfer->Initiate();
 				}
-			}	
+			}
 			pSource = pNext;
 		}
 	}
+
+	if ( bSeeding ) return FALSE;
 	
+	BOOL bStable = ( Network.GetStableTime() >= 15 );
+
 	for ( CDownloadSource* pSource = m_pSourceFirst ; pSource ; )
 	{
 		CDownloadSource* pNext = pSource->m_pNext;
 		
-		if ( pSource->m_pTransfer != NULL )
+		if ( pSource->m_pTransfer )
 		{
 			// Already has a transfer
 		}
@@ -354,14 +303,18 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 					break;
 				}
 			}
-			else if ( pSource->m_tAttempt > 0 && pSource->m_tAttempt <= tNow )
+			else if ( pSource->m_tAttempt > 0 && int32( tNow - pSource->m_tAttempt ) > 0 )
 			{
 				if ( pConnectHead == NULL && pSource->CanInitiate( bConnected, FALSE ) ) pConnectHead = pSource;
 			}
 		}
-		else if ( Network.GetStableTime() >= 15 )
+		else if ( bStable )
 		{
-			if ( pSource->m_tAttempt == 0 )
+			if ( ! Settings.Downloads.NeverDrop && pSource->m_nPushAttempted > 10 )
+			{
+				pSource->Remove( TRUE, FALSE );
+			}
+			else if ( pSource->m_tAttempt == 0 )
 			{
 				if ( pSource->CanInitiate( bConnected, FALSE ) )
 				{
@@ -369,9 +322,13 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 					break;
 				}
 			}
-			else if ( pSource->m_tAttempt <= tNow )
+			else if ( pConnectHead == NULL && tNow - pSource->m_tAttempt > 0 && int32( tNow - pSource->m_tAttempt ) > 0 )
 			{
-				pSource->Remove( TRUE, FALSE );
+				if ( pSource->m_oHubList.size() || pSource->m_oPushProxyList.size() )
+				{
+					if ( pSource->CanInitiate( bConnected, FALSE ) ) pConnectHead = pSource;
+				}
+				else pSource->Remove( TRUE, FALSE );
 			}
 		}
 		pSource = pNext;
@@ -379,26 +336,8 @@ BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 	
 	if ( pConnectHead != NULL )
 	{
-		if ( pConnectHead->m_bPushOnly && ! ( pConnectHead->m_nProtocol == PROTOCOL_ED2K ) )
-		{
-			if ( pConnectHead->PushRequest() )
-			{
-				return TRUE;
-			}
-			else if ( ! Settings.Downloads.NeverDrop )
-			{
-				pConnectHead->Remove( TRUE, FALSE );
-			}
-			else
-			{
-				SortSource( pConnectHead, FALSE );
-			}
-		}
-		else
-		{
-			CDownloadTransfer* pTransfer = pConnectHead->CreateTransfer();
-			return ( pTransfer != NULL && pTransfer->Initiate() );
-		}
+		CDownloadTransfer* pTransfer = pConnectHead->CreateTransfer();
+		return ( pTransfer != NULL && pTransfer->Initiate() );
 	}
 	
 	return FALSE;
@@ -415,6 +354,8 @@ void CDownloadWithTransfers::CloseTransfers()
 	for ( CDownloadTransfer* pTransfer = m_pTransferFirst ; pTransfer ; )
 	{
 		CDownloadTransfer* pNext = pTransfer->m_pDlNext;
+		pTransfer->m_pSource->m_bReConnect = FALSE;
+		pTransfer->m_pSource->m_bCloseConn = FALSE;
 		pTransfer->Close( TS_TRUE );
 		pTransfer = pNext;
 	}
@@ -458,31 +399,51 @@ DWORD CDownloadWithTransfers::GetMeasuredSpeed() const
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithTransfers push handler
 
-BOOL CDownloadWithTransfers::OnAcceptPush(const Hashes::Guid& oClientID, CConnection* pConnection)
+BOOL CDownloadWithTransfers::OnAcceptPush(const Hashes::Guid& oClientID, CConnection* pConnection, DWORD nFileIndex)
 {
 	CDownload* pDownload = (CDownload*)this;
-	if ( pDownload->IsMoving() || pDownload->IsPaused() ) return FALSE;
+	if ( pDownload->IsMoving() || pDownload->IsPaused() || pDownload->IsCompleted() ) return FALSE;
 	
 	CDownloadSource* pSource = NULL;
 	
 	for ( pSource = GetFirstSource() ; pSource ; pSource = pSource->m_pNext )
 	{
-		if ( pSource->m_nProtocol == PROTOCOL_HTTP && pSource->CheckPush( oClientID ) ) break;
+		if ( ( pSource->m_nProtocol == PROTOCOL_G1 || pSource->m_nProtocol == PROTOCOL_G2 ||
+			pSource->m_nProtocol == PROTOCOL_HTTP ) && pSource->CheckPush( oClientID ) && 
+			( nFileIndex == 0 || pSource->m_nIndex == nFileIndex ) ) break;
 	}
 	
-	if ( pSource == NULL ) return FALSE;
-	
-	if ( pSource->m_pTransfer != NULL )
+	// if incoming CONNECTION has invalid socket, or else, could not find any source for this PUSH connection.
+	if ( pConnection->m_hSocket == INVALID_SOCKET || pSource == NULL ) return FALSE;
+
+	// Found PUSH source matches to condition.
+	CDownloadTransferHTTP* pTransfer = NULL;
+
+	// cast CDownloadTransfer to CDownloadTransferHTTP if exist.
+	ASSERT( pSource->m_nProtocol == PROTOCOL_G1 || pSource->m_nProtocol == PROTOCOL_G2 || pSource->m_nProtocol == PROTOCOL_HTTP );
+	if ( pSource->m_pTransfer )
 	{
-		if ( pSource->m_pTransfer->m_nState > dtsConnecting ) return FALSE;
-		pSource->m_pTransfer->Close( TS_TRUE );
+		pTransfer = static_cast<CDownloadTransferHTTP*>(pSource->m_pTransfer);
+		if ( pTransfer && pTransfer->m_bPushWaiting )	// Cast succeed and transfer is waiting for PUSH connection.
+		{
+			return pTransfer->AcceptPush( pConnection );	// Accept Connection if it can
+		}
 	}
-	
-	if ( pConnection->m_hSocket == INVALID_SOCKET ) return FALSE;
-	
-	CDownloadTransferHTTP* pTransfer = (CDownloadTransferHTTP*)pSource->CreateTransfer();
-	ASSERT( pTransfer->m_nProtocol == PROTOCOL_HTTP );
-	return pTransfer->AcceptPush( pConnection );
+	else if ( nFileIndex && pSource->m_nIndex == nFileIndex )
+	{
+		pTransfer = (CDownloadTransferHTTP*)pSource->CreateTransfer();
+		if ( pTransfer )
+		{
+			ASSERT( pTransfer->m_nProtocol == PROTOCOL_HTTP );
+			pTransfer->CTransfer::AttachTo( NULL );
+			return pTransfer->AcceptPush( pConnection );	// Accept Connection if it can
+		}
+
+	}
+
+	// no CConnection object (not ready to accept incoming connection, maybe the one sent PUSH signal is some other download)
+	return FALSE;
+
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -491,7 +452,7 @@ BOOL CDownloadWithTransfers::OnAcceptPush(const Hashes::Guid& oClientID, CConnec
 BOOL CDownloadWithTransfers::OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept)
 {
 	CDownload* pDownload = (CDownload*)this;
-	if ( pDownload->IsMoving() || pDownload->IsPaused() ) return FALSE;
+	if ( pDownload->IsMoving() || pDownload->IsPaused() || pDownload->IsCompleted() ) return FALSE;
 	
 	CDownloadSource* pSource = NULL;
 //	DWORD tNow = GetTickCount();
@@ -503,15 +464,23 @@ BOOL CDownloadWithTransfers::OnDonkeyCallback(CEDClient* pClient, CDownloadSourc
 	
 	if ( pSource == NULL ) return FALSE;
 	
-	if ( pSource->m_pTransfer != NULL )
+	if ( pSource->m_pTransfer )
 	{
-		if ( pSource->m_pTransfer->m_nState > dtsConnecting ) return FALSE;
-		pSource->m_pTransfer->Close( TS_TRUE );
+		// this code seems something bad, or something which never possible to be executed.
+		//if ( pSource->m_pTransfer->m_nState > dtsConnecting ) return FALSE;
+		//pSource->m_pTransfer->Close( TS_TRUE );
 	}
-	
-	CDownloadTransferED2K* pTransfer = (CDownloadTransferED2K*)pSource->CreateTransfer();
-	ASSERT( pTransfer->m_nProtocol == PROTOCOL_ED2K );
-	return pTransfer->Initiate();
+	else
+	{
+		CDownloadTransferED2K* pTransfer = (CDownloadTransferED2K*)pSource->CreateTransfer();
+		if ( pTransfer )
+		{
+			ASSERT( pTransfer->m_nProtocol == PROTOCOL_ED2K );
+			return pTransfer->Initiate();
+		}
+	}
+
+	return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////

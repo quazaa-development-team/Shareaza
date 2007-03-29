@@ -31,10 +31,15 @@ class CDownload;
 class CTigerTree;
 class CXMLElement;
 class CED2K;
+class CUploadTipCtrl;
 
 
 class CUploadTransferHTTP : public CUploadTransfer
-{
+{// typedef
+public:
+	typedef std::list<SOCKADDR_IN> HubList;
+	typedef std::list<SOCKADDR_IN>::iterator HubIndex;
+
 // Construction
 public:
 	CUploadTransferHTTP();
@@ -53,13 +58,23 @@ protected:
 	BOOL		m_bRange;
 	BOOL		m_bQueueMe;
 	BOOL		m_bNotShareaza;
+	BOOL		m_bListening;
 	int			m_nGnutella;
 	int			m_nReaskMultiplier; //Last re-ask time multiplier used
 protected:
 	BOOL		m_bTigerTree;
 	BOOL		m_bMetadata;
-	CString		m_sLocations;
+	BOOL		m_bHttp11;
+	CString		m_sAltG1Locations;
+	CString		m_sXAlt;
+	CString		m_sXNAlt;
+	CString		m_sAltLocations;
+	CString		m_sXG2Alt;
 	CString		m_sRanges;
+public:
+	DWORD		m_nTimeoutTraffic;
+	Hashes::Guid m_oGUID;
+	HubList		m_oHubList;
 
 // Operations
 public:
@@ -92,6 +107,8 @@ protected:
 
 public:
 	inline BOOL IsBackwards() const { return m_bBackwards; }
+
+	friend class CUploadTipCtrl;
 };
 
 #endif // !defined(AFX_UPLOADTRANSFERHTTP_H__FFC5B664_6827_41EC_87E2_033318A36E0A__INCLUDED_)

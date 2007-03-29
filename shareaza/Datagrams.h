@@ -24,7 +24,8 @@
 
 #pragma once
 
-#pragma pack(1)
+// Instruct the compiler to align bytes and DWORDs in a structure on a 1 byte boundary
+#pragma pack(1) // This means, don't put any space between anything
 
 typedef struct
 {
@@ -53,6 +54,23 @@ typedef struct
 	DWORD		tLastAdd;
 	DWORD		tLastSlot;
 } UDPBandwidthMeter;
+
+enum ServiceType
+{ 
+	ubsNull = 0,
+	ubsDiscovery = 1,
+	ubsHostCache = 2
+};
+
+typedef struct
+{
+	SOCKADDR_IN	m_pHost;
+	DWORD		m_nTime;
+	ServiceType	m_nService;
+} UDPBootSecurityItem;
+
+typedef	std::list<UDPBootSecurityItem>				BootSecurityFilter;
+typedef	std::list<UDPBootSecurityItem>::iterator	BootSecurityFilterItem;
 
 class CBuffer;
 class CPacket;
@@ -103,15 +121,21 @@ public:
 	DWORD				m_nOutBandwidth;
 	DWORD				m_nOutFrags;
 	DWORD				m_nOutPackets;
+protected:
+	BootSecurityFilter	m_oUHCFilter;
+	BootSecurityFilter	m_oUKHLFilter;
 
 // Operations
 public:
 	BOOL	Listen();
 	void	Disconnect();
 	BOOL	IsStable();
-	void	SetStable(BOOL bStable = TRUE);
-	BOOL	Send(IN_ADDR* pAddress, WORD nPort, CPacket* pPacket, BOOL bRelease = TRUE, LPVOID pToken = NULL, BOOL bAck = TRUE);
-	BOOL	Send(SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease = TRUE, LPVOID pToken = NULL, BOOL bAck = TRUE);
+	void	SetStable(BOOL bStable);
+	BOOL	Send(IN_ADDR* pAddress, WORD nPort, CPacket* pPacket, BOOL bRelease = TRUE, LPVOID pToken = NULL, BOOL bAck = TRUE, BOOL bBypassSecurity = FALSE);
+	BOOL	Send(SOCKADDR_IN* pHost, CPacket* pPacket, BOOL bRelease = TRUE, LPVOID pToken = NULL, BOOL bAck = TRUE, BOOL bBypassSecurity = FALSE);
+public:
+	void	SendUDPHostCache(IN_ADDR* pAddress, WORD nPort, ServiceType nService);
+	void	SendUDPKnownHubCache(IN_ADDR* pAddress, WORD nPort, ServiceType nService);
 	void	PurgeToken(LPVOID pToken);
 	void	OnRun();
 protected:
@@ -134,19 +158,33 @@ protected:
 	BOOL	OnPing(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnPong(SOCKADDR_IN* pHost, CG1Packet* pPacket);
 	BOOL	OnPong(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnCommonQueryHash(SOCKADDR_IN* pHost, CG1Packet* pPacket);
+	BOOL	OnQuery(SOCKADDR_IN* pHost, CG1Packet* pPacket);
 	BOOL	OnQuery(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnQueryAck(SOCKADDR_IN* pHost, CG2Packet* pPacket);
-	BOOL	OnCommonHit(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnHit(SOCKADDR_IN* pHost, CG1Packet* pPacket);
+	BOOL	OnHit(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnCommonHit(SOCKADDR_IN* pHost, CPacket* pPacket);
 	BOOL	OnQueryKeyRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnQueryKeyAnswer(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnPush(SOCKADDR_IN* pHost, CG1Packet* pPacket);
 	BOOL	OnPush(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnRUDP(SOCKADDR_IN* pHost, CG1Packet* pPacket);
+	BOOL	OnVendor(SOCKADDR_IN* pHost, CG1Packet* pPacket);
 	BOOL	OnCrawlRequest(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnCrawlAnswer(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnDiscovery(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnKHL(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnKHLA(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 	BOOL	OnKHLR(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnModeChangeReq(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnModeChangeAck(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnPrivateMessage(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnBye(SOCKADDR_IN* pHost, CG1Packet* pPacket);
+	BOOL	OnClose(SOCKADDR_IN* pHost, CG2Packet* pPacket);
+	BOOL	OnJCT(SOCKADDR_IN* pHost, CG2Packet* pPacket);
 
+	friend class CG2Neighbour;
 };
 
 extern CDatagrams Datagrams;

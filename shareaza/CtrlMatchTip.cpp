@@ -319,12 +319,36 @@ void CMatchTipCtrl::LoadFromFile()
 		m_sSHA1.Empty();
 		m_sTiger.Empty();
 		m_sED2K.Empty();
+		m_sMD5.Empty();
+		m_sGUID.Empty();
 	}
 	else
 	{
 		m_sSHA1 = m_pFile->m_oSHA1.toShortUrn();
 		m_sTiger = m_pFile->m_oTiger.toShortUrn();
 		m_sED2K = m_pFile->m_oED2K.toShortUrn();
+		m_sMD5 = m_pFile->m_oMD5.toShortUrn();
+		if ( m_pFile->m_nSources == 1 )
+		{
+			Hashes::Guid oID ( m_pFile->m_pBest->m_oClientID );
+			if ( oID.isValid() )
+			{
+				// MFC's CString::Format is like sprintf, "%.2X" formats a byte into 2 hexidecimal characters like "ff"
+				m_sGUID.Format(	_T("GUID:%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X"),
+					int( oID[0] ),  int( oID[1] ),  int( oID[2] ),  int( oID[3] ),		// Our GUID
+					int( oID[4] ),  int( oID[5] ),  int( oID[6] ),  int( oID[7] ),
+					int( oID[8] ),  int( oID[9] ),  int( oID[10] ), int( oID[11] ),
+					int( oID[12] ), int( oID[13] ), int( oID[14] ), int( oID[15] ) );
+			}
+			else
+			{
+				m_sGUID.Empty();
+			}
+		}
+		else
+		{
+			m_sGUID.Empty();
+		}
 	}
 
 	if ( m_pFile->m_nFiltered == 1 && m_pFile->m_pBest->m_nPartial )
@@ -383,12 +407,20 @@ void CMatchTipCtrl::LoadFromFile()
 		CLibraryFile* pExisting = NULL;
 
 		CQuickLock oLock( Library.m_pSection );
+
+		if ( pExisting == NULL && ( m_pFile->m_oSHA1 || m_pFile->m_oTiger || m_pFile->m_oED2K || m_pFile->m_oMD5 ) )
+			pExisting = LibraryMaps.LookupFileByHash( m_pFile->m_oSHA1, m_pFile->m_oTiger, m_pFile->m_oED2K, m_pFile->m_oMD5 );
+
+		/*
 		if ( pExisting == NULL && m_pFile->m_oSHA1 )
 			pExisting = LibraryMaps.LookupFileBySHA1( m_pFile->m_oSHA1 );
 		if ( pExisting == NULL && m_pFile->m_oTiger )
 			pExisting = LibraryMaps.LookupFileByTiger( m_pFile->m_oTiger );
 		if ( pExisting == NULL && m_pFile->m_oED2K )
 			pExisting = LibraryMaps.LookupFileByED2K( m_pFile->m_oED2K );
+		if ( pExisting == NULL && m_pFile->m_oMD5 )
+			pExisting = LibraryMaps.LookupFileByMD5( m_pFile->m_oMD5 );
+		*/
 		
 		if ( pExisting != NULL )
 		{
@@ -443,23 +475,26 @@ void CMatchTipCtrl::LoadFromFile()
 	{
 		if ( m_pFile->m_pBest->m_sNick.GetLength() )
 		{
-			m_sUser.Format( _T("%s (%s - %s)"),
+			m_sUser.Format( _T("%s (%s:%u - %s)"),
 				(LPCTSTR)m_pFile->m_pBest->m_sNick,
 				(LPCTSTR)CString( inet_ntoa( m_pFile->m_pBest->m_pAddress ) ),
+				m_pFile->m_pBest->m_nPort,
 				(LPCTSTR)m_pFile->m_pBest->m_pVendor->m_sName );
 		}
 		else
 		{
 			if ( ( m_pFile->m_pBest->m_nProtocol == PROTOCOL_ED2K ) && ( m_pFile->m_pBest->m_bPush == TS_TRUE ) )
 			{
-				m_sUser.Format( _T("%lu@%s - %s"), m_pFile->m_pBest->m_oClientID.begin()[2], 
+				m_sUser.Format( _T("%lu@%s:%u - %s"), m_pFile->m_pBest->m_oClientID.begin()[2], 
 					(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)*m_pFile->m_pBest->m_oClientID.begin() ) ),
+					(WORD)m_pFile->m_pBest->m_oClientID.begin()[1],
 					(LPCTSTR)m_pFile->m_pBest->m_pVendor->m_sName );
 			}
 			else
 			{
-				m_sUser.Format( _T("%s - %s"),
+				m_sUser.Format( _T("%s:%u - %s"),
 					(LPCTSTR)CString( inet_ntoa( m_pFile->m_pBest->m_pAddress ) ),
+					m_pFile->m_pBest->m_nPort,
 					(LPCTSTR)m_pFile->m_pBest->m_pVendor->m_sName );
 			}
 		}
@@ -506,12 +541,29 @@ void CMatchTipCtrl::LoadFromHit()
 		m_sSHA1.Empty();
 		m_sTiger.Empty();
 		m_sED2K.Empty();
+		m_sMD5.Empty();
+		m_sGUID.Empty();
 	}
 	else
 	{
 		m_sSHA1 = m_pHit->m_oSHA1.toShortUrn();
 		m_sTiger = m_pHit->m_oTiger.toShortUrn();
 		m_sED2K = m_pHit->m_oED2K.toShortUrn();
+		m_sMD5 = m_pHit->m_oMD5.toShortUrn();
+		Hashes::Guid oID ( m_pHit->m_oClientID );
+		if ( oID.isValid() )
+		{
+			// MFC's CString::Format is like sprintf, "%.2X" formats a byte into 2 hexidecimal characters like "ff"
+			m_sGUID.Format(	_T("GUID:%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X"),
+				int( oID[0] ),  int( oID[1] ),  int( oID[2] ),  int( oID[3] ),		// Our GUID
+				int( oID[4] ),  int( oID[5] ),  int( oID[6] ),  int( oID[7] ),
+				int( oID[8] ),  int( oID[9] ),  int( oID[10] ), int( oID[11] ),
+				int( oID[12] ), int( oID[13] ), int( oID[14] ), int( oID[15] ) );
+		}
+		else
+		{
+			m_sGUID.Empty();
+		}
 	}
 
 	if ( m_pHit->m_nPartial )
@@ -584,24 +636,27 @@ void CMatchTipCtrl::LoadFromHit()
 
 	if ( m_pHit->m_sNick.GetLength() )
 	{
-		m_sUser.Format( _T("%s (%s - %s)"),
+		m_sUser.Format( _T("%s (%s:%u - %s)"),
 			(LPCTSTR)m_pHit->m_sNick,
 			(LPCTSTR)CString( inet_ntoa( m_pHit->m_pAddress ) ),
+			m_pHit->m_nPort,
 			(LPCTSTR)m_pHit->m_pVendor->m_sName );
 	}
 	else
 	{
 		if ( ( m_pHit->m_nProtocol == PROTOCOL_ED2K ) && ( m_pHit->m_bPush == TS_TRUE ) )
 		{
-			m_sUser.Format( _T("%lu@%s - %s"),
+			m_sUser.Format( _T("%lu@%s:%u - %s"),
 				m_pHit->m_oClientID.begin()[2], 
 				(LPCTSTR)CString( inet_ntoa( (IN_ADDR&)*m_pHit->m_oClientID.begin() ) ),
+				(WORD)m_pHit->m_oClientID.begin()[1],
 				(LPCTSTR)m_pHit->m_pVendor->m_sName );
 		}
 		else
 		{
-			m_sUser.Format( _T("%s - %s"),
+			m_sUser.Format( _T("%s:%u - %s"),
 				(LPCTSTR)CString( inet_ntoa( m_pHit->m_pAddress ) ),
+				m_pHit->m_nPort,
 				(LPCTSTR)m_pHit->m_pVendor->m_sName );
 		}
 	}
@@ -684,6 +739,12 @@ CSize CMatchTipCtrl::ComputeSize()
 		sz.cy += TIP_TEXTHEIGHT;
 	}
 
+	if ( m_sGUID.GetLength() )
+	{
+		ExpandSize( dc, sz, m_sGUID );
+		sz.cy += TIP_TEXTHEIGHT;
+	}
+
 	sz.cy += 5 + 6;
 
 	if ( m_sStatus.GetLength() )
@@ -704,7 +765,7 @@ CSize CMatchTipCtrl::ComputeSize()
 	strTest.Append( _T(": ") );
 	ExpandSize( dc, sz, strTest + m_sType, 40 );
 
-	if ( m_sSHA1.GetLength() || m_sTiger.GetLength() || m_sED2K.GetLength() )
+	if ( m_sSHA1.GetLength() || m_sTiger.GetLength() || m_sED2K.GetLength() || m_sMD5.GetLength() )
 	{
 		sz.cy += 5 + 6;
 
@@ -723,6 +784,12 @@ CSize CMatchTipCtrl::ComputeSize()
 		if ( m_sED2K.GetLength() )
 		{
 			ExpandSize( dc, sz, m_sED2K );
+			sz.cy += TIP_TEXTHEIGHT;
+		}
+
+		if ( m_sMD5.GetLength() )
+		{
+			ExpandSize( dc, sz, m_sMD5 );
 			sz.cy += TIP_TEXTHEIGHT;
 		}
 	}
@@ -840,6 +907,12 @@ void CMatchTipCtrl::OnPaint()
 		pt.y += TIP_TEXTHEIGHT;
 	}
 
+	if ( m_sGUID.GetLength() )
+	{
+		DrawText( dc, pt, m_sGUID );
+		pt.y += TIP_TEXTHEIGHT;
+	}
+
 	pt.y += 5;
 	dc.Draw3dRect( rc.left + 2, pt.y, rc.Width() - 4, 1,
 		m_crBorder, m_crBorder );
@@ -895,7 +968,7 @@ void CMatchTipCtrl::OnPaint()
 	pt.y += 16;
 
 	//Hashes
-	if ( m_sSHA1.GetLength() || m_sTiger.GetLength() || m_sED2K.GetLength() )
+	if ( m_sSHA1.GetLength() || m_sTiger.GetLength() || m_sED2K.GetLength() || m_sMD5.GetLength() )
 	{
 		pt.y += 5;
 		dc.Draw3dRect( rc.left + 2, pt.y, rc.Width() - 4, 1,
@@ -918,6 +991,12 @@ void CMatchTipCtrl::OnPaint()
 		if ( m_sED2K.GetLength() )
 		{
 			DrawText( dc, pt, m_sED2K );
+			pt.y += TIP_TEXTHEIGHT;
+		}
+
+		if ( m_sMD5.GetLength() )
+		{
+			DrawText( dc, pt, m_sMD5 );
 			pt.y += TIP_TEXTHEIGHT;
 		}
 	}

@@ -44,6 +44,8 @@
 
 #include "WndMain.h"
 
+#include "XML.h"
+
 #ifdef _DEBUG
 #undef THIS_FILE
 static char THIS_FILE[]=__FILE__;
@@ -52,11 +54,141 @@ static char THIS_FILE[]=__FILE__;
 
 CDownloads Downloads;
 
+//////////////////////////////////////////////////////////////////////
+// CITMQueryHit construction
+
+CDownloads::CITMQueryHit::CITMQueryHit()
+{
+	m_pHits = NULL;
+}
+
+CDownloads::CITMQueryHit::CITMQueryHit( CQueryHit * pHits )
+{
+
+	if ( pHits != NULL )
+	{
+		CQueryHit* tempHits1 = pHits;
+		CQueryHit* tempHits2 = NULL;
+
+		m_pHits = new CQueryHit( PROTOCOL_NULL );
+		m_pHits->Copy(pHits);
+		tempHits2 = m_pHits;
+		tempHits1 = tempHits1->m_pNext;
+
+		for (; tempHits1 != NULL ; tempHits1 = tempHits1->m_pNext )
+		{
+			tempHits2->m_pNext = new CQueryHit( PROTOCOL_NULL );
+			tempHits2 = tempHits2->m_pNext;
+			tempHits2->Copy( tempHits1 );
+		}
+	}
+}
+
+CDownloads::CITMQueryHit::~CITMQueryHit()
+{
+	m_pHits->Delete();
+}
+
+//////////////////////////////////////////////////////////////////////
+// CITMQueryHit Function member implementations
+
+CDownloads::CITMQueryHit* CDownloads::CITMQueryHit::CreateMessage( CQueryHit * pHits )
+{
+	CITMQueryHit* pITMHit = NULL;
+
+	if ( pHits != NULL )
+	{
+		pITMHit = new CITMQueryHit();
+		
+		CQueryHit* tempHits1 = pHits;
+		CQueryHit* tempHits2 = NULL;
+
+		pITMHit->m_pHits = new CQueryHit( PROTOCOL_NULL );
+		pITMHit->m_pHits->Copy(pHits);
+		tempHits2 = pITMHit->m_pHits;
+		tempHits1 = tempHits1->m_pNext;
+
+		for (; tempHits1 != NULL ; tempHits1 = tempHits1->m_pNext )
+		{
+			tempHits2->m_pNext = new CQueryHit( PROTOCOL_NULL );
+			tempHits2 = tempHits2->m_pNext;
+			tempHits2->Copy( tempHits1 );
+			if ( tempHits1->m_pXML == NULL && tempHits2->m_pXML != NULL ) tempHits1->m_pXML = tempHits2->m_pXML->Clone();
+		}
+	}
+
+	return pITMHit;
+
+	//return ( (CITMQueue::CITMItem *) new CITMQueryHit( CQueryHit * pHits ) );
+}
+
+BOOL CDownloads::CITMQueryHit::OnProcess()
+{
+	if ( m_pHits == NULL ) return TRUE;
+
+	CTransfers::Lock oLock;
+	for ( POSITION pos = Downloads.GetIterator() ; pos ; )
+	{
+		CDownload* pDownload = Downloads.GetNext( pos );
+		pDownload->OnQueryHits( m_pHits );
+	}	
+
+	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CITMQueryHit construction
+
+CDownloads::CITMQueryHits::CITMQueryHits()
+: m_oHits()
+{
+}
+
+CDownloads::CITMQueryHits::CITMQueryHits(CHitPtrs& oHits)
+{
+	m_oHits.assign( oHits.begin(), oHits.end() );
+}
+
+CDownloads::CITMQueryHits::~CITMQueryHits()
+{
+}
+
+//////////////////////////////////////////////////////////////////////
+// CITMQueryHit Function member implementations
+
+CDownloads::CITMQueryHits* CDownloads::CITMQueryHits::CreateMessage(CHitPtrs& oHits)
+{
+	CITMQueryHits* pITMHit = NULL;
+
+	if ( oHits.size() )
+	{
+		pITMHit = new CITMQueryHits();
+		pITMHit->m_oHits.assign( oHits.begin(), oHits.end() );
+	}
+
+	return pITMHit;
+
+	//return ( (CITMQueue::CITMItem *) new CITMQueryHit( CQueryHit * pHits ) );
+}
+
+BOOL CDownloads::CITMQueryHits::OnProcess()
+{
+	CTransfers::Lock oLock;
+	for ( POSITION pos = Downloads.GetIterator() ; pos ; )
+	{
+		CDownload* pDownload = Downloads.GetNext( pos );
+		pDownload->OnQueryHits( m_oHits );
+	}	
+
+	return TRUE;
+}
 
 //////////////////////////////////////////////////////////////////////
 // CDownloads construction
 
 CDownloads::CDownloads()
+: m_oActiveSearches()
+, m_oPendingSearches()
 {
 	m_nLimitGeneric			= Settings.Bandwidth.Downloads;
 	m_nLimitDonkey			= Settings.Bandwidth.Downloads;
@@ -84,6 +216,7 @@ CDownload* CDownloads::Add()
 {
 	CDownload* pDownload = new CDownload();
 	m_pList.AddTail( pDownload );
+	m_oPendingSearches.push_back( pDownload );
 	return pDownload;
 }
 
@@ -96,12 +229,18 @@ CDownload* CDownloads::Add(CQueryHit* pHit, BOOL bAddToHead)
 	
 	CDownload* pDownload = NULL;
 	
-	if ( pDownload == NULL && pHit->m_oSHA1 )
+	
+	if ( pHit->m_oSHA1 || pHit->m_oTiger || pHit->m_oED2K || pHit->m_oMD5 || pHit->m_oBTH )
+		pDownload = FindByHash( pHit->m_oSHA1, pHit->m_oTiger, pHit->m_oED2K, pHit->m_oMD5, pHit->m_oBTH, FALSE );
+	
+/*	if ( pDownload == NULL && pHit->m_oSHA1 && pHit->m_oTiger )
+		pDownload = FindByBitprint( pHit->m_oSHA1, pHit->m_oTiger );
+	else if ( pDownload == NULL && pHit->m_oSHA1 )
 		pDownload = FindBySHA1( pHit->m_oSHA1 );
-	if ( pDownload == NULL && pHit->m_oTiger )
+	else if ( pDownload == NULL && pHit->m_oTiger )
 		pDownload = FindByTiger( pHit->m_oTiger );
-	if ( pDownload == NULL && pHit->m_oED2K )
-		pDownload = FindByED2K( pHit->m_oED2K );
+	else if ( pDownload == NULL && pHit->m_oED2K )
+		pDownload = FindByED2K( pHit->m_oED2K ); */
 	
 	if ( pDownload != NULL )
 	{
@@ -117,12 +256,15 @@ CDownload* CDownloads::Add(CQueryHit* pHit, BOOL bAddToHead)
 
 		if ( bAddToHead ) m_pList.AddHead( pDownload );
 		else m_pList.AddTail( pDownload );
-		
+		m_oPendingSearches.push_back( pDownload );
 		theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_ADDED,
 			(LPCTSTR)pDownload->GetDisplayName(), pDownload->GetSourceCount() );
 
         if ( pDownload->m_oSHA1 ) pDownload->m_oSHA1.signalTrusted();
-        else if ( pDownload->m_oED2K ) pDownload->m_oED2K.signalTrusted();
+        if ( pDownload->m_oED2K ) pDownload->m_oED2K.signalTrusted();
+		if ( pDownload->m_oTiger ) pDownload->m_oTiger.signalTrusted();
+		if ( pDownload->m_oMD5 ) pDownload->m_oMD5.signalTrusted();
+		if ( pDownload->m_oBTH ) pDownload->m_oBTH.signalTrusted();
 	}
 
 	pHit->m_bDownload = TRUE;
@@ -130,7 +272,7 @@ CDownload* CDownloads::Add(CQueryHit* pHit, BOOL bAddToHead)
 	DownloadGroups.Link( pDownload );
 	Transfers.StartThread();
 
-	if ( ( GetTryingCount() < Settings.Downloads.MaxFiles ) || ( bAddToHead ) )
+	if ( ( GetTryingCount() <= Settings.Downloads.MaxFiles ) || ( bAddToHead ) )
 	{
 		pDownload->SetStartTimer();
 	}
@@ -144,13 +286,20 @@ CDownload* CDownloads::Add(CMatchFile* pFile, BOOL bAddToHead)
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
 	
 	CDownload* pDownload = NULL;
+	Hashes::BtHash	oBTH;
+
+
+	if ( pDownload == NULL && ( pFile->m_oSHA1 || pFile->m_oTiger || pFile->m_oED2K || pFile->m_oMD5 ) )
+		pDownload = FindByHash( pFile->m_oSHA1, pFile->m_oTiger, pFile->m_oED2K, pFile->m_oMD5, oBTH, FALSE );
 	
-	if ( pDownload == NULL && pFile->m_oSHA1 )
+	/*if ( pDownload == NULL && pFile->m_oSHA1 && pFile->m_oTiger )
+		pDownload = FindByBitprint( pFile->m_oSHA1, pFile->m_oTiger );
+	else if ( pDownload == NULL && pFile->m_oSHA1 )
 		pDownload = FindBySHA1( pFile->m_oSHA1 );
-	if ( pDownload == NULL && pFile->m_oTiger )
+	else if ( pDownload == NULL && pFile->m_oTiger )
 		pDownload = FindByTiger( pFile->m_oTiger );
-	if ( pDownload == NULL && pFile->m_oED2K )
-		pDownload = FindByED2K( pFile->m_oED2K );
+	else if ( pDownload == NULL && pFile->m_oED2K )
+		pDownload = FindByED2K( pFile->m_oED2K ); */
 	
 	if ( pDownload != NULL )
 	{
@@ -174,7 +323,7 @@ CDownload* CDownloads::Add(CMatchFile* pFile, BOOL bAddToHead)
 		pDownload = new CDownload();
 		if ( bAddToHead ) m_pList.AddHead( pDownload );
 		else m_pList.AddTail( pDownload );
-		
+		m_oPendingSearches.push_back( pDownload );
 		if ( pFile->m_pBest != NULL )
 		{
 			pDownload->AddSourceHit( pFile->m_pBest, TRUE );
@@ -197,8 +346,14 @@ CDownload* CDownloads::Add(CMatchFile* pFile, BOOL bAddToHead)
 		theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_ADDED,
 			(LPCTSTR)pDownload->GetDisplayName(), pDownload->GetSourceCount() );
 
-        if ( pDownload->m_oSHA1 ) pDownload->m_oSHA1.signalTrusted();
-        else if ( pDownload->m_oED2K ) pDownload->m_oED2K.signalTrusted();
+        //if ( pDownload->m_oSHA1 ) pDownload->m_oSHA1.signalTrusted();
+        //else if ( pDownload->m_oED2K ) pDownload->m_oED2K.signalTrusted();
+
+		// instead of doing like the above commented out codes. should mark all the Hashes at adding time.
+		if ( pDownload->m_oSHA1 ) pDownload->m_oSHA1.signalTrusted();
+		if ( pDownload->m_oTiger ) pDownload->m_oTiger.signalTrusted();
+        if ( pDownload->m_oED2K ) pDownload->m_oED2K.signalTrusted();
+		if ( pDownload->m_oMD5 ) pDownload->m_oMD5.signalTrusted();
 	}
 	
 	pFile->m_bDownload = TRUE;
@@ -210,10 +365,10 @@ CDownload* CDownloads::Add(CMatchFile* pFile, BOOL bAddToHead)
 	{
 		pDownload->SetStartTimer();
 
-		if ( ( (pDownload->GetEffectiveSourceCount() <= 1 ) ||
-			( pDownload->m_oED2K && ! pDownload->m_oSHA1 )) )
+		if ( (pDownload->GetSourceCount( TRUE ) <= Settings.Downloads.MinSources ) &&
+			( pDownload->m_oED2K || pDownload->m_oSHA1 ) )
 		{
-			pDownload->FindMoreSources();
+			//pDownload->FindMoreSources();
 		}
 	}
 	
@@ -227,19 +382,22 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 {
 	if ( pURL->m_nAction != CShareazaURL::uriDownload &&
 		 pURL->m_nAction != CShareazaURL::uriSource ) return NULL;
-	
+
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
 	CDownload* pDownload = NULL;
-	
-	if ( pDownload == NULL && pURL->m_oSHA1 )
+
+	if ( pDownload == NULL && ( pURL->m_oSHA1 || pURL->m_oTiger || pURL->m_oED2K || pURL->m_oMD5 || pURL->m_oBTH ) )
+		pDownload = FindByHash( pURL->m_oSHA1, pURL->m_oTiger, pURL->m_oED2K,  pURL->m_oMD5, pURL->m_oBTH, FALSE );
+
+/*	if ( pDownload == NULL && pURL->m_oSHA1 )
 		pDownload = FindBySHA1( pURL->m_oSHA1 );
 	if ( pDownload == NULL && pURL->m_oTiger )
 		pDownload = FindByTiger( pURL->m_oTiger );
 	if ( pDownload == NULL && pURL->m_oED2K )
 		pDownload = FindByED2K( pURL->m_oED2K );
 	if ( pDownload == NULL && pURL->m_oBTH )
-		pDownload = FindByBTH( pURL->m_oBTH );
-	
+		pDownload = FindByBTH( pURL->m_oBTH ); */
+
 	if ( pDownload != NULL )
 	{
 		theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_ALREADY,
@@ -249,9 +407,9 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 		
 		return pDownload;
 	}
-	
+
 	pDownload = new CDownload();
-	
+
 	if ( pURL->m_oSHA1 )
 	{
 		pDownload->m_oSHA1			= pURL->m_oSHA1;
@@ -271,25 +429,25 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 	{
 		pDownload->m_oED2K			= pURL->m_oED2K;
         pDownload->m_oED2K.signalTrusted();
-		pDownload->Share( TRUE );
+		//pDownload->Share( TRUE );
 	}
 	if ( pURL->m_oBTH )
 	{
 		pDownload->m_oBTH			= pURL->m_oBTH;
 		pDownload->m_oBTH.signalTrusted();
-		pDownload->Share( TRUE );
+		//pDownload->Share( TRUE );
 	}
-	
+
 	if ( pURL->m_sName.GetLength() )
 	{
 		pDownload->m_sDisplayName = pURL->m_sName;
 	}
-	
+
 	if ( pURL->m_bSize )
 	{
 		pDownload->m_nSize = pURL->m_nSize;
 	}
-	
+
 	if ( pURL->m_sURL.GetLength() )
 	{
 		if ( ! pDownload->AddSourceURLs( pURL->m_sURL, FALSE ) )
@@ -301,7 +459,7 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 			}
 		}
 	}
-	
+
 	// Add sources from torrents - DWK
 	pDownload->SetTorrent( pURL->m_pTorrent );
 	if ( pURL->m_pTorrent && pURL->m_pTorrent->m_sURLs.GetCount() > 0 )
@@ -309,27 +467,28 @@ CDownload* CDownloads::Add(CShareazaURL* pURL)
 		for ( POSITION pos = pURL->m_pTorrent->m_sURLs.GetHeadPosition() ; pos ; )
 		{
 			CString pCurrentUrl = pURL->m_pTorrent->m_sURLs.GetNext( pos );
-			pDownload->AddSourceURLs( (LPCTSTR)pCurrentUrl , FALSE  );
+			pDownload->AddSourceURLs( (LPCTSTR)pCurrentUrl, FALSE  );
 		}
 		pURL->m_pTorrent->m_sURLs.RemoveAll();
 	}
-	
+
 	m_pList.AddTail( pDownload );
-	
+	m_oPendingSearches.push_back( pDownload );
+
 	theApp.Message( MSG_DOWNLOAD, IDS_DOWNLOAD_ADDED,
 		(LPCTSTR)pDownload->GetDisplayName(), pDownload->GetEffectiveSourceCount() );
-	
+
 	if ( (  pDownload->m_oBTH && ( GetTryingCount(TRUE)  < Settings.BitTorrent.DownloadTorrents ) ) ||
 		 ( !pDownload->m_oBTH && ( GetTryingCount(FALSE) < Settings.Downloads.MaxFiles ) ) )
 	{
 		pDownload->SetStartTimer();
-		if ( pDownload->GetEffectiveSourceCount() <= 1 ) 
-			pDownload->FindMoreSources();
+		//if ( pDownload->GetEffectiveSourceCount() <= 1 ) 
+		//	pDownload->FindMoreSources();
 	}
-	
+
 	DownloadGroups.Link( pDownload );
 	Transfers.StartThread();
-	
+
 	return pDownload;
 }
 
@@ -535,23 +694,90 @@ CDownload* CDownloads::FindByURN(LPCTSTR pszURN, BOOL bSharedOnly) const
 	CDownload* pDownload;
     Hashes::TigerHash oTiger;
     Hashes::Sha1Hash oSHA1;
-    Hashes::Ed2kHash oED2K;
+	Hashes::Ed2kHash oED2K;
+	Hashes::Md5Hash oMD5;
 	
-    if ( oSHA1.fromUrn( pszURN ) )
+	if ( oSHA1.fromUrn( pszURN ) && oTiger.fromUrn( pszURN ) )
 	{
-		if ( ( pDownload = FindBySHA1( oSHA1, bSharedOnly ) ) != NULL ) return pDownload;
+		if ( ( pDownload = FindByBitprint( oSHA1, oTiger, bSharedOnly ) ) != NULL ) return pDownload;
 	}
-	
-	if ( oTiger.fromUrn( pszURN ) )
+	else
 	{
-		if ( ( pDownload = FindByTiger( oTiger, bSharedOnly ) ) != NULL ) return pDownload;
+		if ( oSHA1.fromUrn( pszURN ) )
+		{
+			if ( ( pDownload = FindBySHA1( oSHA1, bSharedOnly ) ) != NULL ) return pDownload;
+		}
+
+		if ( oTiger.fromUrn( pszURN ) )
+		{
+			if ( ( pDownload = FindByTiger( oTiger, bSharedOnly ) ) != NULL ) return pDownload;
+		}
 	}
 	
 	if ( oED2K.fromUrn( pszURN ) )
 	{
-		if ( ( pDownload = FindByED2K( oED2K, bSharedOnly ) ) != NULL ) return pDownload;
+		if ( ( pDownload = FindByED2K( oED2K, bSharedOnly, FALSE ) ) != NULL ) return pDownload;
 	}
-	
+
+	if ( oMD5.fromUrn( pszURN ) )
+	{
+		if ( ( pDownload = FindByMD5( oMD5, bSharedOnly ) ) != NULL ) return pDownload;
+	}
+
+	return NULL;
+}
+
+CDownload* CDownloads::FindByHash(const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger,
+								  const Hashes::Ed2kHash& oED2K, const Hashes::Md5Hash& oMD5,
+								  const Hashes::BtHash& oBTH, QWORD nMinSize,
+								  QWORD nMaxSize, BOOL bSharedOnly) const
+{
+	if ( !oSHA1 && !oTiger && !oED2K && !oMD5 && !oBTH ) return NULL;
+
+	bool bMinSize = !(nMinSize == SIZE_UNKNOWN) && !(nMinSize == 0);
+	bool bMaxSize = !(nMaxSize == SIZE_UNKNOWN) && !(nMaxSize == 0);
+
+	for ( POSITION pos = GetIterator() ; pos ; )
+	{
+		CDownload* pDownload = GetNext( pos );
+		if ( ( ( pDownload->m_oSHA1 && oSHA1) ||
+				( pDownload->m_oTiger && oTiger) ||
+				( pDownload->m_oED2K && oED2K) ||
+				( pDownload->m_oMD5 && oMD5) ||
+				( pDownload->m_oBTH && oBTH ) ) &&
+				( !validAndUnequal( pDownload->m_oSHA1, oSHA1 ) ) && 
+				( !validAndUnequal( pDownload->m_oTiger, oTiger ) ) &&
+				( !validAndUnequal( pDownload->m_oED2K, oED2K ) ) &&
+				( !validAndUnequal( pDownload->m_oMD5, oMD5 ) ) &&
+				( !validAndUnequal( pDownload->m_oBTH, oBTH ) ) )
+		{
+			if ( !pDownload->IsMoving() && ( !bSharedOnly || pDownload->IsShared() ) )
+				if ( ( !bMinSize && !bMaxSize ) || 
+					( !bMaxSize && nMinSize <= pDownload->m_nSize ) || 
+					( !bMinSize && nMaxSize >= pDownload->m_nSize ) || 
+					( nMinSize <= pDownload->m_nSize && nMaxSize >= pDownload->m_nSize ) )
+				return pDownload;
+		}
+	}
+
+	return NULL;
+}
+
+CDownload* CDownloads::FindByBitprint(const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, 
+									  BOOL bSharedOnly) const
+{
+	for ( POSITION pos = GetIterator() ; pos ; )
+	{
+		CDownload* pDownload = GetNext( pos );
+		if ( ( pDownload->m_oSHA1 || pDownload->m_oTiger ) && 
+			( !pDownload->m_oSHA1 || validAndEqual( pDownload->m_oSHA1, oSHA1 ) ) && 
+			( !pDownload->m_oTiger || validAndEqual( pDownload->m_oTiger, oTiger ) ) )
+		{
+			if ( !pDownload->IsMoving() && ( !bSharedOnly || pDownload->IsShared() ) )
+				return pDownload;
+		}
+	}
+
 	return NULL;
 }
 
@@ -562,7 +788,7 @@ CDownload* CDownloads::FindBySHA1(const Hashes::Sha1Hash& oSHA1, BOOL bSharedOnl
 		CDownload* pDownload = GetNext( pos );
 		if ( validAndEqual( pDownload->m_oSHA1, oSHA1 ) )
 		{
-			if ( ! bSharedOnly || ( pDownload->IsShared() && pDownload->IsStarted() ) )
+			if ( !pDownload->IsMoving() && ( !bSharedOnly || pDownload->IsShared() ) )
 				return pDownload;
 		}
 	}
@@ -577,7 +803,7 @@ CDownload* CDownloads::FindByTiger(const Hashes::TigerHash& oTiger, BOOL bShared
 		CDownload* pDownload = GetNext( pos );
 		if ( validAndEqual( pDownload->m_oTiger, oTiger ) )
 		{
-			if ( ! bSharedOnly || ( pDownload->IsShared() && pDownload->IsStarted() ) )
+			if ( !pDownload->IsMoving() && ( !bSharedOnly || pDownload->IsShared() ) )
 				return pDownload;
 		}
 	}
@@ -585,30 +811,47 @@ CDownload* CDownloads::FindByTiger(const Hashes::TigerHash& oTiger, BOOL bShared
 	return NULL;
 }
 
-CDownload* CDownloads::FindByED2K(const Hashes::Ed2kHash& oED2K, BOOL bSharedOnly) const
+CDownload* CDownloads::FindByED2K(const Hashes::Ed2kHash& oED2K, BOOL bSharedOnly, BOOL bForceStarted) const
 {
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = GetNext( pos );
 		if ( validAndEqual( pDownload->m_oED2K, oED2K ) )
 		{
-			if ( ! bSharedOnly || ( pDownload->IsShared() && pDownload->IsStarted() )
-				&& ( pDownload->m_nSize > ED2K_PART_SIZE || pDownload->IsCompleted() ) )
+			if ( !pDownload->IsMoving() && ( !bSharedOnly || pDownload->IsShared() ||
+				( !pDownload->IsPaused() && bForceStarted )
+				&& ( pDownload->m_nSize > ED2K_PART_SIZE || pDownload->IsCompleted() ) ) )
 				return pDownload;
 		}
 	}
-	
+
 	return NULL;
 }
 
-CDownload* CDownloads::FindByBTH(const Hashes::BtHash& oBTH, BOOL bSharedOnly) const
+CDownload* CDownloads::FindByMD5(const Hashes::Md5Hash& oMD5, BOOL bSharedOnly) const
+{
+	for ( POSITION pos = GetIterator() ; pos ; )
+	{
+		CDownload* pDownload = GetNext( pos );
+		if ( validAndEqual( pDownload->m_oMD5, oMD5 ) )
+		{
+			if ( !pDownload->IsMoving() && ( !bSharedOnly || pDownload->IsShared() ) )
+				return pDownload;
+		}
+	}
+
+	return NULL;
+}
+
+CDownload* CDownloads::FindByBTH(const Hashes::BtHash& oBTH, BOOL bSharedOnly, BOOL bForceStarted) const
 {
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = GetNext( pos );
 		if ( validAndEqual( pDownload->m_oBTH, oBTH ) )
 		{
-			if ( ! bSharedOnly || ( pDownload->IsShared() ) )
+			if ( !pDownload->IsMoving() && ( ! bSharedOnly || pDownload->IsShared() ||
+				( ( !pDownload->IsPaused() || pDownload->IsSeeding() ) && bForceStarted ) ) )
 				return pDownload;
 		}
 	}
@@ -884,6 +1127,24 @@ void CDownloads::OnRun()
 {
 	DWORD tNow = GetTickCount();
 
+	if ( (DWORD)m_oActiveSearches.size() < (DWORD)Settings.Downloads.MaxFileSearches )
+	{
+		if ( m_oPendingSearches.size() )
+		{
+			std::list<CDownload*>::iterator iIndex = m_oPendingSearches.begin();
+			CDownload* pDownload = *iIndex;
+			if ( pDownload->CanSearch() )
+			{
+				m_oPendingSearches.erase(iIndex);
+				pDownload->StartAutomaticSearch(tNow);
+			}
+			else
+			{
+				m_oPendingSearches.erase(iIndex);
+				m_oPendingSearches.push_back(pDownload);
+			}
+		}
+	}
 
 	// Re-calculating bandwidth may be a little CPU heavy if there are a lot of transfers- limit
 	// it to 4 times per second
@@ -1076,7 +1337,8 @@ void CDownloads::OnRun()
 
 void CDownloads::OnQueryHits(CQueryHit* pHits)
 {
-	CSingleLock pLock( &Transfers.m_pSection );
+
+/*	CSingleLock pLock( &Transfers.m_pSection );
 	
 	if ( ! pLock.Lock( 50 ) ) return;
 	
@@ -1085,41 +1347,93 @@ void CDownloads::OnQueryHits(CQueryHit* pHits)
 		CDownload* pDownload = GetNext( pos );
 		if ( pDownload->IsMoving() == FALSE ) pDownload->OnQueryHits( pHits );
 	}	
+*/
+
+	if ( pHits != NULL )
+		Transfers.m_pMessageQueue.PushMessage( (CITMQueue::CITMItem*)CITMQueryHit::CreateMessage(pHits) );
+
+}
+
+void CDownloads::OnQueryHits(CHitPtrs& oHits)
+{
+
+	/*	CSingleLock pLock( &Transfers.m_pSection );
+
+	if ( ! pLock.Lock( 50 ) ) return;
+
+	for ( POSITION pos = GetIterator() ; pos ; )
+	{
+	CDownload* pDownload = GetNext( pos );
+	if ( pDownload->IsMoving() == FALSE ) pDownload->OnQueryHits( pHits );
+	}	
+	*/
+
+	if ( oHits.size() )
+		Transfers.m_pMessageQueue.PushMessage( (CITMQueue::CITMItem*)CITMQueryHits::CreateMessage(oHits) );
+
 }
 
 //////////////////////////////////////////////////////////////////////
 // CDownloads push handler
 
-BOOL CDownloads::OnPush(const Hashes::Guid& oGUID, CConnection* pConnection)
+BOOL CDownloads::OnPush(const Hashes::Guid& oGUID, CConnection* pConnection, DWORD nFileIndex)
 {
 	CSingleLock pLock( &Transfers.m_pSection );
 	if ( ! pLock.Lock( 250 ) ) return FALSE;
-	
+
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = GetNext( pos );
-		if ( pDownload->OnAcceptPush( oGUID, pConnection ) ) return TRUE;
+		if ( pDownload->OnAcceptPush( oGUID, pConnection, nFileIndex ) ) return TRUE;
 	}
-	
+
 	return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////
 // CDownloads eDonkey2000 callback handler
 
-BOOL CDownloads::OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept)
+BOOL CDownloads::OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept, CDownload* pSeekDownloadAfterThis)
 {
 	CSingleLock pLock( &Transfers.m_pSection );
 	if ( ! pLock.Lock( 250 ) ) return FALSE;
-	
+
 	if ( m_bClosing ) return FALSE;
-	
-	for ( POSITION pos = GetIterator() ; pos ; )
+
+	// if pSeekDownloadAfterThis is not NULL, then need to make sure that download look up does not look and try attach
+	// to same source which has been tried to connect within same lookup session.
+	// NOTE: one session: lookup -> attach -> failure -> look up, which does not happen in one loop because try attach
+	// result is depending on the answer from download source too. so when the first try resulted with failure it should
+	// try second, then when second failed, the third has to be tried, not going back to the first one. it include
+	// the situation when last one failed, the first one should not be tried until next connect event happen.
+	if ( pSeekDownloadAfterThis ) // Exception is set
 	{
-		CDownload* pDownload = GetNext( pos );
-		if ( pDownload->OnDonkeyCallback( pClient, pExcept ) ) return TRUE;
+		bool bFound =false;
+		for ( POSITION pos = GetIterator() ; pos ; )
+		{
+			CDownload* pDownload = GetNext( pos );
+			if ( bFound )	// has found the CDownload object match to pSeekDownloadAfterThis
+			{
+				// try callback on pDownload. (check ED2K source count first because no good trying if no ed2k sources)
+				if ( pDownload->m_nEdSourceCount && pDownload->OnDonkeyCallback( pClient, pExcept ) ) return TRUE;
+			}
+			else	// has not found CDownload object which match to pSeekDownloadAfterThis yet.
+			{
+				// check if pDownload is equal to pSeekDownloadAfterThis or not. if it is, set bFound.
+				if ( pSeekDownloadAfterThis == pDownload ) bFound = true;
+			}
+		}
 	}
-	
+	else	// no exception.
+	{
+		for ( POSITION pos = GetIterator() ; pos ; )
+		{
+			CDownload* pDownload = GetNext( pos );
+			// try callback on pDownload. (check ED2K source count first because no good trying if no ed2k sources)
+			if ( pDownload->m_nEdSourceCount && pDownload->OnDonkeyCallback( pClient, pExcept ) ) return TRUE;
+		}
+	}
+
 	return FALSE;
 }
 
@@ -1178,6 +1492,10 @@ void CDownloads::Load()
 					pDownload->m_bComplete = TRUE;
 					pDownload->m_bVerify = TS_TRUE;
 				}
+				else if ( !pDownload->m_bTempPaused )
+				{
+					m_oPendingSearches.push_back(pDownload);
+				}
 				m_pList.AddTail( pDownload );
 			}
 			else
@@ -1188,7 +1506,7 @@ void CDownloads::Load()
 			}
 		}
 		while ( FindNextFile( hSearch, &pFind ) );
-		
+
 		FindClose( hSearch );
 	}
 	
@@ -1320,16 +1638,20 @@ BOOL CDownloads::LoadFromTimePair()
 void CDownloads::SerializeCompound(CArchive& ar)
 {
 	ASSERT( ar.IsLoading() );
-	
+
 	int nVersion;
 	ar >> nVersion;
 	if ( nVersion < 4 ) return;
-	
+
 	for ( DWORD_PTR nCount = ar.ReadCount() ; nCount > 0 ; nCount-- )
 	{
 		CDownload* pDownload = new CDownload();
 		m_pList.AddTail( pDownload );
 		pDownload->Serialize( ar, nVersion );
+		if ( !pDownload->m_bPaused )
+		{
+			m_oPendingSearches.push_back(pDownload);
+		}
 	}
 }
 

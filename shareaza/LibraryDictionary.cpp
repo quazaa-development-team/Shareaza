@@ -72,15 +72,23 @@ void CLibraryDictionary::Add(CLibraryFile* pFile)
 {
 	ProcessFile( pFile, TRUE );
 	
-	if ( ( pFile->m_oSHA1 || pFile->m_oED2K ) && ! BuildHashTable() )
+	if ( ( pFile->m_oSHA1 || pFile->m_oTiger || pFile->m_oED2K || pFile->m_oMD5 ) && ! BuildHashTable() )
 	{
 		if ( pFile->m_oSHA1 )
 		{
 			m_pTable->AddExactString( pFile->m_oSHA1.toUrn() );
 		}
+		if ( pFile->m_oTiger )
+		{
+			m_pTable->AddExactString( pFile->m_oTiger.toUrn() );
+		}
 		if ( pFile->m_oED2K )
 		{
 			m_pTable->AddExactString( pFile->m_oED2K.toUrn() );
+		}
+		if ( pFile->m_oMD5 )
+		{
+			m_pTable->AddExactString( pFile->m_oMD5.toUrn() );
 		}
 	}
 }
@@ -92,7 +100,7 @@ void CLibraryDictionary::Remove(CLibraryFile* pFile)
 	// TODO: Always invalidate the table when removing a hashed
 	// file... is this wise???  It will happen all the time.
 	
-	if ( pFile->m_oSHA1 || pFile->m_oED2K ) m_bTable = FALSE;
+	if ( pFile->m_oSHA1 || pFile->m_oTiger || pFile->m_oED2K || pFile->m_oMD5 ) m_bTable = FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -390,24 +398,22 @@ BOOL CLibraryDictionary::BuildHashTable()
 
 		CLibraryFile* pFileTemp = *(pWord->m_pList); 
 
-		if (  pFileTemp->IsShared() )	// Check if the file is shared
+		if ( ( pFileTemp->IsShared() || ( pFileTemp->IsGhost() ) && IsValidKeyword( strWord ) ) /* ||
+			(UploadQueues.CanUpload( PROTOCOL_HTTP, pFileTemp, FALSE ) ) */) // Check if a queue exists
 		{
-			if ( ( pFileTemp->IsGhost() ) || (UploadQueues.CanUpload( PROTOCOL_HTTP, pFileTemp, FALSE ) ) ) // Check if a queue exists
-			{
-				//Add the keywords to the table
-				m_pTable->AddString( strWord );
-/*
-				CString str;
-				str.Format( _T("Word Added: %s"), strWord );
-				theApp.Message( MSG_DEFAULT, str );
-			}
-			else
-			{
-				CString str;
-				str.Format( _T("Word not added: %s"), strWord );
-				theApp.Message( MSG_DEFAULT, str );
-*/
-			}
+			//Add the keywords to the table
+			m_pTable->AddString( strWord );
+
+			//CString str;
+			//str.Format( _T("Word Added: %s"), strWord );
+			//theApp.Message( MSG_DEFAULT, str );
+		}
+		else
+		{
+			//CString str;
+			//str.Format( _T("Word not added: %s"), strWord );
+			//theApp.Message( MSG_DEFAULT, str );
+
 		}
 	}
 	
@@ -416,31 +422,37 @@ BOOL CLibraryDictionary::BuildHashTable()
 	{
 		CLibraryFile* pFile = LibraryMaps.GetNextFile( pos );
 		
-		if (pFile->IsShared())	// Check if the file is shared
-		{		
-			if ( ( pFile->IsGhost() ) || ( UploadQueues.CanUpload( PROTOCOL_HTTP, pFile, FALSE ) ) ) // Check if a queue exists
+		if ( pFile->IsShared() || ( pFile->IsGhost() ) /* || 
+			( UploadQueues.CanUpload( PROTOCOL_HTTP, pFile, FALSE ) ) */ ) // Check if a queue exists
+		{
+			//Add the hashes to the table
+			if ( pFile->m_oSHA1 )
 			{
-				//Add the hashes to the table
-				if ( pFile->m_oSHA1 )
-				{
-					m_pTable->AddExactString( pFile->m_oSHA1.toUrn() );
-				}
-				if ( pFile->m_oED2K )
-				{
-					m_pTable->AddExactString( pFile->m_oED2K.toUrn() );
-				}
-/*
-				CString str;
-				str.Format( _T("File added: %s"), pFile->m_sName );
-				theApp.Message( MSG_DEFAULT, str );
+				m_pTable->AddExactString( pFile->m_oSHA1.toUrn() );
 			}
-			else
+			if ( pFile->m_oTiger )
 			{
-				CString str;
-				str.Format( _T("File not added: %s"), pFile->m_sName );
-				theApp.Message( MSG_DEFAULT, str );
-*/
+				m_pTable->AddExactString( pFile->m_oTiger.toUrn() );
 			}
+			if ( pFile->m_oED2K )
+			{
+				m_pTable->AddExactString( pFile->m_oED2K.toUrn() );
+			}
+			if ( pFile->m_oMD5 )
+			{
+				m_pTable->AddExactString( pFile->m_oMD5.toUrn() );
+			}
+
+			//CString str;
+			//str.Format( _T("File added: %s"), pFile->m_sName );
+			//theApp.Message( MSG_DEFAULT, str );
+		}
+		else
+		{
+			//CString str;
+			//str.Format( _T("File not added: %s"), pFile->m_sName );
+			//theApp.Message( MSG_DEFAULT, str );
+
 		}
 	}
 	
@@ -451,6 +463,7 @@ BOOL CLibraryDictionary::BuildHashTable()
 
 void CLibraryDictionary::RebuildHashTable()	//Force table to re-build. (If queues changed, etc)
 {
+	if ( m_pTable->m_nBits != Settings.Library.QueryRouteSize ) m_pTable->Create();
 	m_bTable = FALSE;
 	BuildHashTable();
 }
@@ -486,6 +499,8 @@ void CLibraryDictionary::Clear()
 	
 	if ( m_pTable != NULL )
 	{
+		// Dynamic QHT Size Change
+		if ( m_pTable->m_nBits != Settings.Library.QueryRouteSize ) m_pTable->Create();
 		m_pTable->Clear();
 		m_bTable = TRUE;
 	}
@@ -559,7 +574,8 @@ CList< CLibraryFile* >* CLibraryDictionary::Search(CQuerySearch* pSearch, int nM
 					pHit->m_pMetadata,
 					pHit->m_oSHA1,
 					pHit->m_oTiger,
-					pHit->m_oED2K ) )
+					pHit->m_oED2K,
+					pHit->m_oMD5) )
 			{
 				if ( ! pHits ) pHits = new CList< CLibraryFile* >;
 				pHits->AddTail( pHit );

@@ -31,14 +31,18 @@ class CQueryHit;
 class CMatchFile;
 class CResultFilters;
 
+typedef boost::shared_ptr<CQueryHit>	CHitPtr;
+typedef std::list<CHitPtr>				CHitPtrs;
+
 typedef struct
 {
 	BOOL	bHadSHA1;
 	BOOL	bHadTiger;
 	BOOL	bHadED2K;
+	BOOL	bHadMD5;
 	int		nHadCount;
 	int		nHadFiltered;
-	BOOL	bHad[3];
+	BOOL	bHad[4];
 } FILESTATS;
 
 class CMatchList
@@ -89,16 +93,18 @@ protected:
 	CMatchFile**	m_pMapSHA1;
 	CMatchFile**	m_pMapTiger;
 	CMatchFile**	m_pMapED2K;
+	CMatchFile**	m_pMapMD5;
 	LPTSTR			m_pszFilter;
 	CSchemaMember**	m_pColumns;
 	int				m_nColumns;
 
 	static enum findType
 	{
-		fSHA1	= 0,
-		fTiger	= 1,
-		fED2K	= 2,
-		fSize	= 3,
+		fSize	= 0,
+		fSHA1	= 1,
+		fTiger	= 2,
+		fED2K	= 3,
+		fMD5	= 4
 	};
 	
 // Operations
@@ -147,10 +153,12 @@ public:
 	CMatchFile*	m_pNextSHA1;
 	CMatchFile*	m_pNextTiger;
 	CMatchFile*	m_pNextED2K;
+	CMatchFile*	m_pNextMD5;
 public:
     Hashes::Sha1Hash m_oSHA1;
     Hashes::TigerHash m_oTiger;
-    Hashes::Ed2kHash m_oED2K;
+	Hashes::Ed2kHash m_oED2K;
+	Hashes::Md5Hash m_oMD5;
 	QWORD		m_nSize;
 	CString		m_sSize;
 public:
@@ -166,7 +174,6 @@ public:
 	BOOL		m_bSuspicious;			// Appears to be a suspicious file (small exe, vbs, etc)
 	BOOL		m_bCollection;			// Appears to be a collection
 	BOOL		m_bTorrent;				// Appears to be a torrent
-
 public:
 	BOOL		m_bExpanded;
 	BOOL		m_bSelected;
@@ -179,7 +186,9 @@ public:
 	int			m_nColumns;
 	BYTE*		m_pPreview;
 	DWORD		m_nPreview;
-	
+	CHitPtrs	m_oHits;
+	CHitPtr		m_oBest;
+
 // Operations
 public:
 	BOOL		Add(CQueryHit* pHit, BOOL bForce = FALSE);

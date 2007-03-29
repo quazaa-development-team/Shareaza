@@ -538,6 +538,17 @@ void CDownloadTask::RunMerge()
 
 	CloseHandle( m_hSelectedFile );
 	m_hSelectedFile = INVALID_HANDLE_VALUE;
+
+	pLock.Lock();
+	if ( m_pDownload->FindNewValidationBlock( HASH_TORRENT ) ||
+		m_pDownload->FindNewValidationBlock( HASH_TIGERTREE ) ||
+		m_pDownload->FindNewValidationBlock( HASH_ED2K ) )
+	{
+		Downloads.m_nValidation ++;
+		m_pDownload->ContinueValidation();
+	}
+	pLock.Unlock();
+
 	m_bSuccess = TRUE;
 }
 

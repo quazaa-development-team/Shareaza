@@ -66,24 +66,27 @@ CConnection::CConnection() :
 	m_nQueuedRun( 0 )				// DoRun sets it to 0, QueueRun sets it to 2 (do)
 {
 	ZeroMemory( &m_pHost, sizeof( m_pHost ) );
+	ZeroMemory( &m_pRealHost, sizeof( m_pRealHost ) );
 	ZeroMemory( &m_mInput, sizeof( m_mInput ) );
 	ZeroMemory( &m_mOutput, sizeof( m_mOutput ) );
 }
 
 // make a destructive copy (similar to AttachTo)
 CConnection::CConnection(CConnection& other)
-	: m_pHost(        other.m_pHost )
-	, m_sAddress(     other.m_sAddress )
+	: m_pHost( other.m_pHost )
+	, m_pRealHost( other.m_pRealHost )
+	, m_sAddress( other.m_sAddress )
 	, m_sCountry(     other.m_sCountry )
 	, m_sCountryName( other.m_sCountryName )
-	, m_bInitiated(   other.m_bInitiated )
-	, m_bConnected(   other.m_bConnected )
-	, m_tConnected(   other.m_tConnected )
-	, m_hSocket(      other.m_hSocket )
-	, m_pInput(       other.m_pInput )		// transfered
-	, m_pOutput(      other.m_pOutput )		// transfered
-	, m_sUserAgent(   other.m_sUserAgent )
-	, m_nQueuedRun(   0 )
+	, m_bInitiated( other.m_bInitiated )
+	, m_bConnected( other.m_bConnected )
+	, m_tConnected( other.m_tConnected )
+	, m_hSocket( other.m_hSocket )
+	, m_pInput( other.m_pInput )		// transfered
+	, m_pOutput( other.m_pOutput )		// transfered
+	, m_sUserAgent( other.m_sUserAgent )
+	, m_sLastHeader()
+	, m_nQueuedRun(	0 )
 {
 	ZeroMemory( &m_mInput, sizeof( m_mInput ) );
 	ZeroMemory( &m_mOutput, sizeof( m_mOutput ) );
@@ -153,6 +156,8 @@ BOOL CConnection::ConnectTo(IN_ADDR* pAddress, WORD nPort)
 	m_sAddress			= inet_ntoa( m_pHost.sin_addr );	// Save the IP address as a string of text
 	UpdateCountry();
 
+	CopyMemory( &m_pRealHost, &m_pHost, sizeof(m_pRealHost) );
+
 	// Create a socket and store it in m_hSocket
 	m_hSocket = socket(
 		PF_INET,		// Normal IPv4, not IPv6
@@ -167,7 +172,18 @@ BOOL CConnection::ConnectTo(IN_ADDR* pAddress, WORD nPort)
 		&dwValue ); // Nonzero, it should keep going
 
 	// If the OutHost string in connection settings has an IP address written in it
-	if ( Settings.Connection.OutHost.GetLength() )
+	if ( Network.IsConnected() )
+	{
+		if ( Network.m_pOutBind.sin_addr.S_un.S_addr )
+		{
+			// Call bind in Windows Sockets to associate the local address with the socket
+			bind(
+				m_hSocket,						// Our socket
+				(SOCKADDR*)&Network.m_pOutBind,	// The IP address this computer appears to have on the Internet (do)
+				sizeof(SOCKADDR_IN) );			// Tell bind how many bytes it can read at the pointer
+		}
+	}
+	else if ( Settings.Connection.OutHost.GetLength() )
 	{
 		// Read the text and copy the IP address and port into a new local MFC SOCKADDR_IN structure called pOutgoing
 		SOCKADDR_IN pOutgoing;
@@ -236,11 +252,15 @@ BOOL CConnection::ConnectTo(IN_ADDR* pAddress, WORD nPort)
 void CConnection::AcceptFrom(SOCKET hSocket, SOCKADDR_IN* pHost)
 {
 	// Make sure the newly accepted socket is valid
+	ASSERT( hSocket != INVALID_SOCKET );
+
+	// Make sure the socket on this connection is invalid (no socket has been attached yet.)
 	ASSERT( m_hSocket == INVALID_SOCKET );
 
 	// Record the connection information here
 	m_hSocket		= hSocket;							// Keep the socket here
 	m_pHost			= *pHost;							// Copy the remote IP address into this object
+	m_pRealHost		= *pHost;							// Copy the remote IP address into this object
 	m_sAddress		= inet_ntoa( m_pHost.sin_addr );	// Store it as a string also
 	UpdateCountry();
 
@@ -273,8 +293,12 @@ void CConnection::AttachTo(CConnection* pConnection)
 	ASSERT( pConnection != NULL );						// Make sure we got a CConnection object
 	ASSERT( pConnection->m_hSocket != INVALID_SOCKET ); // And make sure its socket exists
 
+	// sanity check.
+	if ( !pConnection || pConnection == this ) return;
+
 	// Copy values from the given CConnection object to this one
 	m_pHost			= pConnection->m_pHost;
+	m_pRealHost		= pConnection->m_pRealHost;
 	m_sAddress		= pConnection->m_sAddress;
 	m_sCountry		= pConnection->m_sCountry;
 	m_sCountryName	= pConnection->m_sCountryName;
@@ -365,7 +389,7 @@ BOOL CConnection::DoRun()
 		m_bConnected = TRUE;
 		m_tConnected = m_mInput.tLast = m_mOutput.tLast = GetTickCount(); // Store the time 3 places
 
-		// Call CShakeNeighbour::OnConnected to start reading the handshake
+		// Call OnConnected() of derived class to invoke start up process of connection.
 		if ( ! OnConnected() ) return FALSE;
 	}
 
@@ -936,7 +960,7 @@ BOOL CConnection::IsAgentBlocked()
 	for ( strBlocked += '|' ; strBlocked.GetLength() ; )
 	{
 		// Break off a blocked program name from the start of the list
-		CString strBrowser	= strBlocked.SpanExcluding( _T("|;,") );		// Get the text before a puncutation mark
+		CString strBrowser	= strBlocked.SpanExcluding( _T("|;,") );		// Get the text before a punctuation mark
 		strBlocked			= strBlocked.Mid( strBrowser.GetLength() + 1 );	// Remove that much text from the start
 
 		// If the blocked list still exists and the blocked program and remote program match, block it

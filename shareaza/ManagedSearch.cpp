@@ -321,7 +321,7 @@ BOOL CManagedSearch::ExecuteNeighbours(DWORD tTicks, DWORD tSecs)
 		else if ( pNeighbour->m_nProtocol == PROTOCOL_G2 )
 		{
 			m_pSearch->m_bAndG1 = ( Settings.Gnutella1.EnableToday && m_bAllowG1 );
-			pPacket = m_pSearch->ToG2Packet( !Network.IsFirewalled(CHECK_UDP) ? &Network.m_pHost : NULL, 0 );
+			pPacket = m_pSearch->ToG2Packet( Network.IsFirewalled(CHECK_UDP) == TS_FALSE ? &Network.m_pHost : NULL, 0 );
 		}
 		else if ( pNeighbour->m_nProtocol == PROTOCOL_ED2K )
 		{
@@ -397,7 +397,7 @@ BOOL CManagedSearch::ExecuteG2Mesh(DWORD /*tTicks*/, DWORD tSecs)
 		{
 			// Well, we already know we don't have a key.. pretty simple
 		}
-		else if ( !Network.IsFirewalled(CHECK_UDP) )
+		else if ( Network.IsFirewalled(CHECK_UDP) == TS_FALSE)
 		{
 			// If we are "stable", we have to TX/RX our own UDP traffic,
 			// so we must have a query key for the local addess
@@ -487,7 +487,7 @@ BOOL CManagedSearch::ExecuteG2Mesh(DWORD /*tTicks*/, DWORD tSecs)
 			CNeighbour* pCacheHub = NULL;
 			pReceiver = NULL;
 
-			if ( !Network.IsFirewalled(CHECK_UDP) )
+			if ( Network.IsFirewalled(CHECK_UDP) == TS_FALSE )
 			{
 				// If we are stable, we must be the receiver
 				pReceiver = &Network.m_pHost;

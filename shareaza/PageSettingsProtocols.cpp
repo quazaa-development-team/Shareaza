@@ -79,7 +79,7 @@ BOOL CProtocolsSettingsPage::OnInitDialog()
 	AddItem( hG1, _T("Name"), _T("Gnutella1") );
 	AddItem( hG1, _T("Type"), _T("Decentralised") );
 	AddItem( hG1, _T("PrimaryURN"), _T("sha1") );
-	AddItem( hG1, _T("NodeClass"), _T("Leaf") );
+	AddItem( hG1, _T("NodeClass"), _T("Leaf, Ultrapeer, Peer") );
 	AddItem( hG1, _T("ProtocolVersion"), _T("0.6") );
 	AddItem( hG1, _T("ComponentVersion"), _T("2.0.0.0") );
 	

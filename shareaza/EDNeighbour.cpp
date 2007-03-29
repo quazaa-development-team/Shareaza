@@ -64,10 +64,14 @@ CEDNeighbour::CEDNeighbour() : CNeighbour( PROTOCOL_ED2K )
 	m_nTCPFlags		= 0;
 	m_nUDPFlags		= 0;
 	m_nFilesSent	= 0;
+	InterlockedIncrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_ED2K][ntHub]) );
+	Neighbours.m_oEDServers.push_back(this);
 }
 
 CEDNeighbour::~CEDNeighbour()
 {
+	InterlockedDecrement( (PLONG)&(Neighbours.m_nCount[PROTOCOL_ED2K][ntHub]) );
+	Neighbours.m_oEDServers.remove(this);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -93,7 +97,6 @@ BOOL CEDNeighbour::ConnectTo(IN_ADDR* pAddress, WORD nPort, BOOL bAutomatic)
 	m_bAutomatic	= bAutomatic;
 	
 	Neighbours.Add( this );
-	
 	return TRUE;
 }
 
@@ -148,12 +151,11 @@ BOOL CEDNeighbour::OnRun()
 	}
 	else
 	{
-		// Temporary commenting out this code, because no PING/PONG on ed2k and can cause DROP without reason.
-		//if ( tNow - m_tLastPacket > 20 * 60 * 1000 )
-		//{
-		//	Close( IDS_CONNECTION_TIMEOUT_TRAFFIC );
-		//	return FALSE;
-		//}
+		if ( tNow - m_tLastPacket > 20 * 60 * 1000 )
+		{
+			Close( IDS_CONNECTION_TIMEOUT_TRAFFIC );
+			return FALSE;
+		}
 	}
 	
 	return TRUE;
@@ -380,7 +382,7 @@ BOOL CEDNeighbour::OnIdChange(CEDPacket* pPacket)
 	}
 	else
 	{
-		if ( Settings.eDonkey.ForceHighID && Network.IsStable() && !Network.IsFirewalled() )
+		if ( Settings.eDonkey.ForceHighID && Network.IsStable() && Network.IsFirewalled(CHECK_TCP) == TS_FALSE )
 		{
 			// We got a low ID when we should have gotten a high ID.
 			// Most likely, the user's router needs to get a few UDP packets before it opens up.

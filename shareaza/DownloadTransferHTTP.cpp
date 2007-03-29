@@ -29,10 +29,14 @@
 #include "Download.h"
 #include "Downloads.h"
 #include "DownloadSource.h"
+#include "Transfer.h"
+#include "Transfers.h"
 #include "DownloadTransfer.h"
 #include "DownloadTransferHTTP.h"
 #include "FragmentedFile.h"
 #include "Network.h"
+#include "G2Neighbour.h"
+#include "Neighbours.h"
 #include "Buffer.h"
 #include "SourceURL.h"
 #include "GProfile.h"
@@ -55,18 +59,23 @@ CDownloadTransferHTTP::CDownloadTransferHTTP(CDownloadSource* pSource) : CDownlo
 {
 	m_nRequests		= 0;
 	m_tContent		= 0;
-	
+
 	m_bBadResponse	= FALSE;
 	m_bBusyFault	= FALSE;
 	m_bRangeFault	= FALSE;
 	m_bHashMatch	= FALSE;
 	m_bTigerFetch	= FALSE;
 	m_bTigerIgnore	= FALSE;
+	m_bTigerFailed	= FALSE;
 	m_bMetaFetch	= FALSE;
 	m_bMetaIgnore	= FALSE;
 	m_bRedirect		= FALSE;
-	
+	m_bHeadRequest	= !( m_pSource->m_bCloseConn && m_pSource->m_bReConnect );
+
 	m_nRetryDelay	= Settings.Downloads.RetryDelay;
+	m_nRetryAfter	= 0;
+	m_bGUIDSent		= FALSE;
+	m_bPushWaiting	= FALSE;
 }
 
 CDownloadTransferHTTP::~CDownloadTransferHTTP()
@@ -81,25 +90,50 @@ BOOL CDownloadTransferHTTP::Initiate()
 	theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_CONNECTING,
 		(LPCTSTR)CString( inet_ntoa( m_pSource->m_pAddress ) ), m_pSource->m_nPort,
 		(LPCTSTR)m_pDownload->GetDisplayName() );
-	
-	if ( ConnectTo( &m_pSource->m_pAddress, m_pSource->m_nPort ) )
+
+	m_pSource->m_bReConnect = FALSE;
+
+	if ( m_pSource->m_bCloseConn )
 	{
-		SetState( dtsConnecting );
-		
+		m_bHeadRequest = FALSE;
+		m_pSource->m_bCloseConn = FALSE;
+	}
+	else if ( m_pDownload->m_nSize == SIZE_UNKNOWN )
+	{
+		m_bHeadRequest = TRUE;
+	}
+
+	if ( m_pSource->m_bPushOnly && m_pSource->PushRequest() ) // This is PushOnly Source and Push succeed.
+	{
+		m_bPushWaiting = TRUE;			// Set flag to indicate this is waiting for PUSH connection to come.
+		m_tConnected = GetTickCount();	// Set Connect time for Timeout calculation
+		CTransfer::AttachTo( NULL );	// Add this CTransfer derived object to CTransfers.
+		m_sAddress.Format( _T("Attempting PUSH") );			// Set Message in Address field (Quick hack for GUI)
+		m_pHost.sin_port = htons( (WORD)m_pSource->m_nPushAttempted );	// Set attempt count to Port number(Quick hack for GUI)
+	}
+	else if ( ConnectTo( &m_pSource->m_pAddress, m_pSource->m_nPort ) )
+	{
+		m_bPushWaiting = FALSE;	// this is not PUSH connection.
+
 		if ( ! m_pDownload->IsBoosted() )
 			m_mInput.pLimit = m_mOutput.pLimit = &m_nBandwidth;
-		
-		return TRUE;
 	}
 	else
 	{
+		/* ??????? don't get this. at this point, no one can get Offline/online status. only thing it can get
+					is initiation success or failed. including the case the source was on security list,
+					when socket creation is failed with Running out of handles(not rare on Win9x) thus it
+					is totally not good at all to add the source to failed list.*/
 		// Couldn't connect, keep the source but add to the m_pFailedSources
 		// Mark it as an offline source, it might be good later...
-		m_pDownload->AddFailedSource( m_pSource, true, true );
+		//m_pDownload->AddFailedSource( m_pSource, true, true );
 		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_CONNECT_ERROR, (LPCTSTR)m_sAddress );
 		Close( TS_UNKNOWN );
 		return FALSE;
 	}
+
+	SetState( dtsConnecting );
+	return TRUE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -107,16 +141,33 @@ BOOL CDownloadTransferHTTP::Initiate()
 
 BOOL CDownloadTransferHTTP::AcceptPush(CConnection* pConnection)
 {
-	AttachTo( pConnection );
-	
+	m_bPushWaiting = FALSE;					// this connection is no longer waiting for PUSH connection.
+	CConnection::AttachTo( pConnection );	// Attach CConnection object parsed from CHandshakes
+
 	theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_PUSHED, (LPCTSTR)m_sAddress,
 		(LPCTSTR)m_pDownload->GetDisplayName() );
-	
+	m_pSource->m_nPushAttempted = 0;		// PUSH succeed, so reset Attempt count.
+
 	if ( ! m_pDownload->IsBoosted() )
 		m_mInput.pLimit = m_mOutput.pLimit = &m_nBandwidth;
-	
+
+	if ( m_pSource->m_bCloseConn )
+	{
+		m_bHeadRequest = FALSE;
+		m_pSource->m_bCloseConn = FALSE;
+	}
+	else if ( m_pDownload->m_nSize == SIZE_UNKNOWN )
+	{
+		m_bHeadRequest = TRUE;
+	}
+
+	m_pSource->m_sCountry = m_sCountry;
+	m_pSource->m_sCountryName = m_sCountryName;
+	m_pSource->m_pAddress.S_un.S_addr = m_pHost.sin_addr.S_un.S_addr;
+
+	m_pSource->m_bReConnect = FALSE;
 	if ( StartNextFragment() ) return TRUE;
-	
+
 	return FALSE;
 }
 
@@ -125,7 +176,7 @@ BOOL CDownloadTransferHTTP::AcceptPush(CConnection* pConnection)
 
 void CDownloadTransferHTTP::Close( TRISTATE bKeepSource, DWORD nRetryAfter )
 {
-	if ( m_pSource != NULL && m_nState == dtsDownloading && m_nPosition )
+	if ( m_pDownload->IsDownloading() && m_pSource != NULL && m_nState == dtsDownloading && m_nPosition )
 	{
 		if ( m_bRecvBackwards )
 		{
@@ -155,7 +206,7 @@ DWORD CDownloadTransferHTTP::GetAverageSpeed()
 		DWORD nTime = ( GetTickCount() - m_tContent ) / 1000;
 		if ( nTime > 0 ) m_pSource->m_nSpeed = (DWORD)( m_nPosition / nTime );
 	}
-	
+
 	return m_pSource->m_nSpeed;
 }
 
@@ -165,9 +216,9 @@ DWORD CDownloadTransferHTTP::GetAverageSpeed()
 BOOL CDownloadTransferHTTP::OnConnected()
 {
 	theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_CONNECTED, (LPCTSTR)m_sAddress );
-	
+
 	m_tConnected = GetTickCount();
-	
+
 	return StartNextFragment();
 }
 
@@ -185,7 +236,7 @@ BOOL CDownloadTransferHTTP::StartNextFragment()
 	m_bRecvBackwards	= FALSE;
 	m_bTigerFetch		= FALSE;
 	m_bMetaFetch		= FALSE;
-	
+
 	if ( m_pInput == NULL || m_pOutput == NULL /* ||
 		 m_pDownload->GetTransferCount( dtsDownloading ) >= Settings.Downloads.MaxFileTransfers */ )
 	{
@@ -193,57 +244,60 @@ BOOL CDownloadTransferHTTP::StartNextFragment()
 		Close( TS_TRUE );
 		return FALSE;
 	}
-	
+
 	// this needs to go for pipeline
-	
+
 	if ( m_pInput->m_nLength > 0 && m_nRequests > 0 )
 	{
 		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_CLOSING_OVERFLOW, (LPCTSTR)m_sAddress );
 		Close( TS_TRUE );
 		return FALSE;
 	}
-	
-	if ( m_pDownload->m_nSize == SIZE_UNKNOWN )
+
+	if ( m_bHeadRequest && !m_bTigerFetch )
 	{
+		m_bHeadRequest = TRUE;
 		return SendRequest();
 	}
 	else if ( m_pDownload->NeedTigerTree() && m_sTigerTree.GetLength() )
 	{
 		theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_TIGER_REQUEST,
 			(LPCTSTR)m_pDownload->GetDisplayName(), (LPCTSTR)m_sAddress );
-		
+
 		m_bTigerFetch	= TRUE;
 		m_bTigerIgnore	= TRUE;
-		
+
 		return SendRequest();
 	}
 	else if ( m_pDownload->m_pXML == NULL && m_sMetadata.GetLength() )
 	{
 		theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_METADATA_REQUEST,
 			(LPCTSTR)m_pDownload->GetDisplayName(), (LPCTSTR)m_sAddress );
-		
+
 		m_bMetaFetch	= TRUE;
 		m_bMetaIgnore	= TRUE;
-		
+
 		return SendRequest();
 	}
-	else if ( m_pDownload->GetFragment( this ) )
+	else if ( m_pDownload->GetFragment( this ) || m_nRequests == 0 )
 	{
 		ChunkifyRequest( &m_nOffset, &m_nLength, Settings.Downloads.ChunkSize, TRUE );
-		
+
 		theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_FRAGMENT_REQUEST,
 			m_nOffset, m_nOffset + m_nLength - 1,
 			(LPCTSTR)m_pDownload->GetDisplayName(), (LPCTSTR)m_sAddress );
-		
+
 		return SendRequest();
 	}
 	else
 	{
-		if ( m_pSource != NULL ) m_pSource->SetAvailableRanges( NULL );
-		
+		// Line Below cause Shareaza to forget Available range on Source, which might cause User to think the source have either full range
+		// Available or else, no range. thus it is better to have it left drawn on Range graph.
+        //if ( m_pSource != NULL ) m_pSource->SetAvailableRanges( NULL );
+
 		theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_FRAGMENT_END, (LPCTSTR)m_sAddress );
 		Close( TS_TRUE );
-		
+
 		return FALSE;
 	}
 }
@@ -261,7 +315,7 @@ BOOL CDownloadTransferHTTP::SubtractRequested(Fragments::List& ppFragments)
 			return TRUE;
 		}
 	}
-	
+
 	return FALSE;
 }
 
@@ -271,10 +325,10 @@ BOOL CDownloadTransferHTTP::SubtractRequested(Fragments::List& ppFragments)
 BOOL CDownloadTransferHTTP::SendRequest()
 {
 	CString strLine;
-	
+
 	CSourceURL pURL;
 	if ( ! pURL.ParseHTTP( m_pSource->m_sURL, FALSE ) ) return FALSE;
-	
+
 	if ( m_bTigerFetch )
 	{
 		pURL.m_sPath = m_sTigerTree;
@@ -285,27 +339,115 @@ BOOL CDownloadTransferHTTP::SendRequest()
 		pURL.m_sPath = m_sMetadata;
 		m_sMetadata.Empty();
 	}
-	
-	if ( Settings.Downloads.RequestHTTP11 )
+
+	if (m_bHeadRequest)
 	{
-		strLine.Format( _T("GET %s HTTP/1.1\r\n"), (LPCTSTR)pURL.m_sPath );
-		m_pOutput->Print( strLine );
-		
-		strLine.Format( _T("Host: %s\r\n"), (LPCTSTR)pURL.m_sAddress );
-		m_pOutput->Print( strLine );
+		if ( Settings.Downloads.RequestHTTP11 )
+		{
+			strLine.Format( _T("HEAD %s HTTP/1.1\r\n"), (LPCTSTR)pURL.m_sPath );
+			m_pOutput->Print( strLine );
+
+			strLine.Format( _T("Host: %s\r\n"), (LPCTSTR)pURL.m_sAddress );
+			m_pOutput->Print( strLine );
+		}
+		else
+		{
+			strLine.Format( _T("HEAD %s HTTP/1.0\r\n"), (LPCTSTR)pURL.m_sPath );
+		}
 	}
 	else
 	{
-		strLine.Format( _T("GET %s HTTP/1.0\r\n"), (LPCTSTR)pURL.m_sPath );
+		if ( Settings.Downloads.RequestHTTP11 )
+		{
+			strLine.Format( _T("GET %s HTTP/1.1\r\n"), (LPCTSTR)pURL.m_sPath );
+			m_pOutput->Print( strLine );
+
+			strLine.Format( _T("Host: %s\r\n"), (LPCTSTR)pURL.m_sAddress );
+			m_pOutput->Print( strLine );
+		}
+		else
+		{
+			strLine.Format( _T("GET %s HTTP/1.0\r\n"), (LPCTSTR)pURL.m_sPath );
+		}
 	}
-	
+
 	theApp.Message( MSG_DEBUG, _T("%s: DOWNLOAD REQUEST: %s"),
 		(LPCTSTR)m_sAddress, (LPCTSTR)pURL.m_sPath );
-	
+
+	strLine = Settings.SmartAgent();
+
+	if ( strLine.GetLength() )
+	{
+		strLine = _T("User-Agent: ") + strLine + _T("\r\n");
+		m_pOutput->Print( strLine );
+	}
+
+	if ( m_nRequests == 0 )
+	{
+		if ( m_bInitiated ) SendMyAddress();
+
+		strLine = MyProfile.GetNick().Left( 255 );
+
+		if ( strLine.GetLength() > 0 )
+		{
+			strLine = _T("X-Nick: ") + URLEncode( strLine ) + _T("\r\n");
+			m_pOutput->Print( strLine );
+		}
+	}
+
+
+	if ( Network.m_bEnabled && m_bInitiated && Settings.Gnutella2.EnableToday )
+	{
+		CG2Neighbour * NHubs;
+		CString strPort;
+		int nHubCount = 0;
+		strLine = "X-G2NH: ";
+
+		CSingleLock pNetLock( &Network.m_pSection );
+		if ( pNetLock.Lock( 50 ) )
+		{
+			std::list<CG2Neighbour*>::iterator iIndex = Neighbours.m_oG2Hubs.begin();
+			std::list<CG2Neighbour*>::iterator iEnd = Neighbours.m_oG2Hubs.end();
+			for (;iIndex != iEnd; iIndex++ )
+			{
+				NHubs = *iIndex;
+				if ( nHubCount ) strLine	+= _T(",");
+				strLine	+= CString( inet_ntoa( NHubs->m_pHost.sin_addr ) ) + _T(':');
+				strPort.Format( _T("%hu") ,ntohs( NHubs->m_pHost.sin_port ) );
+				strLine += strPort;
+				nHubCount++;
+			}
+		}
+
+		if (nHubCount)
+		{
+			strLine += "\r\n";
+			m_pOutput->Print( strLine );
+
+			if ( m_bGUIDSent == FALSE )
+			{
+				// copy Profile's GUID
+				Hashes::Guid oID( MyProfile.oGUID );
+				// Compose the X-MyGUID string, which is like "X-MyGUID: " with two newlines at the end (do)
+				CString strGUID;
+				// MFC's CString::Format is like sprintf, "%.2X" formats a byte into 2 hexidecimal characters like "ff"
+				strGUID.Format(	_T("X-MyGUID: %.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X\r\n"),
+					int( oID[0] ),  int( oID[1] ),  int( oID[2] ),  int( oID[3] ),		// Our GUID
+					int( oID[4] ),  int( oID[5] ),  int( oID[6] ),  int( oID[7] ),
+					int( oID[8] ),  int( oID[9] ),  int( oID[10] ), int( oID[11] ),
+					int( oID[12] ), int( oID[13] ), int( oID[14] ), int( oID[15] ) );
+
+				// Print the string into the output buffer, and write the output buffer to the remote computer
+				m_pOutput->Print( strGUID );
+				m_bGUIDSent = TRUE;
+			}
+		}
+	}
+
 	m_pOutput->Print( "Connection: Keep-Alive\r\n" ); //BearShare assumes close
 
 	if ( Settings.Gnutella2.EnableToday ) m_pOutput->Print( "X-Features: g2/1.0\r\n" );
-	
+
 	if ( m_bTigerFetch )
 	{
 		m_pOutput->Print( "Accept: application/dime, application/tigertree-breadthfirst\r\n" );
@@ -314,8 +456,8 @@ BOOL CDownloadTransferHTTP::SendRequest()
 	{
 		m_pOutput->Print( "Accept: text/xml\r\n" );
 	}
-	
-	if ( m_nOffset != SIZE_UNKNOWN && ! m_bTigerFetch && ! m_bMetaFetch )
+
+	if ( !m_bHeadRequest && m_nOffset != SIZE_UNKNOWN && ! m_bTigerFetch && ! m_bMetaFetch )
 	{
 		if ( m_nOffset + m_nLength == m_pDownload->m_nSize )
 		{
@@ -327,37 +469,16 @@ BOOL CDownloadTransferHTTP::SendRequest()
 		}
 		m_pOutput->Print( strLine );
 	}
-	else
+	else if ( !m_bHeadRequest )
 	{
 		m_pOutput->Print( "Range: bytes=0-\r\n" );
 	}
-	
+
 	if ( m_bWantBackwards && Settings.Downloads.AllowBackwards )
 	{
 		m_pOutput->Print( "Accept-Encoding: backwards\r\n" );
 	}
-	
-	strLine = Settings.SmartAgent();
-	
-	if ( strLine.GetLength() )
-	{
-		strLine = _T("User-Agent: ") + strLine + _T("\r\n");
-		m_pOutput->Print( strLine );
-	}
-	
-	if ( m_nRequests == 0 )
-	{
-		if ( m_bInitiated ) SendMyAddress();
-		
-		strLine = MyProfile.GetNick().Left( 255 );
-		
-		if ( strLine.GetLength() > 0 )
-		{
-			strLine = _T("X-Nick: ") + URLEncode( strLine ) + _T("\r\n");
-			m_pOutput->Print( strLine );
-		}
-	}
-	
+
 	if ( m_pSource->m_nPort == INTERNET_DEFAULT_HTTP_PORT )
 	{
 		int nSlash = m_pSource->m_sURL.ReverseFind( '/' );
@@ -367,49 +488,118 @@ BOOL CDownloadTransferHTTP::SendRequest()
 			m_pOutput->Print( strLine );
 		}
 	}
-	
-	m_pOutput->Print( "X-Queue: 0.1\r\n" );
-	
-	if ( m_pSource->m_bSHA1 && Settings.Library.SourceMesh && ! m_bTigerFetch && ! m_bMetaFetch )
+
+    // m_pOutput->Print( "X-Queue: 0.1\r\n" );
+    if ( !m_bHeadRequest ) m_pOutput->Print( "X-Queue: 0.1\r\n" );
+
+	if ( m_pDownload->m_oSHA1 )
 	{
 		CString strURN = m_pDownload->m_oSHA1.toUrn();
-		
+
 		m_pOutput->Print( "X-Content-URN: " );
 		m_pOutput->Print( strURN + _T("\r\n") );
-		
-		if ( m_pSource->m_nGnutella < 2 )
-			strLine = m_pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_G1, m_pSource );
-		else
-			strLine = m_pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_HTTP, m_pSource );
-		
-		if ( strLine.GetLength() )
+	}
+
+	if ( m_pDownload->m_oTiger )
+	{
+		CString strURN = m_pDownload->m_oTiger.toUrn();
+		m_pOutput->Print( "X-Content-URN: " );
+		m_pOutput->Print( strURN + _T("\r\n") );
+	}
+
+	if ( m_pDownload->m_oED2K )
+	{
+		CString strURN = m_pDownload->m_oED2K.toUrn();
+		m_pOutput->Print( "X-Content-URN: " );
+		m_pOutput->Print( strURN + _T("\r\n") );
+	}
+
+	if ( m_pDownload->m_oMD5 )
+	{
+		CString strURN = m_pDownload->m_oMD5.toUrn();
+		m_pOutput->Print( "X-Content-URN: " );
+		m_pOutput->Print( strURN + _T("\r\n") );
+	}
+
+	if ( ( m_pDownload->m_oSHA1 || m_pDownload->m_oTiger || m_pDownload->m_oED2K || m_pDownload->m_oMD5 ) && 
+			Settings.Library.SourceMesh && ! m_bTigerFetch && ! m_bMetaFetch )
+	{
+		CString strURN;
+
+		if ( m_pDownload->m_oSHA1 && m_pDownload->m_oTiger )
 		{
-			if ( m_pSource->m_nGnutella < 2 )
-				m_pOutput->Print( "X-Alt: " );
-			else
-				m_pOutput->Print( "Alt-Location: " );
-			m_pOutput->Print( strLine + _T("\r\n") );
+			strURN = _T("urn:bitprint:")
+					+ m_pDownload->m_oSHA1.toString() + '.'
+					+ m_pDownload->m_oTiger.toString();
 		}
-		
-		if ( m_pDownload->IsShared() && m_pDownload->IsStarted() && Network.IsStable() )
+		else if ( m_pDownload->m_oSHA1 )
 		{
-			if ( m_pSource->m_nGnutella < 2 )
-			{
-				strLine.Format( _T("%s:%i"), (LPCTSTR)CString( inet_ntoa( Network.m_pHost.sin_addr ) ),
-					htons( Network.m_pHost.sin_port ) );
-				m_pOutput->Print( "X-Alt: " );
-			}
-			else
+			strURN = m_pDownload->m_oSHA1.toUrn();
+		}
+		else if ( m_pDownload->m_oTiger )
+		{
+			strURN = m_pDownload->m_oTiger.toUrn();
+		}
+		else if ( m_pDownload->m_oED2K )
+		{
+			strURN = m_pDownload->m_oED2K.toUrn();
+		}
+		else if ( m_pDownload->m_oMD5 )
+		{
+			strURN = m_pDownload->m_oMD5.toUrn();
+		}
+
+		if ( m_pDownload->IsShared() && !m_pDownload->IsPaused() && Network.IsFirewalled(CHECK_TCP) != TS_TRUE && m_nRequests > 0)
+		{
+			if ( strURN.GetLength() )
 			{
 				strLine.Format( _T("http://%s:%i/uri-res/N2R?%s "),
 					(LPCTSTR)CString( inet_ntoa( Network.m_pHost.sin_addr ) ),
-					htons( Network.m_pHost.sin_port ),
-					(LPCTSTR)strURN );
-				strLine += TimeToString( static_cast< DWORD >( time( NULL ) - 180 ) );
-				m_pOutput->Print( "Alt-Location: " );
+					htons( Network.m_pHost.sin_port ), (LPCTSTR)strURN );
+					strLine += TimeToString( static_cast< DWORD >( time( NULL ) - 180 ) );
+					m_pOutput->Print( "Alt-Location: " );
+				m_pOutput->Print( strLine + _T("\r\n") );
 			}
-			m_pOutput->Print( strLine + _T("\r\n") );
-			
+
+			if ( m_pSource->m_nGnutella < 2 && Settings.IsG1Allowed() )
+			{
+				strLine = m_pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_G1, m_pSource );
+				if ( strLine.GetLength() )
+				{
+					m_pOutput->Print( "X-Alt: " );
+					strLine.Format( _T("%s:%i"), (LPCTSTR)CString( inet_ntoa( Network.m_pHost.sin_addr ) ),
+					htons( Network.m_pHost.sin_port ) );
+					m_pOutput->Print( strLine + _T("\r\n") );
+				}
+			}
+			else
+			{
+				strLine = m_pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_G1, m_pSource );
+				if ( strLine.GetLength() )
+				{
+					m_pOutput->Print( "X-Alt: " );
+					strLine.Format( _T("%s:%i"), (LPCTSTR)CString( inet_ntoa( Network.m_pHost.sin_addr ) ),
+						htons( Network.m_pHost.sin_port ) );
+					m_pOutput->Print( strLine + _T("\r\n") );
+				}
+
+				strLine = m_pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_G2, m_pSource );
+				if ( strLine.GetLength() )
+				{
+					m_pOutput->Print( "X-G2Alt: " );
+					strLine.Format( _T("%s:%i"), (LPCTSTR)CString( inet_ntoa( Network.m_pHost.sin_addr ) ),
+						htons( Network.m_pHost.sin_port ) );
+					m_pOutput->Print( strLine + _T("\r\n") );
+				}
+
+				strLine = m_pDownload->GetSourceURLs( &m_pSourcesSent, 15, PROTOCOL_HTTP, m_pSource );
+				if ( strLine.GetLength() )
+				{
+					m_pOutput->Print( "Alt-Location: " );
+					m_pOutput->Print( strLine + _T("\r\n") );
+				}
+			}
+
 			if ( m_pSource->m_nGnutella < 2 )
 			{
 				strLine = m_pDownload->GetTopFailedSources( 15, PROTOCOL_G1 );
@@ -419,13 +609,22 @@ BOOL CDownloadTransferHTTP::SendRequest()
 					m_pOutput->Print( _T("\r\n") );
 				}
 			}
+
+			if ( m_pSource->m_nGnutella >= 2 )
+			{
+				strLine = m_pDownload->GetTopFailedSources( 15, PROTOCOL_G2 );
+				if ( strLine.GetLength() )
+				{
+					m_pOutput->Print( "X-G2NAlt: " + strLine );
+					m_pOutput->Print( _T("\r\n") );
+				}
+			}
 		}
 	}
-	
+
 	m_pOutput->Print( "\r\n" );
-	
-	SetState( dtsRequesting );
-	m_tRequest			= GetTickCount();
+
+	m_bBadResponse		= FALSE;
 	m_bBusyFault		= FALSE;
 	m_bRangeFault		= FALSE;
 	m_bKeepAlive		= FALSE;
@@ -435,14 +634,16 @@ BOOL CDownloadTransferHTTP::SendRequest()
 	m_bQueueFlag		= FALSE;
 	m_nContentLength	= SIZE_UNKNOWN;
 	m_sContentType.Empty();
-	
+
 	m_sTigerTree.Empty();
 	m_nRequests++;
-	
+
 	m_pSource->SetLastSeen();
-	
+
 	CDownloadTransfer::OnWrite();
-	
+	SetState( dtsRequesting );
+	m_tRequest	= GetTickCount();
+
 	return TRUE;
 }
 
@@ -451,19 +652,52 @@ BOOL CDownloadTransferHTTP::SendRequest()
 
 BOOL CDownloadTransferHTTP::OnRun()
 {
-	CDownloadTransfer::OnRun();
-	
+	if ( !CDownloadTransfer::OnRun() )
+	{
+		return FALSE;
+	}
+
 	DWORD tNow = GetTickCount();
-	
+
 	switch ( m_nState )
 	{
 	case dtsConnecting:
-		if ( tNow - m_tConnected > Settings.Connection.TimeoutConnect )
+		if ( m_bPushWaiting )	// Trying to connect with PUSH method
 		{
-			theApp.Message( MSG_ERROR, IDS_CONNECTION_TIMEOUT_CONNECT, (LPCTSTR)m_sAddress );
-			if ( m_pSource != NULL ) m_pSource->PushRequest();
-			Close( TS_UNKNOWN );
-			return FALSE;
+			if ( tNow - m_tConnected > Settings.Downloads.PushTimeout )	// if time of the trial is longer than PUSH timeout.
+			{
+				theApp.Message( MSG_ERROR, IDS_CONNECTION_TIMEOUT_CONNECT, (LPCTSTR)m_sAddress );
+				m_pSource->m_bCloseConn = FALSE;	// Reset CloseConnection flag.
+
+				if ( m_pSource->m_bPushOnly )		// This is PUSH only source
+					Close( TS_TRUE );
+				else								// Not PUSH only source
+					Close( TS_UNKNOWN );			// Close connection with AttemptTime/FailureCount increased.
+
+				return FALSE;
+			}
+		}
+		else	// this is not PUSH connection
+		{
+			if ( tNow - m_tConnected > Settings.Connection.TimeoutConnect )	// if time of trial is loger than Connection Timeout
+			{
+				theApp.Message( MSG_ERROR, IDS_CONNECTION_TIMEOUT_CONNECT, (LPCTSTR)m_sAddress );
+				m_pSource->m_bCloseConn = FALSE;									// Reset CloseConnection flag
+				if ( Network.IsListening() && m_pSource->PushRequest() )			// Try PUSH if Network core is ready for it
+				{
+					CConnection::Close();											// Close Socket
+					m_bPushWaiting = TRUE;											// Set PUSH flag
+					m_tConnected  = tNow;											// Reset Connection time for Timeout
+					m_sAddress.Format( _T("Attempting PUSH") );						// Set Message in Address field (Quick hack for GUI)
+					m_pHost.sin_port = htons( (WORD)m_pSource->m_nPushAttempted );	// Set attempt count to Port number(Quick hack for GUI)
+					return TRUE;
+				}
+				else	// PUSH is not option this time
+				{
+					Close( TS_UNKNOWN );	// Close connection with AttemptTime/FailureCount increased.
+					return FALSE;
+				}
+			}
 		}
 		break;
 
@@ -493,7 +727,7 @@ BOOL CDownloadTransferHTTP::OnRun()
 		if ( tNow - m_tRequest > 1000 )
 		{
 			theApp.Message( MSG_ERROR, IDS_DOWNLOAD_BUSY, (LPCTSTR)m_sAddress, Settings.Downloads.RetryDelay / 1000 );
-			Close( TS_TRUE );
+			Close( TS_TRUE, m_nRetryAfter );
 			return FALSE;
 		}
 		break;
@@ -516,7 +750,7 @@ BOOL CDownloadTransferHTTP::OnRun()
 BOOL CDownloadTransferHTTP::OnRead()
 {
 	CDownloadTransfer::OnRead();
-	
+
 	switch ( m_nState )
 	{
 	case dtsRequesting:
@@ -550,23 +784,25 @@ BOOL CDownloadTransferHTTP::OnRead()
 BOOL CDownloadTransferHTTP::ReadResponseLine()
 {
 	CString strLine, strCode, strMessage;
-	
+
 	if ( ! m_pInput->ReadLine( strLine ) ) return TRUE;
 	if ( strLine.IsEmpty() ) return TRUE;
 
 	if ( strLine.GetLength() > 512 ) strLine = _T("#LINE_TOO_LONG#");
-	
+
 	theApp.Message( MSG_DEBUG, _T("%s: DOWNLOAD RESPONSE: %s"), (LPCTSTR)m_sAddress, (LPCTSTR)strLine );
-	
+
 	if ( strLine.GetLength() >= 12 && strLine.Left( 9 ) == _T("HTTP/1.1 ") )
 	{
 		strCode		= strLine.Mid( 9, 3 );
 		strMessage	= strLine.Mid( 12 );
+		m_bKeepAlive = TRUE;
 	}
 	else if ( strLine.GetLength() >= 12 && strLine.Left( 9 ) == _T("HTTP/1.0 ") )
 	{
 		strCode		= strLine.Mid( 9, 3 );
 		strMessage	= strLine.Mid( 12 );
+		m_bKeepAlive = FALSE;
 	}
 	else if ( strLine.GetLength() >= 8 && strLine.Left( 4 ) == _T("HTTP") )
 	{
@@ -579,12 +815,12 @@ BOOL CDownloadTransferHTTP::ReadResponseLine()
 		Close( TS_FALSE );
 		return FALSE;
 	}
-	
+
 	if ( strCode == _T("200") || strCode == _T("206") )
 	{
-		SetState( dtsHeaders );
+		m_bBadResponse = FALSE;
 		m_pSource->m_nFailures = 0;
-		m_pSource->m_nBusyCount = 0;
+		if ( !m_bHeadRequest ) m_pSource->m_nBusyCount = 0;
 	}
 	else if ( strCode == _T("503") )
 	{
@@ -592,24 +828,37 @@ BOOL CDownloadTransferHTTP::ReadResponseLine()
 		if ( _tcsistr( strMessage, _T("range") ) != NULL )
 		{
 			m_bRangeFault = TRUE;
+			m_pSource->m_bReConnect = FALSE;
 		}
 		else
 		{
 			m_bBusyFault = TRUE;
 			m_pSource->m_nFailures = 0;
 		}
-		
-		SetState( dtsHeaders );
+		m_pSource->m_bReConnect = FALSE;
+		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_HTTPCODE, (LPCTSTR)m_sAddress,
+			(LPCTSTR)strCode, (LPCTSTR)strMessage );
 	}
 	else if ( strCode == _T("416") )
 	{
 		m_bRangeFault = TRUE;
-		SetState( dtsHeaders );
+		m_pSource->m_bReConnect = FALSE;
+		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_HTTPCODE, (LPCTSTR)m_sAddress,
+			(LPCTSTR)strCode, (LPCTSTR)strMessage );
 	}
 	else if ( strCode == _T("301") || strCode == _T("302") )
 	{
 		m_bRedirect = TRUE;
-		SetState( dtsHeaders );
+		m_pSource->m_bReConnect = FALSE;
+		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_HTTPCODE, (LPCTSTR)m_sAddress,
+			(LPCTSTR)strCode, (LPCTSTR)strMessage );
+	}
+	else if ( strCode == _T("404") )
+	{
+		m_bBadResponse = TRUE;
+		m_pSource->m_bReConnect = FALSE;
+		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_HTTPCODE, (LPCTSTR)m_sAddress,
+			(LPCTSTR)strCode, (LPCTSTR)strMessage );
 	}
 	else
 	{
@@ -617,13 +866,16 @@ BOOL CDownloadTransferHTTP::ReadResponseLine()
 		if ( strMessage.GetLength() > 128 ) strMessage = _T("No Message");
 		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_HTTPCODE, (LPCTSTR)m_sAddress,
 			(LPCTSTR)strCode, (LPCTSTR)strMessage );
-		SetState( dtsHeaders );
 		m_bBadResponse = TRUE;
+		m_pSource->m_bReConnect = FALSE;
+
 	}
-	
+
+	SetState( dtsHeaders );
+
 	m_pHeaderName.RemoveAll();
 	m_pHeaderValue.RemoveAll();
-	
+
 	return TRUE;
 }
 
@@ -633,20 +885,21 @@ BOOL CDownloadTransferHTTP::ReadResponseLine()
 BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 {
 	theApp.Message( MSG_DEBUG, _T("%s: DOWNLOAD HEADER: %s: %s"), (LPCTSTR)m_sAddress, (LPCTSTR)strHeader, (LPCTSTR)strValue );
-	
+
 	if ( strHeader.CompareNoCase( _T("Server") ) == 0 )
 	{
 		m_sUserAgent = strValue;
-		
-		if ( IsAgentBlocked() )
-		{
-			Close( TS_FALSE );
-			return FALSE;
-		}
-		
+
+		// Agent Block should not be checked here, because it might be able to give out Valid Sources with Source exchange
+		//if ( IsAgentBlocked() )
+		//{
+		//	Close( TS_FALSE );
+		//	return FALSE;
+		//}
+
 		m_pSource->m_sServer = strValue;
 		if ( strValue.GetLength() > 64 ) strValue = strValue.Left( 64 );
-		
+
 		if ( _tcsistr( m_sUserAgent, _T("shareaza") ) != NULL ) m_pSource->SetGnutella( 3 );
 		if ( _tcsistr( m_sUserAgent, _T("trustyfiles") ) != NULL ) m_pSource->SetGnutella( 3 );
 		if ( _tcsistr( m_sUserAgent, _T("gnucdna") ) != NULL ) m_pSource->SetGnutella( 3 );
@@ -656,7 +909,23 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 	}
 	else if ( strHeader.CompareNoCase( _T("Connection") ) == 0 )
 	{
-		if ( strValue.CompareNoCase( _T("Keep-Alive") ) == 0 ) m_bKeepAlive = TRUE;
+		if ( strValue.CompareNoCase( _T("Keep-Alive") ) == 0 ) 
+		{
+			m_bKeepAlive = TRUE;
+			m_pSource->m_bCloseConn = FALSE;
+		}
+		if ( strValue.CompareNoCase( _T("close") ) == 0 ) 
+		{
+			m_bKeepAlive = FALSE;
+			if ( !m_bBadResponse && !m_bRangeFault && !m_bBusyFault ) 
+			{
+				m_pSource->m_bCloseConn = TRUE;
+			}
+			else
+			{
+				m_pSource->m_bCloseConn = FALSE;
+			}
+		}
 	}
 	else if ( strHeader.CompareNoCase( _T("Content-Length") ) == 0 )
 	{
@@ -665,10 +934,10 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 	else if ( strHeader.CompareNoCase( _T("Content-Range") ) == 0 )
 	{
 		QWORD nFirst = 0, nLast = 0, nTotal = 0;
-		
+
 		if ( _stscanf( strValue, _T("bytes %I64i-%I64i/%I64i"), &nFirst, &nLast, &nTotal ) != 3 )
 			_stscanf( strValue, _T("bytes=%I64i-%I64i/%I64i"), &nFirst, &nLast, &nTotal );
-		
+
 		if ( m_pDownload->m_nSize == SIZE_UNKNOWN )
 		{
 			m_pDownload->m_nSize = nTotal;
@@ -687,16 +956,16 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 			Close( TS_FALSE );
 			return FALSE;
 		}
-		
+
 		if ( m_nOffset == SIZE_UNKNOWN && ! m_pDownload->GetFragment( this ) )
 		{
 			Close( TS_TRUE );
 			return FALSE;
 		}
-		
+
 		BOOL bUseful = m_pDownload->IsPositionEmpty( nFirst );
 		// BOOL bUseful = m_pDownload->IsRangeUseful( nFirst, nLast - nFirst + 1 );
-		
+
 		if ( nFirst == m_nOffset && nLast == m_nOffset + m_nLength - 1 && bUseful )
 		{
 			// Perfect match, good
@@ -705,7 +974,7 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		{
 			m_nOffset = nFirst;
 			m_nLength = nLast - nFirst + 1;
-			
+
 			theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_USEFUL_RANGE, (LPCTSTR)m_sAddress,
 				m_nOffset, m_nOffset + m_nLength - 1, (LPCTSTR)m_pDownload->GetDisplayName() );
 		}
@@ -714,10 +983,10 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 			theApp.Message( MSG_ERROR, IDS_DOWNLOAD_WRONG_RANGE, (LPCTSTR)m_sAddress,
 				(LPCTSTR)m_pDownload->GetDisplayName() );
 			Close( TS_TRUE );
-			
+
 			return FALSE;
 		}
-		
+
 		if ( m_nContentLength == SIZE_UNKNOWN ) m_nContentLength = m_nLength;
 		m_bGotRange = TRUE;
 	}
@@ -736,19 +1005,22 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		Hashes::Sha1Hash oSHA1;
 		Hashes::TigerHash oTiger;
 		Hashes::Ed2kHash oED2K;
+		Hashes::Ed2kHash oMD5;
 		CString strURNs = strValue + ',';
 		for ( int nPos = strURNs.Find( ',' ); nPos >= 0; nPos = strURNs.Find( ',' ) )
 		{
 			strValue = strURNs.Left( nPos ).TrimLeft();
 			strURNs = strURNs.Mid( nPos + 1 );
-			
-			if (   ( !oSHA1 .fromUrn( strValue ) || m_pSource->CheckHash( oSHA1  ) )
+
+			if (   ( !oSHA1.fromUrn( strValue ) || m_pSource->CheckHash( oSHA1  ) )
 				&& ( !oTiger.fromUrn( strValue ) || m_pSource->CheckHash( oTiger ) )
-				&& ( !oED2K .fromUrn( strValue ) || m_pSource->CheckHash( oED2K  ) ) )
+				&& ( !oED2K.fromUrn( strValue ) || m_pSource->CheckHash( oED2K ) )
+				&& ( !oMD5.fromUrn( strValue ) || m_pSource->CheckHash( oMD5  ) ) )
 			{
-				if ( oTiger && Settings.Downloads.VerifyTiger && !m_bTigerIgnore && m_sTigerTree.IsEmpty()
-					&& (   _tcsistr( m_sUserAgent, L"shareaza 2.1.4" ) != NULL
-						|| _tcsistr( m_sUserAgent, L"shareaza 2.2.0" ) != NULL ) )
+				if ( !m_bTigerFailed && oTiger && Settings.Downloads.VerifyTiger && !m_bTigerIgnore && oTiger && m_sTigerTree.IsEmpty()
+					&& (  ( _tcsistr( m_sUserAgent, L"Shareaza 2.1" ) != NULL
+						&&	_tcsistr( m_sUserAgent, L"2.1.0.0" ) == NULL )
+						||	_tcsistr( m_sUserAgent, L"Shareaza 2.2.0" ) != NULL ) )
 				{
 					// Converting urn containing tiger tree root to
 					// "/gnutella/thex/v1?urn:tree:tiger/:{TIGER_ROOT}&depth={TIGER_HEIGHT}&ed2k={0/1}"
@@ -759,7 +1031,7 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 						Settings.Library.TigerHeight,
 						Settings.Downloads.VerifyED2K );
 				}
-				m_bHashMatch = m_bHashMatch || oSHA1 || oTiger || oED2K;
+				m_bHashMatch = m_bHashMatch || oSHA1 || oTiger || oED2K || oMD5;
 				continue;
 			}
 			theApp.Message( MSG_ERROR, IDS_DOWNLOAD_WRONG_HASH, (LPCTSTR)m_sAddress,
@@ -792,22 +1064,60 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 			{
 				m_sTigerTree = strValue.SpanExcluding( _T("; ") );
 				Replace( m_sTigerTree, _T("ed2k=0"), _T("ed2k=1") );
+
+				int nPos = m_sTigerTree.GetLength() + 1;
+				Hashes::TigerHash oTiger;
+				oTiger.fromString( strValue.Mid( nPos ) );
+				if ( oTiger && !m_pSource->CheckHash(oTiger) )
+				{
+					theApp.Message( MSG_ERROR, IDS_DOWNLOAD_WRONG_HASH, (LPCTSTR)m_sAddress,
+						(LPCTSTR)m_pDownload->GetDisplayName() );
+					Close( TS_FALSE );
+					return FALSE;
+				}
 			}
 		}
 		m_pSource->SetGnutella( 1 );
 	}
-	else if (	strHeader.CompareNoCase( _T("X-Gnutella-Alternate-Location") ) == 0 ||
-				strHeader.CompareNoCase( _T("Alt-Location") ) == 0 ||
-				strHeader.CompareNoCase( _T("X-Alt") ) == 0 )
+	else if (	strHeader.CompareNoCase( _T("X-Gnutella-Alternate-Location") ) == 0 )
 	{
 		if ( Settings.Library.SourceMesh )
 		{
 			if ( strValue.Find( _T("Zhttp://") ) < 0 )
 			{
-				m_pDownload->AddSourceURLs( strValue, m_bHashMatch );
+				m_pDownload->AddSourceURLs( strValue, m_bHashMatch, FALSE, PROTOCOL_HTTP );
 			}
 		}
 		m_pSource->SetGnutella( 1 );
+	}
+	else if ( strHeader.CompareNoCase( _T("X-Alt") ) == 0 )
+	{
+		if ( Settings.Library.SourceMesh )
+		{
+			m_pDownload->AddSourceURLs( strValue, m_bHashMatch, FALSE, PROTOCOL_G1 );
+		}
+		m_pSource->SetGnutella( 1 );
+	}
+	else if (	strHeader.CompareNoCase( _T("Alt-Location") ) == 0 )
+	{
+		if ( Settings.Library.SourceMesh )
+		{
+			if ( strValue.Find( _T("Zhttp://") ) < 0 )
+			{
+				m_pDownload->AddSourceURLs( strValue, m_bHashMatch,  FALSE, PROTOCOL_HTTP );
+			}
+		}
+		m_pSource->SetGnutella( 2 );	// basically any of Gnutella1 servents do not use this "Alt-Location" so assume
+										// it is G2 for now.
+	}
+	else if (	strHeader.CompareNoCase( _T("X-G2Alt") ) == 0 )
+	{
+		if ( Settings.Library.SourceMesh )
+		{
+			m_pDownload->AddSourceURLs( strValue, m_bHashMatch,  FALSE, PROTOCOL_G2 );
+		}
+		m_pSource->SetGnutella( 2 );	// basically any of Gnutella1 servents do not use this "Alt-Location" so assume
+		// it is G2 for now.
 	}
 	else if ( strHeader.CompareNoCase( _T("X-Available-Ranges") ) == 0 )
 	{
@@ -816,33 +1126,40 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 		m_pSource->SetGnutella( 1 );
 		if ( m_pSource->m_oAvailable.empty() )
 		{
-			theApp.Message( MSG_DEBUG, _T( "header did not include valid ranges, dropping source..." ) );
-			Close( TS_FALSE );
+			// Dropping source without wanted range here is inappropriate,
+			// because Close(TS_FALSE) will cause tell others that the source is not good for partial share
+			// even if there might be some one which is so behind than you and still want range you dont need.
+			// Plug the source might get some useful range to you later.
+
+            // theApp.Message( MSG_DEBUG, _T( "header did not include valid ranges, dropping source..." ) );
+			// Close( TS_FALSE );
+
+            Close( TS_UNKNOWN );
 			return FALSE;
 		}
 	}
 	else if ( strHeader.CompareNoCase( _T("X-Queue") ) == 0 )
 	{
 		m_pSource->SetGnutella( 1 );
-		
+
 		m_bQueueFlag = TRUE;
 		CharLower( strValue.GetBuffer() );
 		strValue.ReleaseBuffer();
-		
+
 		int nPos = strValue.Find( _T("position=") );
 		if ( nPos >= 0 ) _stscanf( strValue.Mid( nPos + 9 ), _T("%i"), &m_nQueuePos );
-		
+
 		nPos = strValue.Find( _T("length=") );
 		if ( nPos >= 0 ) _stscanf( strValue.Mid( nPos + 7 ), _T("%i"), &m_nQueueLen );
-		
+
 		DWORD nLimit = 0;
-		
+
 		nPos = strValue.Find( _T("pollmin=") );
 		if ( nPos >= 0 && _stscanf( strValue.Mid( nPos + 8 ), _T("%u"), &nLimit ) == 1 )
 		{
 			m_nRetryDelay = max( m_nRetryDelay, nLimit * 1000 + 3000  );
 		}
-		
+
 		nPos = strValue.Find( _T("pollmax=") );
 		if ( nPos >= 0 && _stscanf( strValue.Mid( nPos + 8 ), _T("%u"), &nLimit ) == 1 )
 		{
@@ -870,7 +1187,7 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 				strHeader.CompareNoCase( _T("X-Gnutella-maxSlotsPerHost") ) == 0 )
 	{
 		int nLimit = 0;
-		
+
 		if ( _stscanf( strValue, _T("%i"), &nLimit ) != 1 )
 		{
 			Downloads.SetPerHostLimit( &m_pHost.sin_addr, nLimit );
@@ -904,7 +1221,66 @@ BOOL CDownloadTransferHTTP::OnHeaderLine(CString& strHeader, CString& strValue)
 	{
 		m_pSource->SetGnutella( 1 );
 	}
-	
+	else if ( strHeader.CompareNoCase( _T("X-G2NH") ) == 0 )
+	{	// The remote computer is giving us a list of G2 hubs the remote node is connected to
+		int nCount = 0;
+		CDownloadSource::HubList oHubList;
+		CString sHublist(strValue);
+		for ( sHublist += ',' ; ; ) 
+		{
+			int nPos = sHublist.Find( ',' );		// Set nPos to the distance in characters from the start to the comma
+			if ( nPos < 0 ) break;					// If no comma was found, leave the loop
+			CString sHub = sHublist.Left( nPos );// Copy the text up to the comma into strHost
+			sHublist = sHublist.Mid( nPos + 1 );    // Clip that text and the comma off the start of strValue
+
+			// since there is no clever way to detect the given what Hosts' vender codes are, just add then as NULL
+			// in order to prevent HostCache/KHL pollution done by mis-assumptions.
+			// if ( HostCache.Gnutella2.Add( sHub, 0, NULL ) ) nCount++; // Count it
+			SOCKADDR_IN pHub;
+			if ( StrToSockaddr( sHub, pHub ) )
+			{
+				nCount++;
+				oHubList.push_back(pHub);
+			}
+		}
+		if ( nCount > 0 ) m_pSource->m_oHubList = oHubList;
+		m_pSource->SetGnutella( 2 );
+	}
+	else if ( strHeader.CompareNoCase( _T("X-Push-Proxy") ) == 0 )
+	{	// The remote computer is giving us a list of G1 PushProxy the remote node is connected to
+		int nCount = 0;
+		CDownloadSource::HubList pProxies;
+		CString sProxylist(strValue);
+
+		for ( sProxylist += ',' ; ; ) 
+		{
+			int nPos = sProxylist.Find( ',' );		// Set nPos to the distance in characters from the start to the comma
+			if ( nPos < 0 ) break;					// If no comma was found, leave the loop
+			CString sProxy = sProxylist.Left( nPos );// Copy the text up to the comma into strHost
+			sProxylist = sProxylist.Mid( nPos + 1 );    // Clip that text and the comma off the start of strValue
+
+			// since there is no clever way to detect the given what Hosts' vender codes are, just add then as NULL
+			// in order to prevent HostCache/KHL pollution done by mis-assumptions.
+			// if ( HostCache.Gnutella2.Add( sHub, 0, NULL ) ) nCount++; // Count it
+			SOCKADDR_IN pProxy;
+			if ( StrToSockaddr( sProxy, pProxy ) )
+			{
+				CString strAddr;
+				CString strPort;
+				strAddr = CString( inet_ntoa( pProxy.sin_addr ) );
+				strPort.Format( _T("%hu") ,ntohs( pProxy.sin_port ) );
+				nCount++;
+				pProxies.push_back(pProxy);
+			}
+		}
+		if ( nCount > 0 ) m_pSource->m_oPushProxyList = pProxies;
+		m_pSource->SetGnutella( 1 );
+	}
+	else if ( strHeader.CompareNoCase( _T("Retry-After") ) == 0 && m_bBusyFault )
+	{
+		_stscanf( strValue, _T("%i"), &m_nRetryAfter);
+	}
+
 	return CTransfer::OnHeaderLine( strHeader, strValue );
 }
 
@@ -920,34 +1296,106 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 	// TS_UNKNOWN - keeps the source and will be dropped after several retries, will be
 	//            - added to m_pFailedSources when removed
 
-	if ( m_bBadResponse )
+	switch ( m_pSource->m_nGnutella )
+	{
+		case 1:
+			m_pSource->ChangeProtocolID( PROTOCOL_G1 );
+			break;
+		case 2:
+			m_pSource->ChangeProtocolID( PROTOCOL_G2 );
+			break;
+		case 3:
+			m_pSource->ChangeProtocolID( PROTOCOL_G2 );
+			break;
+		default:
+			break;
+	}
+
+	// Bad agent check should be moved here, because it can still give out sources with Source-Exchange.
+	if ( IsAgentBlocked() )
 	{
 		Close( TS_FALSE );
 		return FALSE;
+	}
+	else if ( m_bBadResponse )
+	{
+		if (m_bTigerFetch)
+		{
+			m_bTigerFailed = TRUE;
+			m_bTigerFetch = FALSE;
+			m_sTigerTree.Empty();
+			ReadFlush();
+			return StartNextFragment();
+		}
+		else
+		{
+			m_pSource->m_bReConnect = FALSE;
+			m_pSource->m_bCloseConn = FALSE;
+			Close( TS_FALSE );
+			return FALSE;
+		}
 	}
 	else if ( m_bRedirect )
 	{
 		int nRedirectionCount = m_pSource->m_nRedirectionCount;
 		m_pDownload->AddSourceURL( m_sRedirectionURL, m_bHashMatch, NULL, nRedirectionCount + 1 );
-		Close( TS_FALSE );
+		// This TS_FALSE should be fixed for something dropping source without banning because it will 
+		// make the source server to be banned for source if the source is on same IP as the server redirected to. 
+		// Close( TS_FALSE );
+		Close( TS_UNKNOWN );
 		return FALSE;
+	}
+	else if ( m_bHeadRequest )
+	{
+		if ( !m_bKeepAlive )
+		{
+			m_pSource->m_bReConnect = TRUE;
+			m_pSource->m_bCloseConn = TRUE;
+		}
+		else
+		{
+			if ( m_pDownload->m_nSize == SIZE_UNKNOWN )
+			{
+				m_pDownload->m_nSize = m_nContentLength;
+			}
+
+			if ( ! m_bGotRanges )
+			{
+				m_pSource->SetAvailableRanges( NULL );
+			}
+
+			if ( !m_bRangeFault )
+			{
+				m_bHeadRequest = FALSE;
+				if ( m_pDownload->NeedTigerTree() && !m_sTigerTree.IsEmpty() && !m_bTigerFailed ) m_bTigerFetch = TRUE;
+				m_nContentLength = SIZE_UNKNOWN;
+				return StartNextFragment();
+			}
+			else
+			{
+				Close( TS_FALSE );
+				return FALSE;
+			}
+		}
 	}
 	else if ( ! m_pSource->CanInitiate( TRUE, TRUE ) )
 	{
 		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_DISABLED,
 			(LPCTSTR)m_pDownload->GetDisplayName(), (LPCTSTR)m_sAddress, (LPCTSTR)m_sUserAgent );
+		// ???Does this condition needed? if it is ED2K source, HTTP code should not be executed in first place.
 		Close( m_pSource->m_bED2K ? TS_FALSE : TS_UNKNOWN );
 		return FALSE;
 	}
 	else if ( m_bBusyFault )
 	{
 		m_nOffset = SIZE_UNKNOWN;
-		
+		m_pSource->m_nFailures = 0;
+
 		if ( Settings.Downloads.QueueLimit > 0 && m_nQueuePos > Settings.Downloads.QueueLimit )
 		{
 			theApp.Message( MSG_ERROR, IDS_DOWNLOAD_QUEUE_HUGE,
 				(LPCTSTR)m_sAddress, (LPCTSTR)m_pDownload->GetDisplayName(), m_nQueuePos );
-			Close( TS_FALSE );
+			Close( TS_UNKNOWN );
 			return FALSE;
 		}
 		else if ( m_bQueueFlag && m_nRetryDelay >= 600000 )
@@ -955,7 +1403,7 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 			m_pSource->m_tAttempt = GetTickCount() + m_nRetryDelay;
 			m_bQueueFlag = FALSE;
 		}
-		
+
 		if ( m_bQueueFlag )
 		{
 			SetState( dtsFlushing );
@@ -974,7 +1422,7 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 	{
 		m_pSource->SetAvailableRanges( NULL );
 	}
-	
+
 	if ( m_bRangeFault )
 	{
 		if ( m_pHost.sin_addr.S_un.S_addr == Network.m_pHost.sin_addr.S_un.S_addr )
@@ -982,11 +1430,11 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 			Close( TS_TRUE );
 			return FALSE;
 		}
-		
+
 		m_nOffset = SIZE_UNKNOWN;
 		SetState( dtsFlushing );
 		m_tContent = m_mInput.tLast = GetTickCount();
-		
+
 		return ReadFlush();
 	}
 	else if ( m_nContentLength == SIZE_UNKNOWN && m_bKeepAlive )
@@ -1018,7 +1466,7 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 			Close( TS_FALSE );
 			return FALSE;
 		}
-		
+
 		if (	m_sContentType.CompareNoCase( _T("application/tigertree-breadthfirst") ) &&
 				m_sContentType.CompareNoCase( _T("application/dime") ) && 
 				m_sContentType.CompareNoCase( _T("application/binary") ) ) // Content Type used by Phex 
@@ -1027,13 +1475,13 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 			Close( TS_TRUE );
 			return FALSE;
 		}
-		
+
 		SetState( dtsTiger );
 		m_tContent = m_mInput.tLast = GetTickCount();
-		
+
 		theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_TIGER_RECV, (LPCTSTR)m_sAddress,
 			(LPCTSTR)m_pSource->m_sServer );
-		
+
 		return ReadTiger();
 	}
 	else if ( m_bMetaFetch )
@@ -1043,13 +1491,13 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 			m_nOffset = 0;
 			m_nLength = m_nContentLength;
 		}
-		
+
 		SetState( dtsMetadata );
 		m_tContent = m_mInput.tLast = GetTickCount();
-		
+
 		theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_METADATA_RECV,
 			(LPCTSTR)m_sAddress, (LPCTSTR)m_pSource->m_sServer );
-		
+
 		return ReadMetadata();
 	}
 	else if ( ! m_bGotRange )
@@ -1065,13 +1513,13 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 			Close( TS_FALSE );
 			return FALSE;
 		}
-		
+
 		if ( m_nOffset == SIZE_UNKNOWN && ! m_pDownload->GetFragment( this ) )
 		{
 			Close( TS_TRUE );
 			return FALSE;
 		}
-		
+
 		if ( ! m_pDownload->IsPositionEmpty( 0 ) )
 		{
 			theApp.Message( MSG_ERROR, IDS_DOWNLOAD_WRONG_RANGE, (LPCTSTR)m_sAddress,
@@ -1079,7 +1527,7 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 			Close( TS_TRUE );
 			return FALSE;
 		}
-		
+
 		m_nOffset = 0;
 		m_nLength = m_nContentLength;
 	}
@@ -1098,26 +1546,23 @@ BOOL CDownloadTransferHTTP::OnHeadersComplete()
 			return FALSE;
 		}
 	}
-	
-	if ( m_nContentLength != m_nLength )
+	else if ( m_nContentLength != m_nLength )
 	{
 		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_WRONG_RANGE, (LPCTSTR)m_sAddress,
 			(LPCTSTR)m_pDownload->GetDisplayName() );
 		Close( TS_FALSE );
 		return FALSE;
 	}
-	
-	if ( ! m_bKeepAlive ) m_pSource->m_bCloseConn = TRUE;
-	
+
 	theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_CONTENT, (LPCTSTR)m_sAddress,
 		(LPCTSTR)m_pSource->m_sServer );
-	
+
 	SetState( dtsDownloading );
 	if ( ! m_pDownload->IsBoosted() )
 		m_mInput.pLimit = m_mOutput.pLimit = &m_nBandwidth;
 	m_nPosition = 0;
 	m_tContent = m_mInput.tLast = GetTickCount();
-	
+
 	return TRUE;
 }
 
@@ -1129,10 +1574,10 @@ BOOL CDownloadTransferHTTP::ReadContent()
 	if ( m_pInput->m_nLength > 0 )
 	{
 		m_pSource->SetValid();
-		
+
 		DWORD nLength	= min( m_pInput->m_nLength, m_nLength - m_nPosition );
 		BOOL bSubmit	= FALSE;
-		
+
 		if ( m_bRecvBackwards )
 		{
 			BYTE* pBuffer = new BYTE[ nLength ];
@@ -1146,17 +1591,17 @@ BOOL CDownloadTransferHTTP::ReadContent()
 			bSubmit = m_pDownload->SubmitData(
 						m_nOffset + m_nPosition, m_pInput->m_pBuffer, nLength );
 		}
-		
+
 		m_pInput->Clear();	// Clear the buffer, we don't want any crap
 		m_nPosition += nLength;
 		m_nDownloaded += nLength;
-		
+
 		if ( ! bSubmit )
 		{
 			BOOL bUseful = m_pDownload->IsRangeUsefulEnough( this,
 				m_bRecvBackwards ? m_nOffset : m_nOffset + m_nPosition,
 				m_nLength - m_nPosition );
-			
+
 			if ( /* m_bInitiated || */ ! bUseful )
 			{
 				theApp.Message( MSG_DEFAULT, IDS_DOWNLOAD_FRAGMENT_OVERLAP, (LPCTSTR)m_sAddress );
@@ -1165,13 +1610,14 @@ BOOL CDownloadTransferHTTP::ReadContent()
 			}
 		}
 	}
-	
+
 	if ( m_nPosition >= m_nLength )
 	{
 		m_pSource->AddFragment( m_nOffset, m_nLength );
-		return StartNextFragment();
+
+		if ( m_bKeepAlive ) return StartNextFragment();	// send next segment request only if it was keep-alive
 	}
-	
+
 	return TRUE;
 }
 
@@ -1181,9 +1627,9 @@ BOOL CDownloadTransferHTTP::ReadContent()
 BOOL CDownloadTransferHTTP::ReadMetadata()
 {
 	if ( m_pInput->m_nLength < m_nLength ) return TRUE;
-	
+
 	CString strXML = m_pInput->ReadString( (DWORD)m_nLength, CP_UTF8 );
-	
+
 	if ( CXMLElement* pXML = CXMLElement::FromString( strXML, TRUE ) )
 	{
 		if ( m_pDownload->m_pXML == NULL )
@@ -1195,9 +1641,9 @@ BOOL CDownloadTransferHTTP::ReadMetadata()
 			delete pXML;
 		}
 	}
-	
+
 	m_pInput->Remove( (DWORD)m_nLength );
-	
+
 	return StartNextFragment();
 }
 
@@ -1214,7 +1660,7 @@ BOOL CDownloadTransferHTTP::ReadTiger()
     if ( !m_bKeepAlive && m_nContentLength == SIZE_UNKNOWN ) return TRUE;
 
     if ( m_pInput->m_nLength < m_nLength ) return TRUE;
-	
+
 	if ( m_sContentType.CompareNoCase( _T("application/tigertree-breadthfirst") ) == 0 )
 	{
 		m_pDownload->SetTigerTree( m_pInput->m_pBuffer, (DWORD)m_nLength );
@@ -1225,19 +1671,19 @@ BOOL CDownloadTransferHTTP::ReadTiger()
 	{
 		CString strID, strType, strUUID = _T("x");
 		DWORD nFlags, nBody;
-		
+
 		while ( m_pInput->ReadDIME( &nFlags, &strID, &strType, &nBody ) )
 		{
 			theApp.Message( MSG_DEBUG, _T("THEX DIME: %i, '%s', '%s', %i"),
 				nFlags, (LPCTSTR)strID, (LPCTSTR)strType, nBody );
-			
+
 			if ( ( nFlags & 1 ) && strType.CompareNoCase( _T("text/xml") ) == 0 && nBody < 1024*1024 )
 			{
 				BOOL bSize = FALSE, bDigest = FALSE, bEncoding = FALSE;
 				CString strXML;
-				
+
 				strXML = m_pInput->ReadString( nBody, CP_UTF8 );
-				
+
 				if ( CXMLElement* pXML = CXMLElement::FromString( strXML ) )
 				{
 					if ( pXML->IsNamed( _T("hashtree") ) )
@@ -1263,10 +1709,10 @@ BOOL CDownloadTransferHTTP::ReadTiger()
 					}
 					delete pXML;
 				}
-				
+
 				theApp.Message( MSG_DEBUG, _T("THEX XML: size=%i, digest=%i, encoding=%i"),
 					bSize, bDigest, bEncoding );
-				
+
 				if ( ! bSize || ! bDigest || ! bEncoding ) break;
 			}
 			else if ( ( strID == strUUID || strID.IsEmpty() ) && strType.CompareNoCase( _T("http://open-content.net/spec/thex/breadthfirst") ) == 0 )
@@ -1277,20 +1723,19 @@ BOOL CDownloadTransferHTTP::ReadTiger()
 			{
 				m_pDownload->SetHashset( m_pInput->m_pBuffer, nBody );
 			}
-			
+
 			m_pInput->Remove( ( nBody + 3 ) & ~3 );
 			if ( nFlags & 2 ) break;
 		}
-		
+
 		m_pInput->Clear();
 	}
 
-    // m_bKeepAlive == FALSE means that it was not keep-alive, so should just get disconnected.
+    // m_bCloseConn == FALSE means that it was not keep-alive, so should just get disconnected.
     // after reading of DIME message
     // This might be better with returning FALSE because it is not keep alive connection
     // need to disconnect after the business
-    if ( !m_bKeepAlive ) return TRUE;
-
+	if (m_pSource->m_bCloseConn) return TRUE;
 
 	return StartNextFragment();
 }
@@ -1301,12 +1746,12 @@ BOOL CDownloadTransferHTTP::ReadTiger()
 BOOL CDownloadTransferHTTP::ReadFlush()
 {
 	if ( m_nContentLength == SIZE_UNKNOWN ) m_nContentLength = 0;
-	
+
 	DWORD nRemove = min( m_pInput->m_nLength, m_nContentLength );
 	m_nContentLength -= nRemove;
-	
+
 	m_pInput->Remove( nRemove );
-	
+
 	if ( m_nContentLength == 0 )
 	{
 		if ( m_bQueueFlag )
@@ -1342,7 +1787,7 @@ BOOL CDownloadTransferHTTP::ReadFlush()
 			return StartNextFragment();
 		}
 	}
-	
+
 	return TRUE;
 }
 
@@ -1351,39 +1796,69 @@ BOOL CDownloadTransferHTTP::ReadFlush()
 
 void CDownloadTransferHTTP::OnDropped(BOOL /*bError*/)
 {
-	if ( m_nState == dtsConnecting )
+	if ( m_bBadResponse || m_bRangeFault )
+	{
+		m_pSource->m_bCloseConn = FALSE;
+		m_pSource->m_bReConnect = FALSE;
+		Close( TS_FALSE );
+	}
+	else if ( m_nState == dtsConnecting )
 	{
 		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_CONNECT_ERROR, (LPCTSTR)m_sAddress );
 		if ( m_pSource != NULL ) m_pSource->PushRequest();
+		m_pSource->m_bCloseConn = FALSE;
+		m_pSource->m_bReConnect = FALSE;
 		Close( TS_UNKNOWN );
+	}
+	else if ( !m_bKeepAlive )
+	{
+		if ( m_nState == dtsTiger )
+		{
+			// this is basically for PHEX DIME download
+			theApp.Message( MSG_DEBUG, _T("Reading THEX from the closed connection...") );
+			// It was closed connection with no content length, so assume the content length is equal to the 
+			// size of buffer when the connection gets cut. It is important to set it because the DIME decoding 
+			// code check if the content length is equals to size of buffer.
+			m_nContentLength = m_pInput->m_nLength;
+			m_nLength = m_pInput->m_nLength;
+			ReadTiger();
+			// CDownloadTransfer::Close will resume the closed connection
+			m_pSource->m_bCloseConn = TRUE;
+			m_pSource->m_bReConnect = TRUE;
+			Close( TS_TRUE );
+		}
+		else if ( m_nState == dtsDownloading || m_nState == dtsHeaders )
+		{
+			m_pSource->m_bCloseConn = TRUE;
+			m_pSource->m_bReConnect = TRUE;
+			Close( TS_TRUE );
+		}
 	}
 	else if ( m_nState == dtsBusy )
 	{
 		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_BUSY, (LPCTSTR)m_sAddress, Settings.Downloads.RetryDelay / 1000 );
+		m_pSource->m_bCloseConn = FALSE;
+		m_pSource->m_bReConnect = FALSE;
 		Close( TS_TRUE );
 	}
-	else if ( m_nState == dtsTiger )
-    {
-        // this is basically for PHEX DIME download
-        theApp.Message( MSG_DEBUG, _T("Reading THEX from the closed connection...") );
-		// It was closed connection with no content length, so assume the content length is equal to the 
-		// size of buffer when the connection gets cut. It is important to set it because the DIME decoding 
-		// code check if the content length is equals to size of buffer.
-		m_nContentLength = m_pInput->m_nLength;
-		m_nLength = m_pInput->m_nLength;
-		ReadTiger();
-		// CDownloadTransfer::Close will resume the closed connection
-        m_pSource->m_bCloseConn = TRUE;
-		Close( TS_TRUE );
-    }
 	else if ( m_bBusyFault || m_bQueueFlag )
 	{
 		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_BUSY, (LPCTSTR)m_sAddress, Settings.Downloads.RetryDelay / 1000 );
+		m_pSource->m_bCloseConn = FALSE;
+		m_pSource->m_bReConnect = FALSE;
 		Close( TS_TRUE );
+	}
+	else if ( m_nState == dtsRequesting )
+	{
+		m_pSource->m_bCloseConn = FALSE;
+		m_pSource->m_bReConnect = FALSE;
+		Close( TS_UNKNOWN );
 	}
 	else
 	{
 		theApp.Message( MSG_ERROR, IDS_DOWNLOAD_DROPPED, (LPCTSTR)m_sAddress );
+		m_pSource->m_bCloseConn = FALSE;
+		m_pSource->m_bReConnect = FALSE;
 		Close( m_nState >= dtsDownloading ? TS_TRUE : TS_UNKNOWN );
 	}
 }

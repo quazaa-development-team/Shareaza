@@ -297,6 +297,10 @@ STDMETHODIMP CLibraryCollectionView::External::XView::Detect(BSTR sURN, BSTR *ps
 	{
 		CString( _T("Complete") ).SetSysString( psState );
 	}
+	else if ( LibraryMaps.LookupFileByURN( CString( sURN ), FALSE, FALSE ) )
+	{
+		CString( _T("Ghost") ).SetSysString( psState );
+	}
 	else
 	{
 		CSingleLock pLock( &Transfers.m_pSection, TRUE );
@@ -309,7 +313,7 @@ STDMETHODIMP CLibraryCollectionView::External::XView::Detect(BSTR sURN, BSTR *ps
 		}
 		else
 		{
-			CString().SetSysString( psState );
+			CString( _T("Not Found") ).SetSysString( psState );
 		}
 	}
 

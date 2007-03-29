@@ -150,7 +150,6 @@
 #define IDB_NAVBAR_ALPHA                246
 #define IDD_TORRENT_SEED                247
 #define IDB_REMOTE_SKIN                 248
-#define IDD_DOWNLOAD_EDIT               248
 #define IDD_SETTINGS_REMOTE             249
 #define IDD_SETTINGS_SCHEDULER          250
 #define IDD_DOWNLOAD_REVIEWS            251
@@ -177,6 +176,10 @@
 #define IDC_DOWN                        278
 #define IDC_RIGHT                       279
 #define IDC_LEFT                        280
+#define IDR_DEFAULTSERVICES             300
+#define IDD_DOWNLOADEDITPAGE_GENERAL    301
+#define IDD_DOWNLOADEDITPAGE_HASHES     302
+#define IDD_DOWNLOADEDITPAGE_ACTIONS    303
 #define IDC_CONNECT_HOST                1000
 #define IDC_CONNECT_PORT                1001
 #define IDC_SCHEMAS                     1002
@@ -186,6 +189,7 @@
 #define IDI_COMPUTER                    1006
 #define IDC_CONNECT_ULTRAPEER           1007
 #define IDI_CONTACT_MSN                 1007
+#define IDC_CONNECT_UDP                 1008
 #define IDC_FILE_SHA1                   1009
 #define IDC_FILE_TYPE                   1010
 #define IDC_FILE_SIZE                   1011
@@ -635,7 +639,7 @@
 #define IDC_URN_SHA1                    1362
 #define IDC_URN_TIGER                   1363
 #define IDC_URN_ED2K                    1364
-#define IDC_TORRENT_INFO                1365
+#define IDC_URN_MD5                     1365
 #define IDC_FORGET_VERIFY               1367
 #define IDC_FORGET_SOURCES              1368
 #define IDC_COMPLETE_AND_VERIFY         1369
@@ -644,6 +648,7 @@
 #define IDC_ERASE                       1372
 #define IDC_MERGE_AND_VERIFY            1373
 #define IDC_THROTTLE_MODE               1374
+#define IDC_PURGE_HASHSET               1375
 #define IDC_REMOTE_ENABLE               1377
 #define IDC_REMOTE_USERNAME             1378
 #define IDC_REMOTE_PASSWORD             1379
@@ -678,10 +683,12 @@
 #define IDC_SCHEDULER_DISPLAY           1405
 #define IDC_G2_ALWAYS                   1409
 #define IDC_DISKNAME                    1418
+#define IDC_SEARCHKEYWORD               1419
 #define IDC_TRUST_SHA1                  1420
 #define IDC_FILESIZE                    1421
 #define IDC_TRUST_TIGER                 1422
 #define IDC_TRUST_ED2K                  1423
+#define IDC_TRUST_MD5                   1424
 #define IDC_TORRENT_TRACKERMODE         1425
 #define IDC_ASSOCIATIONS                1426
 #define IDC_ENABLE_UPNP                 1428
@@ -701,6 +708,8 @@
 #define IDC_SAVE_FILTER                 1501
 #define IDC_SET_DEFAULT_FILTER          1502
 #define IDC_DELETE_FILTER               1503
+#define IDC_DOWNLOADEDITPAGE_GENERAL_APPLY 1518
+#define IDC_DOWNLOADEDITPAGE_HASHES_APPLY 1519
 #define IDC_TEMPLATES_EXPLAIN           1520
 #define IDC_TEMPLATES_DELETE            1521
 #define IDC_TEMPLATES                   1522
@@ -1330,6 +1339,7 @@
 #define IDS_DOWNLOAD_EDIT_COMPLETE_NOHASH 18509
 #define IDS_DOWNLOAD_EDIT_COMPLETE_VERIFY 18510
 #define IDS_DOWNLOAD_EDIT_CHANGE_SIZE   18511
+#define IDS_DOWNLOAD_EDIT               18512
 #define IDS_REMOTE_DISABLED             19000
 #define IDS_REMOTE_ENABLED              19001
 #define IDS_REMOTE_UNAVAILABLE          19002
@@ -1710,10 +1720,8 @@
 #define ID_HELP_DISKSPACE               33130
 #define ID_HELP_DISKWRITEFAIL           33131
 #define ID_HELP_CONNECTIONFAIL          33132
-#define ID_HELP_DONKEYSERVERS           33133
-#define ID_MEDIA_STATE_STOP				33200
-#define ID_MEDIA_STATE_PAUSE			33201
-#define ID_MEDIA_STATE_PLAY				33202
+#define ID_HELP_DONKEYSERVERS           33134
+#define ID_NETWORK_MANUALCONNECT        33137
 
 // Next default values for new objects
 // 
@@ -1721,7 +1729,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        281
-#define _APS_NEXT_COMMAND_VALUE         33136
+#define _APS_NEXT_COMMAND_VALUE         33138
 #define _APS_NEXT_CONTROL_VALUE         1442
 #define _APS_NEXT_SYMED_VALUE           104
 #endif

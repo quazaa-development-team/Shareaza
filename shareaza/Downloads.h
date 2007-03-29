@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "ITMQueue.h"
+
 class CDownload;
 class CDownloadSource;
 class CConnection;
@@ -33,6 +35,8 @@ class CBuffer;
 class CShareazaURL;
 class CEDClient;
 
+typedef boost::shared_ptr<CQueryHit>	CHitPtr;
+typedef std::list<CHitPtr>				CHitPtrs;
 
 class CDownloads
 {
@@ -59,13 +63,54 @@ public:
 	BOOL			m_bClosing;
 	DWORD			m_tLastConnect;
 protected:
-	CList< CDownload* > m_pList;
-	CMap< ULONG, ULONG, int, int > m_pHostLimits;
-	int				m_nRunCookie;
+	CList< CDownload* >				m_pList;
+	CMap< ULONG, ULONG, int, int >	m_pHostLimits;
+	int								m_nRunCookie;
+	std::list<CDownload*>			m_oActiveSearches;
+	std::list<CDownload*>			m_oPendingSearches;
+
 public:
 	enum
 	{
 		dlPathNull, dlPathComplete, dlPathIncomplete
+	};
+
+	class CITMQueryHit : CITMQueue::CITMItem
+	{
+		// Constructor
+	public:
+		CITMQueryHit();
+		CITMQueryHit(CQueryHit * pHits);
+		~CITMQueryHit();
+
+		// Data Members
+	public:
+		CQueryHit*	m_pHits;
+
+		// function members
+	public:
+		static CITMQueryHit* CreateMessage(CQueryHit * pHits);
+		virtual BOOL OnProcess();
+
+	};
+	
+	class CITMQueryHits : CITMQueue::CITMItem
+	{
+		// Constructor
+	public:
+		CITMQueryHits();
+		CITMQueryHits(CHitPtrs& oHits);
+		~CITMQueryHits();
+
+		// Data Members
+	public:
+		CHitPtrs m_oHits;
+
+		// function members
+	public:
+		static CITMQueryHits* CreateMessage(CHitPtrs& oHits);
+		virtual BOOL OnProcess();
+
 	};
 
 // Operations
@@ -92,10 +137,15 @@ public:
 	BOOL		Reorder(CDownload* pDownload, CDownload* pBefore);
 	BOOL		Swap(CDownload* p1, CDownload* p2);
 	CDownload*	FindByURN(LPCTSTR pszURN, BOOL bSharedOnly = FALSE) const;
+	CDownload*	FindByHash(const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, const Hashes::Ed2kHash& oED2K,
+							const Hashes::Md5Hash& oMD5, const Hashes::BtHash& oBTH, QWORD nMinSize = SIZE_UNKNOWN,
+							QWORD nMaxSize = SIZE_UNKNOWN, BOOL bSharedOnly = FALSE) const;
+	CDownload*	FindByBitprint(const Hashes::Sha1Hash& oSHA1, const Hashes::TigerHash& oTiger, BOOL bSharedOnly = FALSE) const;
     CDownload*	FindBySHA1(const Hashes::Sha1Hash& oSHA1, BOOL bSharedOnly = FALSE) const;
     CDownload*	FindByTiger(const Hashes::TigerHash& oTiger, BOOL bSharedOnly = FALSE) const;
-    CDownload*	FindByED2K(const Hashes::Ed2kHash& oED2K, BOOL bSharedOnly = FALSE) const;
-    CDownload*	FindByBTH(const Hashes::BtHash& oBTH, BOOL bSharedOnly = FALSE) const;
+	CDownload*	FindByED2K(const Hashes::Ed2kHash& oED2K, BOOL bSharedOnly /*= FALSE*/, BOOL bForceStarted /*= TRUE*/) const;
+	CDownload*	FindByMD5(const Hashes::Md5Hash& oMD5, BOOL bSharedOnly = FALSE) const;
+    CDownload*	FindByBTH(const Hashes::BtHash& oBTH, BOOL bSharedOnly /*= FALSE*/, BOOL bForceStarted /*= TRUE*/) const;
 	CDownload*	FindBySID(DWORD nSerID) const;
 	DWORD		GetFreeSID();
 	QWORD		GetAmountDownloadedFrom(IN_ADDR* pAddress);
@@ -104,9 +154,10 @@ public:
 	void		Load();
 	void		Save(BOOL bForce = TRUE);
 	void		OnRun();
-	BOOL		OnPush(const Hashes::Guid& oGUID, CConnection* pConnection);
-	BOOL		OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept = NULL);
+	BOOL		OnPush(const Hashes::Guid& oGUID, CConnection* pConnection, DWORD nFileIndex = 0);
+	BOOL		OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept, CDownload* pSeekDownloadAfterThis);
 	void		OnQueryHits(CQueryHit* pHits);
+	void		OnQueryHits(CHitPtrs& oHits);
 	void		OnVerify(LPCTSTR pszPath, BOOL bVerified);
 	void		SetPerHostLimit(IN_ADDR* pAddress, int nLimit);
 	BOOL		IsSpaceAvailable(QWORD nVolume, int nPath = dlPathNull);
@@ -152,6 +203,7 @@ public:
 	friend class CDownload;
 	friend class CDownloadBase;
 	friend class CDownloadWithTransfers;
+	friend class CDownloadWithSearch;
 	friend class CDownloadSource;
 };
 

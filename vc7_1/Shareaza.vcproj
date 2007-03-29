@@ -45,7 +45,12 @@
 				LinkIncremental="2"
 				SuppressStartupBanner="TRUE"
 				IgnoreDefaultLibraryNames="kernel32.lib;advapi32.lib;user32.lib;gdi32.lib;shell32.lib;comdlg32.lib;version.lib;mpr.lib;rasapi32.lib;winmm.lib;winspool.lib;secur32.lib;oleacc.lib;oledlg.lib;sensapi.lib;vfw32.lib;Iphlpapi.lib;msi.lib"
-				GenerateDebugInformation="TRUE"/>
+				GenerateDebugInformation="TRUE"
+				ProgramDatabaseFile="$(SolutionDir)$(ConfigurationName)/$(ProjectName).pdb"
+				GenerateMapFile="TRUE"
+				MapFileName="$(SolutionDir)$(ConfigurationName)/$(ProjectName).map"
+				MapExports="TRUE"
+				MapLines="TRUE"/>
 			<Tool
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="_DEBUG"
@@ -114,6 +119,13 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
 				IgnoreDefaultLibraryNames="kernel32.lib;advapi32.lib;user32.lib;gdi32.lib;shell32.lib;comdlg32.lib;version.lib;mpr.lib;rasapi32.lib;winmm.lib;winspool.lib;secur32.lib;oleacc.lib;oledlg.lib;sensapi.lib;vfw32.lib;Iphlpapi.lib;msi.lib"
+				GenerateDebugInformation="TRUE"
+				AssemblyDebug="0"
+				ProgramDatabaseFile="$(SolutionDir)$(ConfigurationName)/$(ProjectName).pdb"
+				GenerateMapFile="TRUE"
+				MapFileName="$(SolutionDir)$(ConfigurationName)/$(ProjectName).map"
+				MapExports="TRUE"
+				MapLines="TRUE"
 				OptimizeReferences="2"/>
 			<Tool
 				Name="VCMIDLTool"
@@ -364,6 +376,9 @@
 				RelativePath="..\shareaza\HostCache.cpp">
 			</File>
 			<File
+				RelativePath="..\shareaza\HTTPClient.cpp">
+			</File>
+			<File
 				RelativePath="..\shareaza\HttpRequest.cpp">
 			</File>
 			<File
@@ -377,6 +392,9 @@
 			</File>
 			<File
 				RelativePath="..\shareaza\ImageServices.cpp">
+			</File>
+			<File
+				RelativePath="..\shareaza\ITMQueue.cpp">
 			</File>
 			<File
 				RelativePath="..\shareaza\Library.cpp">
@@ -1157,7 +1175,10 @@
 					RelativePath="..\shareaza\DlgDownload.cpp">
 				</File>
 				<File
-					RelativePath="..\shareaza\DlgDownloadEdit.cpp">
+					RelativePath="..\shareaza\DlgDownloadEditPage.cpp">
+				</File>
+				<File
+					RelativePath="..\shareaza\DlgDownloadEditSheet.cpp">
 				</File>
 				<File
 					RelativePath="..\shareaza\DlgDownloadGroup.cpp">
@@ -1518,6 +1539,15 @@
 				Name="Pages"
 				Filter="">
 				<File
+					RelativePath="..\shareaza\PageDownloadEditActions.cpp">
+				</File>
+				<File
+					RelativePath="..\shareaza\PageDownloadEditGeneral.cpp">
+				</File>
+				<File
+					RelativePath="..\shareaza\PageDownloadEditHashes.cpp">
+				</File>
+				<File
 					RelativePath="..\shareaza\PageFileComments.cpp">
 				</File>
 				<File
@@ -1853,6 +1883,9 @@
 				RelativePath="..\shareaza\HostCache.h">
 			</File>
 			<File
+				RelativePath="..\shareaza\HTTPClient.h">
+			</File>
+			<File
 				RelativePath="..\shareaza\HttpRequest.h">
 			</File>
 			<File
@@ -1869,6 +1902,9 @@
 			</File>
 			<File
 				RelativePath="..\shareaza\ImageServices.h">
+			</File>
+			<File
+				RelativePath="..\shareaza\ITMQueue.h">
 			</File>
 			<File
 				RelativePath="..\shareaza\Library.h">
@@ -2471,7 +2507,10 @@
 					RelativePath="..\shareaza\DlgDownload.h">
 				</File>
 				<File
-					RelativePath="..\shareaza\DlgDownloadEdit.h">
+					RelativePath="..\shareaza\DlgDownloadEditPage.h">
+				</File>
+				<File
+					RelativePath="..\shareaza\DlgDownloadEditSheet.h">
 				</File>
 				<File
 					RelativePath="..\shareaza\DlgDownloadGroup.h">
@@ -2666,6 +2705,15 @@
 			<Filter
 				Name="Pages"
 				Filter="">
+				<File
+					RelativePath="..\shareaza\PageDownloadEditActions.h">
+				</File>
+				<File
+					RelativePath="..\shareaza\PageDownloadEditGeneral.h">
+				</File>
+				<File
+					RelativePath="..\shareaza\PageDownloadEditHashes.h">
+				</File>
 				<File
 					RelativePath="..\shareaza\PageFileComments.h">
 				</File>

@@ -44,6 +44,8 @@ public:
 // Attributes
 protected:
 	CString			m_sAddress;
+	CString			m_sGUID;
+	CString			m_sServer;
 	CLineGraph*		m_pGraph;
 	CGraphItem*		m_pItem;
 protected:

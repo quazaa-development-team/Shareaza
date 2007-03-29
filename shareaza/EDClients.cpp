@@ -139,28 +139,28 @@ BOOL CEDClients::PushTo(DWORD nClientID, WORD nClientPort)
 
 CEDClient* CEDClients::Connect(DWORD nClientID, WORD nClientPort, IN_ADDR* pServerAddress, WORD nServerPort, const Hashes::Guid& oGUID)
 {
-	if ( oGUID )
-	{
-		if ( CEDClient* pClient = GetByGUID( oGUID ) ) return pClient;
-	}
-	
-	if ( IsFull() ) return NULL;
-	
 	CEDClient* pClient = NULL;
-	
+
+	/*if ( oGUID )
+	{
+		if ( pClient = GetByGUID( oGUID ) ) return pClient;
+	}
+	else*/
 	if ( CEDPacket::IsLowID( nClientID ) )
 	{
-		if ( pServerAddress == NULL || nServerPort == 0 ) return NULL;
-		pClient = GetByID( nClientID, pServerAddress, oGUID );
+		if ( pServerAddress == NULL || !pServerAddress->S_un.S_addr || nServerPort == 0 ) return NULL;
+		pClient = GetByID( nClientID, pServerAddress, nServerPort, oGUID );
 	}
 	else
 	{
 		if ( Security.IsDenied( (IN_ADDR*)&nClientID ) ) return NULL;
-		pClient = GetByID( nClientID, NULL, oGUID );
+		pClient = GetByID( nClientID, pServerAddress, nServerPort, oGUID );
 	}
 	
 	if ( pClient == NULL )
 	{
+		if ( IsFull() ) return NULL;
+
 		pClient = new CEDClient();
 		pClient->ConnectTo( nClientID, nClientPort, pServerAddress, nServerPort, oGUID );
 	}
@@ -182,15 +182,34 @@ CEDClient* CEDClients::GetByIP(IN_ADDR* pAddress)
 	return NULL;
 }
 
-CEDClient* CEDClients::GetByID(DWORD nClientID, IN_ADDR* pServer, const Hashes::Guid& oGUID)
+CEDClient* CEDClients::GetByID(DWORD nClientID, IN_ADDR* pServer, WORD nServerPort, const Hashes::Guid& oGUID)
 {
+	bool bPush = bool( CEDPacket::IsLowID( nClientID ) ? TRUE : FALSE );
+
+	if ( bPush )
+	{
+		if ( ( !pServer || !nServerPort || !pServer->S_un.S_addr ) && oGUID.isValid() )
+			return NULL;
+	}
+
+	WORD nServerPortN = htons( nServerPort );
+
 	for ( CEDClient* pClient = m_pFirst ; pClient ; pClient = pClient->m_pEdNext )
 	{
-		if ( pServer && pClient->m_pServer.sin_addr.S_un.S_addr != pServer->S_un.S_addr ) continue;
-		
-		if ( pClient->m_nClientID == nClientID )
+		if ( validAndEqual( oGUID, pClient->m_oGUID ) )
 		{
-			if ( !oGUID || validAndEqual( pClient->m_oGUID, oGUID ) ) return pClient;
+			return pClient;
+		}
+		else if ( bPush )
+		{
+			if ( pServer && pClient->m_nClientID == nClientID && pClient->m_pServer.sin_addr.S_un.S_addr == pServer->S_un.S_addr &&
+				pClient->m_pServer.sin_port == nServerPortN )
+				return pClient;
+		}
+		else
+		{
+			if ( pClient->m_nClientID == nClientID )
+				return pClient;
 		}
 	}
 	
@@ -534,7 +553,7 @@ void CEDClients::RunGlobalStatsRequests(DWORD tNow)
 	CHostCacheHost *pHost;
 
 	// Don't send stat requests or time out servers if we're not stable
-	if ( Network.IsFirewalled(CHECK_UDP) ) return;
+	if ( Network.IsFirewalled(CHECK_UDP) != TS_FALSE ) return;
 
 	if ( m_nLastServerKey != 0 )
 	{

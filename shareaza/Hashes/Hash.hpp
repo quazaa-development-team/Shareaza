@@ -340,6 +340,25 @@ namespace Hashes
 		return lhs.isValid() && rhs.isValid() && lhs != rhs;
 	}
 
+	//! \relates Hashes::Hash
+	//! \brief Compares two related hashes for invalidaty or equality.
+	//!
+	//! This predicate returns true if it is either of two conditions.
+	//!		1.both arguments are valid and unequal.
+	//!		2.one or both of arguments are invalid.
+	template
+		<
+		typename Descriptor,
+		template<typename> class SP, template<typename> class OSP,
+		template<typename> class CP, template<typename> class OCP,
+		template<typename> class VP, template<typename> class OVP
+		>
+		inline bool invalidOrEqual(const Hash< Descriptor, SP, CP, VP >& lhs,
+		const Hash< Descriptor, OSP, OCP, OVP >& rhs )
+	{
+		return !( lhs.isValid() && rhs.isValid() ) || ( lhs.isValid() && rhs.isValid() && lhs == rhs );
+	}
+
 	//! \namespace Hashes::Policies
 	//! \brief This namespace is used to locate all possible Policies for
 	//!        the Hash class template.

@@ -79,6 +79,9 @@ int CNeighboursWithRouting::Broadcast(CPacket* pPacket, CNeighbour* pExcept, BOO
 		// Get the neighbour under pos, and move pos to the next one in the list
 		CNeighbour* pNeighbour = GetNext( pos );
 
+		// this BroadCast function is for Gnutella1 PING and should not do any process if pNeighbour is not any of G1 node
+		if ( pNeighbour->m_nProtocol != PROTOCOL_G1 ) continue;
+
 		if ( Settings.Gnutella1.EnableGGEP )
 		{
 			// Don't send GGEP packets if neighbour doesn't support them
@@ -139,7 +142,7 @@ int CNeighboursWithRouting::RouteQuery(CQuerySearch* pSearch, CPacket* pPacket, 
 		if ( pNeighbour->m_nState < nrsConnected ) continue;
 
 		// This neighbour is running Gnutella software
-		if ( pNeighbour->m_nProtocol == PROTOCOL_G1 )
+		if ( pG1 != NULL && pNeighbour->m_nProtocol == PROTOCOL_G1 )
 		{
 			// The caller wants to include hubs, or it doesn't but our connection to this one is down to a leaf anyway
 			if ( bToHubs || pNeighbour->m_nNodeType == ntLeaf )
@@ -179,9 +182,8 @@ int CNeighboursWithRouting::RouteQuery(CQuerySearch* pSearch, CPacket* pPacket, 
 					//pG2 = pG2Q1 = CG2Packet::New( G2_PACKET_QUERY_WRAP, pG1, Settings.Gnutella1.TranslateTTL );
 					theApp.Message( MSG_ERROR, _T("CNeighboursWithRouting::RouteQuery not relaying wrapped packet to leaf") );
 				}
-
-				// Send the packet to this remote computer
-				if ( pNeighbour->SendQuery( pSearch, pG2, FALSE ) ) nCount++;
+					// Send the packet to this remote computer
+				else if ( pNeighbour->SendQuery( pSearch, pG2, FALSE ) ) nCount++;
 
 			} // This remote computer is a hub, and the caller said we can send packets to hubs
 			else if ( bToHubs )
@@ -196,9 +198,8 @@ int CNeighboursWithRouting::RouteQuery(CQuerySearch* pSearch, CPacket* pPacket, 
 						//pG2 = pG2Q1 = CG2Packet::New( G2_PACKET_QUERY_WRAP, pG1, Settings.Gnutella1.TranslateTTL );
 						theApp.Message( MSG_ERROR, _T("CNeighboursWithRouting::RouteQuery not relaying wrapped packet to hub") );
 					}
-
 					// Send the packet to this remote computer
-					if ( pNeighbour->SendQuery( pSearch, pG2, FALSE ) ) nCount++;
+					else if ( pNeighbour->SendQuery( pSearch, pG2, FALSE ) ) nCount++;
 
 				} // This is a Gnutella2 Q2 packet
 				else
@@ -214,7 +215,7 @@ int CNeighboursWithRouting::RouteQuery(CQuerySearch* pSearch, CPacket* pPacket, 
 	if ( bHubLoop )
 	{
 		// (do)
-		if ( pSearch->m_bUDP == FALSE && !Network.IsFirewalled(CHECK_UDP) )
+		if ( pSearch->m_bUDP == FALSE && Network.IsFirewalled(CHECK_UDP) == TS_FALSE )
 		{
 			pG2 = pG2->Clone();
 			if ( pG2Q2 != pPacket ) pG2Q2->Release();

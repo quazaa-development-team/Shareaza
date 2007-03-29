@@ -41,7 +41,7 @@ CTransfers Transfers;
 //////////////////////////////////////////////////////////////////////
 // CTransfers construction
 
-CTransfers::CTransfers()
+CTransfers::CTransfers() : 	m_pMessageQueue()
 {
 	m_nBuffer		= 256*1024;
 	m_pBuffer		= new BYTE[ m_nBuffer ];
@@ -69,9 +69,12 @@ BOOL CTransfers::IsConnectedTo(IN_ADDR* pAddress)
 	CSingleLock pLock( &m_pSection );
 	if ( ! pLock.Lock( 100 ) ) return FALSE;
 
-	for ( POSITION pos = GetIterator() ; pos ; )
+	const_TransferItem index  = begin();
+	const_TransferItem indexEnd  = end();
+
+	for (; index != indexEnd; index++ )
 	{
-		if ( GetNext( pos )->m_pHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) return TRUE;
+		if ( (*index)->m_pHost.sin_addr.S_un.S_addr == pAddress->S_un.S_addr ) return TRUE;
 	}
 
 	return FALSE;
@@ -83,11 +86,12 @@ BOOL CTransfers::IsConnectedTo(IN_ADDR* pAddress)
 BOOL CTransfers::StartThread()
 {
 	if ( m_hThread != NULL && m_bThread ) return TRUE;
-	if ( GetCount() == 0 && Downloads.GetCount() == 0 ) return FALSE;
+	if ( size() == 0 && Downloads.GetCount() == 0 ) return FALSE;
 
 	m_hThread	= NULL;
 	m_bThread	= TRUE;
-
+	
+	CITMQueue::EnableITM( &( m_pMessageQueue ) );
 	m_hThread = BeginThread( "Transfers", ThreadStart, this );
 
 	return TRUE;
@@ -96,6 +100,7 @@ BOOL CTransfers::StartThread()
 void CTransfers::StopThread()
 {
 	if ( m_hThread == NULL ) return;
+	CITMQueue::DisableITM( &( m_pMessageQueue ) );
 
 	m_bThread = FALSE;
 	m_pWakeup.SetEvent();
@@ -113,12 +118,20 @@ void CTransfers::StopThread()
 
 void CTransfers::Add(CTransfer* pTransfer)
 {
-	ASSERT( pTransfer->m_hSocket != INVALID_SOCKET );
+	//ASSERT( pTransfer->m_hSocket != INVALID_SOCKET );
 	WSAEventSelect( pTransfer->m_hSocket, m_pWakeup, FD_CONNECT|FD_READ|FD_WRITE|FD_CLOSE );
 
-	POSITION pos = m_pList.Find( pTransfer );
-	ASSERT( pos == NULL );
-	if ( pos == NULL ) m_pList.AddHead( pTransfer );
+	CTransfers::Lock oLock;
+
+//	ASSERT( pTransfer->m_pSelf == NULL );
+//	if ( pTransfer->m_pSelf == NULL )
+//	{
+//		m_pList.push_front( pTransfer );
+//		pTransfer->m_pSelf = m_pList.begin();
+//	}
+//	ASSERT( (*(pTransfer->m_pSelf)) == pTransfer );
+
+	if ( !Check(pTransfer) ) m_pList.push_front( pTransfer );
 
 	//if ( Settings.General.Debug && Settings.General.DebugLog ) 
 	//	theApp.Message( MSG_DEBUG, _T("CTransfers::Add(): %x"), pTransfer );
@@ -134,9 +147,17 @@ void CTransfers::Remove(CTransfer* pTransfer)
 	if ( pTransfer->m_hSocket != INVALID_SOCKET )
 		WSAEventSelect( pTransfer->m_hSocket, m_pWakeup, 0 );
 
+
 	CTransfers::Lock oLock;
-	if ( POSITION pos = m_pList.Find( pTransfer ) )
-		m_pList.RemoveAt( pos );
+	//ASSERT( (*(pTransfer->m_pSelf)) == pTransfer );
+	//if ( pTransfer->m_pSelf != NULL )
+	//{
+	//	m_pList.erase(pTransfer->m_pSelf);
+	//	pTransfer->m_pSelf = NULL;
+	//}
+	//ASSERT( pTransfer->m_pSelf == NULL );
+
+	m_pList.remove(pTransfer);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -167,6 +188,9 @@ void CTransfers::OnRun()
 		CTransfers::Lock(), Uploads.OnRun(), OnCheckExit();
 
 		TransferFiles.CommitDeferred();
+
+		m_pMessageQueue.ProcessMessages();
+
 	}
 
 	Downloads.m_nTransfers = Downloads.m_nBandwidth = 0;
@@ -176,21 +200,40 @@ void CTransfers::OnRun()
 void CTransfers::OnRunTransfers()
 {
 	CTransfers::Lock oLock;
+
 	++m_nRunCookie;
 
-	while ( !m_pList.IsEmpty()
-		&& m_pList.GetHead()->m_nRunCookie != m_nRunCookie )
+/*	TransferItem index = m_pList.begin();
+	TransferItem indexEnd = m_pList.end();
+
+	for (; index != indexEnd; )
 	{
-		CTransfer* pTransfer = m_pList.RemoveHead();
-		m_pList.AddTail( pTransfer );
-		pTransfer->m_nRunCookie = m_nRunCookie;
+		TransferItem iTemp = index;
+		ASSERT( iTemp == index );
+		index++;
+		//ASSERT( (*iTemp)->m_pSelf == iTemp );
+		(*(iTemp))->DoRun();
+		ASSERT( indexEnd == m_pList.end() );
+		ASSERT( iTemp != m_pList.end() );
+	}*/
+	const_reverse_TransferItem temp;
+	CTransfer * pTransfer;
+
+	while( !m_pList.empty() )
+	{
+		temp = m_pList.rbegin();
+		if ( (*(temp))->m_nRunCookie == m_nRunCookie ) break;
+		(*(temp))->m_nRunCookie = m_nRunCookie;
+		pTransfer = *temp;
+		m_pList.pop_back();
+		m_pList.push_front(pTransfer);
 		pTransfer->DoRun();
 	}
 }
 
 void CTransfers::OnCheckExit()
 {
-	if ( GetCount() == 0 && Downloads.GetCount() == 0 ) m_bThread = FALSE;
+	if ( size() == 0 && Downloads.GetCount() == 0 ) m_bThread = FALSE;
 
 	if ( Settings.Live.AutoClose && GetActiveCount() == 0 )
 	{

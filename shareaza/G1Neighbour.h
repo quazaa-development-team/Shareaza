@@ -104,7 +104,6 @@ protected:
 	// Ping and pong packets
 	BOOL OnPing(CG1Packet* pPacket);
 	BOOL OnPong(CG1Packet* pPacket);
-	int WriteRandomCache(CGGEPItem* pItem);
 
 	// Bye packet
 	BOOL OnBye(CG1Packet* pPacket);
@@ -122,6 +121,10 @@ protected:
 	// Cluster advisor vendor specific packet
 	void SendClusterAdvisor();
 	BOOL OnClusterAdvisor(CG1Packet* pPacket);
+
+	// quick & dirty hack, currently CNeighbour::OnCommonQueryHash() cause crash under certain situation. because of that, need
+	// to over ride the handler.
+	BOOL OnCommonQueryHash(CPacket* pPacket);
 };
 
 // End the group of lines to only include once, pragma once doesn't require an endif at the bottom

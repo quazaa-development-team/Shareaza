@@ -25,7 +25,7 @@
 #pragma once
 
 class CDownloadTask;
-
+class CDownloadEditActionsPage;
 
 class CDownloadBase
 {
@@ -63,9 +63,11 @@ protected:
 	virtual BOOL	IsMoving() const = 0;
 	virtual BOOL	IsPaused(BOOL bRealState = FALSE) const = 0;
 	virtual BOOL	IsTrying() const = 0;
+	virtual BOOL	IsSeeding() const = 0;
 	void			GenerateDiskName(bool bTorrent = false);
 	virtual void	Serialize(CArchive& ar, int nVersion);
 
+	friend class CDownloadEditActionsPage;
 };
 
 #endif // !defined(AFX_DOWNLOADBASE_H__71956CAE_7D13_4809_837B_5F17DE46856E__INCLUDED_)

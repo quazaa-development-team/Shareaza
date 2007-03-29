@@ -22,9 +22,9 @@
 #if !defined(AFX_TRANSFERS_H__950AC162_FF34_4B40_8D8A_2745AA245316__INCLUDED_)
 #define AFX_TRANSFERS_H__950AC162_FF34_4B40_8D8A_2745AA245316__INCLUDED_
 
+#include "Transfer.h"
+#include "ITMQueue.h"
 #pragma once
-
-class CTransfer;
 
 class CTransfers;
 
@@ -32,6 +32,13 @@ extern CTransfers Transfers;
 
 class CTransfers
 {
+// typedef
+public:
+	typedef std::list<CTransfer*>::iterator TransferItem;
+	typedef std::list<CTransfer*>::const_iterator const_TransferItem;
+	typedef std::list<CTransfer*>::reverse_iterator reverse_TransferItem;
+	typedef std::list<CTransfer*>::const_reverse_iterator const_reverse_TransferItem;
+
 // Construction
 public:
 	CTransfers();
@@ -40,6 +47,7 @@ public:
 // Attributes
 public:
 	CMutex			m_pSection;
+	CITMQueue		m_pMessageQueue;
 class Lock
 {
 public:
@@ -56,7 +64,7 @@ private:
 	DWORD			m_nBuffer;
 	BYTE*			m_pBuffer;
 protected:
-	CList< CTransfer* > m_pList;
+	std::list<CTransfer*> m_pList;
 	HANDLE			m_hThread;
 	volatile BOOL	m_bThread;
 	CEvent			m_pWakeup;
@@ -79,24 +87,34 @@ protected:
 
 // List Access
 public:
-	inline POSITION GetIterator() const
+	inline const_TransferItem begin() const
 	{
-		return m_pList.GetHeadPosition();
+		return m_pList.begin();
 	}
 
-	inline CTransfer* GetNext(POSITION& pos) const
+	inline const_TransferItem end() const
 	{
-		return m_pList.GetNext( pos );
+		return m_pList.end();
 	}
 
-	inline INT_PTR GetCount() const
+	inline size_t size() const
 	{
-		return m_pList.GetCount();
+		return m_pList.size();
 	}
 
 	inline BOOL Check(CTransfer* pTransfer) const
 	{
-		return m_pList.Find( pTransfer ) != NULL;
+		
+		const_TransferItem index  = m_pList.begin();
+		const_TransferItem indexEnd  = m_pList.end();
+
+		for (; index != indexEnd; index++ )
+		{
+			if ( *index == pTransfer ) return TRUE;
+		}
+
+		return FALSE;
+		//return ( pTransfer->m_pSelf != NULL );
 	}
 
 	friend class CTransfer;

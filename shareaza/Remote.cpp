@@ -1319,6 +1319,9 @@ void CRemote::PageNetworkNetwork(int nID, BOOL* pbConnect, LPCTSTR pszName)
 			
 			switch ( pNeighbour->m_nNodeType )
 			{
+			case ntNull:
+				str = _T("Unknown");
+				break;
 			case ntNode:
 				LoadString( str, IDS_NEIGHBOUR_G1PEER );
 				break;
@@ -1327,6 +1330,9 @@ void CRemote::PageNetworkNetwork(int nID, BOOL* pbConnect, LPCTSTR pszName)
 				break;
 			case ntLeaf:
 				LoadString( str, IDS_NEIGHBOUR_G1LEAF );
+				break;
+			case ntSpecial:
+				str = _T("Special");
 				break;
 			}
 			
@@ -1339,6 +1345,9 @@ void CRemote::PageNetworkNetwork(int nID, BOOL* pbConnect, LPCTSTR pszName)
 			
 			switch ( pNeighbour->m_nNodeType )
 			{
+			case ntNull:
+				str = _T("Unknown");
+				break;
 			case ntNode:
 				LoadString( str, IDS_NEIGHBOUR_G2PEER );
 				break;
@@ -1348,6 +1357,10 @@ void CRemote::PageNetworkNetwork(int nID, BOOL* pbConnect, LPCTSTR pszName)
 			case ntLeaf:
 				LoadString( str, IDS_NEIGHBOUR_G2LEAF );
 				break;
+			case ntSpecial:
+				str = _T("Special");
+				break;
+
 			}
 			
 			Add( _T("row_mode"), str );

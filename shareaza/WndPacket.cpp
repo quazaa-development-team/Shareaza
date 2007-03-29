@@ -73,6 +73,9 @@ G2_PACKET CPacketWnd::m_nG2[] = {
 	G2_PACKET_PUSH,
 	G2_PACKET_PROFILE_CHALLENGE,
 	G2_PACKET_PROFILE_DELIVERY,
+	G2_PACKET_CRAWL_ANS,
+	G2_PACKET_CRAWL_REQ,
+	G2_PACKET_CLOSE,
 	G2_PACKET_NULL
 };
 
@@ -132,8 +135,11 @@ int CPacketWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_bPaused		= FALSE;
 
 	for ( int nType = 0 ; nType < G1_PACKTYPE_MAX ; nType++ ) m_bTypeG1[ nType ] = TRUE;
-	for ( int nType = 0 ; nType < 16 ; nType++ ) m_bTypeG2[ nType ] = TRUE;
+	for ( int nType = 0 ; nType < 19 ; nType++ ) m_bTypeG2[ nType ] = TRUE;
 	m_bTypeED = TRUE;
+
+	CSingleLock pLock( &(theApp.m_mPacketWndList), TRUE );
+	theApp.m_oPacketWndList.push_front(this);
 
 	SetTimer( 2, 500, NULL );
 
@@ -142,6 +148,10 @@ int CPacketWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 void CPacketWnd::OnDestroy() 
 {
+	CSingleLock pListLock( &(theApp.m_mPacketWndList), TRUE );
+	theApp.m_oPacketWndList.remove(this);
+	pListLock.Unlock();
+
 	KillTimer( 2 );
 
 	CSingleLock pLock( &m_pSection, TRUE );
@@ -261,6 +271,104 @@ void CPacketWnd::Process(const CNeighbour* pNeighbour, const IN_ADDR* pUDP, BOOL
 		pItem->Set( 6, pPacketG1->GetGUID() );
 	}
 	
+	m_pQueue.AddTail( pItem );
+}
+
+void CPacketWnd::Process(const IN_ADDR* pAddr, WORD nPort, BOOL bUDP, BOOL bOutgoing, DWORD nUnique, const CPacket* pPacket)
+{
+	if ( m_bPaused || m_hWnd == NULL ) return;
+
+	if ( !bUDP )
+	{
+		if ( bOutgoing )
+		{
+			if ( m_nOutputFilter && m_nOutputFilter != nUnique ) return;
+		}
+		else
+		{
+			if ( m_nInputFilter && m_nInputFilter != nUnique ) return;
+		}
+	}
+	else
+	{
+		if ( bOutgoing )
+		{
+			if ( m_nOutputFilter ) return;
+		}
+		else
+		{
+			if ( m_nInputFilter ) return;
+		}
+	}
+
+	CG1Packet* pPacketG1 = ( pPacket->m_nProtocol == PROTOCOL_G1 ) ? (CG1Packet*)pPacket : NULL;
+	CG2Packet* pPacketG2 = ( pPacket->m_nProtocol == PROTOCOL_G2 ) ? (CG2Packet*)pPacket : NULL;
+	CEDPacket* pPacketED = ( pPacket->m_nProtocol == PROTOCOL_ED2K ) ? (CEDPacket*)pPacket : NULL;
+
+	if ( pPacketG1 )
+	{
+		if ( ! m_bTypeG1[ pPacketG1->m_nTypeIndex ] ) return;
+	}
+	else if ( pPacketG2 )
+	{
+		for ( int nType = 0 ; m_nG2[ nType ] ; nType++ )
+		{
+			if ( pPacketG2->IsType( m_nG2[ nType ] ) )
+			{
+				if ( ! m_bTypeG2[ nType ] ) return;
+				break;
+			}
+		}
+	}
+	else if ( pPacketED )
+	{
+		// TODO: Filter ED2K packets
+		if ( !m_bTypeED ) return;
+	}
+
+	CSingleLock pLock( &m_pSection, TRUE );
+
+	if ( m_bPaused ) return;
+
+	CLiveItem* pItem = new CLiveItem( 7, 0 );
+
+	pItem->m_nParam = bOutgoing;
+
+	CString m_sAddr;
+
+	if ( !bUDP )
+	{
+		m_sAddr.Format( _T("%s:%u"), (LPCTSTR)CString( inet_ntoa( *pAddr ) ), nPort );
+		pItem->Set( 0, m_sAddr );
+		if ( pPacketG2 )
+			pItem->Set( 1, _T("G2 TCP") );
+		else if ( pPacketG1 )
+			pItem->Set( 1, _T("G1 TCP") );
+		else if ( pPacketED )
+			pItem->Set( 1, _T("ED2K TCP") );
+	}
+	else
+	{
+		m_sAddr.Format( _T("(%s)"), (LPCTSTR)CString( inet_ntoa( *pAddr ) ), nPort );
+		pItem->Set( 0, m_sAddr );
+		if ( pPacketG2 )
+			pItem->Set( 1, _T("G2 UDP") );
+		else if ( pPacketG1 )
+			pItem->Set( 1, _T("G1 UDP") );
+		else if ( pPacketED )
+			pItem->Set( 1, _T("ED2K UDP") );
+	}
+
+	pItem->Set( 2, pPacket->GetType() );
+	pItem->Set( 4, pPacket->ToHex() );
+	pItem->Set( 5, pPacket->ToASCII() );
+
+	if ( pPacketG1 )
+	{
+		pItem->Format( 3, _T("%u/%u"), unsigned( pPacketG1->m_nTTL ), unsigned( pPacketG1->m_nHops ) );
+		pItem->Set( 6, pPacketG1->GetGUID() );
+	}
+
 	m_pQueue.AddTail( pItem );
 }
 
@@ -443,13 +551,13 @@ void CPacketWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 
 		return;
 	}
-	else if ( nCmd >= 3100 && nCmd < 3100 + 16 )
+	else if ( nCmd >= 3100 && nCmd < 3100 + 19 )
 	{
 		nCmd -= 3100;
 
 		if ( GetAsyncKeyState( VK_SHIFT ) & 0x8000 )
 		{
-			for ( int nType = 0 ; nType < 16 ; nType++ )
+			for ( int nType = 0 ; nType < 19 ; nType++ )
 			{
 				m_bTypeG2[ nType ] = ( nCmd == (UINT)nType ) ? TRUE : FALSE;
 			}

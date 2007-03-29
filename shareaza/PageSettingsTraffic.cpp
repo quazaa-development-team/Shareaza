@@ -43,8 +43,6 @@ BEGIN_MESSAGE_MAP(CAdvancedSettingsPage, CSettingsPage)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
-
-
 /////////////////////////////////////////////////////////////////////////////
 // CAdvancedSettingsPage property page
 
@@ -94,6 +92,8 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.General.DiskSpaceStop, 1, 0, 1000 , _T(" M") );
 	AddSetting( &Settings.General.HashIntegrity, 1, 0, 1 );
 	AddSetting( &Settings.General.MinTransfersRest, 1, 1, 100, _T(" ms") );
+	AddSetting( &Settings.General.ShowFilesizeInByte, 1, 0, 1 );
+	AddSetting( &Settings.General.DisableThumbnail, 1, 0, 1 );
 
 	AddSetting( &Settings.Community.ChatFilterED2K, 1, 0, 1 );
 	AddSetting( &Settings.Community.AwayMessageIdleTime, 60, 5, 60, _T(" m") );
@@ -111,6 +111,9 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Connection.DeleteUPnPPorts, 1, 0, 1 );
 	AddSetting( &Settings.Connection.SkipWANPPPSetup, 1, 0, 1 );
 	AddSetting( &Settings.Connection.SkipWANIPSetup, 1, 0, 1 );
+	AddSetting( &Settings.Connection.FWTestWait, 1, 30, 7200, _T(" s") );
+	AddSetting( &Settings.Connection.MaxFWTestQueue, 2, 1, 64 );
+	AddSetting( &Settings.Connection.LosePacketHandling, 1, 0, 1 );
 
 	AddSetting( &Settings.Gnutella.ConnectFactor, 1, 1, 20, _T("x") );
 	AddSetting( &Settings.Gnutella.MaxResults, 1, 1, 1000 );
@@ -139,12 +142,12 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Gnutella1.PingRate, 1000, 5, 180, _T(" s") );
 	AddSetting( &Settings.Gnutella1.PongCache, 1000, 1, 180, _T(" s") );
 	AddSetting( &Settings.Gnutella1.PongCount, 1, 1, 64 );
-	AddSetting( &Settings.Gnutella1.PongUpdate, 1000, 5, 180, _T(" s") );
 	AddSetting( &Settings.Gnutella1.QuerySearchUTF8, 1, 0, 1 );
 	AddSetting( &Settings.Gnutella1.QueryHitUTF8, 1, 0, 1 );
 	AddSetting( &Settings.Gnutella1.MaxHostsInPongs, 1, 5, 30 );
+	AddSetting( &Settings.Gnutella1.HostCacheSize, 1, 32, 16384 );
 
-	AddSetting( &Settings.Gnutella2.EnableAlways, 1, 0, 1 );
+	//AddSetting( &Settings.Gnutella2.EnableAlways, 1, 0, 1 );
 	AddSetting( &Settings.Gnutella2.PingRelayLimit, 1, 10, 30);
 	AddSetting( &Settings.Gnutella2.UdpMTU, 1, 16, 10240 );
 	AddSetting( &Settings.Gnutella2.UdpBuffers, 1, 16, 2048 );
@@ -166,6 +169,9 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Gnutella2.RequeryDelay, 60*60, 1, 24, _T(" h") );
 	AddSetting( &Settings.Gnutella2.HubHorizonSize, 1, 32, 512 );
 	AddSetting( &Settings.Gnutella2.QueryLimit, 1, 0, 10000 );
+	AddSetting( &Settings.Gnutella2.HostCacheSize, 1, 32, 16384 );
+	AddSetting( &Settings.Gnutella2.BadLeafHandler, 1, 0, 3 );
+	AddSetting( &Settings.Gnutella2.MaxHubsOnRemoteLeaf, 1, 0, 10 );
 
 	AddSetting( &Settings.eDonkey.FastConnect, 1, 0, 1 );
 	AddSetting( &Settings.eDonkey.ForceHighID, 1, 0, 1 );
@@ -192,6 +198,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.eDonkey.MinServerFileSize, 1, 0, 50, _T(" MB") );
 	AddSetting( &Settings.eDonkey.TagNames, 1, 0, 1 );
 	AddSetting( &Settings.eDonkey.Endgame, 1, 0, 1 );
+	AddSetting( &Settings.eDonkey.ServerCacheSize, 1, 32, 16384 );
 	AddSetting( &Settings.eDonkey.LargeFileSupport, 1, 0, 1 );
 
 	AddSetting( &Settings.BitTorrent.DefaultTrackerPeriod, 60000, 5, 120, _T(" m") );
@@ -217,6 +224,10 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Discovery.FailureLimit, 1, 1, 512 );
 	AddSetting( &Settings.Discovery.UpdatePeriod, 60, 1, 60 * 24, _T(" m") );
 	AddSetting( &Settings.Discovery.DefaultUpdate, 60, 1, 60 * 24, _T(" m") );
+	AddSetting( &Settings.Discovery.DisableAutoQuery, 1, 0, 1 );
+	AddSetting( &Settings.Discovery.DisableAutoUpdate, 1, 0, 1 );
+	AddSetting( &Settings.Discovery.DisableManualQuery, 1, 0, 1 );
+	AddSetting( &Settings.Discovery.DisableService, 1, 0, 1 );
 	AddSetting( &Settings.Discovery.BootstrapCount, 1, 0, 20 );
 	AddSetting( &Settings.Discovery.CacheCount, 1, 1, 256 );
 
@@ -248,6 +259,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Downloads.RequestURLENC, 1, 0, 1 );
 	AddSetting( &Settings.Downloads.SaveInterval, 1000, 1, 120, _T(" s") );
 	AddSetting( &Settings.Downloads.FlushSD, 1, 0, 1 );
+	AddSetting( &Settings.Downloads.SavePushSource, 1, 0, 1 );
 	AddSetting( &Settings.Downloads.ShowPercent, 1, 0, 1 );
 	AddSetting( &Settings.Downloads.AutoClear, 1, 0, 1 );
 	AddSetting( &Settings.Downloads.ClearDelay, 1000, 1, 1800, _T(" s") );
@@ -260,6 +272,9 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Downloads.SortColumns, 1, 0, 1 );
 	AddSetting( &Settings.Downloads.SortSources, 1, 0, 1 );
 	AddSetting( &Settings.Downloads.MaxReviews, 1, 0, 256 );
+	AddSetting( &Settings.Downloads.IgnoreED2KPushSource, 1, 0, 1 );
+	AddSetting( &Settings.Downloads.AutoSearchDuration, 60*1000, 10, 60, _T(" m") );
+	AddSetting( &Settings.Downloads.ManualSearchDuration, 60*1000, 1, 10, _T(" m") );
 
 	AddSetting( &Settings.Uploads.FreeBandwidthValue, 128, 0, 4096, _T(" Kb/s") );
 	AddSetting( &Settings.Uploads.FreeBandwidthFactor, 1, 0, 100, _T("%") );
@@ -303,6 +318,7 @@ BOOL CAdvancedSettingsPage::OnInitDialog()
 	AddSetting( &Settings.Bandwidth.HubUploads, 128, 0, 4096, _T(" Kb/s") );
 
 	AddSetting( &Settings.Experimental.EnableDIPPSupport, 1, 0, 1 );
+	AddSetting( &Settings.Experimental.LoadDownloadsAsPaused, 1, 0, 1 );
 
 	CLiveList::Sort( &m_wndList, 0 );
 	CLiveList::Sort( &m_wndList, 0 );
@@ -315,11 +331,11 @@ void CAdvancedSettingsPage::AddSetting(LPVOID pValue, DWORD nScale, DWORD nMin, 
 {
 	CSettings::Item* pItem = Settings.GetSetting( (DWORD*)pValue );
 	if ( pItem == NULL ) return;
-	
+
 	EditItem* pEdit = new EditItem( pItem, nScale, nMin, nMax, pszSuffix );
-	
+
 	LV_ITEM pList = {};
-	
+
 	pList.mask		= LVIF_PARAM|LVIF_TEXT|LVIF_IMAGE;
 	pList.iItem		= m_wndList.GetItemCount();
 	pList.lParam	= (LPARAM)pEdit;
@@ -334,7 +350,7 @@ void CAdvancedSettingsPage::UpdateItem(int nItem)
 {
 	EditItem* pItem = (EditItem*)m_wndList.GetItemData( nItem );
 	CString strValue;
-		
+
 	if ( pItem->m_nMin == 0 && pItem->m_nMax == 1 )
 	{
 		strValue = pItem->m_nValue ? _T("True") : _T("False");
@@ -347,25 +363,25 @@ void CAdvancedSettingsPage::UpdateItem(int nItem)
 		else
 			strValue += pItem->m_sSuffix;
 	}
-	
+
 	m_wndList.SetItemText( nItem, 1, strValue );
 }
 
 void CAdvancedSettingsPage::OnItemChangedProperties(NMHDR* /*pNMHDR*/, LRESULT* pResult) 
 {
 //	NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
-	
+
 	int nItem = m_wndList.GetNextItem( -1, LVNI_SELECTED );
-	
+
 	if ( nItem >= 0 )
 	{
 		EditItem* pItem = (EditItem*)m_wndList.GetItemData( nItem );
 		CString strValue;
-		
+
 		m_wndValueSpin.SendMessage( WM_USER+111, pItem->m_nMin, pItem->m_nMax );
-		
+
 		strValue.Format( _T("%lu"), pItem->m_nValue / pItem->m_nScale );
-		
+
 		m_wndValue.SetWindowText( strValue );
 		m_wndValue.EnableWindow( TRUE );
 		m_wndValueSpin.EnableWindow( TRUE );
@@ -376,23 +392,23 @@ void CAdvancedSettingsPage::OnItemChangedProperties(NMHDR* /*pNMHDR*/, LRESULT* 
 		m_wndValue.EnableWindow( FALSE );
 		m_wndValueSpin.EnableWindow( FALSE );
 	}
-	
+
 	*pResult = 0;
 }
 
 void CAdvancedSettingsPage::OnChangeValue() 
 {
 	if ( m_wndList.m_hWnd == NULL ) return;
-	
+
 	int nItem = m_wndList.GetNextItem( -1, LVNI_SELECTED );
-	
+
 	if ( nItem >= 0 )
 	{
 		EditItem* pItem = (EditItem*)m_wndList.GetItemData( nItem );
 		CString strValue;
-		
+
 		m_wndValue.GetWindowText( strValue );
-		
+
 		if ( _stscanf( strValue, _T("%lu"), &pItem->m_nValue ) == 1 )
 		{
 			pItem->m_nValue = max( pItem->m_nMin, min( pItem->m_nMax, pItem->m_nValue ) );
@@ -416,7 +432,7 @@ void CAdvancedSettingsPage::OnOK()
 		EditItem* pItem = (EditItem*)m_wndList.GetItemData( nItem );
 		pItem->Commit();
 	}
-	
+
 	CSettingsPage::OnOK();
 }
 
@@ -426,7 +442,7 @@ void CAdvancedSettingsPage::OnDestroy()
 	{
 		delete (EditItem*)m_wndList.GetItemData( nItem );
 	}
-	
+
 	CSettingsPage::OnDestroy();
 }
 
@@ -442,9 +458,9 @@ CAdvancedSettingsPage::EditItem::EditItem(CSettings::Item* pItem, DWORD nScale, 
 	m_nScale	= nScale;
 	m_nMin		= nMin;
 	m_nMax		= nMax;
-	
+
 	if ( m_sName.GetAt( 0 ) == '.' ) m_sName = _T("razacore") + m_sName;
-	
+
 	if ( pszSuffix ) m_sSuffix = pszSuffix;
 }
 

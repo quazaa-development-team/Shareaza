@@ -310,25 +310,6 @@ void CMediaFrame::OnSkinChange()
 	if ( CCoolBarItem* pItem = m_wndToolBar.GetID( IDC_MEDIA_POSITION ) ) pItem->Enable( FALSE );
 	if ( CCoolBarItem* pItem = m_wndToolBar.GetID( IDC_MEDIA_SPEED ) ) pItem->Enable( FALSE );
 	if ( CCoolBarItem* pItem = m_wndToolBar.GetID( IDC_MEDIA_VOLUME ) ) pItem->Enable( FALSE );
-
-	HICON hIcon = CoolInterface.ExtractIcon( (UINT)ID_MEDIA_STATE_STOP, FALSE );
-	if ( hIcon ) 
-	{
-		m_pIcons.Replace( 0, hIcon );
-		DestroyIcon( hIcon );
-	}
-	hIcon = CoolInterface.ExtractIcon( (UINT)ID_MEDIA_STATE_PAUSE, FALSE );
-	if ( hIcon ) 
-	{
-		m_pIcons.Replace( 1, hIcon );
-		DestroyIcon( hIcon );
-	}
-	hIcon = CoolInterface.ExtractIcon( (UINT)ID_MEDIA_STATE_PLAY, FALSE );
-	if ( hIcon ) 
-	{
-		m_pIcons.Replace( 2, hIcon );
-		DestroyIcon( hIcon );
-	}
 }
 
 void CMediaFrame::OnUpdateCmdUI()
@@ -1842,7 +1823,7 @@ void CMediaFrame::OnNewCurrent(NMHDR* /*pNotify*/, LRESULT* pResult)
 		{
 			if ( ! m_bRepeat ) 
 				m_bStopFlag = TRUE;
-			else
+	else
 				nCurrent = m_wndList.GetNext( FALSE );
 			if ( ! m_bEnqueue ) 
 				m_wndList.SetCurrent( nCurrent );

@@ -88,16 +88,36 @@ void CDownloadTransfer::Close(TRISTATE bKeepSource, DWORD nRetryAfter)
 {
 	SetState( dtsNull );
 
-	CTransfer::Close();
-
+	if ( m_nProtocol == PROTOCOL_G2 || m_nProtocol == PROTOCOL_G1 || m_nProtocol == PROTOCOL_HTTP )
+	{
+		CTransfer::Close();
+	}
+	else if ( m_nProtocol == PROTOCOL_ED2K )
+	{
+		// do not call CTransfer::Close()
+		// since ED2K Transfer object never use CTransfer
+		// NOTE: can not see anything use CConnection on ED2K transfer,
+		//		However CConnection call Close() on destruction so not important
+		//		calling it here.
+	}
+	else if ( m_nProtocol == PROTOCOL_BT )
+	{
+		// do not call CTransfer::Close()
+		// since BT Transfer object never use CTransfer
+		// NOTE: can not see anything use CConnection on BT transfer,
+		//		However CConnection call Close() on destruction so not important
+		//		calling it here.
+	}
+	
 	if ( m_pSource != NULL )
 	{
 		switch ( bKeepSource )
 		{
 		case TS_TRUE:
-			if ( m_pSource->m_bCloseConn && m_pSource->m_nGnutella )
+			if ( m_pSource->m_bReConnect && ! m_pDownload->IsCompleted() )
 			{
-				m_pSource->OnResumeClosed();
+				if ( m_pSource->OnResumeClosed() ) return;
+				m_pSource->OnFailure( TRUE, Settings.Downloads.PushTimeout );
 			}
 			else
 			{
@@ -208,6 +228,32 @@ CString CDownloadTransfer::GetStateText(BOOL bLong)
 
 BOOL CDownloadTransfer::OnRun()
 {
+	switch ( m_pSource->m_nProtocol )
+	{
+	case PROTOCOL_G1:
+		if ( !Settings.IsG1Allowed() )
+		{
+			Close(TS_UNKNOWN);
+			return FALSE;
+		}
+		break;
+	case PROTOCOL_G2:
+		if ( !Settings.IsG2Allowed() )
+		{
+			Close(TS_UNKNOWN);
+			return FALSE;
+		}
+		break;
+	case PROTOCOL_ED2K:
+		if ( !Settings.IsEdAllowed() )
+		{
+			Close(TS_UNKNOWN);
+			return FALSE;
+		}
+		break;
+	default:
+		break;
+	}
 	return CTransfer::OnRun();
 }
 

@@ -22,9 +22,11 @@
 #include "StdAfx.h"
 #include "Shareaza.h"
 #include "Settings.h"
+#include "Buffer.h"
 #include "QuerySearch.h"
 #include "QueryHit.h"
 #include "Network.h"
+#include "Security.h"
 #include "G1Packet.h"
 #include "G2Packet.h"
 #include "EDPacket.h"
@@ -52,7 +54,8 @@ static char THIS_FILE[]=__FILE__;
 //////////////////////////////////////////////////////////////////////
 // CQueryHit construction
 
-CQueryHit::CQueryHit(PROTOCOLID nProtocol, const Hashes::Guid& oSearchID)
+CQueryHit::CQueryHit(PROTOCOLID nProtocol, const Hashes::Guid& oSearchID) :
+	m_sPreview(""), m_oSHA1(), m_oTiger(), m_oED2K(), m_oMD5(), m_oBTH()
 {
 	m_pNext = NULL;
 	
@@ -97,6 +100,7 @@ CQueryHit::CQueryHit(PROTOCOLID nProtocol, const Hashes::Guid& oSearchID)
 	m_bNew			= FALSE;
 	m_bSelected		= FALSE;
 	m_bResolveURL	= TRUE;
+	ZeroMemory( (void*)&m_tTimeCreated, sizeof(FILETIME) );
 }
 
 CQueryHit::~CQueryHit()
@@ -129,6 +133,8 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 		if ( pnHops ) *pnHops = pPacket->m_nHops + 1;
 	}
 	
+	oQueryID.validate();
+
 	try
 	{
 		BYTE	nCount		= pPacket->ReadByte();
@@ -145,8 +151,10 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 		while ( nCount-- )
 		{
 			CQueryHit* pHit = new CQueryHit( PROTOCOL_G1, oQueryID );
+
 			if ( pFirstHit ) pLastHit->m_pNext = pHit;
 			else pFirstHit = pHit;
+			//pHit->m_pNext = NULL;
 			pLastHit = pHit;
 			
 			pHit->m_pAddress	= (IN_ADDR&)nAddress;
@@ -201,11 +209,12 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 		}
 		
 		if ( pPacket->GetRemaining() < 16 + nXMLSize ) nXMLSize = 0;
-		
+
+		std::list<SOCKADDR_IN> oPushProxyList;
 		if ( ( nFlags[0] & G1_QHD_GGEP ) && ( nFlags[1] & G1_QHD_GGEP ) &&
 			 Settings.Gnutella1.EnableGGEP )
 		{
-			ReadGGEP( pPacket, &bBrowseHost, &bChat );
+			ReadGGEP( pPacket, &bBrowseHost, &bChat, &oPushProxyList);
 		}
 		
 		if ( nXMLSize > 0 )
@@ -226,14 +235,20 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 		
 		pPacket->Seek( 16, CG1Packet::seekEnd );
 		pPacket->Read( oClientID );
-		
+		oClientID.validate();
+
 		DWORD nIndex = 0;
-		
+		SYSTEMTIME tTime;
+		FILETIME tSeen;
+		GetSystemTime( &tTime );
+		SystemTimeToFileTime( &tTime, &tSeen );
+
 		for ( pLastHit = pFirstHit ; pLastHit ; pLastHit = pLastHit->m_pNext, nIndex++ )
 		{
-			pLastHit->ParseAttributes( oClientID, pVendor, nFlags, bChat, bBrowseHost );
+			pLastHit->ParseAttributes( oClientID, pVendor, nFlags, bChat, bBrowseHost, oPushProxyList );
 			pLastHit->Resolve();
 			if ( pXML ) pLastHit->ParseXML( pXML, nIndex );
+			pLastHit->m_tTimeCreated = tSeen;
 		}
 		
 		CheckBogus( pFirstHit );
@@ -254,7 +269,7 @@ CQueryHit* CQueryHit::FromPacket(CG1Packet* pPacket, int* pnHops)
 //////////////////////////////////////////////////////////////////////
 // CQueryHit from G2 packet
 
-CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
+CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops, SOCKADDR_IN* pSender)
 {
 	if ( pPacket->IsType( G2_PACKET_HIT_WRAP ) )
 	{
@@ -281,7 +296,9 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 	
 	CString		strNick;
 	DWORD		nGroupState[8][4] = {};
-	
+
+	std::list<SOCKADDR_IN> oHubList; // List of Hubs the Hit Sender is connected to.
+
 	try
 	{
 		BOOL bCompound;
@@ -362,9 +379,8 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 				}
 				nPrevHubAddress = pHub.sin_addr.S_un.S_addr;
 				nPrevHubPort = pHub.sin_port;
-				oIncrID[15]++;
-				oIncrID.validate();
-				Network.NodeRoute->Add( oIncrID, &pHub );
+				oHubList.push_back(pHub);
+
 			}
 			else if ( nType == G2_PACKET_NODE_GUID && nLength == 16 )
 			{
@@ -471,6 +487,27 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 		if ( ! oClientID ) AfxThrowUserException();
 		if ( pPacket->GetRemaining() < 17 ) AfxThrowUserException();
 		
+		for ( HubIndex index = oHubList.begin();index != oHubList.end();index++)
+		{
+			oIncrID[15]++;
+			Network.NodeRoute->Add( oIncrID, &(*index) );
+		}
+
+		if ( pSender != NULL )
+		{
+			HubIndex iTemp = oHubList.begin();
+			HubIndex iEnd = oHubList.end();
+			BOOL bFound = FALSE;
+
+			for (;iTemp != iEnd;iTemp++)
+			{
+				if ( (*iTemp).sin_addr.S_un.S_addr == pSender->sin_addr.S_un.S_addr &&
+					(*iTemp).sin_port == pSender->sin_port )
+					bFound = TRUE;
+			}
+			if ( !bFound ) oHubList.push_front( *pSender );
+		}
+
 		BYTE nHops = pPacket->ReadByte() + 1;
 		if ( pnHops ) *pnHops = nHops;
 		
@@ -480,7 +517,11 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 		if ( ! bPush ) bPush = ( nPort == 0 || Network.IsFirewalledAddress( &nAddress ) );
 		
 		DWORD nIndex = 0;
-		
+		SYSTEMTIME tTime;
+		FILETIME tSeen;
+		GetSystemTime( &tTime );
+		SystemTimeToFileTime( &tTime, &tSeen );
+
 		for ( pLastHit = pFirstHit ; pLastHit ; pLastHit = pLastHit->m_pNext, nIndex++ )
 		{
 			if ( nGroupState[ pLastHit->m_nGroup ][0] == FALSE ) pLastHit->m_nGroup = 0;
@@ -501,6 +542,8 @@ CQueryHit* CQueryHit::FromPacket(CG2Packet* pPacket, int* pnHops)
 			pLastHit->m_bBrowseHost	= bBrowseHost;
 			pLastHit->m_sNick		= strNick;
 			pLastHit->m_bPreview	&= pLastHit->m_bPush == TS_FALSE;
+			pLastHit->m_oHubList	= oHubList;
+			pLastHit->m_tTimeCreated= tSeen;
 			
 			if ( pLastHit->m_nUpSlots > 0 )
 			{
@@ -542,7 +585,11 @@ CQueryHit* CQueryHit::FromPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD
 	CQueryHit* pFirstHit	= NULL;
 	CQueryHit* pLastHit		= NULL;
     Hashes::Ed2kHash oHash;
-	
+	SYSTEMTIME tTime;
+	FILETIME tSeen;
+	GetSystemTime( &tTime );
+	SystemTimeToFileTime( &tTime, &tSeen );
+
 	if ( pPacket->m_nType == ED2K_S2C_SEARCHRESULTS ||
 		 pPacket->m_nType == ED2K_S2CG_SEARCHRESULT )
 	{
@@ -567,6 +614,7 @@ CQueryHit* CQueryHit::FromPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD
 			pHit->m_pVendor = VendorCache.m_pED2K;
 			if ( ! pHit->ReadEDPacket( pPacket, pServer, m_nServerFlags ) ) break;
 			pHit->Resolve();
+			pHit->m_tTimeCreated = tSeen;
 
 			if ( pHit->m_bPush == TS_TRUE )
 			{
@@ -597,6 +645,7 @@ CQueryHit* CQueryHit::FromPacket(CEDPacket* pPacket, SOCKADDR_IN* pServer, DWORD
 			pHit->m_pVendor = VendorCache.m_pED2K;
 			pHit->ReadEDAddress( pPacket, pServer );
 			pHit->Resolve();
+			pHit->m_tTimeCreated = tSeen;
 		}
 	}
 
@@ -763,7 +812,8 @@ CXMLElement* CQueryHit::ReadXML(CG1Packet* pPacket, int nSize)
 //////////////////////////////////////////////////////////////////////
 // CQueryHit GGEP reader
 
-BOOL CQueryHit::ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat)
+BOOL CQueryHit::ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat,
+						 std::list<SOCKADDR_IN> * oPushProxyList )
 {
 	CGGEPBlock pGGEP;
 	
@@ -771,7 +821,25 @@ BOOL CQueryHit::ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat)
 	
 	if ( pGGEP.Find( _T("BH") ) ) *pbBrowseHost = TRUE;
 	if ( pGGEP.Find( _T("CHAT") ) ) *pbChat = TRUE;
-	
+
+	if ( oPushProxyList != NULL )
+	{
+		if ( CGGEPItem* pItem = pGGEP.Find( _T("PUSH"), 6 ) )
+		{
+			int nLength = pItem->m_nLength;
+			SOCKADDR_IN pPushProxy;
+			WORD nPort = 0;
+			for ( ; nLength >=6 ; nLength = nLength - 6 )
+			{
+				pItem->Read(&pPushProxy.sin_addr, 4);
+				pItem->Read(&nPort,2);
+				pPushProxy.sin_port = htons ( nPort );
+				oPushProxyList->push_back(pPushProxy);
+				nPort = 0;
+			}
+		}
+	}
+
 	return TRUE;
 }
 
@@ -780,8 +848,6 @@ BOOL CQueryHit::ReadGGEP(CG1Packet* pPacket, BOOL* pbBrowseHost, BOOL* pbChat)
 
 void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 {
-	CString strData;
-	
 	m_nIndex	= pPacket->ReadLongLE();
 	m_bSize		= TRUE;
 	m_nSize		= pPacket->ReadLongLE();
@@ -795,7 +861,10 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 		m_sName	= pPacket->ReadStringASCII();
 	}
 
-	strData		= pPacket->ReadStringASCII();
+	//strData		= pPacket->ReadStringASCII();
+	std::string	strData		= std::string((LPCSTR)pPacket->m_pBuffer + pPacket->m_nPosition);
+	int			nDataLength = static_cast<DWORD>( strData.size() );
+	pPacket->m_nPosition = pPacket->m_nPosition + nDataLength + 1;
 
 	if ( m_sName.GetLength() > 160 )
 	{
@@ -821,8 +890,8 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 		if ( nMaxWord > 30 ) m_bBogus = TRUE;
 	}
 	
-	LPCTSTR pszData	= strData;
-	LPCTSTR pszEnd	= pszData + _tcslen( pszData );
+	LPCSTR pszData	= (LPCSTR)strData.c_str();
+	LPCSTR pszEnd	= pszData + strlen( pszData );
 	
 	while ( *pszData && pszData < pszEnd )
 	{
@@ -831,70 +900,110 @@ void CQueryHit::ReadG1Packet(CG1Packet* pPacket)
 			if ( ! Settings.Gnutella1.EnableGGEP ) break;
 			
 			CGGEPBlock pGGEP;
-			pGGEP.ReadFromString( pszData );
-			
-			if ( CGGEPItem* pItem = pGGEP.Find( _T("H"), 21 ) )
+			pGGEP.ReadFromBuffer( (LPVOID)pszData, pszEnd - pszData + 1);
+
+			CGGEPItem* pItemPos = pGGEP.m_pFirst;
+			if ( pItemPos != NULL && pGGEP.m_nItemCount != 0 )
 			{
-				if ( pItem->m_pBuffer[0] > 0 && pItem->m_pBuffer[0] < 3 )
+				BYTE nItemCount = 0;
+				while ( nItemCount < pGGEP.m_nItemCount )
 				{
-                    std::copy( &pItem->m_pBuffer[1], &pItem->m_pBuffer[1] + 20, &m_oSHA1[ 0 ] );
-                    m_oSHA1.validate();
+					if ( pItemPos->IsNamed( _T("H") ) )
+					{
+						if ( pItemPos->m_pBuffer[0] > 0 && pItemPos->m_pBuffer[0] < 3 && pItemPos->m_nLength >= 20 + 1 )
+						{
+							std::copy( &pItemPos->m_pBuffer[1], &pItemPos->m_pBuffer[1] + 20, &m_oSHA1[ 0 ] );
+							m_oSHA1.validate();
+						}
+						if ( pItemPos->m_pBuffer[0] == 2 && pItemPos->m_nLength >= 24 + 20 + 1 )
+						{
+							std::copy( &pItemPos->m_pBuffer[21], &pItemPos->m_pBuffer[21] + 24, &m_oTiger[ 0 ] );
+							m_oTiger.validate();
+						}
+						if ( pItemPos->m_pBuffer[0] == 3 && pItemPos->m_nLength >= 17 )
+						{
+							std::copy( &pItemPos->m_pBuffer[1], &pItemPos->m_pBuffer[1] + 16, &m_oMD5[ 0 ] );
+							m_oMD5.validate();
+						}
+					}
+					else if ( pItemPos->IsNamed( _T("u") ) )
+					{
+						CString strUrn = "urn:" + pItemPos->ToString();
+						theApp.Message( MSG_SYSTEM, _T("CQueryHit::ReadG1Packet GGEP u extension with content: %s"),
+							(LPCTSTR)strUrn );
+
+						if ( !m_oSHA1 ) m_oSHA1.fromUrn( strUrn );
+						if ( !m_oTiger ) m_oTiger.fromUrn( strUrn );
+						if ( !m_oED2K ) m_oED2K.fromUrn( strUrn );
+						if ( !m_oMD5 ) m_oMD5.fromUrn( strUrn );
+						if ( !m_oBTH ) m_oBTH.fromUrn( strUrn );
+					}
+					else if ( pItemPos->IsNamed( _T("LF") ) )
+					{
+						if ( pItemPos->m_nLength <= 8 )
+						{
+							QWORD nFileSize = 0;
+
+							pItemPos->Read( &nFileSize , pItemPos->m_nLength );
+							
+							if ( m_nSize != 0 )
+								m_nSize = nFileSize;
+							else
+								m_nSize = SIZE_UNKNOWN;
+						}
+					}
+					else if ( pItemPos->IsNamed( _T("ALT") ) )
+					{
+						// the ip-addresses need not be stored, as they are sent upon the download request in the ALT-loc header
+						m_nSources = pItemPos->m_nLength / 6;	// 6 bytes per source (see ALT GGEP extension specification)
+					}
+					pItemPos = pItemPos->m_pNext;
+					nItemCount++;
 				}
-				if ( pItem->m_pBuffer[0] == 2 && pItem->m_nLength >= 24 + 20 + 1 )
-				{
-                    std::copy( &pItem->m_pBuffer[21], &pItem->m_pBuffer[21] + 24, &m_oTiger[ 0 ] );
-                    m_oTiger.validate();
-				}
+				break;
 			}
-			else if ( CGGEPItem* pItem = pGGEP.Find( _T("u"), 5 + 32 ) )
-			{
-				strData = pItem->ToString();
-				
-				if ( !m_oSHA1 ) m_oSHA1.fromUrn( strData );
-				if ( !m_oTiger ) m_oTiger.fromUrn( strData );
-				if ( !m_oED2K ) m_oED2K.fromUrn( strData );
-			}
-			
-			if ( CGGEPItem* pItem = pGGEP.Find( _T("ALT"), 6 ) )
-			{
-				// the ip-addresses need not be stored, as they are sent upon the download request in the ALT-loc header
-				m_nSources = pItem->m_nLength / 6;	// 6 bytes per source (see ALT GGEP extension specification)
-			}
-			
-			break;
+
 		}
+
+		LPCSTR pszSep = strchr( pszData, 0x1C );
+		size_t nLength = pszSep ? pszSep - pszData : strlen( pszData );
 		
-		LPCTSTR pszSep = _tcschr( pszData, 0x1C );
-		size_t nLength = pszSep ? pszSep - pszData : _tcslen( pszData );
-		
-		if ( _tcsnicmp( pszData, _T("urn:"), 4 ) == 0 )
+		if ( _strnicmp( pszData, "urn:", 4 ) == 0 )
 		{
-			if ( !m_oSHA1 ) m_oSHA1.fromUrn( pszData );
-			if ( !m_oTiger ) m_oTiger.fromUrn( pszData );
-			if ( !m_oED2K ) m_oED2K.fromUrn( pszData );
+			CString strUrn(pszData);
+			if ( !m_oSHA1 ) m_oSHA1.fromUrn( strUrn );
+			if ( !m_oTiger ) m_oTiger.fromUrn( strUrn );
+			if ( !m_oED2K ) m_oED2K.fromUrn( strUrn );
+			if ( !m_oMD5 ) m_oMD5.fromUrn( strUrn );
+			if ( !m_oBTH ) m_oBTH.fromUrn( strUrn );
 		}
 		else if ( nLength > 4 )
 		{
-			AutoDetectSchema( pszData );
+			CBuffer pConvertWork;
+			pConvertWork.Print( pszData );
+			CString strXML = pConvertWork.ReadString( nLength, CP_UTF8 );
+			m_pXML = CXMLElement::FromString( strXML );
 		}
 		
 		if ( pszSep ) pszData = pszSep + 1;
 		else break;
 	}
-	if ( !m_oSHA1 && !m_oTiger && !m_oED2K )
-		AfxThrowUserException();
+
+	if ( !m_oSHA1 && !m_oTiger && !m_oED2K && !m_oBTH && !m_oMD5 ) AfxThrowUserException();
 }
 
 //////////////////////////////////////////////////////////////////////
 // CQueryHit G1 attributes suffix
 
-void CQueryHit::ParseAttributes(const Hashes::Guid& oClientID, CVendor* pVendor, BYTE* nFlags, BOOL bChat, BOOL bBrowseHost)
+void CQueryHit::ParseAttributes(const Hashes::Guid& oClientID, CVendor* pVendor, BYTE* nFlags, BOOL bChat, BOOL bBrowseHost
+								,std::list<SOCKADDR_IN> & oPushProxyList)
 {
 	m_oClientID		= oClientID;
 	m_pVendor		= pVendor;
 	m_bChat			= bChat;
 	m_bBrowseHost	= bBrowseHost;
-	
+	if ( !oPushProxyList.empty() ) m_oPushProxyList = oPushProxyList;
+
 	if ( nFlags[1] & G1_QHD_PUSH )
 		m_bPush		= ( nFlags[0] & G1_QHD_PUSH ) ? TS_TRUE : TS_FALSE;
 	if ( nFlags[0] & G1_QHD_BUSY )
@@ -947,6 +1056,11 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength)
 			{
 				pPacket->Read( m_oED2K );
 				m_oED2K.validate();
+			}
+			else if ( nPacket >= 16 && strURN == _T("md5") )
+			{
+				pPacket->Read( m_oMD5 );
+				m_oMD5.validate();
 			}
 			else if ( nPacket >= 20 && strURN == _T("btih") )
 			{
@@ -1073,7 +1187,7 @@ void CQueryHit::ReadG2Packet(CG2Packet* pPacket, DWORD nLength)
 		pPacket->m_nPosition = nSkip;
 	}
 	
-	if ( !m_oSHA1 && !m_oTiger && !m_oED2K && !m_oBTH ) AfxThrowUserException();
+	if ( !m_oSHA1 && !m_oTiger && !m_oED2K && !m_oBTH && !m_oMD5 ) AfxThrowUserException();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1360,7 +1474,8 @@ void CQueryHit::ReadEDAddress(CEDPacket* pPacket, SOCKADDR_IN* pServer)
 	*i++ = htons( pServer->sin_port );
 	*i++ = nAddress;
 	*i++ = m_nPort;
-	
+	m_oClientID.validate();
+
 	if ( nAddress == 0 )
 	{
 		m_bResolveURL = FALSE;
@@ -1416,10 +1531,16 @@ void CQueryHit::Resolve()
 		}
 		return;
 	}
-
-	if ( m_nIndex == 0 || m_oSHA1 || m_oTiger || m_oED2K || m_oBTH || Settings.Downloads.RequestHash )
+	else if ( m_nIndex == 0 || m_oSHA1 || m_oTiger || m_oED2K || m_oMD5 || m_oBTH || Settings.Downloads.RequestHash )
 	{
-		if ( m_oSHA1 )
+		if ( m_oSHA1 && m_oTiger )
+		{
+			m_sURL.Format( _T("http://%s:%i/uri-res/N2R?%s%s.%s"),
+				(LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort,
+				_T("urn:bitprint:"), (LPCTSTR)m_oSHA1.toString(), (LPCTSTR)m_oTiger.toString() );
+			return;
+		}
+		else if ( m_oSHA1 )
 		{
 			m_sURL.Format( _T("http://%s:%i/uri-res/N2R?%s"),
 				(LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort,
@@ -1440,16 +1561,23 @@ void CQueryHit::Resolve()
 				(LPCTSTR)m_oED2K.toUrn() );
 			return;
 		}
+		else if ( m_oMD5 )
+		{
+			m_sURL.Format( _T("http://%s:%i/uri-res/N2R?%s"),
+				(LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort,
+				(LPCTSTR)m_oMD5.toUrn() );
+			return;
+		}
 		else if ( m_oBTH )
 		{
 			m_sURL.Format( _T("btc://%s:%i//%s/"),
 				(LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort,
 				(LPCTSTR)m_oBTH.toString() );
+			m_nProtocol = PROTOCOL_BT;
 			return;
 		}
 	}
-
-	if ( Settings.Downloads.RequestURLENC )
+	else if ( Settings.Downloads.RequestURLENC )
 	{
 		m_sURL.Format( _T("http://%s:%i/get/%lu/%s"),
 			(LPCTSTR)CString( inet_ntoa( m_pAddress ) ), m_nPort, m_nIndex,
@@ -1554,8 +1682,6 @@ BOOL CQueryHit::AutoDetectAudio(LPCTSTR pszInfo)
 
 void CQueryHit::Copy(CQueryHit* pOther)
 {
-	if ( m_pXML ) delete m_pXML;
-
 	m_oSearchID		= pOther->m_oSearchID;
 	m_oClientID		= pOther->m_oClientID;
 	m_pAddress		= pOther->m_pAddress;
@@ -1573,6 +1699,8 @@ void CQueryHit::Copy(CQueryHit* pOther)
 	m_oSHA1			= pOther->m_oSHA1;
 	m_oTiger		= pOther->m_oTiger;
 	m_oED2K			= pOther->m_oED2K;
+	m_oMD5			= pOther->m_oMD5;
+	m_oBTH			= pOther->m_oBTH;
 	m_sURL			= pOther->m_sURL;
 	m_sName			= pOther->m_sName;
 	m_nIndex		= pOther->m_nIndex;
@@ -1580,7 +1708,14 @@ void CQueryHit::Copy(CQueryHit* pOther)
 	m_nSize			= pOther->m_nSize;
 	m_sSchemaURI	= pOther->m_sSchemaURI;
 	m_sSchemaPlural	= pOther->m_sSchemaPlural;
-	m_pXML			= pOther->m_pXML;
+
+	if ( pOther->m_pXML )
+	{
+		if ( m_pXML ) delete m_pXML;
+		m_pXML		= pOther->m_pXML->Clone();
+	}
+	//m_pXML			= pOther->m_pXML;
+	//pOther->m_pXML	= NULL;
 
 	m_bMatched		= pOther->m_bMatched;
 	m_bExactMatch	= pOther->m_bExactMatch;
@@ -1588,7 +1723,16 @@ void CQueryHit::Copy(CQueryHit* pOther)
 	m_bFiltered		= pOther->m_bFiltered;
 	m_bDownload		= pOther->m_bDownload;
 
-	pOther->m_pXML = NULL;
+	m_nProtocol		= pOther->m_nProtocol;
+	m_oPushProxyList= pOther->m_oPushProxyList;
+	m_oHubList		= pOther->m_oHubList;
+
+	m_nSources		= pOther->m_nSources;
+	m_nUpSlots		= pOther->m_nUpSlots;
+	m_nUpQueue		= pOther->m_nUpQueue;
+	m_bCollection	= pOther->m_bCollection;
+	m_nRating		= pOther->m_nRating;
+	m_tTimeCreated	= pOther->m_tTimeCreated;
 }
 
 void CQueryHit::Delete()

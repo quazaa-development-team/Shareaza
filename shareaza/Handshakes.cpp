@@ -154,6 +154,14 @@ BOOL CHandshakes::Listen()
 		}
 	}
 
+	if ( !bBound )
+	{
+		shutdown( m_hSocket, SD_RECEIVE );
+		closesocket( m_hSocket );
+		m_hSocket = INVALID_SOCKET;
+		return FALSE;
+	}
+
 	// If our record of our IP address on the Internet in the network object is zeroed
 	if ( Network.m_pHost.sin_addr.S_un.S_addr == 0 )
 	{
@@ -420,14 +428,20 @@ BOOL CHandshakes::AcceptConnection()
 			// if we should need this in the future, a LUT needs to be used instead
 	if ( hSocket == INVALID_SOCKET ) return FALSE; // AcceptCheck refused the connection, or it didn't work, leave now
 
-	// We've listened for and accepted one more stable connection
-	InterlockedIncrement( (PLONG)&m_nStableCount ); // Use an interlocked function to do this in a thread-safe way
+	if ( !Network.IsFirewalledAddress( &pHost.sin_addr, TRUE, TRUE ) ) // check if incoming TCP connection is not PRIVATE IP
+	{
+		// We've listened for and accepted one more stable connection not PRIVATE IP
+		InterlockedIncrement( (PLONG)&m_nStableCount ); // Use an interlocked function to do this in a thread-safe way
+
+		// Note: this do not Block incoming connection from Private IP, but ignore it for Firewall detection
+	}
 
 	// If the remote computer's IP address is blocked or banned
+	/*
 	if ( Security.IsDenied( &pHost.sin_addr ) )
 	{
-		// Set linger period to zero (it will close the socket immediatelly)
-		// Default behaviour is to send data and close or timeout and close
+		// Set linger period to zero (it will close the socket immediately)
+		// Default behavior is to send data and close or timeout and close
 		linger ls = {1, 0};
 		int ret = setsockopt( hSocket, SOL_SOCKET, SO_LINGER, (char*)&ls, sizeof(ls) );
 
@@ -441,9 +455,10 @@ BOOL CHandshakes::AcceptConnection()
 	}
 	else // The IP address is not blocked
 	{
+	*/
 		// Make a new handshake object with the received socket and IP address, and add it to the list
 		CreateHandshake( hSocket, &pHost );
-	}
+	//}
 
 	// Report success
 	return TRUE;
@@ -515,7 +530,7 @@ void CHandshakes::RunStableUpdate()
 		// If there isn't a record of when we first connected yet, set it to the current time.
 		if ( m_tStableTime == 0 ) m_tStableTime = (DWORD)time( NULL ); // The function time( NULL ) resolves to the number of seconds since 1970
 
-		// Update the discovery services (do)
-		DiscoveryServices.Update();
+		// if Discovery Auto query is not disabled, Update the discovery services (do)
+		if ( !Settings.Discovery.DisableAutoUpdate ) DiscoveryServices.Update();
 	}
 }

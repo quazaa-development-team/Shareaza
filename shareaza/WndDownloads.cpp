@@ -46,7 +46,7 @@
 #include "WndBrowseHost.h"
 #include "DlgDownload.h"
 #include "DlgDownloadReviews.h"
-#include "DlgDownloadEdit.h"
+#include "DlgDownloadEditSheet.h"
 #include "DlgSettingsManager.h"
 #include "DlgDeleteFile.h"
 #include "DlgFilePropertiesSheet.h"
@@ -549,7 +549,7 @@ void CDownloadsWnd::Prepare()
 				m_bSelStartedAndNotMoving = TRUE;
 			if ( bFirstShare )
 			{
-				m_bSelShareState = pDownload->IsShared();
+				m_bSelShareState = pDownload->IsShared( TRUE );
 				bFirstShare = FALSE;
 			}
 			else if ( m_bSelShareState != pDownload->IsShared() )
@@ -746,18 +746,21 @@ void CDownloadsWnd::OnDownloadsClearIncomplete()
 		{
 			if ( ! pDownload->IsCompleted() && ! pDownload->IsPreviewVisible() )
 			{
-				if ( pDownload->IsStarted() )
-				{
+				// Uncommenting condition, getting sick of the mis-operation happens on try clicking on PAUSE cause Cancel when the file is 0Byte downloaded.
+				//if ( pDownload->IsStarted() )
+				//{
 					CDeleteFileDlg dlg;
 					dlg.m_sName = pDownload->m_sDisplayName;
 					BOOL bShared = pDownload->IsShared();
-					
+					if ( !pDownload->IsStarted() )
+						dlg.m_bButtonsOnly = TRUE;
+
 					pLock.Unlock();
 					if ( dlg.DoModal() != IDOK ) break;
 					pLock.Lock();
 					
 					if ( Downloads.Check( pDownload ) ) dlg.Create( pDownload, bShared );
-				}
+				//}
 				
 				if ( Downloads.Check( pDownload ) ) pDownload->Remove();
 			}
@@ -778,7 +781,6 @@ void CDownloadsWnd::OnUpdateDownloadsClearComplete(CCmdUI *pCmdUI)
 void CDownloadsWnd::OnDownloadsClearComplete()
 {
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
-
 	for ( POSITION pos = Downloads.GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = Downloads.GetNext( pos );
@@ -1280,7 +1282,7 @@ void CDownloadsWnd::OnDownloadsShare()
 		
 		if ( pDownload->m_bSelected )
 		{
-			pDownload->Share( ! pDownload->IsShared() );
+			pDownload->Share( ! pDownload->IsShared( TRUE ) );
 		}
 	}
 	
@@ -1371,7 +1373,7 @@ void CDownloadsWnd::OnDownloadsEdit()
 		
 		if ( pDownload->m_bSelected && ! pDownload->IsMoving() )
 		{
-			CDownloadEditDlg dlg( pDownload );
+			CDownloadEditSheet dlg( pDownload );
 			pLock.Unlock();
 			dlg.DoModal();
 			break;
@@ -1426,11 +1428,7 @@ void CDownloadsWnd::OnTransfersConnect()
 				{
 					pSource->m_pDownload->Resume();
 
-					if ( pSource->m_bPushOnly )
-					{
-						pSource->PushRequest();
-					}
-					else if ( CDownloadTransfer* pTransfer = pSource->CreateTransfer() )
+					if ( CDownloadTransfer* pTransfer = pSource->CreateTransfer() )
 					{
 						pTransfer->Initiate();
 					}
@@ -1463,6 +1461,7 @@ void CDownloadsWnd::OnTransfersDisconnect()
 			
 			if ( pSource->m_bSelected && pSource->m_pTransfer != NULL )
 			{
+				pSource->m_bReConnect = FALSE;
 				pSource->m_pTransfer->Close( TS_TRUE );
 			}
 			
@@ -1490,7 +1489,7 @@ void CDownloadsWnd::OnTransfersForget()
 		for ( CDownloadSource* pSource = pDownload->GetFirstSource() ; pSource != NULL ; )
 		{
 			CDownloadSource* pNext = pSource->m_pNext;
-			if ( pSource->m_bSelected ) pSource->Remove( TRUE, TRUE );
+			if ( pSource->m_bSelected ) pSource->Remove( TRUE, FALSE );
 			pSource = pNext;
 		}
 	}

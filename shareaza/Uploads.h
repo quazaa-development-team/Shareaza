@@ -94,7 +94,11 @@ public:
 	{
 		return GetTorrentCount( -3 );
 	}
-	
+
+	inline BOOL IsStable() const
+	{
+		return m_bStable;
+	}
 };
 
 extern CUploads Uploads;

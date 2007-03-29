@@ -51,6 +51,8 @@ void CSettings::Setup()
 	Add( _T(".DiskSpaceWarning"), &General.DiskSpaceWarning, 500 );
 	Add( _T(".DiskSpaceStop"), &General.DiskSpaceStop, 25 );
 	Add( _T(".MinTransfersRest"), &General.MinTransfersRest, 15 );
+	Add( _T(".ShowFilesizeInByte"), &General.ShowFilesizeInByte, FALSE );
+	Add( _T(".DisableThumbnail"), &General.DisableThumbnail, FALSE );
 	Add( _T("Settings.GUIMode"), &General.GUIMode, GUI_BASIC );
 	Add( _T("Settings.CloseMode"), &General.CloseMode, 0 );
 	Add( _T("Settings.TrayMinimise"), &General.TrayMinimise, FALSE );
@@ -189,6 +191,9 @@ void CSettings::Setup()
 	Add( _T("Connection.DeleteUPnPPorts"), &Connection.DeleteUPnPPorts, TRUE );
 	Add( _T("Connection.SkipWANPPPSetup"), &Connection.SkipWANPPPSetup, FALSE );
 	Add( _T("Connection.SkipWANIPSetup"), &Connection.SkipWANIPSetup, FALSE );
+	Add( _T("Connection.FWTestWait"), &Connection.FWTestWait, 1200 );
+	Add( _T("Connection.MaxFWTestQueue"), &Connection.MaxFWTestQueue, 5 );
+	Add( _T("Connection.LosePacketHandling"), &Connection.LosePacketHandling, 1 );
 
 	Add( _T("Bandwidth.Request"), &Bandwidth.Request, 4096 );
 	Add( _T("Bandwidth.HubIn"), &Bandwidth.HubIn, 0 );
@@ -218,6 +223,10 @@ void CSettings::Setup()
 	Add( _T("Discovery.FailureLimit"), &Discovery.FailureLimit, 2 );
 	Add( _T("Discovery.UpdatePeriod"), &Discovery.UpdatePeriod, 1800 );
 	Add( _T("Discovery.DefaultUpdate"), &Discovery.DefaultUpdate, 3600 );
+	Add( _T("Discovery.DisableAutoQuery"), &Discovery.DisableAutoQuery, 0 );
+	Add( _T("Discovery.DisableAutoUpdate"), &Discovery.DisableAutoUpdate, 0 );
+	Add( _T("Discovery.DisableManualQuery"), &Discovery.DisableManualQuery, 1 );
+	Add( _T("Discovery.DisableService"), &Discovery.DisableService, 0 );
 	Add( _T("Discovery.BootstrapCount"), &Discovery.BootstrapCount, 10 );
 	Add( _T("Discovery.G2DAddress"), &Discovery.G2DAddress, _T("stats.shareaza.com:6446") );
 	Add( _T("Discovery.G2DRetryAfter"), &Discovery.G2DRetryAfter, 0 );
@@ -225,7 +234,7 @@ void CSettings::Setup()
 
 	Add( _T("Gnutella.ConnectFactor"), &Gnutella.ConnectFactor, 4 );
 	Add( _T("Gnutella.DeflateHub2Hub"), &Gnutella.DeflateHub2Hub, TRUE );
-	Add( _T("Gnutella.DeflateLeaf2Hub"), &Gnutella.DeflateLeaf2Hub, FALSE );
+	Add( _T("Gnutella.DeflateLeaf2Hub"), &Gnutella.DeflateLeaf2Hub, TRUE );
 	Add( _T("Gnutella.DeflateHub2Leaf"), &Gnutella.DeflateHub2Leaf, TRUE );
 	Add( _T("Gnutella.MaxResults"), &Gnutella.MaxResults, 100 );
 	Add( _T("Gnutella.MaxHits"), &Gnutella.MaxHits, 64 );
@@ -260,11 +269,11 @@ void CSettings::Setup()
 	Add( _T("Gnutella1.PingRate"), &Gnutella1.PingRate, 15000 );
 	Add( _T("Gnutella1.PongCache"), &Gnutella1.PongCache, 10000 );
 	Add( _T("Gnutella1.PongCount"), &Gnutella1.PongCount, 10 );
-	Add( _T("Gnutella1.PongUpdate"), &Gnutella1.PongUpdate, 10000 );
 	Add( _T("Gnutella1.QueueLimter"), &Gnutella1.HitQueueLimit, 50 );
 	Add( _T("Gnutella1.QuerySearchUTF8"), &Gnutella1.QuerySearchUTF8, TRUE );
 	Add( _T("Gnutella1.QueryHitUTF8"), &Gnutella1.QueryHitUTF8, TRUE );
 	Add( _T("Gnutella1.MaxHostsInPongs"), &Settings.Gnutella1.MaxHostsInPongs, 10 );
+	Add( _T("Gnutella1.HostCacheCount"), &Gnutella1.HostCacheSize, 128 );
 
 	Add( _T("Gnutella2.ClientMode"), &Gnutella2.ClientMode, MODE_AUTO );
 	Add( _T("Gnutella2.HubVerified"), &Gnutella2.HubVerified, FALSE );
@@ -293,6 +302,9 @@ void CSettings::Setup()
 	Add( _T("Gnutella2.RequeryDelay"), &Gnutella2.RequeryDelay, 4*60*60 );
 	Add( _T("Gnutella2.HubHorizonSize"), &Gnutella2.HubHorizonSize, 128 );
 	Add( _T("Gnutella2.QueryLimit"), &Gnutella2.QueryLimit, 2400 );
+	Add( _T("Gnutella2.HostCacheCount"), &Gnutella2.HostCacheSize, 1024 );
+	Add( _T("Gnutella2.MaxHubsOnRemoteLeaf"), &Gnutella2.MaxHubsOnRemoteLeaf, 3 );
+	Add( _T("Gnutella2.BadLeafHandler"), &Gnutella2.BadLeafHandler, 1 );
 
 	Add( _T("eDonkey.EnableAlways"), &eDonkey.EnableAlways, FALSE );
 	Add( _T("eDonkey.FastConnect"), &eDonkey.FastConnect, FALSE );
@@ -328,6 +340,7 @@ void CSettings::Setup()
 	Add( _T("eDonkey.DefaultServerFlags"), &eDonkey.DefaultServerFlags, 0xFFFFFFFF );
 	Add( _T("eDonkey.Endgame"), &eDonkey.Endgame, TRUE );
 	Add( _T("eDonkey.LargeFileSupport"), &eDonkey.LargeFileSupport, FALSE );
+	Add( _T("eDonkey.ServerCacheCount"), &eDonkey.ServerCacheSize, 128 );
 
 	Add( _T("BitTorrent.AdvancedInterface"), &BitTorrent.AdvancedInterface, FALSE );
 	Add( _T("BitTorrent.AdvancedInterfaceSet"), &BitTorrent.AdvancedInterfaceSet, FALSE );
@@ -391,6 +404,7 @@ void CSettings::Setup()
 	Add( _T("Downloads.RequestURLENC"), &Downloads.RequestURLENC, TRUE );
 	Add( _T("Downloads.SaveInterval"), &Downloads.SaveInterval, 60000 );
 	Add( _T("Downloads.FlushSD"), &Downloads.FlushSD, TRUE );
+	Add( _T("Downloads.SavePush"), &Downloads.SavePushSource, TRUE );
 	Add( _T("Downloads.ShowSources"), &Downloads.ShowSources, FALSE );
 	Add( _T("Downloads.SimpleBar"), &Downloads.SimpleBar, FALSE );
 	Add( _T("Downloads.ShowPercent"), &Downloads.ShowPercent, FALSE );
@@ -404,6 +418,9 @@ void CSettings::Setup()
 	Add( _T("Downloads.SortSources"), &Downloads.SortSources, TRUE );
 	Add( _T("Downloads.SourcesWanted"), &Downloads.SourcesWanted, 500 );
 	Add( _T("Downloads.MaxReviews"), &Downloads.MaxReviews, 64 );
+	Add( _T("Downloads.IgnoreED2KPushSource"), &Downloads.IgnoreED2KPushSource, FALSE );
+	Add( _T("Downloads.AutoSearchDuration"), &Downloads.AutoSearchDuration, 10*60*1000 );
+	Add( _T("Downloads.ManualSearchDuration"), &Downloads.ManualSearchDuration, 5*60*1000 );
 
 	Add( _T("Uploads.MaxPerHost"), &Uploads.MaxPerHost, 2 );
 	Add( _T("Uploads.FreeBandwidthValue"), &Uploads.FreeBandwidthValue, 2560 );
@@ -440,6 +457,7 @@ void CSettings::Setup()
 	Add( _T("Scheduler.AllowHub"), &Scheduler.AllowHub, TRUE );
 
 	Add( _T("Experimental.EnableDIPPSupport"), &Experimental.EnableDIPPSupport, FALSE );
+	Add( _T("Experimental.LoadDownloadsAsPaused"), &Experimental.LoadDownloadsAsPaused, FALSE );
 }
 
 
@@ -580,14 +598,15 @@ void CSettings::Load()
 	Downloads.SearchPeriod		= min( Downloads.SearchPeriod, 4*60*1000u );
 	Downloads.StarveTimeout		= max( Downloads.StarveTimeout, 45*60u );
 	Downloads.ConnectThrottle	= max( Downloads.ConnectThrottle, Connection.ConnectThrottle + 50 );
-	Downloads.MaxFiles			= min( Downloads.MaxFiles, 100 );
+	Downloads.MaxFiles			= min( Downloads.MaxFiles, 1024 );
 	eDonkey.QueryGlobalThrottle = max( eDonkey.QueryGlobalThrottle, 1000u );
 	Gnutella1.RequeryDelay		= max( Gnutella1.RequeryDelay, 45*60u );
 	Gnutella2.RequeryDelay		= max( Gnutella2.RequeryDelay, 60*60u );
+	Downloads.MaxFiles			= min( Downloads.MaxFiles, 1024 );
 
 	// Set client links
-	Gnutella1.NumHubs			= min( Gnutella1.NumHubs, 2 );
-	Gnutella2.NumHubs			= min( Gnutella2.NumHubs, 3 );
+	Gnutella1.NumHubs			= min( Gnutella1.NumHubs, 5 );
+	Gnutella2.NumHubs			= min( Gnutella2.NumHubs, 2 );
 	Gnutella2.NumLeafs			= min( Gnutella2.NumLeafs, 1024 );
 
 	// Enforce HostCache Expire time to be minimum 1 day.
@@ -604,7 +623,7 @@ void CSettings::Load()
 	}
 
 	//Temporary- until G1 ultrapeer has been updated
-	Gnutella1.ClientMode		= MODE_LEAF;
+	//Gnutella1.ClientMode		= MODE_LEAF;
 
 	// UPnP is not supported in servers and Win9x
 	if ( theApp.m_bServer || theApp.m_dwWindowsVersion < 5 && !theApp.m_bWinME )
@@ -763,6 +782,7 @@ void CSettings::SmartUpgrade()
 	{
 		Gnutella1.QuerySearchUTF8 = TRUE;
 		Gnutella1.QueryHitUTF8 = TRUE;
+		Discovery.DisableManualQuery = TRUE;
 	}
 
 	if ( nVersion < 36 )
@@ -1183,6 +1203,11 @@ CString CSettings::SmartAgent()
 	strAgent += _T(" ");
 	strAgent += theApp.m_sVersion;
 
+#ifdef CUSTOM_ID_STRING
+	strAgent += _T(" ");
+	strAgent += _T( CUSTOM_ID_STRING );
+#endif // CUSTOM_ID_STRING
+
 	return strAgent;
 }
 
@@ -1322,6 +1347,24 @@ QWORD CSettings::ParseVolume(LPCTSTR psz, BOOL bSpeedInBits)
 	else
 	{
 		return (QWORD)val;
+	}
+}
+
+CString CSettings::ExactVolume(QWORD nVolume, BOOL bForceEnabled){
+
+	if ( bForceEnabled || Settings.General.ShowFilesizeInByte ){
+		CString strVolume;
+		int insertPos;
+
+		strVolume.Format( _T("%I64i"), nVolume);
+		insertPos = strVolume.GetLength();
+		for (;insertPos > 3;){
+			insertPos -= 3;
+			strVolume.Insert(insertPos,',');
+		}
+		return strVolume;
+	}else{
+		return SmartVolume(nVolume, FALSE);
 	}
 }
 

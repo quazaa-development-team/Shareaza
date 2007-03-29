@@ -309,6 +309,12 @@ void CGGEPItem::WriteUTF8( LPCWSTR pszText )
 	Write( pBuffer.m_pBuffer, pBuffer.m_nLength );
 }
 
+// not yet implemented
+//CString CGGEPItem::ReadAscii()
+//{
+//	
+//}
+
 //////////////////////////////////////////////////////////////////////
 // CGGEPItem string conversion
 

@@ -24,6 +24,7 @@
 #include "Settings.h"
 #include "Transfers.h"
 #include "Transfer.h"
+#include "Network.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -42,7 +43,7 @@ CTransfer::CTransfer()
 
 CTransfer::~CTransfer()
 {
-	ASSERT( m_hSocket == INVALID_SOCKET );
+	//ASSERT( m_hSocket == INVALID_SOCKET );
 	if ( m_hSocket != INVALID_SOCKET ) Close();
 }
 
@@ -62,8 +63,9 @@ BOOL CTransfer::ConnectTo(IN_ADDR* pAddress, WORD nPort)
 
 void CTransfer::AttachTo(CConnection* pConnection)
 {
-	CConnection::AttachTo( pConnection );
-	Transfers.Add( this );
+	if ( pConnection != NULL && pConnection != this )	// if pConnection object trying attach is not NULL nor Itself
+		CConnection::AttachTo( pConnection );			// Attach connection object to this connection.
+	Transfers.Add( this );								// Add this Transfer object to Transfer array.
 }
 
 void CTransfer::Close()
@@ -87,4 +89,47 @@ BOOL CTransfer::OnHeaderLine(CString& strHeader, CString& strValue)
 	m_pHeaderValue.Add( strValue );
 
 	return CConnection::OnHeaderLine( strHeader, strValue );
+}
+
+BOOL CTransfer::StrToSockaddr( LPCTSTR pszHost, SOCKADDR_IN & pHost )
+{
+	CString strHost( pszHost );
+	int nPort = 0;
+
+	strHost.TrimLeft();
+	strHost.TrimRight();
+
+	int nPos = strHost.Find( ':' );
+	if ( nPos < 0 )
+	{
+		nPort = GNUTELLA_DEFAULT_PORT;
+	}
+	else
+	{
+		if ( _stscanf( strHost.Mid( nPos + 1 ), _T("%i"), &nPort ) != 1 ) return FALSE;
+	}
+
+	strHost = strHost.Left( nPos );
+
+	USES_CONVERSION;
+	DWORD nAddress = inet_addr( T2CA( (LPCTSTR)strHost ) );
+
+	// Don't add invalid addresses
+	if ( ! nPort ) return FALSE;
+	if ( ! nAddress )  return FALSE;
+
+	pHost.sin_addr.S_un.S_addr = nAddress;
+	pHost.sin_port = htons((WORD)nPort);
+
+	return TRUE;
+}
+
+BOOL CTransfer::OnRun()
+{
+	if ( !Network.IsConnected() )
+	{
+		Close();
+		return FALSE;
+	}
+	return TRUE;
 }

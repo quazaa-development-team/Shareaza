@@ -66,7 +66,7 @@ public:
 	void				Remove(CDiscoveryService* pService, BOOL bCheck = TRUE);
 	BOOL				CheckWebCacheValid(LPCTSTR pszAddress);
 	BOOL				CheckMinimumServices();
-	/*BOOL				QueryForHosts(PROTOCOLID nProtocol);*/	/* THIS FUNCTION IS NO LONGER NEEDED */
+	BOOL				QueryForHosts(PROTOCOLID nProtocol);
 	DWORD				MetQueried() const;
 	DWORD				LastExecute() const;
 	CDiscoveryService*	GetByAddress(LPCTSTR pszAddress) const;

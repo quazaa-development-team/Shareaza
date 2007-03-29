@@ -207,16 +207,17 @@ protected:
 
 // Operations
 public:
-	void			SetSearchFocus();
-	void			ShowSearch(CManagedSearch* pSearch);
-	void			ShowStatus(BOOL bStarted, BOOL bSearching, DWORD nFiles, DWORD nHits, DWORD nHubs, DWORD nLeaves);
-	void			OnSchemaChange();
-	void			ExecuteSearch();
-	auto_ptr< CManagedSearch > GetSearch();
+	void						SetSearchFocus();
+	void						ShowSearch(CManagedSearch* pSearch);
+	void						ShowStatus(BOOL bStarted, BOOL bSearching, DWORD nFiles, DWORD nHits, DWORD nHubs, DWORD nLeaves);
+	void						OnSchemaChange();
+	void						ExecuteSearch();
+	auto_ptr< CManagedSearch >	GetSearch();
 	auto_ptr< CManagedSearch >	GetSearch(LPCTSTR pszHash);
-	void			OnSkinChange();
-	void			Disable();
-	void			Enable();
+	void						OnSkinChange();
+	void						Disable();
+	void						Enable();
+	void						GetQueryString(CString& strQuery);
 	
 // Overrides
 public:
@@ -236,13 +237,12 @@ protected:
 
 //{{AFX_INSERT_LOCATION}}
 
-#define IDC_SEARCH_PANEL	111
-#define IDC_SEARCH_START	105
-#define IDC_SEARCH_STOP		106
-#define IDC_SEARCH_NETWORKS	107
-#define IDC_SEARCH_SIZEMIN	108
-#define IDC_SEARCH_SIZEMAX	109
-
+#define IDC_SEARCH_PANEL		111
+#define IDC_SEARCH_START		105
+#define IDC_SEARCH_STOP			106
+#define IDC_SEARCH_NETWORKS		107
+#define IDC_SEARCH_SIZEMIN		108
+#define IDC_SEARCH_SIZEMAX		109
 #define IDC_SEARCH_GNUTELLA1	277
 #define IDC_SEARCH_GNUTELLA2	278
 #define IDC_SEARCH_EDONKEY		279

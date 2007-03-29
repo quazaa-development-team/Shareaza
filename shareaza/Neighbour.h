@@ -59,10 +59,12 @@ typedef enum NeighbourStateEnum
 typedef enum NeighbourNodeEnum
 {
 	// The remote computer can be a leaf, or an ultrapeer or hub, and so can we
-	ntNode, // We are both Gnutella ultrapeers or Gnutella2 hubs
-	ntHub,  // We are a leaf, and this connection is to a Gnutella ultrapeer or Gnutella2 hub above us
-	ntLeaf  // We are a Gnutella ultrapeer or Gnutella2 hub, and this connection is to a leaf below us
-
+	ntNull = 0,			// connection is unknown type.
+	ntNode = 1,			// We are both Gnutella ultrapeers or Gnutella2 hubs
+	ntHub = 2,			// We are a leaf, and this connection is to a Gnutella ultrapeer or Gnutella2 hub above us
+	ntLeaf = 3,			// We are a Gnutella ultrapeer or Gnutella2 hub, and this connection is to a leaf below us
+	ntSpecial = 4		// Todo, future reserve for speciall connection such as FileTransfer/Query mix transaction 
+						// over Gnutella1/2 network type connection to reduce waste on Idle HTTP Transfer connection ( CyberBob )
 } NrsNode;
 
 // Make the m_nPongNeeded buffer an array of 32 bytes
@@ -83,28 +85,30 @@ public:
 public:
 
 	// Used by the list of neighbour objects in CNeighbours
-	DWORD      m_nRunCookie; // The number of times this neighbour has been run, CNeighboursBase::OnRun uses this to run each neighbour in the list once
-	DWORD      m_nUnique;    // A number, like 2, 3, 4 and so on, which is the unique key for this CNeighbour object in CNeighbour's m_pUniques map 
-	PROTOCOLID    m_nProtocol;
-	NrsState      m_nState;           // Neighbour state, like connecting, handshake 1, 2, or 3, or rejected
-	CVendor*      m_pVendor;
-	Hashes::Guid  m_oGUID;
-	CGProfile*    m_pProfile;
-	Hashes::Guid  m_oMoreResultsGUID; // GUID of the last search, used to get more results (do)
+	DWORD			m_nRunCookie;		// The number of times this neighbour has been run, CNeighboursBase::OnRun uses this to run each neighbour in the list once
+	DWORD			m_nUnique;			// A number, like 2, 3, 4 and so on, which is the unique key for this CNeighbour object in CNeighbour's m_pUniques map 
+	PROTOCOLID		m_nProtocol;
+	NrsState		m_nState;			// Neighbour state, like connecting, handshake 1, 2, or 3, or rejected
+	CVendor*		m_pVendor;
+	Hashes::Guid	m_oGUID;
+	CGProfile*		m_pProfile;
+	Hashes::Guid	m_oMoreResultsGUID;	// GUID of the last search, used to get more results (do)
 
 // Attributes: Capabilities
 public:
 
-	BOOL    m_bAutomatic;
-	BOOL    m_bShareaza;       // True if the remote computer is running Shareaza also
-	NrsNode m_nNodeType;       // This connection is to a hub above us, ntHub, a leaf below us, ntLeaf, or a hub just like us, ntNode
-	BOOL    m_bQueryRouting;
-	BOOL    m_bPongCaching;
-	BOOL    m_bVendorMsg;      // True if the remote computer told us it supports vendor-specific messages
-	BOOL    m_bGGEP;
-	DWORD   m_tLastQuery;      // The time we last got a query packet, recorded as the number of seconds since 1970
-	BOOL    m_bObsoleteClient;	// Is the remote client running an 'old' version of software. (An old beta, etc)
-	BOOL    m_bBadClient;		// Is the remote client running a 'bad' client- GPL rip, buggy, etc. (not banned, though)
+	NrsNode m_nNodeType;		// This connection is to a hub above us, ntHub, a leaf below us, ntLeaf, or a hub just like us, ntNode
+	DWORD   m_tLastQuery;		// The time we last got a query packet, recorded as the number of seconds since 1970
+	// no need to have 32bit for BOOLs.
+	BOOL    m_bAutomatic		:1;
+	BOOL    m_bShareaza			:1;		// True if the remote computer is running Shareaza also
+	BOOL    m_bQueryRouting		:1;
+	BOOL    m_bPongCaching		:1;
+	BOOL    m_bVendorMsg		:1;		// True if the remote computer told us it supports vendor-specific messages
+	BOOL    m_bGGEP				:1;
+	BOOL    m_bObsoleteClient	:1;		// Is the remote client running an 'old' version of software. (An old beta, etc)
+	BOOL    m_bBadClient		:1;		// Is the remote client running a 'bad' client- GPL rip, buggy, etc. (not banned, though)
+	BOOL    m_bUDP				:1;
 
 // Attributes: Statistics
 public:
@@ -143,7 +147,7 @@ public:
 
 	virtual BOOL Send(CPacket* pPacket, BOOL bRelease = TRUE, BOOL bBuffered = FALSE);
 	virtual void Close(UINT nError = IDS_CONNECTION_CLOSED);
-	void         DelayClose(UINT nError = 0); // Send the buffer then close the socket, record the error given
+	virtual void DelayClose(UINT nError = 0); // Send the buffer then close the socket, record the error given
 	virtual BOOL SendQuery(CQuerySearch* pSearch, CPacket* pPacket, BOOL bLocal);
 
 protected:

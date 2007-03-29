@@ -47,6 +47,7 @@ protected:
 	CString			m_sSHA1;
 	CString			m_sTiger;
 	CString			m_sED2K;
+	CString			m_sMD5;
 	CString			m_sBTH;
 	CString			m_sURL;
 	CString			m_sSize;
@@ -63,6 +64,10 @@ protected:
 	int				m_nStatWidth;
 	BOOL			m_bDrawGraph;		//Draw the download graph?
 	BOOL			m_bDrawError;		//Display the tracker error?
+	CString			m_sGUID;
+	CString			m_sServer;
+	CString			m_sHubList;
+	CString			m_sPushProxyList;
 
 // Operations
 protected:

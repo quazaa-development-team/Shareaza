@@ -570,6 +570,9 @@
 				RelativePath="HostCache.cpp">
 			</File>
 			<File
+				RelativePath="HTTPClient.cpp">
+			</File>
+			<File
 				RelativePath="HttpRequest.cpp">
 			</File>
 			<File
@@ -583,6 +586,9 @@
 			</File>
 			<File
 				RelativePath="ImageServices.cpp">
+			</File>
+			<File
+				RelativePath=".\ITMQueue.cpp">
 			</File>
 			<File
 				RelativePath="Library.cpp">
@@ -1688,7 +1694,10 @@
 					RelativePath="DlgDownload.cpp">
 				</File>
 				<File
-					RelativePath="DlgDownloadEdit.cpp">
+					RelativePath="DlgDownloadEditPage.cpp">
+				</File>
+				<File
+					RelativePath="DlgDownloadEditSheet.cpp">
 				</File>
 				<File
 					RelativePath="DlgDownloadGroup.cpp">
@@ -2077,6 +2086,15 @@
 				Name="Pages"
 				Filter="">
 				<File
+					RelativePath="PageDownloadEditActions.cpp">
+				</File>
+				<File
+					RelativePath="PageDownloadEditGeneral.cpp">
+				</File>
+				<File
+					RelativePath="PageDownloadEditHashes.cpp">
+				</File>
+				<File
 					RelativePath="PageFileComments.cpp">
 				</File>
 				<File
@@ -2412,6 +2430,9 @@
 				RelativePath="HostCache.h">
 			</File>
 			<File
+				RelativePath="HTTPClient.h">
+			</File>
+			<File
 				RelativePath="HttpRequest.h">
 			</File>
 			<File
@@ -2428,6 +2449,9 @@
 			</File>
 			<File
 				RelativePath="ImageServices.h">
+			</File>
+			<File
+				RelativePath=".\ITMQueue.h">
 			</File>
 			<File
 				RelativePath="Library.h">
@@ -3033,7 +3057,10 @@
 					RelativePath="DlgDownload.h">
 				</File>
 				<File
-					RelativePath="DlgDownloadEdit.h">
+					RelativePath="DlgDownloadEditPage.h">
+				</File>
+				<File
+					RelativePath="DlgDownloadEditSheet.h">
 				</File>
 				<File
 					RelativePath="DlgDownloadGroup.h">
@@ -3228,6 +3255,15 @@
 			<Filter
 				Name="Pages"
 				Filter="">
+				<File
+					RelativePath="PageDownloadEditActions.h">
+				</File>
+				<File
+					RelativePath="PageDownloadEditGeneral.h">
+				</File>
+				<File
+					RelativePath="PageDownloadEditHashes.h">
+				</File>
 				<File
 					RelativePath="PageFileComments.h">
 				</File>

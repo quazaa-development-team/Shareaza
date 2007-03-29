@@ -25,6 +25,7 @@
 #pragma once
 
 #include "Neighbour.h"
+#include "NeighboursWithG2.h"
 
 class CG2Packet;
 class CHubHorizonGroup;
@@ -32,16 +33,21 @@ class CHubHorizonGroup;
 
 class CG2Neighbour : public CNeighbour
 {
+// Construction
 public:
+	CG2Neighbour();
 	CG2Neighbour(CNeighbour* pBase);
 	virtual ~CG2Neighbour();
 
+	virtual BOOL	ConnectTo(IN_ADDR* pAddress, WORD nPort, BOOL bAutomatic, BOOL bUDP);
 	virtual BOOL	Send(CPacket* pPacket, BOOL bRelease = TRUE, BOOL bBuffered = FALSE);
 	virtual BOOL	SendQuery(CQuerySearch* pSearch, CPacket* pPacket, BOOL bLocal);
+	virtual void	Close(UINT nError = IDS_CONNECTION_CLOSED);
+	virtual void	DelayClose(UINT nError = 0); // Send the buffer then close the socket, record the error given
 
 	BOOL			OnPing(CG2Packet* pPacket, BOOL bTCP = TRUE);
 	BOOL			OnPong(CG2Packet* pPacket, BOOL bTCP = TRUE);
-	BOOL			OnPacket(CG2Packet* pPacket);
+	BOOL			OnPacket(CG2Packet* pPacket, SOCKADDR_IN* pHost);
 	void			SendLNI();
 	BOOL			OnLNI(CG2Packet* pPacket);
 	void			SendKHL();
@@ -55,10 +61,14 @@ public:
 	BOOL			OnPush(CG2Packet* pPacket);
 	BOOL			OnProfileChallenge(CG2Packet* pPacket);
 	BOOL			OnProfileDelivery(CG2Packet* pPacket);
+	BOOL			OnModeChangeReq(CG2Packet* pPacket); //add
+	BOOL			OnModeChangeAck(CG2Packet* pPacket); //add
+	BOOL			OnPrivateMessage(CG2Packet* pPacket); //add
+	BOOL			OnClose(CG2Packet* pPacket); //add
 
-	static CG2Packet* CreateLNIPacket(CG2Neighbour* pOwner = NULL);
-	static CG2Packet* CreateKHLPacket(CG2Neighbour* pOwner = NULL);
-	static BOOL		ParseKHLPacket(CG2Packet* pPacket, CG2Neighbour* pOwner = NULL);
+	BOOL			SendUDPConnect(DWORD tNow);
+	BOOL			OnConnect(SOCKADDR_IN* pHost, CG2Packet* pPacket); //add
+	BOOL			OnConnectAck(SOCKADDR_IN* pHost, CG2Packet* pPacket); //add
 
 public:
 	DWORD				m_nLeafCount;
@@ -98,6 +108,18 @@ protected:
 	int					m_nQueryLimiter;		// Counter for query limiting
 	DWORD				m_tQueryTimer;			// Timer for query limiting
 	BOOL				m_bBlacklisted;			// Has this client been over-querying.
+	BOOL				m_bFWCheckSent;			// TestFireWall(TFW) has been sent.
+	BOOL				m_bSFLCheck;			// SupportedFeatureList(SFL) has been Sent
+	BOOL				m_bHubAble; //add G2/1.1
+	BOOL				m_bFirewall; //add G2/1.1
+	BOOL				m_bRouter; //add G2/1.1
+	DWORD				m_nCPU; //add G2/1.1
+	DWORD				m_nMEM; //add G2/1.1
+	DWORD				m_nBandwidthIn; //add G2/1.1
+	DWORD				m_nBandwidthOut; //add G2/1.1
+	DWORD				m_nUptime; //add G2/1.1
+	float				m_nLatitude; //add G2/1.1
+	float				m_nLongitude; //add G2/1.1
 
 protected:
 	virtual BOOL	OnRead();
@@ -106,6 +128,9 @@ protected:
 
 	void			SendStartups();
 	BOOL			ProcessPackets();
+
+	// this might be needed.
+	friend class CNeighboursWithG2;
 };
 
 #endif // !defined(AFX_G2NEIGHBOUR_H__F3C423B0_60F0_4721_81A3_1109E59CD425__INCLUDED_)

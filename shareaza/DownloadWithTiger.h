@@ -27,6 +27,7 @@
 #include "DownloadWithTorrent.h"
 #include "TigerTree.h"
 #include "ED2K.h"
+#include "DownloadTask.h"
 
 
 class CDownloadWithTiger : public CDownloadWithTorrent
@@ -83,6 +84,7 @@ private:
 	
 	friend class CEDClient; // AddSourceED2K && m_nHashsetBlock && m_pHashsetBlock
 	friend class CDownloadTipCtrl;
+	friend class CDownloadTask;
 };
 
 #endif // !defined(AFX_DOWNLOADWITHTIGER_H__8F105434_164D_4F58_BAA4_8DB2B29CA259__INCLUDED_)

@@ -25,7 +25,6 @@
 #include "WndSettingsSheet.h"
 #include "PageSettingsNetworks.h"
 #include "PageSettingsGnutella.h"
-#include ".\pagesettingsgnutella.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -39,7 +38,6 @@ BEGIN_MESSAGE_MAP(CGnutellaSettingsPage, CSettingsPage)
 	//{{AFX_MSG_MAP(CGnutellaSettingsPage)
 	ON_BN_CLICKED(IDC_G2_TODAY, OnG2Today)
 	ON_BN_CLICKED(IDC_G1_TODAY, OnG1Today)
-	ON_BN_CLICKED(IDC_G2_ALWAYS, OnG2Always)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -53,6 +51,7 @@ CGnutellaSettingsPage::CGnutellaSettingsPage() : CSettingsPage( CGnutellaSetting
 	m_bG2Today = FALSE;
 	m_bG1Today = FALSE;
 	m_bG1Always = FALSE;
+	m_bG2Always = FALSE;
 	m_nG1Hubs = 0;
 	m_nG1Leafs = 0;
 	m_nG1Peers = 0;
@@ -80,9 +79,9 @@ void CGnutellaSettingsPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_G1_LEAFS_SPIN, m_wndG1Leafs);
 	DDX_Control(pDX, IDC_G1_HUBS_SPIN, m_wndG1Hubs);
 	DDX_Check(pDX, IDC_G2_TODAY, m_bG2Today);
-	DDX_Control(pDX, IDC_G2_ALWAYS, m_wndG2Always);
 	DDX_Check(pDX, IDC_G1_TODAY, m_bG1Today);
 	DDX_Check(pDX, IDC_G1_ALWAYS, m_bG1Always);
+	DDX_Check(pDX, IDC_G2_ALWAYS, m_bG2Always);
 	DDX_Text(pDX, IDC_G1_HUBS, m_nG1Hubs);
 	DDX_Text(pDX, IDC_G1_LEAFS, m_nG1Leafs);
 	DDX_Text(pDX, IDC_G1_PEERS, m_nG1Peers);
@@ -106,6 +105,7 @@ BOOL CGnutellaSettingsPage::OnInitDialog()
 	
 	//Load initial values from the settings variables
 	m_bG2Today			= Settings.Gnutella2.EnableToday;
+	m_bG2Always			= Settings.Gnutella2.EnableAlways;
 	m_bG1Today			= Settings.Gnutella1.EnableToday;
 	m_bG1Always			= Settings.Gnutella1.EnableAlways;
 	m_bDeflateHub2Hub	= Settings.Gnutella.DeflateHub2Hub;
@@ -120,11 +120,11 @@ BOOL CGnutellaSettingsPage::OnInitDialog()
 	
 	m_wndG1Peers.SetRange( 0, 64 );
 	m_wndG1Leafs.SetRange( 0, 1024 );
-	m_wndG1Hubs.SetRange( 0, 2 );
+	m_wndG1Hubs.SetRange( 0, 5 );
 	
 	m_wndG2Peers.SetRange( 0, 64 );
 	m_wndG2Leafs.SetRange( 0, 1024 );
-	m_wndG2Hubs.SetRange( 0, 3 );
+	m_wndG2Hubs.SetRange( 0, 2 );
 	
 	m_wndG1ClientMode.SetItemData( 0, MODE_AUTO );
 	m_wndG1ClientMode.SetItemData( 1, MODE_LEAF );
@@ -137,9 +137,9 @@ BOOL CGnutellaSettingsPage::OnInitDialog()
 	m_wndG2ClientMode.SetItemData( 2, MODE_HUB );
 
 	//********************					Temp- until UP mode fixed
-	Settings.Gnutella1.ClientMode = MODE_LEAF;
-	m_wndG1ClientMode.EnableWindow( FALSE ); 
-	m_wndG1ClientMode.SetCurSel( MODE_LEAF );
+//	Settings.Gnutella1.ClientMode = MODE_LEAF;
+//	m_wndG1ClientMode.EnableWindow( FALSE ); 
+//	m_wndG1ClientMode.SetCurSel( MODE_LEAF );
 	//********************
 
 	if ( ! theApp.m_bNT )
@@ -149,8 +149,7 @@ BOOL CGnutellaSettingsPage::OnInitDialog()
 	}
 	m_wndG2ClientMode.SetCurSel( Settings.Gnutella2.ClientMode );
 
-	m_wndG2Always.SetCheck( BST_INDETERMINATE );
-	
+
 	UpdateData( FALSE );
 	
 	return TRUE;
@@ -249,15 +248,16 @@ void CGnutellaSettingsPage::OnOK()
 	}
 	
 	// Verify good setting to prevent user killing their connection
-	m_nG1Hubs	= min( m_nG1Hubs, 2 );
+	m_nG1Hubs	= min( m_nG1Hubs, 5 );
 	m_nG1Leafs	= min( m_nG1Leafs, 1024 );
 	m_nG1Peers	= min( m_nG1Peers, 64 );
-	m_nG2Hubs	= min( m_nG2Hubs, 3 );
+	m_nG2Hubs	= min( m_nG2Hubs, 2 );
 	m_nG2Leafs	= min( m_nG2Leafs, 1024 );
 	m_nG2Peers	= min( m_nG2Peers, 64 );
 	
 	//Load values into the settings variables
 	Settings.Gnutella2.EnableToday		= m_bG2Today;
+	Settings.Gnutella2.EnableAlways		= m_bG2Always;
 	Settings.Gnutella1.EnableToday		= m_bG1Today;
 	Settings.Gnutella1.EnableAlways		= m_bG1Always;
 	Settings.Gnutella.DeflateHub2Hub	= m_bDeflateHub2Hub;
@@ -273,7 +273,7 @@ void CGnutellaSettingsPage::OnOK()
 	Settings.Gnutella1.ClientMode = m_wndG1ClientMode.GetCurSel(); // Mode is equal to select position
 	if ( Settings.Gnutella1.ClientMode > MODE_ULTRAPEER ) Settings.Gnutella1.ClientMode = MODE_AUTO;
 
-	if ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER )
+	//if ( Settings.Gnutella1.ClientMode == MODE_ULTRAPEER )
 	{	// Enforce some minimum values for G1 ultrapeers
 		Settings.Gnutella1.NumLeafs		= max( Settings.Gnutella1.NumLeafs, 5 );
 		Settings.Gnutella1.NumPeers		= max( Settings.Gnutella1.NumPeers, 4 );
@@ -282,7 +282,7 @@ void CGnutellaSettingsPage::OnOK()
 	Settings.Gnutella2.ClientMode = m_wndG2ClientMode.GetCurSel(); // Mode is equal to select position
 	if ( Settings.Gnutella2.ClientMode > MODE_HUB ) Settings.Gnutella2.ClientMode = MODE_AUTO;
 	
-	if ( Settings.Gnutella2.ClientMode == MODE_HUB )
+	//if ( Settings.Gnutella2.ClientMode == MODE_HUB )
 	{	// Enforce some minimum values for G2 hubs
 		Settings.Gnutella2.NumLeafs		= max( Settings.Gnutella2.NumLeafs, 50 );
 		Settings.Gnutella2.NumPeers		= max( Settings.Gnutella2.NumPeers, 4 );
@@ -292,9 +292,4 @@ void CGnutellaSettingsPage::OnOK()
 	UpdateData( FALSE );
 
 	CSettingsPage::OnOK();
-}
-
-void CGnutellaSettingsPage::OnG2Always()
-{
-	m_wndG2Always.SetCheck( BST_INDETERMINATE );
 }

@@ -33,6 +33,7 @@
 #include "Skin.h"
 #include "CtrlDownloads.h"
 #include "WndDownloads.h"
+#include "ManagedSearch.h"
 #include "Flags.h"
 
 IMPLEMENT_DYNAMIC(CDownloadsCtrl, CWnd)
@@ -86,7 +87,9 @@ CDownloadsCtrl::CDownloadsCtrl() :
 	m_bDrag( FALSE ),
 	m_pDeselect1( NULL ),
 	m_pDeselect2( NULL ),
-	m_pbSortAscending( NULL )
+	m_pbSortAscending( NULL ),
+	m_bShowSearchOnStatus( FALSE ),
+	m_tSwitchStatus( 0 )
 {
 	// Try to get the number of lines to scroll when the mouse wheel is rotated
 	if( !SystemParametersInfo ( SPI_GETWHEELSCROLLLINES, 0, &m_nScrollWheelLines, 0) )
@@ -140,12 +143,12 @@ int CDownloadsCtrl::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndTip.Create( this, &Settings.Interface.TipDownloads );
 	
 	InsertColumn( DOWNLOAD_COLUMN_TITLE, _T("Downloaded File"), LVCFMT_LEFT, 210 );
-	InsertColumn( DOWNLOAD_COLUMN_SIZE, _T("Size"), LVCFMT_CENTER, 80 );
+	InsertColumn( DOWNLOAD_COLUMN_SIZE, _T("Size"), LVCFMT_RIGHT, 80 );
 	InsertColumn( DOWNLOAD_COLUMN_PROGRESS, _T("Progress"), LVCFMT_CENTER, 130 );
 	InsertColumn( DOWNLOAD_COLUMN_SPEED, _T("Speed"), LVCFMT_CENTER, 80 );
 	InsertColumn( DOWNLOAD_COLUMN_STATUS, _T("Status"), LVCFMT_CENTER, 80 );
 	InsertColumn( DOWNLOAD_COLUMN_CLIENT, _T("Client"), LVCFMT_CENTER, 80 );
-	InsertColumn( DOWNLOAD_COLUMN_DOWNLOADED, _T("Downloaded"), LVCFMT_CENTER, 0 );
+	InsertColumn( DOWNLOAD_COLUMN_DOWNLOADED, _T("Downloaded"), LVCFMT_RIGHT, 0 );
 	InsertColumn( DOWNLOAD_COLUMN_PERCENTAGE, _T("Complete"), LVCFMT_CENTER, 60 );
 	InsertColumn( DOWNLOAD_COLUMN_COUNTRY, _T("Country"), LVCFMT_LEFT, 60 );
 	
@@ -294,7 +297,11 @@ BOOL CDownloadsCtrl::IsFiltered(CDownload* pDownload)
 
 BOOL CDownloadsCtrl::IsExpandable(CDownload* pDownload)
 {
-	if ( Settings.Downloads.ShowSources )
+	if ( !Settings.General.Debug && ( pDownload->IsCompleted() || pDownload->IsSeeding() ) )
+	{
+		return FALSE;
+	}
+	else if ( Settings.Downloads.ShowSources )
 	{
 		return ( pDownload->GetSourceCount() > 0 );
 	}
@@ -823,6 +830,17 @@ void CDownloadsCtrl::OnPaint()
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
 	CRect rcClient, rcItem;
 	CPaintDC dc( this );
+	DWORD tNow = GetTickCount();
+
+	if ( !m_tSwitchStatus || tNow - m_tSwitchStatus > 1000 )
+	{
+		m_tSwitchStatus = tNow;
+		if ( m_bShowSearchOnStatus )
+			m_bShowSearchOnStatus = FALSE;
+		else
+			m_bShowSearchOnStatus = TRUE;
+	}
+
 	if ( theApp.m_bRTL ) dc.SetTextAlign( TA_RTLREADING );
 
 	GetClientRect( &rcClient );
@@ -859,7 +877,9 @@ void CDownloadsCtrl::OnPaint()
 
 		if ( ! pDownload->m_bExpanded ) continue;
 
-		if ( Settings.Downloads.ShowSources )
+		if ( Settings.General.Debug ||									// Show sources if Debug mode
+			( Settings.Downloads.ShowSources &&							// settings says to show sources
+			!( pDownload->IsCompleted() || pDownload->IsSeeding() ) ) )	// but hide sources if is Completed or Seeding
 		{
 			int nSources = pDownload->GetSourceCount();
 
@@ -999,7 +1019,7 @@ void CDownloadsCtrl::PaintDownload(CDC& dc, const CRect& rcRow, CDownload* pDown
 
 		case DOWNLOAD_COLUMN_SIZE:
 			if ( pDownload->m_nSize < SIZE_UNKNOWN )
-				strText = Settings.SmartVolume( pDownload->m_nSize, FALSE );
+				strText = Settings.ExactVolume( pDownload->m_nSize );
 			else
 				LoadString( strText, IDS_STATUS_UNKNOWN );
 			break;
@@ -1037,7 +1057,7 @@ void CDownloadsCtrl::PaintDownload(CDC& dc, const CRect& rcRow, CDownload* pDown
 			break;
 
 		case DOWNLOAD_COLUMN_STATUS:
-			strText = GetDownloadStatus( pDownload );
+			strText = GetDownloadStatus( pDownload, m_bShowSearchOnStatus );
 			break;
 
 		case DOWNLOAD_COLUMN_CLIENT:
@@ -1062,7 +1082,7 @@ void CDownloadsCtrl::PaintDownload(CDC& dc, const CRect& rcRow, CDownload* pDown
 			}
 			break;
 		case DOWNLOAD_COLUMN_DOWNLOADED:
-			strText = Settings.SmartVolume( pDownload->GetVolumeComplete(), FALSE );
+			strText = Settings.ExactVolume( pDownload->GetVolumeComplete());
 			break;
 		case DOWNLOAD_COLUMN_PERCENTAGE:
 			if ( ( pDownload->m_nSize < SIZE_UNKNOWN ) && ( pDownload->m_nSize > 0 ) )
@@ -1241,7 +1261,7 @@ void CDownloadsCtrl::PaintSource(CDC& dc, const CRect& rcRow, CDownload* pDownlo
 			
 		case DOWNLOAD_COLUMN_SIZE:
 			if ( pSource->m_pTransfer != NULL )
-				strText = Settings.SmartVolume( pSource->m_pTransfer->m_nDownloaded, FALSE );
+				strText = Settings.ExactVolume( pSource->m_pTransfer->m_nDownloaded);
 			break;
 			
 		case DOWNLOAD_COLUMN_PROGRESS:
@@ -1282,7 +1302,7 @@ void CDownloadsCtrl::PaintSource(CDC& dc, const CRect& rcRow, CDownload* pDownlo
 			break;
 		case DOWNLOAD_COLUMN_DOWNLOADED:
 			if ( pSource->m_pTransfer != NULL )
-				strText = Settings.SmartVolume( pSource->m_pTransfer->m_nDownloaded, FALSE );
+				strText = Settings.ExactVolume( pSource->m_pTransfer->m_nDownloaded);
 			break;
 		case DOWNLOAD_COLUMN_PERCENTAGE:
 			if ( ( pDownload->m_nSize < SIZE_UNKNOWN ) && ( pDownload->m_nSize > 0 ) && ( pSource->m_pTransfer ) )
@@ -1476,12 +1496,14 @@ void CDownloadsCtrl::OnChangeHeader(NMHDR* /*pNotifyStruct*/, LRESULT* /*pResult
 	Update();
 }
 
-CString CDownloadsCtrl::GetDownloadStatus(CDownload *pDownload)
+CString CDownloadsCtrl::GetDownloadStatus(CDownload *pDownload, BOOL bSearch)
 {
 	CString strText;
 	int nSources = pDownload->GetEffectiveSourceCount();
 
-	if ( pDownload->IsCompleted() )
+	if ( bSearch && pDownload->m_pSearch && pDownload->m_pSearch->m_bActive )
+		LoadString( strText, IDS_STATUS_SEARCHING );
+	else if ( pDownload->IsCompleted() )
 		if ( pDownload->IsSeeding() )
 		{
 			if ( pDownload->m_bTorrentTrackerError )
@@ -1532,7 +1554,7 @@ CString CDownloadsCtrl::GetDownloadStatus(CDownload *pDownload)
 		else
 			LoadString( strText, IDS_STATUS_TORRENT );
 	}
-	else
+	else if ( pDownload->m_pSearch && pDownload->m_pSearch->m_bActive )
 		LoadString( strText, IDS_STATUS_SEARCHING );
 
 	return strText;
@@ -1597,7 +1619,7 @@ void CDownloadsCtrl::BubbleSortDownloads(int nColumn)  // BinaryInsertionSortDow
 							bRlBk = FALSE;
 						break;
 					case DOWNLOAD_COLUMN_STATUS:
-						if ( GetDownloadStatus( x ).CompareNoCase(GetDownloadStatus(y)) < 0 )
+						if ( GetDownloadStatus(x, FALSE).CompareNoCase( GetDownloadStatus(y, FALSE) ) < 0 )
 							bOK = TRUE;
 						else
 							bRlBk = FALSE;
@@ -1651,7 +1673,7 @@ void CDownloadsCtrl::BubbleSortDownloads(int nColumn)  // BinaryInsertionSortDow
 							bRlBk = FALSE;
 						break;
 					case DOWNLOAD_COLUMN_STATUS:
-						if ( GetDownloadStatus(x).CompareNoCase( GetDownloadStatus(y) ) > 0 )
+						if ( GetDownloadStatus(x, FALSE).CompareNoCase( GetDownloadStatus(y, FALSE) ) > 0 )
 							bOK = TRUE;
 						else
 							bRlBk = FALSE;

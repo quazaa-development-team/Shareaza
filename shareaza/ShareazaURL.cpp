@@ -59,6 +59,7 @@ CShareazaURL::CShareazaURL(CBTInfo* pTorrent)
 	m_oSHA1     = pTorrent->m_oDataSHA1;
 	m_oED2K		= pTorrent->m_oDataED2K;
 	m_oTiger	= pTorrent->m_oDataTiger;
+	m_oMD5		= pTorrent->m_oDataMD5;
 	m_sName		= pTorrent->m_sName;
 	m_bSize		= TRUE;
 	m_nSize		= pTorrent->m_nTotalSize;
@@ -216,6 +217,9 @@ BOOL CShareazaURL::ParseMagnet(LPCTSTR pszURL)
 		{
 			m_sName = strValue;
 			m_oSHA1.clear();
+			m_oTiger.clear();
+			m_oED2K.clear();
+			m_oMD5.clear();
 		}
 		else if ( _tcsicmp( strKey, _T("xl") ) == 0 )
 		{
@@ -674,12 +678,22 @@ auto_ptr< CQuerySearch > CShareazaURL::ToQuery()
 	{
 		pSearch->m_oSHA1 = m_oSHA1;
 	}
+
+	if ( m_oTiger )
+	{
+		pSearch->m_oTiger = m_oTiger;
+	}
 	
 	if ( m_oED2K )
 	{
 		pSearch->m_oED2K = m_oED2K;
 	}
 	
+	if ( m_oMD5 )
+	{
+		pSearch->m_oMD5 = m_oMD5;
+	}
+
 	return pSearch;
 }
 

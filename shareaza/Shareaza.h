@@ -24,11 +24,18 @@
 #include "Resource.h"
 #include "ComObject.h"
 #include "ShareazaOM.h"
+#include "ITMQueue.h"
 
 class CUPnPFinder;
 class CMainWnd;
 class CSplashDlg;
 
+class CQueryHit;
+class CSearchWnd;
+class CPacketWnd;
+class CSearchMonitorWnd;
+class CHitMonitorWnd;
+class CPacket;
 class CShareazaCommandLineInfo : public CCommandLineInfo
 {
 public:
@@ -102,6 +109,59 @@ public:
 	GeoIP_country_name_by_addrFunc m_pfnGeoIP_country_name_by_addr;
 
 public:
+	CMutex							m_mSearchWndList;
+	std::list<CSearchWnd*>			m_oSearchWndList;
+	CMutex							m_mPacketWndList;
+	std::list<CPacketWnd*>			m_oPacketWndList;
+	CMutex							m_mSearchMonitorList;
+	std::list<CSearchMonitorWnd*>	m_oSearchMonitorList;
+	CMutex							m_mHitMonitorList;
+	std::list<CHitMonitorWnd*>		m_oHitMonitorList;
+
+	CITMQueue						m_pMessageQueue;
+
+	class CITMQueryHit : CITMQueue::CITMItem
+	{
+		// Constructor
+	public:
+		CITMQueryHit();
+		CITMQueryHit( CQueryHit * pHits );
+		~CITMQueryHit();
+
+		// Data Members
+	public:
+		CQueryHit*	m_pHits;
+
+		// function members
+	public:
+		static CITMQueryHit* CreateMessage( CQueryHit * pHits );
+		virtual BOOL OnProcess();
+	};
+
+	class CITMPacketDump : CITMQueue::CITMItem
+	{
+		// Constructor
+	public:
+		CITMPacketDump();
+		~CITMPacketDump();
+
+		// Data Members
+	public:
+		CPacket*	m_pPacket;
+		IN_ADDR		m_pAddr;
+		WORD		m_nPort;
+		BOOL		m_bUDP;
+		BOOL		m_bOutgoing;
+		DWORD		m_nUnique;
+
+		// function members
+	public:
+		static CITMPacketDump* CreateMessage( const IN_ADDR* pAddr, WORD nPort, BOOL bUDP, BOOL bOutgoing, DWORD nUnique,
+											CPacket * pPacket );
+		virtual BOOL OnProcess();
+	};
+
+public:
 	static CMainWnd*	SafeMainWnd();
 	void				Message(int nType, UINT nID, ...) throw();
 	void				Message(int nType, LPCTSTR pszFormat, ...) throw();
@@ -123,6 +183,7 @@ public:
 	static BOOL			OpenTorrent(LPCTSTR lpszFileName, BOOL bDoIt);
 	static BOOL			OpenCollection(LPCTSTR lpszFileName, BOOL bDoIt);
 	static BOOL			OpenURL(LPCTSTR lpszFileName, BOOL bDoIt);
+	void				OnQueryHits(CQueryHit* pHits);
 
 protected:
 	CCriticalSection			m_csMessage;
@@ -368,6 +429,7 @@ inline void IsType(LPCTSTR pszString, size_t nStart, size_t nLength, bool& bWord
 // Client's name
 #define CLIENT_NAME			"Shareaza"
 
+#define CUSTOM_ID_STRING	"(CB)"
 
 // Network ID stuff
 

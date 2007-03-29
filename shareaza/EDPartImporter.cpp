@@ -194,7 +194,7 @@ BOOL CEDPartImporter::ImportFile(LPCTSTR pszPath, LPCTSTR pszFile)
 
 	if ( Transfers.m_pSection.Lock() )
 	{
-		CDownload* pDownload = Downloads.FindByED2K( oED2K );
+		CDownload* pDownload = Downloads.FindByED2K( oED2K, FALSE, FALSE );
 		Transfers.m_pSection.Unlock();
 
 		if ( pDownload != NULL )

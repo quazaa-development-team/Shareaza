@@ -474,6 +474,7 @@ void CLibrary::OnRun()
 {
 	while ( m_bThread )
 	{
+		//place to put ITMQ Dispatch.
 		if ( m_nInhibit == 0 ) ThreadScan();
 		WaitForSingleObject( m_pWakeup, 1000 );
 	}

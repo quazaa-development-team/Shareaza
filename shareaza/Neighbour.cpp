@@ -78,6 +78,7 @@ CNeighbour::CNeighbour(PROTOCOLID nProtocol) :
 	m_bGGEP( FALSE ),			// The remote computer hasn't told us it supports the GGEP block yet
 	m_bObsoleteClient( FALSE ),	//
 	m_bBadClient( FALSE ),		//
+	m_bUDP( FALSE ),			//
 	// Start out time variables as 0
 	m_tLastQuery( 0 ),			// We'll set these to the current tick or seconds count when we get a query or packet
 	m_tLastPacket( 0 ),			//
@@ -125,6 +126,7 @@ CNeighbour::CNeighbour(PROTOCOLID nProtocol, CNeighbour* pBase)
 	, m_bGGEP(             pBase->m_bGGEP )
 	, m_tLastQuery(        pBase->m_tLastQuery )
 	, m_bObsoleteClient(   pBase->m_bObsoleteClient )
+	, m_bUDP(			   pBase->m_bUDP )
 	, m_nInputCount(       pBase->m_nInputCount )
 	, m_nOutputCount(      pBase->m_nOutputCount )
 	, m_nDropCount(        pBase->m_nDropCount )
@@ -187,7 +189,7 @@ CNeighbour::~CNeighbour()
 void CNeighbour::Close(UINT nError)
 {
 	// Make sure that the socket stored in this CNeighbour object is valid
-	ASSERT( m_hSocket != INVALID_SOCKET );
+	ASSERT( m_hSocket != INVALID_SOCKET || m_bUDP );
 
 	// If nError is the default closed or a result of peer pruning, we're closing the connection voluntarily
 	BOOL bVoluntary = ( nError == IDS_CONNECTION_CLOSED || nError == IDS_CONNECTION_PEERPRUNE );
@@ -195,15 +197,15 @@ void CNeighbour::Close(UINT nError)
 	// Remove this neighbour from the list of them
 	Neighbours.Remove( this );
 
-	// Actually close the socket connection to the remote computer
-	CConnection::Close();
-
 	// If this Close method was called with an error, among which IDS_CONNECTION_CLOSED counts
 	if ( nError && nError != IDS_HANDSHAKE_REJECTED )
 	{
 		// Report a voluntary default close, or an error
 		theApp.Message( bVoluntary ? MSG_DEFAULT : MSG_ERROR, nError, (LPCTSTR)m_sAddress );
 	}
+
+	// Actually close the socket connection to the remote computer
+	CConnection::Close();
 
 	// Delete this CNeighbour object, calling its destructor right now
 	delete this;
@@ -213,8 +215,14 @@ void CNeighbour::Close(UINT nError)
 // Takes the reason we're closing the connection, or 0 by default
 void CNeighbour::DelayClose(UINT nError)
 {
+	// Make sure that the socket stored in this CNeighbour object is valid
+	ASSERT( m_hSocket != INVALID_SOCKET );
+
+	// If nError is the default closed or a result of peer pruning, we're closing the connection voluntarily
+	BOOL bVoluntary = ( nError == IDS_CONNECTION_CLOSED || nError == IDS_CONNECTION_PEERPRUNE );
+
 	// If this method got passed a close reason error, report it
-	if ( nError ) theApp.Message( MSG_ERROR, nError, (LPCTSTR)m_sAddress );
+	if ( nError ) theApp.Message( bVoluntary ? MSG_DEFAULT : MSG_ERROR, nError, (LPCTSTR)m_sAddress );
 
 	// Change this object's state to closing
 	m_nState = nrsClosing;
@@ -284,7 +292,6 @@ BOOL CNeighbour::OnRun()
 				m_pQueryTableLocal->m_nInfinity, m_pQueryTableLocal->GetPercent() );
 		}
 	}
-
 	// Report success
 	return TRUE;
 }
@@ -519,7 +526,14 @@ BOOL CNeighbour::OnCommonHit(CPacket* pPacket)
 		return TRUE;
 	}
 	
-	Network.NodeRoute->Add( pHits->m_oClientID, this );
+	if ( pPacket->m_nProtocol == PROTOCOL_G1 )
+	{
+		Network.NodeRoute->Add( pHits->m_oClientID, this );
+	}
+	else if ( pPacket->m_nProtocol == PROTOCOL_G2 )
+	{
+		Network.NodeRoute->Add( pHits->m_oClientID, this, &m_pHost, 0 );
+	}
 	
 	if ( SearchManager.OnQueryHits( pHits ) )
 	{

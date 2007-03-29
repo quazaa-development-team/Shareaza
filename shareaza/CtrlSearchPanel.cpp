@@ -1025,3 +1025,7 @@ void CSearchResultsBox::OnExpanded(BOOL bOpen)
 	theApp.WriteProfileInt( _T("Settings"), _T("SearchPanelResults"), bOpen );
 }
 
+void CSearchPanel::GetQueryString(CString& strQuery)
+{
+	m_boxSearch.m_wndSearch.GetWindowText( strQuery );
+}
