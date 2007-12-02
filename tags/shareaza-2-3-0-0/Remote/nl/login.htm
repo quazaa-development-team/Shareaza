@@ -1,0 +1,36 @@
+<!-- tabs -->
+		<div class="poetry">
+			<ul class="tabs">
+				<li class="inactive">Home</li>
+				<li class="inactive">Zoeken</li>
+				<li class="inactive">Downloads</li>
+				<li class="inactive">Uploads</li>
+				<li class="inactive">Netwerken</li>
+			</ul>
+		</div>
+<!-- /tabs -->
+<!-- main body -->
+		<div class="poetry" id="frame">
+					<div class="padding left">
+						Welkom op <b>Shareaza's Web Interface.</b>
+						Als dit exemplaar van Shareaza op jouw PC draait, voer dan
+						alsjeblieft je gebruikersnaam en wachtwoord in, en klik vervolgens op <b>Login</b>.
+					</div>
+					
+					<div class="poetry" style="color: red; font-weight: bold; height: 3em;">
+					<%? failure %>	De ingegeven gebruikersnaam en wachtwoord waren incorrect.
+						Probeer het alsjeblieft nog een keer.<%?%>
+					</div>
+					
+					<div style="text-align: right; width: 24em; margin: 0 auto;">
+					<form method="get" action="">
+					<input type="hidden" name="submit" value="1">
+						<label>Gebruikersnaam:</label>
+						<input type="text" name="username" size="20" /><br />
+						<label>Wachtwoord:</label>
+						<input type="password" name="password" size="20" ID="Text1" /><br />
+								<input type="submit" value="Login">
+					</form>
+					</div>
+	</div>
+<!-- /main body -->
