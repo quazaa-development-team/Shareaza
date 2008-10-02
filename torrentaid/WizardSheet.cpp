@@ -95,7 +95,6 @@ BOOL CWizardSheet::Run(CWnd* pParent)
 CWizardSheet::CWizardSheet(CWnd *pParentWnd, UINT iSelectPage)
 {
 	m_psh.dwFlags &= ~PSP_HASHELP;
-
 	Construct( _T(""), pParentWnd, iSelectPage );
 	SetWizardMode();
 }
@@ -191,12 +190,12 @@ BOOL CWizardSheet::OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRE
 
 		GetClassName( pWnd->GetSafeHwnd(), szName, 32 );
 
-		if ( !_tcscmp( szName, _T("Static") ) )
+		if ( 0 == _tcscmp( szName, _T("Static") ) )
 		{
 			pWnd->SetFont( &theApp.m_fntNormal, FALSE );
 			
 		}
-		else if ( _tcscmp( szName, _T("RICHEDIT") ) )
+		else if ( 0 != _tcscmp( szName, _T("RICHEDIT") ) )
 		{
 			pWnd->SetFont( &theApp.m_fntNormal, TRUE );
 		}
@@ -324,6 +323,7 @@ HBRUSH CWizardPage::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT /*nCtlColor*/)
 	}
 
 	pDC->SetBkColor( m_crWhite );
+	
 	return (HBRUSH)m_brWhite.GetSafeHandle();
 }
 
@@ -369,12 +369,12 @@ void CWizardPage::StaticReplace(LPCTSTR pszSearch, LPCTSTR pszReplace)
 		CString strText;
 		pChild->GetWindowText( strText );
 		
-		for (;;)
+		while ( TRUE )
 		{
 			int nPos = strText.Find( pszSearch );
 			if ( nPos < 0 ) break;
 			strText	= strText.Left( nPos ) + CString( pszReplace )
-					+ strText.Mid( nPos + static_cast< int >( _tcslen( pszSearch ) ) );
+					+ strText.Mid( nPos + (int)_tcslen( pszSearch ) );
 		}
 		
 		pChild->SetWindowText( strText );

@@ -1,5 +1,5 @@
 //
-// StdAfx.h
+// ED2K.cpp
 //
 // Copyright (c) Shareaza Development Team, 2007.
 // This file is part of Shareaza Torrent Wizard (shareaza.sourceforge.net).
@@ -19,22 +19,11 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
-#pragma once
+#include "StdAfx.h"
+#include "ED2K.h"
 
-#define VC_EXTRALEAN		// Exclude rarely-used stuff from Windows headers
-#define WINVER 0x0400
-#define _WIN32_WINNT 0x0400
-#define _WIN32_WINDOWS 0x0410
-#define _WIN32_IE 0x0400
-
-#include <afxwin.h>         // MFC core and standard components
-#include <afxext.h>         // MFC extensions
-#include <afxcmn.h>			// MFC support for Windows Common Controls
-#include <afxmt.h>			// MFC multithreading
-
-#include <shlobj.h>			// Shell objects
-
-typedef unsigned __int64 QWORD;
-
-#define BIF_NEWDIALOGSTYLE	0x0040
-#define OFN_ENABLESIZING	0x00800000
+#ifdef _DEBUG
+#undef THIS_FILE
+static char THIS_FILE[]=__FILE__;
+#define new DEBUG_NEW
+#endif

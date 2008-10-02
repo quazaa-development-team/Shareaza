@@ -19,8 +19,14 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
+#if !defined(TORRENTBUILDER_H)
+#define TORRENTBUILDER_H
+
 #pragma once
 
+#include "SHA1.h"
+#include "MD4.h"
+#include "ED2K.h"
 
 class CTorrentBuilder : public CWinThread
 {
@@ -51,7 +57,7 @@ public:
 protected:
 	BOOL	ScanFiles();
 	BOOL	ProcessFiles();
-	BOOL	ProcessFile(DWORD nFile, LPCTSTR pszFile);
+	BOOL	ProcessFile(LPCTSTR pszFile);
 	BOOL	WriteOutput();
 	
 // Attributes
@@ -61,30 +67,37 @@ protected:
 	BOOL				m_bFinished;
 	BOOL				m_bAbort;
 	CString				m_sMessage;
+protected:
 	CString				m_sName;
 	CString				m_sOutput;
 	CString				m_sTracker;
 	CString				m_sComment;
 	CStringList			m_pFiles;
+protected:
 	CString				m_sThisFile;
 	QWORD				m_nTotalSize;
 	QWORD				m_nTotalPos;
-	CSHA				m_oDataSHA1;	// Total SHA1
-	CED2K				m_oDataED2K;	// Total MD4
-	CMD5				m_oDataMD5;		// Total MD5
-	CSHA				m_oPieceSHA1;	// (temporary)
+protected:
+	CHashSHA1			m_pDataSHA1;
+	CHashMD4			m_pDataED2K;
 	QWORD*				m_pFileSize;
-	CSHA*				m_pFileSHA1;	// SHA1 per file
-	CED2K*				m_pFileED2K;	// MD4 per file
-	CMD5*				m_pFileMD5;		// MD5 per file
-	CSHA*				m_pPieceSHA1;	// SHA1 per piece
+	CHashSHA1*			m_pFileSHA1;
+	CHashMD4*			m_pFileED2K;
+protected:
+	CHashSHA1*			m_pPieceSHA1;
 	DWORD				m_nPieceSize;
 	DWORD				m_nPieceCount;
 	DWORD				m_nPiecePos;
 	DWORD				m_nPieceUsed;
 	BOOL				m_bAutoPieces;
+protected:
 	BYTE*				m_pBuffer;
 	DWORD				m_nBuffer;
+	CSHA1*				m_phPieceSHA1;
+	CSHA1*				m_phFullSHA1;
+	CSHA1*				m_phFileSHA1;
+	CED2K*				m_phFullED2K;
+	CED2K*				m_phFileED2K;
 	
 // Overrides
 public:
@@ -93,3 +106,5 @@ public:
 	
 	DECLARE_MESSAGE_MAP()
 };
+
+#endif // !defined(ATORRENTBUILDER_H)
