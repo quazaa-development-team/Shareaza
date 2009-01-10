@@ -98,9 +98,9 @@ void CFilePreviewDlg::SetDownload(CDownload* pDownload)
 	m_pDownload = pDownload;
 	ASSERT( m_pDownload != NULL );
 
-	m_sSourceName = pDownload->m_sPath;
+	m_sSourceName = pDownload->GetPath( 0 );
 	m_sDisplayName = pDownload->m_sName;
-	CString strFileName = pDownload->m_sSafeName;
+	CString strFileName = pDownload->m_sName;
 
 	int nPos = m_sSourceName.ReverseFind( '\\' );
 

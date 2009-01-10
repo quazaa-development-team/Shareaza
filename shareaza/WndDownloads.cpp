@@ -947,7 +947,7 @@ void CDownloadsWnd::OnDownloadsLaunch()
 
 		if ( Downloads.Check( pDownload ) )
 		{
-			CString strName = pDownload->m_sPath;
+			CString strName = pDownload->GetPath( 0 );
 
 			if ( GetFileAttributes( strName ) & FILE_ATTRIBUTE_DIRECTORY )
 			{
@@ -983,8 +983,6 @@ void CDownloadsWnd::OnDownloadsLaunch()
 			{
 				if ( pDownload->CanPreview() )
 				{
-					if ( pDownload->m_sSafeName.IsEmpty() )
-						pDownload->m_sSafeName = CDownloadTask::SafeFilename( pDownload->m_sName.Right( 64 ) );
 					pDownload->Preview( &pLock );
 				}
 				else
@@ -1045,8 +1043,8 @@ void CDownloadsWnd::OnDownloadsLaunchCopy()
 			{
 				CString strType;
 
-				int nExtPos = pDownload->m_sSafeName.ReverseFind( '.' );
-				if ( nExtPos > 0 ) strType = pDownload->m_sSafeName.Mid( nExtPos + 1 );
+				int nExtPos = pDownload->m_sName.ReverseFind( '.' );
+				if ( nExtPos > 0 ) strType = pDownload->m_sName.Mid( nExtPos + 1 );
 
 				if ( ! IsIn( Settings.Library.SafeExecute, strType ) ||
 					 pDownload->CanPreview() )
@@ -1054,7 +1052,7 @@ void CDownloadsWnd::OnDownloadsLaunchCopy()
 					CString strFormat, strPrompt;
 
 					LoadString( strFormat, IDS_LIBRARY_CONFIRM_EXECUTE );
-					strPrompt.Format( strFormat, (LPCTSTR)pDownload->m_sSafeName );
+					strPrompt.Format( strFormat, (LPCTSTR)pDownload->m_sName );
 
 					pLock.Unlock();
 					int nResult = AfxMessageBox( strPrompt, MB_ICONQUESTION|MB_YESNOCANCEL|MB_DEFBUTTON2 );
@@ -1362,7 +1360,7 @@ void CDownloadsWnd::OnDownloadsMonitor()
 void CDownloadsWnd::OnUpdateDownloadsEdit(CCmdUI *pCmdUI)
 {
 	Prepare();
-	pCmdUI->Enable( ( m_bSelNotMoving || m_bSelTorrent ) && m_nSelectedDownloads == 1 );
+	pCmdUI->Enable( ( ! m_bSelCompleted || m_bSelTorrent ) && m_bSelNotMoving && m_nSelectedDownloads == 1 );
 }
 
 void CDownloadsWnd::OnDownloadsEdit()
@@ -1373,8 +1371,8 @@ void CDownloadsWnd::OnDownloadsEdit()
 	{
 		CDownload* pDownload = Downloads.GetNext( pos );
 
-		if ( pDownload->m_bSelected &&
-			( ! pDownload->IsMoving() || pDownload->IsSeeding() ) )
+		if ( pDownload->m_bSelected && ! pDownload->IsMoving() && 
+			( ! pDownload->IsComplete() || pDownload->IsSeeding() ) )
 		{
 			CDownloadSheet dlg( pDownload );
 			pLock.Unlock();
@@ -1600,30 +1598,35 @@ void CDownloadsWnd::OnDownloadsFileDelete()
 		CDownload* pDownload = Downloads.GetNext( pos );
 		if ( pDownload->m_bSelected ) pList.AddTail( pDownload );
 	}
+	pLock.Unlock();
 
 	while ( ! pList.IsEmpty() )
 	{
+		pLock.Lock();
 		CDownload* pDownload = pList.RemoveHead();
-
 		if ( Downloads.Check( pDownload ) && pDownload->IsCompleted() )
 		{
 			CDeleteFileDlg dlg;
 			dlg.m_sName		= pDownload->m_sName;
-			CString strPath	= pDownload->m_sPath;
-
 			pLock.Unlock();
-			if ( dlg.DoModal() != IDOK ) break;
-
+			if ( dlg.DoModal() != IDOK )
+				break;
+			pLock.Lock();
+			if ( Downloads.Check( pDownload ) )
 			{
-				CQuickLock oLibraryLock( Library.m_pSection );
-				if ( CLibraryFile* pFile = LibraryMaps.LookupFileByPath( strPath ) )
+				for ( DWORD i = 0; i < pDownload->GetFileCount(); ++i )
 				{
-					dlg.Apply( pFile );
+					CString strPath	= pDownload->GetPath( i );
+					CQuickLock oLibraryLock( Library.m_pSection );
+					if ( CLibraryFile* pFile = LibraryMaps.LookupFileByPath( strPath ) )
+					{
+						dlg.Apply( pFile );
+					}
 				}
+				pDownload->Remove( TRUE );
 			}
-
-			if ( Downloads.Check( pDownload ) ) pDownload->Remove( TRUE );
 		}
+		pLock.Unlock();
 	}
 
 	Update();
@@ -1799,8 +1802,8 @@ void CDownloadsWnd::OnDownloadsHelp()
 		strHelp = pDownload->IsCompleted() ? L"DownloadHelp.Completed"
 										   : L"DownloadHelp.Moving";
 	else if ( pDownload->IsPaused() )
-		strHelp = pDownload->m_bDiskFull ? L"DownloadHelp.DiskFull"
-										 : L"DownloadHelp.Paused";
+		strHelp = ( pDownload->GetFileError() != ERROR_SUCCESS ) ?
+			L"DownloadHelp.DiskFull" : L"DownloadHelp.Paused";
 	else if ( pDownload->IsStarted() && pDownload->GetProgress() == 100.0f )
 		strHelp = L"DownloadHelp.Verifying";
 	else if ( pDownload->IsDownloading() )

@@ -92,13 +92,10 @@ BOOL CDownloadWithExtras::CanPreview()
 {
 	if ( m_pPreviewWnd != NULL ) return FALSE;
 	
-	LPCTSTR pszType = _tcsrchr( m_sSafeName, '.' );
+	LPCTSTR pszType = _tcsrchr( m_sName, _T('.') );
 	if ( pszType == NULL )
-	{
-		pszType = _tcsrchr( m_sName, '.' );
-		if ( pszType == NULL ) return FALSE;
-	}
-	
+		return FALSE;
+
 	CString strType( pszType );
 	ToLower( strType );
 	
@@ -427,6 +424,9 @@ void CDownloadWithExtras::OnPreviewRequestComplete(CDownloadTask* pTask)
 {
 	m_bWaitingPreview = FALSE;
 
+	if ( m_sPath.IsEmpty() )
+		return;
+
 	CBuffer* pBuffer = NULL;
 
 	if ( ( pBuffer = pTask->IsPreviewAnswerValid() ) == NULL )
@@ -454,7 +454,7 @@ void CDownloadWithExtras::OnPreviewRequestComplete(CDownloadTask* pTask)
 	}
 
 	CFile pFile;
-	CString strPath = m_sPath + L".png";
+	CString strPath = m_sPath + _T(".png");
 	if ( pFile.Open( strPath, CFile::modeCreate|CFile::modeWrite ) )
 	{
 		pFile.Write( pBuffer2, nImageSize );

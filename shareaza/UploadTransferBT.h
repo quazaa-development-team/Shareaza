@@ -19,9 +19,6 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
-#if !defined(AFX_UPLOADTRANSFERBT_H__3F81C2F1_E76C_4CCB_8AA2_AD6B9D877CBA__INCLUDED_)
-#define AFX_UPLOADTRANSFERBT_H__3F81C2F1_E76C_4CCB_8AA2_AD6B9D877CBA__INCLUDED_
-
 #pragma once
 
 #include "UploadTransfer.h"
@@ -64,9 +61,6 @@ public:
 	BOOL	OnRequest(CBTPacket* pPacket);
 	BOOL	OnCancel(CBTPacket* pPacket);
 protected:
-	BOOL	OpenFile();
+	virtual BOOL	OpenFile();
 	BOOL	ServeRequests();
-
 };
-
-#endif // !defined(AFX_UPLOADTRANSFERBT_H__3F81C2F1_E76C_4CCB_8AA2_AD6B9D877CBA__INCLUDED_)

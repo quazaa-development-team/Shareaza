@@ -318,18 +318,13 @@ BOOL CEDPartImporter::ImportFile(LPCTSTR pszPath, LPCTSTR pszFile)
 	Transfers.m_pSection.Lock();
 
 	CDownload* pDownload = Downloads.Add();
-	
 	pDownload->m_oED2K			= oED2K;
-	pDownload->m_bED2KTrusted = true; // .part use trusted hashes
-
+	pDownload->m_bED2KTrusted	= true; // .part use trusted hashes
 	pDownload->m_nSize			= nSize;
 	pDownload->m_sName			= strName;
 	pDownload->m_sPath			= strTarget;
-	
-	{
-		Fragments::List oNewList( nSize );
-		pDownload->m_pFile->m_oFList.swap( oNewList );
-	}
+	pDownload->Pause();
+	pDownload->Save();
 
 	for ( int nGap = 0 ; nGap < pGapIndex.GetSize() ; nGap++ )
 	{
@@ -339,7 +334,7 @@ BOOL CEDPartImporter::ImportFile(LPCTSTR pszPath, LPCTSTR pszFile)
 		pGapStart.Lookup( nPart, nStart );
 		pGapStop.Lookup( nPart, nStop );
 		
-		pDownload->m_pFile->m_oFList.insert( Fragments::Fragment( nStart, nStop ) );
+		pDownload->InvalidateFileRange( nStart, nStop - nStart );
 	}
 
 	if ( pED2K.IsAvailable() )
@@ -351,14 +346,12 @@ BOOL CEDPartImporter::ImportFile(LPCTSTR pszPath, LPCTSTR pszFile)
 		delete [] pHashset;
 	}
 
-	if ( bPaused ) pDownload->Pause();
-
-	pDownload->Save();
+	if ( ! bPaused ) pDownload->Resume();
 
 	Transfers.m_pSection.Unlock();
 
 	Message( IDS_ED2K_EPI_FILE_CREATED,
-		Settings.SmartVolume( pDownload->m_pFile->m_oFList.length_sum() ) );
+		Settings.SmartVolume( pDownload->GetVolumeRemaining() ) );
 	
 	return TRUE;
 }

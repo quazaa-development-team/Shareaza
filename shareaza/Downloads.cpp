@@ -1166,8 +1166,7 @@ void CDownloads::Load()
 			{
 				if ( pDownload->m_bSeeding )
 				{
-					if ( !Settings.BitTorrent.AutoSeed ||
-						 GetFileAttributes( pDownload->m_sServingFileName ) == INVALID_FILE_ATTRIBUTES )
+					if ( ! Settings.BitTorrent.AutoSeed )
 					{
 						::DeleteFile( strPath, FALSE, TRUE );
 						delete pDownload;
@@ -1180,7 +1179,7 @@ void CDownloads::Load()
 			}
 			else
 			{
-				theApp.Message( MSG_ERROR, _T("Error loading %s"), strPath );
+				theApp.Message( MSG_ERROR, IDS_DOWNLOAD_FILE_OPEN_ERROR, strPath );
 				pDownload->ClearSources();
 				delete pDownload;
 			}

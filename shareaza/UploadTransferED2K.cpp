@@ -123,7 +123,7 @@ BOOL CUploadTransferED2K::Request(const Hashes::Ed2kHash& oED2K)
 	if ( UploadQueues.GetPosition( this, FALSE ) < 0 && ! UploadQueues.Enqueue( this ) )
 	{
 		theApp.Message( MSG_ERROR, IDS_UPLOAD_BUSY_QUEUE,
-			(LPCTSTR)m_sFileName, (LPCTSTR)m_sAddress, _T("ED2K") );
+			(LPCTSTR)m_sName, (LPCTSTR)m_sAddress, _T("ED2K") );
 
 		CEDPacket* pReply = CEDPacket::New( ED2K_C2C_FILENOTFOUND );
 		pReply->Write( oED2K );
@@ -136,7 +136,7 @@ BOOL CUploadTransferED2K::Request(const Hashes::Ed2kHash& oED2K)
 	AllocateBaseFile();
 
 	theApp.Message( MSG_NOTICE, IDS_UPLOAD_FILE,
-		(LPCTSTR)m_sFileName, (LPCTSTR)m_sAddress );
+		(LPCTSTR)m_sName, (LPCTSTR)m_sAddress );
 
 	m_nRanking = -1;
 	return CheckRanking();
@@ -366,7 +366,7 @@ BOOL CUploadTransferED2K::OnRequestParts(CEDPacket* pPacket)
 
 	for ( int nRequest = 0 ; nRequest < 3 ; nRequest++ )
 	{
-		if ( nOffset[1][nRequest] <= m_nFileSize )
+		if ( nOffset[1][nRequest] <= m_nSize )
 		{
 			// Valid (or null) request
 			if ( nOffset[0][nRequest] < nOffset[1][nRequest] )
@@ -487,11 +487,33 @@ BOOL CUploadTransferED2K::ServeRequests()
 				return TRUE;
 			}
 		}
+	
+		ASSERT( m_nState == upsRequest || m_nState == upsUploading );
+		ASSERT( m_pBaseFile != NULL );
 
-		if ( !OpenFile() )
+		if ( ! IsFileOpen() && ! OpenFile() )
+		{
+			theApp.Message( MSG_ERROR, IDS_UPLOAD_CANTOPEN, (LPCTSTR)m_sName, (LPCTSTR)m_sAddress );
+
+			CEDPacket* pReply = CEDPacket::New( ED2K_C2C_FILENOTFOUND );
+			pReply->Write( m_oED2K );
+			Send( pReply );
+
+			Cleanup();
+			Close();
 			return FALSE;
+		}
 
-		if ( !StartNextRequest() )
+		{
+			CQuickLock oLock( Library.m_pSection );
+			if ( CLibraryFile* pFile = LibraryMaps.LookupFileByPath( m_sPath, TRUE, TRUE ) )
+			{
+				pFile->m_nUploadsToday++;
+				pFile->m_nUploadsTotal++;
+			}
+		}
+
+		if ( ! StartNextRequest() )
 			return FALSE;
 	}
 
@@ -520,41 +542,6 @@ BOOL CUploadTransferED2K::ServeRequests()
 }
 
 //////////////////////////////////////////////////////////////////////
-// CUploadTransferED2K file access
-
-BOOL CUploadTransferED2K::OpenFile()
-{
-	ASSERT( m_nState == upsRequest || m_nState == upsUploading );
-	ASSERT( m_pBaseFile != NULL );
-
-	if ( IsFileOpen() )
-		return TRUE;
-
-	if ( CUploadTransfer::OpenFile( m_sFilePath, FALSE, FALSE ) )
-	{
-		CQuickLock oLock( Library.m_pSection );
-		if ( CLibraryFile* pFile = LibraryMaps.LookupFileByPath( m_sFilePath, TRUE, TRUE ) )
-		{
-			pFile->m_nUploadsToday++;
-			pFile->m_nUploadsTotal++;
-		}
-
-		return TRUE;
-	}
-
-	theApp.Message( MSG_ERROR, IDS_UPLOAD_CANTOPEN, (LPCTSTR)m_sFileName, (LPCTSTR)m_sAddress );
-
-	CEDPacket* pReply = CEDPacket::New( ED2K_C2C_FILENOTFOUND );
-	pReply->Write( m_oED2K );
-	Send( pReply );
-
-	Cleanup();
-	Close();
-
-	return FALSE;
-}
-
-//////////////////////////////////////////////////////////////////////
 // CUploadTransferED2K start the next request
 
 BOOL CUploadTransferED2K::StartNextRequest()
@@ -566,8 +553,8 @@ BOOL CUploadTransferED2K::StartNextRequest()
 	{
 		if ( std::find( m_oServed.begin(), m_oServed.end(), *m_oRequested.begin() ) == m_oServed.end()
 			// This should be redundant (Camper)
-			&& m_oRequested.begin()->begin() < m_nFileSize
-			&& m_oRequested.begin()->end() <= m_nFileSize )
+			&& m_oRequested.begin()->begin() < m_nSize
+			&& m_oRequested.begin()->end() <= m_nSize )
 		{
 			m_nOffset = m_oRequested.begin()->begin();
 			m_nLength = m_oRequested.begin()->size();
@@ -591,7 +578,7 @@ BOOL CUploadTransferED2K::StartNextRequest()
 
 		theApp.Message( MSG_INFO, IDS_UPLOAD_CONTENT,
 			m_nOffset, m_nOffset + m_nLength - 1,
-			(LPCTSTR)m_sFileName, (LPCTSTR)m_sAddress,
+			(LPCTSTR)m_sName, (LPCTSTR)m_sAddress,
 			(LPCTSTR)m_sUserAgent );
 
 		return TRUE;
@@ -744,7 +731,7 @@ BOOL CUploadTransferED2K::CheckFinishedRequest()
 		return FALSE;
 
 	theApp.Message( MSG_INFO, IDS_UPLOAD_FINISHED,
-		(LPCTSTR)m_sFileName, (LPCTSTR)m_sAddress );
+		(LPCTSTR)m_sName, (LPCTSTR)m_sAddress );
 
 	m_oServed.push_back( Fragments::Fragment( m_nOffset, m_nOffset + m_nLength ) );
 	m_pBaseFile->AddFragment( m_nOffset, m_nLength );
@@ -816,7 +803,7 @@ BOOL CUploadTransferED2K::CheckRanking()
 
 			if ( UploadQueues.Check( m_pQueue ) )
 			{
-				theApp.Message( MSG_INFO, IDS_UPLOAD_QUEUED, (LPCTSTR)m_sFileName,
+				theApp.Message( MSG_INFO, IDS_UPLOAD_QUEUED, (LPCTSTR)m_sName,
 					(LPCTSTR)m_sAddress, nPosition, m_pQueue->GetQueuedCount(),
 					(LPCTSTR)m_pQueue->m_sName );
 			}
@@ -902,7 +889,7 @@ BOOL CUploadTransferED2K::OnRequestParts64(CEDPacket* pPacket)
 
 	for ( int nRequest = 0 ; nRequest < 3 ; nRequest++ )
 	{
-		if ( nOffset[1][nRequest] <= m_nFileSize )
+		if ( nOffset[1][nRequest] <= m_nSize )
 		{
 			// Valid (or null) request
 			if ( nOffset[0][nRequest] < nOffset[1][nRequest] )

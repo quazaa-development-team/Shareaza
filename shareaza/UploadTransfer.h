@@ -48,10 +48,7 @@ public:
 	DWORD			m_nUserRating;	// Has the downloader uploaded anything?
 	BOOL			m_bClientExtended;// Does the user support extended (G2) functions? (In practice, this means can we use G2 chat, browse, etc...)
 
-	CString			m_sFileName;	// Name of requested file
-	CString			m_sFilePath;	// Path of requested file
 	QWORD			m_nFileBase;	// Base offset in requested file
-	QWORD			m_nFileSize;	// Size of requested file
 	BOOL			m_bFilePartial;	// Partial file flag
 	CString			m_sFileTags;	// File sharing tags
 
@@ -104,13 +101,12 @@ protected:
 	void		StartSending(int nState);
 	void		AllocateBaseFile();
 
-	BOOL		IsFileOpen() const;
-	BOOL		OpenFile(LPCTSTR pszFile, BOOL bWrite, BOOL bCreate);
-	BOOL		OpenFile(const CBTInfo& pInfo, BOOL bWrite, BOOL bCreate);
-	void		CloseFile();
-	BOOL		WriteFile(QWORD nOffset, LPCVOID pData, QWORD nLength, QWORD* pnWritten = NULL);
-	BOOL		ReadFile(QWORD nOffset, LPVOID pData, QWORD nLength, QWORD* pnRead = NULL);
-	void		AttachFile(CFragmentedFile* pFile);
+	virtual BOOL	IsFileOpen() const;
+	virtual BOOL	OpenFile();
+	virtual void	CloseFile();
+	virtual BOOL	WriteFile(QWORD nOffset, LPCVOID pData, QWORD nLength, QWORD* pnWritten = NULL);
+	virtual BOOL	ReadFile(QWORD nOffset, LPVOID pData, QWORD nLength, QWORD* pnRead = NULL);
+	virtual void	AttachFile(CFragmentedFile* pFile);
 };
 
 enum UserRating

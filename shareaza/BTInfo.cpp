@@ -469,9 +469,9 @@ float CBTInfo::CBTFile::GetProgress() const
 
 	if ( CDownload* pDownload = Downloads.FindByBTH( m_pInfo->m_oBTH ) )
 	{
-		if ( pDownload->m_pFile )
+		if ( pDownload->IsFileOpen() )
 		{
-			return ( (float)pDownload->m_pFile->GetCompleted( m_nOffset, m_nSize ) *
+			return ( (float)pDownload->GetCompleted( m_nOffset, m_nSize ) *
 				100.f ) / (float)m_nSize;
 		}
 	}

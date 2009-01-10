@@ -530,7 +530,7 @@ void CDownloadMonitorDlg::OnDownloadLaunch()
 	CSingleLock pLock( &Transfers.m_pSection );
 	if ( ! pLock.Lock( 250 ) || ! Downloads.Check( m_pDownload ) ) return;
 	
-	CString strName = m_pDownload->m_sSafeName;
+	CString strName = m_pDownload->m_sName;
 	BOOL bCompleted = m_pDownload->IsMoving();
 	
 	CString strType;

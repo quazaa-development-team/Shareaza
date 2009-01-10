@@ -25,7 +25,6 @@
 #include "TransferFile.h"
 
 class CShareazaFile;
-class CEDPartImporter;
 class CBTInfo;
 
 
@@ -61,6 +60,7 @@ protected:
 		QWORD			m_nOffset;	// File offset (0 - for first/single file)
 		QWORD			m_nLength;	// File size
 		BOOL			m_bWrite;	// File opened for write
+		CString			m_sName;	// Original filename (without path)
 	};
 
 	typedef std::list< CVirtualFilePart > CVirtualFile;
@@ -130,33 +130,65 @@ protected:
 	QWORD						m_nUnflushed;
 	Fragments::List				m_oFList;
 	volatile LONG				m_nRefCount;
+	DWORD						m_nFileError;
 
 	BOOL	VirtualRead(QWORD nOffset, char* pBuffer, QWORD nBuffer, QWORD* pnRead);
 	BOOL	VirtualWrite(QWORD nOffset, const char* pBuffer, QWORD nBuffer, QWORD* pnWritten);
 
 public:
+	// Open file from disk
+	BOOL	Open(LPCTSTR pszFile, QWORD nOffset = 0, QWORD nLength = SIZE_UNKNOWN,
+		BOOL bWrite = FALSE, LPCTSTR pszName = NULL);
+	// Open file from disk or create file inside incomplete folder from library by hash
+	BOOL	Open(const CShareazaFile& oSHFile, BOOL bWrite = FALSE);
+	// Open file from disk or create file inside incomplete folder file(s) from .torrent
+	BOOL	Open(const CBTInfo& oInfo, BOOL bWrite = FALSE);
 	ULONG	AddRef();
 	ULONG	Release();
-	BOOL	Open(LPCTSTR pszFile, QWORD nOffset, QWORD nLength, BOOL bWrite, BOOL bCreate);
-	BOOL	Open(const CBTInfo& oInfo, BOOL bWrite, BOOL bCreate);
 	BOOL	Flush();
 	void	Close();
 	BOOL	MakeComplete();
 	void	Serialize(CArchive& ar, int nVersion);
 	BOOL	EnsureWrite();
+	// Delete file(s)
+	void	Delete();
+	// Move file to destination. Returns 0 on success or file error number.
+	DWORD	Move(DWORD nIndex, LPCTSTR pszDestination, LPPROGRESS_ROUTINE lpProgressRoutine = NULL, LPVOID lpData = NULL);
 	BOOL	Write(QWORD nOffset, LPCVOID pData, QWORD nLength, QWORD* pnWritten = NULL);
 	BOOL	Read(QWORD nOffset, LPVOID pData, QWORD nLength, QWORD* pnRead = NULL);
 	QWORD	InvalidateRange(QWORD nOffset, QWORD nLength);
 	// Check if specified file handled
 	BOOL	FindByPath(const CString& sPath) const;
 
+	// Get amount of files
+	inline DWORD GetCount() const
+	{
+		return m_oFile.size();
+	}
+
+	// Are all of subfiles open?
+	BOOL IsOpen() const;
+
+	// Get subfile path
+	CString GetPath(DWORD nIndex) const;
+
+	// Get subfile original name
+	CString GetName(DWORD nIndex) const;
+
+	// Set subfile original name
+	void SetName(DWORD nIndex, LPCTSTR szName);
+
+	// Get last file/disk error
+	inline DWORD GetFileError() const
+	{
+		return m_nFileError;
+	}
+
 	// Is file has size?
 	inline BOOL IsValid() const
 	{
 		return m_oFList.limit() > 0;
 	}
-	
-	BOOL IsOpen() const;
 
 	// Get total size of whole file (in bytes)
 	inline QWORD GetTotal() const
@@ -236,6 +268,4 @@ public:
 //
 //		return ( m_pFile != NULL ) && ( m_nUnflushed > 0 );
 //	}
-
-	friend class CEDPartImporter;
 };

@@ -363,7 +363,7 @@ void CUploadsWnd::OnUploadsDisconnect()
 			{
 				CString strFormat, strMessage;
 				LoadString( strFormat, IDS_UPLOAD_CANCEL_ED2K );
-				strMessage.Format( strFormat, (LPCTSTR)pUpload->m_sFileName );
+				strMessage.Format( strFormat, (LPCTSTR)pUpload->m_sName );
 				pLock.Unlock();
 				UINT nResp = AfxMessageBox( strMessage, MB_ICONQUESTION|MB_YESNOCANCEL|MB_DEFBUTTON2 );
 				pLock.Lock();
@@ -426,7 +426,7 @@ void CUploadsWnd::OnUploadsClear()
 			{
 				CString strFormat, strMessage;
 				LoadString( strFormat, IDS_UPLOAD_CANCEL_ED2K );
-				strMessage.Format( strFormat, (LPCTSTR)pUpload->m_sFileName );
+				strMessage.Format( strFormat, (LPCTSTR)pUpload->m_sName );
 				pLock.Unlock();
 				UINT nResp = AfxMessageBox( strMessage, MB_ICONQUESTION|MB_YESNOCANCEL|MB_DEFBUTTON2 );
 				pLock.Lock();

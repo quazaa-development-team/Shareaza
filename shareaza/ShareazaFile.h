@@ -32,8 +32,7 @@ public:
 	}
 
 	CString				m_sName;	// Filename only
-	QWORD				m_nSize;	/*
-									Size if any
+	QWORD				m_nSize;	/* Size if any
 									 (there is no size if it equal to 0 or SIZE_UNKNOWN)
 									*/
 	Hashes::Sha1Hash	m_oSHA1;	// SHA1 (Base32)
@@ -41,18 +40,20 @@ public:
 	Hashes::Ed2kHash	m_oED2K;	// ED2K (MD4, Base16)
 	Hashes::BtHash		m_oBTH;		// BitTorrent Info Hash (Base32)
 	Hashes::Md5Hash		m_oMD5;		// MD5 (Base16)
-	CString				m_sPath;	/*
-									Use:
-									 CDownloadBase : Full local path (.partial)
-									 CShareazaURL  : Path part of URL
-									 CLibraryFile  : Local path without filename
-									 CBTFile       : Relative path inside .torrent
-									 CUploadFile   : Full local path
+	CString				m_sPath;	/* Use:
+									 CShareazaURL : Path part of URL
+									 CLibraryFile : Local path without filename
+									 CBTFile      : Relative path inside .torrent
+									 CDownload    : Path of .sd-file
+									 CUploadFile  : Path of requested file
 									*/
 	CString				m_sURL;		// Host if any
 
 	// Returns "urn:bitprint:SHA1.TIGER" or "urn:sha1:SHA1" or "urn:tree:tiger/:TIGER"
 	CString GetBitprint() const;
+
+	// Returns "sha1_SHA1", "ttr_TIGER" etc.
+	CString GetFilename() const;
 
 	// Returns "http://nAddress:nPort/uri-res/N2R?{SHA1|TIGER|ED2K|MD5|BTH}"
 	CString GetURL(const IN_ADDR& nAddress, WORD nPort) const;

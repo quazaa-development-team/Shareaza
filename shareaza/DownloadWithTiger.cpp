@@ -413,7 +413,7 @@ BOOL CDownloadWithTiger::FindNewValidationBlock(int nHash)
 
 	DWORD nTarget = 0xFFFFFFFF;
 
-	if ( m_pFile == NULL )
+	if ( ! IsFileOpen() )
 	{
 		for ( DWORD nBlock = 0 ; nBlock < nBlockCount ; nBlock ++ )
 		{
@@ -524,35 +524,17 @@ void CDownloadWithTiger::ContinueValidation()
 	ASSERT( m_nVerifyHash > HASH_NULL );
 	ASSERT( m_nVerifyBlock < 0xFFFFFFFF );
 
-	BOOL bDone = ( m_pFile == NULL ) || ( m_pFile->GetRemaining() == 0 );
-	HANDLE hComplete = INVALID_HANDLE_VALUE;
-
-	if ( m_pFile == NULL )
-	{
-		hComplete = CreateFile( m_sPath, GENERIC_READ,
-			FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-			NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL );
-		VERIFY_FILE_ACCESS( hComplete, m_sPath )
-		if ( hComplete == INVALID_HANDLE_VALUE ) return;
-	}
+	if ( ! OpenFile() )
+		return;
 
 	auto_array< BYTE > pChunk( new BYTE[ 256 * 1024ull ] );
 
-	for ( int nRound = bDone ? 10 : 2 ; nRound > 0 && m_nVerifyLength > 0 ; nRound-- )
+	for ( int nRound = IsComplete() ? 10 : 2 ; nRound > 0 && m_nVerifyLength > 0 ; nRound-- )
 	{
-		DWORD nChunk	= (DWORD)min( m_nVerifyLength, 256 * 1024ull );
+		DWORD nChunk = (DWORD)min( m_nVerifyLength, 256 * 1024ull );
 
-		if ( m_pFile != NULL )
-		{
-			if ( ! m_pFile->Read( m_nVerifyOffset, pChunk.get(), nChunk ) )
-				break;
-		}
-		else
-		{
-			LONG nOffsetHigh = (LONG)( m_nVerifyOffset >> 32 );
-			SetFilePointer( hComplete, (DWORD)( m_nVerifyOffset & 0xFFFFFFFF ), &nOffsetHigh, FILE_BEGIN );
-			ReadFile( hComplete, pChunk.get(), nChunk, &nChunk, NULL );
-		}
+		if ( ! ReadFile( m_nVerifyOffset, pChunk.get(), nChunk ) )
+			break;
 
 		if ( m_nVerifyHash == HASH_TIGERTREE )
 			m_pTigerTree.AddToTest( pChunk.get(), (DWORD)nChunk );
@@ -567,8 +549,8 @@ void CDownloadWithTiger::ContinueValidation()
 		m_nVerifyLength -= nChunk;
 	}
 
-	if ( hComplete != INVALID_HANDLE_VALUE ) CloseHandle( hComplete );
-	if ( m_nVerifyLength == 0 ) FinishValidation();
+	if ( m_nVerifyLength == 0 )
+		FinishValidation();
 }
 
 void CDownloadWithTiger::FinishValidation()
@@ -628,7 +610,7 @@ void CDownloadWithTiger::FinishValidation()
 		}
 	}
 
-	if ( !oCorrupted.empty() && m_pFile != NULL )
+	if ( !oCorrupted.empty() && IsFileOpen() )
 	{
 		if ( m_pTigerBlock != NULL )
 			SubtractHelper( oCorrupted, m_pTigerBlock, m_nTigerBlock, m_nTigerSize );
@@ -640,7 +622,7 @@ void CDownloadWithTiger::FinishValidation()
 		for ( Fragments::List::const_iterator pRange = oCorrupted.begin();
 			pRange != oCorrupted.end(); ++pRange )
 		{
-			m_pFile->InvalidateRange( pRange->begin(), pRange->size() );
+			InvalidateFileRange( pRange->begin(), pRange->size() );
 			RemoveOverlappingSources( pRange->begin(), pRange->size() );
 		}
 

@@ -205,10 +205,10 @@ BOOL CUploadTransferBT::OnRequest(CBTPacket* pPacket)
 		return FALSE;
 	}
 	
-	if ( nOffset + nLength > m_nFileSize )
+	if ( nOffset + nLength > m_nSize )
 	{
 		// error
-		theApp.Message( MSG_DEBUG, _T("CUploadTransferBT::OnRequest(): Request through %I64i > %I64i"), nLength, m_nFileSize );
+		theApp.Message( MSG_DEBUG, _T("CUploadTransferBT::OnRequest(): Request through %I64i > %I64i"), nLength, m_nSize );
 		Close();
 		return FALSE;
 	}
@@ -223,7 +223,7 @@ BOOL CUploadTransferBT::OnRequest(CBTPacket* pPacket)
 		m_nState = upsRequest;
 		AllocateBaseFile();
 		theApp.Message( MSG_NOTICE, IDS_UPLOAD_FILE,
-			(LPCTSTR)m_sFileName, (LPCTSTR)m_sAddress );
+			(LPCTSTR)m_sName, (LPCTSTR)m_sAddress );
 	}
 	
 	return ServeRequests();
@@ -258,32 +258,32 @@ BOOL CUploadTransferBT::OpenFile()
 	ASSERT( m_nState == upsRequest || m_nState == upsUploading );
 	ASSERT( m_pBaseFile != NULL );
 
-	if ( IsFileOpen() )
-		// File already open
-		return TRUE;
-
 	if ( m_pClient && Downloads.Check( m_pClient->m_pDownload ) )
 	{
 		// Try to get existing file object from download
-		if ( m_pClient->m_pDownload->m_pFile )
+		CFragmentedFile* pFile = m_pClient->m_pDownload->GetFile();
+		if ( pFile )
 		{
-			AttachFile( m_pClient->m_pDownload->m_pFile );
+			AttachFile( pFile );
 			return TRUE;
 		}
 
 		// HACK: Open from disk (replace this with SeedTorrent in OnDownloadComplete)
 		if ( m_pClient->m_pDownload->IsSeeding() )
 		{
-			if ( CUploadTransfer::OpenFile(
-				m_pClient->m_pDownload->m_pTorrent, FALSE, FALSE ) )
+			pFile = new CFragmentedFile;
+			if ( pFile && pFile->Open( m_pClient->m_pDownload->m_pTorrent ) )
 			{
+				AttachFile( pFile );
 				return TRUE;
 			}
+			if ( pFile )
+				pFile->Release();
 		}
 	}
 	// else Something wrong...
 
-	theApp.Message( MSG_ERROR, IDS_UPLOAD_CANTOPEN, (LPCTSTR)m_sFileName , (LPCTSTR)m_sAddress);
+	theApp.Message( MSG_ERROR, IDS_UPLOAD_CANTOPEN, (LPCTSTR)m_sName , (LPCTSTR)m_sAddress);
 
 	Close();
 
@@ -297,7 +297,6 @@ BOOL CUploadTransferBT::ServeRequests()
 {
 	ASSERT( m_nState == upsRequest || m_nState == upsUploading );
 	ASSERT( m_pBaseFile != NULL );
-	ASSERT( m_nLength == SIZE_UNKNOWN );
 	
 	if ( m_bChoked ) return TRUE;
 	if ( m_pClient->GetOutputLength() > Settings.BitTorrent.RequestSize / 3 ) return TRUE;
@@ -306,8 +305,8 @@ BOOL CUploadTransferBT::ServeRequests()
 	{
 		if ( std::find( m_oServed.begin(), m_oServed.end(), *m_oRequested.begin() ) == m_oServed.end()
 			// This should be redundant
-			&& m_oRequested.begin()->begin() < m_nFileSize
-			&& m_oRequested.begin()->end() <= m_nFileSize )
+			&& m_oRequested.begin()->begin() < m_nSize
+			&& m_oRequested.begin()->end() <= m_nSize )
 		{
 			m_nOffset = m_oRequested.begin()->begin();
 			m_nLength = m_oRequested.begin()->size();
@@ -322,7 +321,7 @@ BOOL CUploadTransferBT::ServeRequests()
 		
 		theApp.Message( MSG_DEBUG, IDS_UPLOAD_CONTENT,
 			m_nOffset, m_nOffset + m_nLength - 1,
-			(LPCTSTR)m_sFileName, (LPCTSTR)m_sAddress, _T("BT") );
+			(LPCTSTR)m_sName, (LPCTSTR)m_sAddress, _T("BT") );
 		
 		CBuffer pBuffer;
 		pBuffer.EnsureBuffer( sizeof(BT_PIECE_HEADER) + (DWORD)m_nLength );

@@ -578,10 +578,10 @@ BOOL CHomeDownloadsBox::ExecuteDownload(CDownload* pDownload)
 		CString strType;
 		BOOL bDangerous = FALSE;
 		
-		int nExtPos = pDownload->m_sSafeName.ReverseFind( '.' );
+		int nExtPos = pDownload->m_sName.ReverseFind( '.' );
 		if ( nExtPos > 0 )
 		{
-			strType = pDownload->m_sSafeName.Mid( nExtPos + 1 );
+			strType = pDownload->m_sName.Mid( nExtPos + 1 );
 			if ( theApp.m_pfnAssocIsDangerous )
 				bDangerous = theApp.m_pfnAssocIsDangerous( "." + strType );
 		}
@@ -591,7 +591,7 @@ BOOL CHomeDownloadsBox::ExecuteDownload(CDownload* pDownload)
 			CString strFormat, strPrompt;
 			
 			LoadString( strFormat, IDS_LIBRARY_CONFIRM_EXECUTE );
-			strPrompt.Format( strFormat, (LPCTSTR)pDownload->m_sSafeName );
+			strPrompt.Format( strFormat, (LPCTSTR)pDownload->m_sName );
 			
 			pLock.Unlock();
 			int nResult = AfxMessageBox( strPrompt, MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 );

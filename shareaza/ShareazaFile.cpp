@@ -78,6 +78,26 @@ CString CShareazaFile::GetBitprint() const
 		return CString();
 }
 
+CString CShareazaFile::GetFilename() const
+{
+	CString sFilename;
+	if ( m_oTiger )
+		sFilename = CString( _T("ttr_")  ) + m_oTiger.toString();
+	else if ( m_oSHA1 )
+		sFilename = CString( _T("sha1_") ) + m_oSHA1.toString();
+	else if ( m_oED2K )
+		sFilename = CString( _T("ed2k_") ) + m_oED2K.toString();
+	else if ( m_oMD5 )
+		sFilename = CString( _T("md5_")  ) + m_oMD5.toString();
+	else if ( m_oBTH )
+		sFilename = CString( _T("btih_") ) + m_oBTH.toString();
+	else
+		sFilename.Format( _T("rand_%2i%2i%2i%2i"),
+			GetRandomNum( 0, 99 ), GetRandomNum( 0, 99 ), 
+			GetRandomNum( 0, 99 ), GetRandomNum( 0, 99 ) );
+	return sFilename;
+}
+
 bool CShareazaFile::SplitStringToURLs(LPCTSTR pszURLs, CMapStringToFILETIME& oUrls) const
 {
 	CString strURLs( pszURLs );

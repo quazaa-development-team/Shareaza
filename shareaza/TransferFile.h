@@ -33,7 +33,7 @@ public:
 	typedef CMap< CString, const CString&, CTransferFile*, CTransferFile* > CTransferFileMap;
 	typedef CList< CTransferFile* > CTransferFileList;
 
-	CTransferFile*		Open(LPCTSTR pszFile, BOOL bWrite, BOOL bCreate);
+	CTransferFile*		Open(LPCTSTR pszFile, BOOL bWrite);
 	void				CommitDeferred();
 
 protected:
@@ -93,7 +93,7 @@ protected:
 	DefWrite	m_pDeferred[DEFERRED_MAX];
 	int			m_nDeferred;
 
-	BOOL		Open(BOOL bWrite, BOOL bCreate);
+	BOOL		Open(BOOL bWrite);
 	BOOL		CloseWrite();
 	void		DeferredWrite(BOOL bOffline = FALSE);
 
