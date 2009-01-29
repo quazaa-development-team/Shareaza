@@ -81,7 +81,6 @@ void CFragmentedFile::AssertValid() const
 		CVirtualFile::const_iterator j;
 		for ( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
 		{
-			ASSERT( (*i).m_nLength != 0 );
 			if ( i != m_oFile.begin() )
 				ASSERT( (*j).m_nOffset + (*j).m_nLength == (*i).m_nOffset );
 			j = i;
@@ -108,8 +107,6 @@ void CFragmentedFile::Dump(CDumpContext& dc) const
 
 BOOL CFragmentedFile::Open(LPCTSTR pszFile, QWORD nOffset, QWORD nLength, BOOL bWrite, LPCTSTR pszName)
 {
-	ASSERT( nLength != 0 );
-
 	if ( ! pszFile || ! *pszFile )
 	{
 		// Bad file name
