@@ -651,17 +651,20 @@ BOOL CFragmentedFile::VirtualRead(QWORD nOffset, char* pBuffer, QWORD nBuffer, Q
 	if ( pnRead )
 		*pnRead = 0;
 
-	while( nBuffer )
+	for ( ; nBuffer; ++i )
 	{
 		if( i == m_oFile.end() )
 			// EOF
 			return FALSE;
 		ASSERT( (*i).m_nOffset <= nOffset );
 		QWORD nPartOffset = ( nOffset - (*i).m_nOffset );
-		if( (*i).m_nLength <= nPartOffset )
+		if( (*i).m_nLength < nPartOffset )
 			// EOF
 			return FALSE;
 		QWORD nPartLength = min( nBuffer, (*i).m_nLength - nPartOffset );
+		if ( ! nPartLength )
+			// Skip zero length files
+			continue;
 
 		QWORD nRead = 0;
 		if ( ! (*i).m_pFile ||
@@ -677,9 +680,6 @@ BOOL CFragmentedFile::VirtualRead(QWORD nOffset, char* pBuffer, QWORD nBuffer, Q
 		if ( nRead != nPartLength )
 			// EOF
 			return FALSE;
-
-		// Next part
-		++i;
 	}
 
 	return TRUE;
@@ -699,13 +699,16 @@ BOOL CFragmentedFile::VirtualWrite(QWORD nOffset, const char* pBuffer, QWORD nBu
 	if ( pnWritten )
 		*pnWritten = 0;
 
-	while( nBuffer )
+	for ( ; nBuffer; ++i )
 	{
 		ASSERT( i != m_oFile.end() );
 		ASSERT( (*i).m_nOffset <= nOffset );
 		QWORD nPartOffset = ( nOffset - (*i).m_nOffset );
-		ASSERT( (*i).m_nLength > nPartOffset );
+		ASSERT( (*i).m_nLength >= nPartOffset );
 		QWORD nPartLength = min( nBuffer, (*i).m_nLength - nPartOffset );
+		if ( ! nPartLength )
+			// Skip zero length files
+			continue;
 
 		QWORD nWritten = 0;
 		if ( ! (*i).m_bWrite )
@@ -725,9 +728,6 @@ BOOL CFragmentedFile::VirtualWrite(QWORD nOffset, const char* pBuffer, QWORD nBu
 		if ( nWritten != nPartLength )
 			// EOF
 			return FALSE;
-
-		// Next part
-		++i;
 	}
 
 	return TRUE;

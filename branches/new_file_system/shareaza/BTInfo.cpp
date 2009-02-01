@@ -471,8 +471,11 @@ float CBTInfo::CBTFile::GetProgress() const
 	{
 		if ( pDownload->IsFileOpen() )
 		{
-			return ( (float)pDownload->GetCompleted( m_nOffset, m_nSize ) *
-				100.f ) / (float)m_nSize;
+			if ( m_nSize == 0 )
+				return 100.f;
+			else
+				return ( (float)pDownload->GetCompleted( m_nOffset, m_nSize ) *
+					100.f ) / (float)m_nSize;
 		}
 	}
 
