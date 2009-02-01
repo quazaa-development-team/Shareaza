@@ -547,7 +547,6 @@ BOOL CDownload::Load(LPCTSTR pszName)
 	m_bGotPreview = GetFileAttributes( m_sPath + _T(".png") ) != INVALID_FILE_ATTRIBUTES;
 	m_nSaveCookie = m_nCookie;
 
-	ASSERT( bSuccess );
 	return bSuccess;
 }
 
