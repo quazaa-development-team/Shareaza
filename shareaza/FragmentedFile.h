@@ -202,7 +202,8 @@ public:
 	{
 		CQuickLock oLock( m_pSection );
 
-		return ( m_oFList.limit() == SIZE_UNKNOWN && m_oFList.length_sum() ) ?
+		return ( ( m_oFList.limit() == 0 ) ||
+			( m_oFList.limit() == SIZE_UNKNOWN && m_oFList.length_sum() ) ) ?
 			SIZE_UNKNOWN : m_oFList.length_sum();
 	}
 
