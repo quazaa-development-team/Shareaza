@@ -613,6 +613,7 @@ void CLibraryFrame::SetView(CLibraryView* pView, BOOL bUpdate, BOOL bUser)
 	}
 
 	if ( pView )
+	{
 		if ( Settings.Library.ShowVirtual &&
 			pFolderSelection &&
 			pFolderSelection->m_pVirtual &&
@@ -621,6 +622,7 @@ void CLibraryFrame::SetView(CLibraryView* pView, BOOL bUpdate, BOOL bUser)
 			pView->m_bGhostFolder = TRUE;
 		else
 			pView->m_bGhostFolder = FALSE;
+	}
 
 	if ( m_pView == pView )
 	{
