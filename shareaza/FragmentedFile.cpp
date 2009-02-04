@@ -293,10 +293,12 @@ BOOL CFragmentedFile::IsOpen() const
 	CQuickLock oLock( m_pSection );
 
 	if ( m_oFile.empty() )
+		// No subfiles
 		return FALSE;
 
-	for( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
+	for ( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
 		if ( ! (*i).m_pFile || ! (*i).m_pFile->IsOpen() )
+			// Closed subfile
 			return FALSE;
 
 	return TRUE;
