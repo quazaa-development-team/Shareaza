@@ -1068,16 +1068,17 @@ void CDownloads::OnRun()
 //////////////////////////////////////////////////////////////////////
 // CDownloads query hit handler
 
-void CDownloads::OnQueryHits(CQueryHit* pHits)
+void CDownloads::OnQueryHits(const CQueryHit* pHits)
 {
 	CSingleLock pLock( &Transfers.m_pSection );
 
-	if ( ! pLock.Lock( 50 ) ) return;
+	if ( ! pLock.Lock( 250 ) ) return;
 
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = GetNext( pos );
-		if ( pDownload->IsMoving() == FALSE ) pDownload->OnQueryHits( pHits );
+		if ( pDownload->IsMoving() == FALSE )
+			pDownload->OnQueryHits( pHits );
 	}
 }
 
