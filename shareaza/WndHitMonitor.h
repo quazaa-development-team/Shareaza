@@ -1,7 +1,7 @@
 //
 // WndHitMonitor.h
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -41,7 +41,7 @@ protected:
 
 // Operations
 public:
-	virtual BOOL	OnQueryHits(const CQueryHit* pHits);
+	virtual BOOL	OnQueryHits(CQueryHit* pHits);
 	virtual void	OnSkinChange();
 
 // Overrides

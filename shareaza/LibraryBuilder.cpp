@@ -1,7 +1,7 @@
 //
 // LibraryBuilder.cpp
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -25,7 +25,6 @@
 #include "SharedFile.h"
 #include "Library.h"
 #include "LibraryBuilder.h"
-#include "LibraryHistory.h"
 #include "HashDatabase.h"
 #include "Security.h"
 #include "ThumbCache.h"
@@ -564,8 +563,6 @@ bool CLibraryBuilder::HashFile(LPCTSTR szPath, HANDLE hFile, DWORD nIndex)
 		pFile->m_oED2K.validate();
 
 		LibraryMaps.CullDeletedFiles( pFile );
-		LibraryHistory.Add( szPath, pFile->m_oSHA1, pFile->m_oTiger,
-			pFile->m_oED2K, pFile->m_oBTH, pFile->m_oMD5 );
 		Library.AddFile( pFile );
 
 		// child pornography check

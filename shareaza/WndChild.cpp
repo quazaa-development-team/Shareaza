@@ -1,7 +1,7 @@
 //
 // WndChild.cpp
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -503,7 +503,7 @@ void CChildWnd::OnQuerySearch(CQuerySearch* /*pSearch*/)
 {
 }
 
-BOOL CChildWnd::OnQueryHits(const CQueryHit* /*pHits*/)
+BOOL CChildWnd::OnQueryHits(CQueryHit* /*pHits*/)
 {
 	return FALSE;
 }

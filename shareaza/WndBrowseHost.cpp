@@ -1,7 +1,7 @@
 //
 // WndBrowseHost.cpp
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -345,7 +345,7 @@ void CBrowseHostWnd::OnProfileReceived()
 	}
 }
 
-void CBrowseHostWnd::OnBrowseHits(const CQueryHit* pHits)
+void CBrowseHostWnd::OnBrowseHits(CQueryHit* pHits)
 {
 	if ( m_bPaused || m_hWnd == NULL ) return;
 

@@ -1,7 +1,7 @@
 //
 // HostBrowser.cpp
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -31,6 +31,7 @@
 #include "HostBrowser.h"
 #include "Transfers.h"
 #include "QueryHit.h"
+#include "Downloads.h"
 #include "VendorCache.h"
 #include "WndBrowseHost.h"
 #include "XML.h"
@@ -618,12 +619,14 @@ BOOL CHostBrowser::OnPacket(CG1Packet* pPacket)
 
 	for ( CQueryHit* pCount = pHits ; pCount ; pCount = pCount->m_pNext ) m_nHits++;
 
+	Downloads.OnQueryHits( pHits );
+
 	if ( ! m_bCanChat && pHits->m_bChat ) m_bCanChat = TRUE;
 
 	if ( m_pNotify != NULL )
 		m_pNotify->OnBrowseHits( pHits );
-
-	Network.OnQueryHits( pHits );
+	else
+		pHits->Delete();
 
 	return TRUE;
 }
@@ -648,6 +651,8 @@ BOOL CHostBrowser::OnPacket(CG2Packet* pPacket)
 			m_nHits++;
 		}
 
+		Downloads.OnQueryHits( pHits );
+
 		if ( ! m_bCanChat && pHits->m_bChat )
 		{
 			m_bCanChat = TRUE;
@@ -656,8 +661,8 @@ BOOL CHostBrowser::OnPacket(CG2Packet* pPacket)
 
 		if ( m_pNotify != NULL )
 			m_pNotify->OnBrowseHits( pHits );
-
-		Network.OnQueryHits( pHits );
+		else
+			pHits->Delete();
 	}
 	else if ( pPacket->IsType( G2_PACKET_PHYSICAL_FOLDER ) )
 	{
@@ -775,12 +780,11 @@ BOOL CHostBrowser::StreamHTML()
 			pHit->m_bBrowseHost	= TRUE;
 			pHit->m_nSize		= nSize;
 			pHit->m_bSize		= TRUE;
+			pHit->m_nSources	= 1;
 			pHit->m_sName		= strName;
 			pHit->m_sURL		= strURI;
 
 			if ( m_bCanPush ) pHit->m_oClientID = m_oClientID;
-
-			pHit->Resolve();
 
 			pHit->m_pNext = pHits;
 			pHits = pHit;
@@ -795,8 +799,8 @@ BOOL CHostBrowser::StreamHTML()
 	{
 		if ( m_pNotify != NULL )
 			m_pNotify->OnBrowseHits( pHits );
-
-		Network.OnQueryHits( pHits );
+		else
+			pHits->Delete();
 	}
 
 	return TRUE;

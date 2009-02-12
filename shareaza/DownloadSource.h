@@ -1,7 +1,7 @@
 //
 // DownloadSource.h
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -36,7 +36,7 @@ class CDownloadSource
 // Construction
 public:
 	CDownloadSource(const CDownload* pDownload);
-	CDownloadSource(const CDownload* pDownload, const CQueryHit* pHit);
+	CDownloadSource(const CDownload* pDownload, CQueryHit* pHit);
 	CDownloadSource(const CDownload* pDownload, DWORD nClientID, WORD nClientPort, DWORD nServerIP, WORD nServerPort, const Hashes::Guid& oGUID);
     CDownloadSource(const CDownload* pDownload, const Hashes::BtGuid& oGUID, IN_ADDR* pAddress, WORD nPort);
 	CDownloadSource(const CDownload* pDownload, LPCTSTR pszURL, BOOL bSHA1 = FALSE, BOOL bHashAuth = FALSE, FILETIME* pLastSeen = NULL, int nRedirectionCount = 0);

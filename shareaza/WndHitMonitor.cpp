@@ -1,7 +1,7 @@
 //
 // WndHitMonitor.cpp
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -147,7 +147,7 @@ void CHitMonitorWnd::OnSkinChange()
 	Skin.CreateToolBar( _T("CHitMonitorWnd"), &m_wndToolBar );
 }
 
-BOOL CHitMonitorWnd::OnQueryHits(const CQueryHit* pHits)
+BOOL CHitMonitorWnd::OnQueryHits(CQueryHit* pHits)
 {
 	if ( m_bPaused || m_hWnd == NULL ) return FALSE;
 

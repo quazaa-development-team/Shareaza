@@ -1,7 +1,7 @@
 //
 // WndChild.h
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -71,7 +71,7 @@ public:
 public:
 	virtual void	OnSkinChange();
 	virtual void	OnQuerySearch(CQuerySearch* pSearch);
-	virtual BOOL	OnQueryHits(const CQueryHit* pHits);
+	virtual BOOL	OnQueryHits(CQueryHit* pHits);
 	virtual void	SanityCheck();
 	virtual BOOL	OnPush(const Hashes::Guid& pClientID, CConnection* pConnection);
 	virtual HRESULT	GetGenericView(IGenericView** ppView);

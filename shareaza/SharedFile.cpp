@@ -1,7 +1,7 @@
 //
 // SharedFile.cpp
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -480,9 +480,6 @@ CED2K* CLibraryFile::GetED2K()
 
 CSharedSource* CLibraryFile::AddAlternateSources(LPCTSTR pszURLs)
 {
-	if ( pszURLs == NULL ) return NULL;
-	if ( *pszURLs == 0 ) return NULL;
-
 	CSharedSource* pFirst = NULL;
 
 	CMapStringToFILETIME oUrls;
@@ -493,7 +490,8 @@ CSharedSource* CLibraryFile::AddAlternateSources(LPCTSTR pszURLs)
 		CString strURL;
 		FILETIME tSeen = {};
 		oUrls.GetNextAssoc( pos, strURL, tSeen );
-		if ( CSharedSource* pSource = AddAlternateSource( strURL, &tSeen ) )
+
+		if ( CSharedSource* pSource = AddAlternateSource( strURL ) )
 		{
 			pFirst = pSource;
 		}
@@ -502,7 +500,7 @@ CSharedSource* CLibraryFile::AddAlternateSources(LPCTSTR pszURLs)
 	return pFirst;
 }
 
-CSharedSource* CLibraryFile::AddAlternateSource(LPCTSTR pszURL, FILETIME* tSeen)
+CSharedSource* CLibraryFile::AddAlternateSource(LPCTSTR pszURL)
 {
 	if ( pszURL == NULL ) return NULL;
 	if ( *pszURL == 0 ) return NULL;
@@ -510,15 +508,8 @@ CSharedSource* CLibraryFile::AddAlternateSource(LPCTSTR pszURL, FILETIME* tSeen)
 	CString strURL( pszURL );
 	CShareazaURL pURL;
 
-	BOOL bSeen;
-	FILETIME tSeenLocal = { 0, 0 };
-	if ( tSeen && tSeen->dwLowDateTime && tSeen->dwHighDateTime )
-		bSeen = TRUE;
-	else
-	{
-		tSeen = &tSeenLocal;
-		bSeen = FALSE;
-	}
+	FILETIME tSeen = { 0, 0 };
+	BOOL bSeen = FALSE;
 
 	int nPos = strURL.ReverseFind( ' ' );
 	if ( nPos > 0 )
@@ -526,7 +517,7 @@ CSharedSource* CLibraryFile::AddAlternateSource(LPCTSTR pszURL, FILETIME* tSeen)
 		CString strTime = strURL.Mid( nPos + 1 );
 		strURL = strURL.Left( nPos );
 		strURL.TrimRight();
-		bSeen = TimeFromString( strTime, tSeen );
+		bSeen = TimeFromString( strTime, &tSeen );
 	}
 
 	if ( ! pURL.Parse( strURL ) ) return NULL;
@@ -544,12 +535,12 @@ CSharedSource* CLibraryFile::AddAlternateSource(LPCTSTR pszURL, FILETIME* tSeen)
 
 		if ( pSource->m_sURL.CompareNoCase( strURL ) == 0 )
 		{
-			pSource->Freshen( bSeen ? tSeen : NULL );
+			pSource->Freshen( bSeen ? &tSeen : NULL );
 			return pSource;
 		}
 	}
 
-	CSharedSource* pSource = new CSharedSource( strURL, bSeen ? tSeen : NULL );
+	CSharedSource* pSource = new CSharedSource( strURL, bSeen ? &tSeen : NULL );
 	m_pSources.AddTail( pSource );
 
 	return pSource;
@@ -960,11 +951,10 @@ void CLibraryFile::Ghost()
 
 BOOL CLibraryFile::OnVerifyDownload(
 	const Hashes::Sha1ManagedHash& oSHA1,
-	const Hashes::TigerManagedHash& oTiger,
 	const Hashes::Ed2kManagedHash& oED2K,
 	const Hashes::BtManagedHash& oBTH,
 	const Hashes::Md5ManagedHash& oMD5,
-	LPCTSTR pszSources)
+	LPCTSTR pszSources )
 {
 	if ( m_pFolder == NULL ) return FALSE;
 
@@ -973,10 +963,6 @@ BOOL CLibraryFile::OnVerifyDownload(
 		if ( (bool)m_oSHA1 && (bool)oSHA1 && oSHA1.isTrusted() )
 		{
 			m_bVerify = ( m_oSHA1 == oSHA1 ) ? TRI_TRUE : TRI_FALSE;
-		}
-		if ( (bool)m_oTiger && (bool)oTiger && oTiger.isTrusted() )
-		{
-			m_bVerify = ( m_oTiger == oTiger ) ? TRI_TRUE : TRI_FALSE;
 		}
 		if ( (bool)m_oED2K && (bool)oED2K && oED2K.isTrusted() )
 		{
@@ -1012,8 +998,10 @@ BOOL CLibraryFile::OnVerifyDownload(
 		VersionChecker.CheckUpgradeHash( m_oSHA1, GetPath() );
 	}
 
-	AddAlternateSources( pszSources );
-
+	if ( pszSources != NULL && *pszSources != 0 )
+	{
+		AddAlternateSources( pszSources );
+	}
 	return TRUE;
 }
 

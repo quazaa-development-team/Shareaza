@@ -1,7 +1,7 @@
 //
 // UploadTransferBT.cpp
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -297,6 +297,7 @@ BOOL CUploadTransferBT::ServeRequests()
 {
 	ASSERT( m_nState == upsRequest || m_nState == upsUploading );
 	ASSERT( m_pBaseFile != NULL );
+	ASSERT( m_nLength == SIZE_UNKNOWN );
 	
 	if ( m_bChoked ) return TRUE;
 	if ( m_pClient->GetOutputLength() > Settings.BitTorrent.RequestSize / 3 ) return TRUE;

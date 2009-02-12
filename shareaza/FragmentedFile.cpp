@@ -1,7 +1,7 @@
 //
 // FragmentedFile.cpp
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -80,6 +80,7 @@ void CFragmentedFile::AssertValid() const
 		CVirtualFile::const_iterator j;
 		for ( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
 		{
+			ASSERT( (*i).m_nLength != 0 );
 			if ( i != m_oFile.begin() )
 				ASSERT( (*j).m_nOffset + (*j).m_nLength == (*i).m_nOffset );
 			j = i;
@@ -455,20 +456,13 @@ BOOL CFragmentedFile::VirtualRead(QWORD nOffset, char* pBuffer, QWORD nBuffer, Q
 	if ( pnRead )
 		*pnRead = 0;
 
-	for ( ; nBuffer; ++i )
+	while( nBuffer )
 	{
-		if( i == m_oFile.end() )
-			// EOF
-			return FALSE;
+		ASSERT( i != m_oFile.end() );
 		ASSERT( (*i).m_nOffset <= nOffset );
 		QWORD nPartOffset = ( nOffset - (*i).m_nOffset );
-		if( (*i).m_nLength < nPartOffset )
-			// EOF
-			return FALSE;
+		ASSERT( (*i).m_nLength > nPartOffset );
 		QWORD nPartLength = min( nBuffer, (*i).m_nLength - nPartOffset );
-		if ( ! nPartLength )
-			// Skip zero length files
-			continue;
 
 		QWORD nRead = 0;
 		if ( ! (*i).m_pFile ||
@@ -484,6 +478,9 @@ BOOL CFragmentedFile::VirtualRead(QWORD nOffset, char* pBuffer, QWORD nBuffer, Q
 		if ( nRead != nPartLength )
 			// EOF
 			return FALSE;
+
+		// Next part
+		++i;
 	}
 
 	return TRUE;
@@ -503,22 +500,16 @@ BOOL CFragmentedFile::VirtualWrite(QWORD nOffset, const char* pBuffer, QWORD nBu
 	if ( pnWritten )
 		*pnWritten = 0;
 
-	for ( ; nBuffer; ++i )
+	while( nBuffer )
 	{
 		ASSERT( i != m_oFile.end() );
 		ASSERT( (*i).m_nOffset <= nOffset );
 		QWORD nPartOffset = ( nOffset - (*i).m_nOffset );
-		ASSERT( (*i).m_nLength >= nPartOffset );
+		ASSERT( (*i).m_nLength > nPartOffset );
 		QWORD nPartLength = min( nBuffer, (*i).m_nLength - nPartOffset );
-		if ( ! nPartLength )
-			// Skip zero length files
-			continue;
 
 		QWORD nWritten = 0;
-		if ( ! (*i).m_bWrite )
-			// Skip read only files
-			nWritten = nPartLength;
-		else if ( ! (*i).m_pFile ||
+		if ( ! (*i).m_pFile ||
 			 ! (*i).m_pFile->Write( nPartOffset, pBuffer, nPartLength, &nWritten ) )
 			return FALSE;
 
@@ -532,6 +523,9 @@ BOOL CFragmentedFile::VirtualWrite(QWORD nOffset, const char* pBuffer, QWORD nBu
 		if ( nWritten != nPartLength )
 			// EOF
 			return FALSE;
+
+		// Next part
+		++i;
 	}
 
 	return TRUE;

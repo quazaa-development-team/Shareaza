@@ -1,7 +1,7 @@
 //
 // LocalSearch.cpp
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -480,7 +480,7 @@ void CLocalSearch::AddHitG2(CLibraryFile const * const pFile, int /*nIndex*/)
 			}
 		}
 
-		if ( m_pSearch == NULL || m_pSearch->m_bWantURL )
+		if ( pFile->IsAvailable() && ( m_pSearch == NULL || m_pSearch->m_bWantURL ) )
 		{
 			if ( bCalculate )
 				nGroup += G2_PACKET_LEN( G2_PACKET_URL, 0 );

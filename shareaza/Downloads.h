@@ -1,7 +1,7 @@
 //
 // Downloads.h
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -103,7 +103,7 @@ public:
 	void		OnRun();
 	BOOL		OnPush(const Hashes::Guid& oGUID, CConnection* pConnection);
 	BOOL		OnDonkeyCallback(CEDClient* pClient, CDownloadSource* pExcept = NULL);
-	void		OnQueryHits(const CQueryHit* pHits);
+	void		OnQueryHits(CQueryHit* pHits);
 	void		OnVerify(LPCTSTR pszPath, BOOL bVerified);
 	void		SetPerHostLimit(IN_ADDR* pAddress, DWORD nLimit);
 	BOOL		IsSpaceAvailable(QWORD nVolume, int nPath = dlPathNull);

@@ -1,7 +1,7 @@
 //
 // WndMain.cpp
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -35,7 +35,6 @@
 #include "LibraryFolders.h"
 #include "Plugins.h"
 #include "QuerySearch.h"
-#include "QueryHit.h"
 #include "VersionChecker.h"
 #include "GraphItem.h"
 #include "ShareazaURL.h"
@@ -48,9 +47,9 @@
 #include "Scheduler.h"
 #include "DlgHelp.h"
 #include "LibraryHistory.h"
-#include "SharedFile.h"
 #include "DiscoveryServices.h"
 #include "DlgDonkeyImport.h"
+#include "LtHookTorrent.hpp"
 
 #include "WndMain.h"
 #include "WndChild.h"
@@ -88,7 +87,7 @@
 #include "DlgWarnings.h"
 #include "DlgPromote.h"
 #include "DlgCloseMode.h"
-#include "DlgTorrentSeed.h"
+#include "DlgTorrentAdd.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -124,6 +123,7 @@ BEGIN_MESSAGE_MAP(CMainWnd, CMDIFrameWnd)
 	ON_WM_WINDOWPOSCHANGING()
 	ON_MESSAGE(WM_WINSOCK, OnWinsock)
 	ON_MESSAGE(WM_URL, OnHandleURL)
+	ON_MESSAGE(WM_TORRENT, OnHandleTorrent)
 	ON_MESSAGE(WM_COLLECTION, OnHandleCollection)
 	ON_MESSAGE(WM_VERSIONCHECK, OnVersionCheck)
 	ON_MESSAGE(WM_OPENCHAT, OnOpenChat)
@@ -230,8 +230,9 @@ BEGIN_MESSAGE_MAP(CMainWnd, CMDIFrameWnd)
 	ON_COMMAND(ID_NETWORK_BROWSE_TO, OnNetworkBrowseTo)
 	ON_COMMAND(ID_TOOLS_SKIN, OnToolsSkin)
 	ON_COMMAND(ID_TOOLS_LANGUAGE, OnToolsLanguage)
-	ON_COMMAND(ID_TOOLS_SEEDTORRENT, OnToolsSeedTorrent)
-	ON_COMMAND(ID_TOOLS_RESEEDTORRENT, OnToolsReseedTorrent)
+	//Depreciated .torrent handling
+	//ON_COMMAND(ID_TOOLS_SEEDTORRENT, OnToolsSeedTorrent)
+	//ON_COMMAND(ID_TOOLS_RESEEDTORRENT, OnToolsReseedTorrent)
 	ON_COMMAND(ID_HELP_DISKSPACE, OnDiskSpace)
 	ON_COMMAND(ID_HELP_DISKWRITEFAIL, OnDiskWriteFail)
 	ON_COMMAND(ID_HELP_CONNECTIONFAIL, OnConnectionFail)
@@ -271,8 +272,7 @@ BEGIN_MESSAGE_MAP(CMainWnd, CMDIFrameWnd)
 	ON_COMMAND(ID_HELP_TEST, OnHelpConnectiontest)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_SHELL_MENU_MIN, ID_SHELL_MENU_MAX, OnUpdateShell)
 	ON_WM_MENUCHAR()
-	ON_MESSAGE(WM_SANITY_CHECK, &CMainWnd::OnSanityCheck)
-	ON_MESSAGE(WM_QUERYHITS, &CMainWnd::OnQueryHits)
+	ON_MESSAGE(WM_SANITY_CHECK, OnSanityCheck)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1191,6 +1191,45 @@ LRESULT CMainWnd::OnHandleURL(WPARAM wParam, LPARAM /*lParam*/)
 	}
 
 	return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////////
+//Handle .torrent file
+//Parts of this code are based on Halite. Copyright Eóin O'Callaghan 2006 - 2008 
+//http://www.binarynotions.com/halite/ with permission.
+
+void CMainWnd::OnHandleTorrent(LPCTSTR lpszPath)
+{
+	try
+	{
+	
+	wstring sTempFolder = Settings.Downloads.TorrentPath;
+	wstring sCompleteFolder = Settings.Downloads.CompletePath;
+	bool bStartPaused = Settings.Downloads.TorrentStartPaused;
+	bool bUseTemp = Settings.Downloads.TorrentUseTemp;
+	bool bManaged = Settings.BitTorrent.ManagedTorrent;
+	LtHook::bit::allocations iAllocationType = Settings.BitTorrent.AllocationType;
+	
+	if (Settings.Downloads.TorrentSavePrompt)
+	{
+		CTorrentAddDlg addTorrent(sTempFolder, sCompleteFolder, bUseTemp, bStartPaused, bManaged, iAllocationType);	
+		
+		if (IDOK != addTorrent.DoModal())
+			return;
+	}
+	
+	wpath file(lpszPath, boost::filesystem::native);	
+	hal::bittorrent().add_torrent(file, wpath(default_save_folder), startPaused, managed, allocation_type, 
+		wpath(default_move_folder), use_move_to);
+
+	issueUiUpdate();
+
+	}
+	catch(const boost::filesystem::filesystem_error&)
+	{
+		hal::event_log.post(shared_ptr<hal::EventDetail>(
+			new hal::EventDebug(hal::event_logger::warning, L"filesystem error")));
+	}
 }
 
 LRESULT CMainWnd::OnHandleCollection(WPARAM wParam, LPARAM /*lParam*/)
@@ -2308,20 +2347,22 @@ void CMainWnd::OnToolsLanguage()
 
 void CMainWnd::OnToolsSeedTorrent()
 {
-	CFileDialog dlgFile( TRUE, _T("torrent"), ( Settings.Downloads.TorrentPath + "\\." ) , OFN_HIDEREADONLY,
+/*	CFileDialog dlgFile( TRUE, _T("torrent"), ( Settings.Downloads.TorrentPath + "\\." ) , OFN_HIDEREADONLY,
 		_T("Torrent Files|*.torrent|All Files|*.*||"), this );
 
 	if ( dlgFile.DoModal() != IDOK ) return;
 
 	CTorrentSeedDlg dlgSeed( dlgFile.GetPathName(), TRUE );
-	dlgSeed.DoModal();
+	dlgSeed.DoModal();*/
 }
 
 void CMainWnd::OnToolsReseedTorrent()
 {
-	CTorrentSeedDlg dlgSeed( LibraryHistory.LastSeededTorrent.m_sPath, TRUE );
-	dlgSeed.DoModal();
+/*	CTorrentSeedDlg dlgSeed( LibraryHistory.LastSeededTorrent.m_sPath, TRUE );
+	dlgSeed.DoModal();*/
 }
+
+
 
 void CMainWnd::OnDiskSpace()
 {
@@ -2794,55 +2835,6 @@ LRESULT CMainWnd::OnSanityCheck(WPARAM /*wParam*/, LPARAM /*lParam*/)
 	}
 
 	return 0L;
-}
-
-LRESULT CMainWnd::OnQueryHits(WPARAM /*wParam*/, LPARAM lParam)
-{
-	CQueryHit* pHits = (CQueryHit*)lParam;
-
-	// Update downloads
-	Downloads.OnQueryHits( pHits );
-
-	// Update library files alternate sources
-	CSingleLock oLock( &Library.m_pSection );
-	if ( oLock.Lock( 250 ) )
-	{
-		for ( const CQueryHit* pHit = pHits ; pHit; pHit = pHit->m_pNext )
-		{
-			if ( ! pHit->m_sURL.IsEmpty() )
-			{
-				if ( CLibraryFile* pFile = LibraryMaps.LookupFileByHash( pHit->m_oSHA1,
-					pHit->m_oTiger, pHit->m_oED2K, pHit->m_oBTH, pHit->m_oMD5,
-					pHit->m_nSize, pHit->m_nSize ) )
-				{
-					pFile->AddAlternateSources( pHit->m_sURL );
-				}
-			}
-		}
-		oLock.Unlock();
-	}
-
-	// Update search window(s)
-	CChildWnd* pMonitorWnd		= NULL;
-	CRuntimeClass* pMonitorType	= RUNTIME_CLASS(CHitMonitorWnd);
-	CChildWnd* pChildWnd		= NULL;
-	while ( ( pChildWnd = m_pWindows.Find( NULL, pChildWnd ) ) != NULL )
-	{
-		if ( pChildWnd->GetRuntimeClass() == pMonitorType )
-		{
-			pMonitorWnd = pChildWnd;
-		}
-		else if ( pChildWnd->OnQueryHits( pHits ) )
-			pMonitorWnd = NULL;
-	}
-
-	// Drop rest to hit window
-	if ( pMonitorWnd != NULL )
-		pMonitorWnd->OnQueryHits( pHits );
-
-	pHits->Delete();
-
-	return 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////

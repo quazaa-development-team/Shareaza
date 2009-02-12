@@ -1,7 +1,7 @@
 //
 // DownloadSource.cpp
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -111,7 +111,7 @@ CDownloadSource::~CDownloadSource()
 //////////////////////////////////////////////////////////////////////
 // CDownloadSource construction from a query hit
 
-CDownloadSource::CDownloadSource(const CDownload* pDownload, const CQueryHit* pHit)
+CDownloadSource::CDownloadSource(const CDownload* pDownload, CQueryHit* pHit)
 : m_oAvailable( pDownload->m_nSize ), m_oPastFragments( pDownload->m_nSize )
 {
 	Construct( pDownload );

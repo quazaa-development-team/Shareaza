@@ -1,7 +1,7 @@
 //
 // DownloadWithSources.cpp
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -199,7 +199,7 @@ void CDownloadWithSources::ClearSources()
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithSources add a query-hit source
 
-BOOL CDownloadWithSources::AddSourceHit(const CQueryHit* pHit, BOOL bForce)
+BOOL CDownloadWithSources::AddSourceHit(CQueryHit* pHit, BOOL bForce)
 {
 	CQuickLock pLock( Transfers.m_pSection );
 
@@ -802,12 +802,11 @@ CString	CDownloadWithSources::GetTopFailedSources(int nMaximum, PROTOCOLID nProt
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithSources query hit handler
 
-BOOL CDownloadWithSources::OnQueryHits(const CQueryHit* pHits)
+BOOL CDownloadWithSources::OnQueryHits(CQueryHit* pHits)
 {
-	for ( const CQueryHit* pHit = pHits; pHit ; pHit = pHit->m_pNext )
+	for ( ; pHits ; pHits = pHits->m_pNext )
 	{
-		if ( pHit->m_sURL.GetLength() )
-			AddSourceHit( pHit );
+		if ( pHits->m_sURL.GetLength() ) AddSourceHit( pHits );
 	}
 
 	return TRUE;

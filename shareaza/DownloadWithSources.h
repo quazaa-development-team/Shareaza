@@ -1,7 +1,7 @@
 //
 // DownloadWithSources.h
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -85,13 +85,13 @@ public:
 	void				ClearSources();
 	void				ClearFailedSources();
 	void				MergeMetadata(const CXMLElement* pXML);
-	BOOL				AddSourceHit(const CQueryHit* pHit, BOOL bForce = FALSE);
+	BOOL				AddSourceHit(CQueryHit* pHit, BOOL bForce = FALSE);
 	BOOL				AddSourceED2K(DWORD nClientID, WORD nClientPort, DWORD nServerIP, WORD nServerPort, const Hashes::Guid& oGUID);
     BOOL				AddSourceBT(const Hashes::BtGuid& oGUID, IN_ADDR* pAddress, WORD nPort);
 	BOOL				AddSourceURL(LPCTSTR pszURL, BOOL bURN = FALSE, FILETIME* pLastSeen = NULL, int nRedirectionCount = 0, BOOL bFailed = FALSE);
 	int					AddSourceURLs(LPCTSTR pszURLs, BOOL bURN = FALSE, BOOL bFailed = FALSE);
 	void				RemoveSource(CDownloadSource* pSource, BOOL bBan);
-	virtual BOOL		OnQueryHits(const CQueryHit* pHits);
+	virtual BOOL		OnQueryHits(CQueryHit* pHits);
 	virtual void		Serialize(CArchive& ar, int nVersion);
 	int					GetSourceColour();
 

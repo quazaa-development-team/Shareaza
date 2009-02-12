@@ -1,7 +1,7 @@
 //
 // WndMain.h
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -113,6 +113,7 @@ protected:
 	afx_msg void OnEndSession(BOOL bEnding);
 	afx_msg LRESULT OnWinsock(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnHandleURL(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnHandleTorrent(LPCTSTR lpszPath);
 	afx_msg LRESULT OnHandleCollection(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnVersionCheck(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnOpenChat(WPARAM wParam, LPARAM lParam);
@@ -260,7 +261,6 @@ protected:
 	afx_msg void OnUpdateShell(CCmdUI* pCmdUI);
 	afx_msg LRESULT OnMenuChar(UINT nChar, UINT nFlags, CMenu* pMenu);
 	afx_msg LRESULT OnSanityCheck(WPARAM wParam, LPARAM lParam);
-	afx_msg LRESULT OnQueryHits(WPARAM wParam, LPARAM lParam);
 
 	DECLARE_MESSAGE_MAP()
 	DECLARE_DROP()

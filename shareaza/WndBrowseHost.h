@@ -1,7 +1,7 @@
 //
 // WndBrowseHost.h
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2006.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -54,7 +54,7 @@ public:
 	void			Serialize(CArchive& ar);
 	virtual void	OnSkinChange();
 	virtual void	OnProfileReceived();
-	virtual void	OnBrowseHits(const CQueryHit* pHits);
+	virtual void	OnBrowseHits(CQueryHit* pHits);
 	virtual void	OnHeadPacket(CG2Packet* pPacket);
 	virtual void	OnPhysicalTree(CG2Packet* pPacket);
 	virtual void	OnVirtualTree(CG2Packet* pPacket);

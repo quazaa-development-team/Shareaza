@@ -1,7 +1,7 @@
 //
 // CtrlLibraryFrame.cpp
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -612,15 +612,16 @@ void CLibraryFrame::SetView(CLibraryView* pView, BOOL bUpdate, BOOL bUser)
 		}
 	}
 
-	if ( pView )
+	if ( pFolderSelection && pFolderSelection->m_pVirtual && pView )
 	{
-		if ( Settings.Library.ShowVirtual &&
-			pFolderSelection &&
-			pFolderSelection->m_pVirtual &&
-			pFolderSelection->m_pVirtual->m_pSchema &&
-			pFolderSelection->m_pVirtual->m_pSchema->CheckURI( CSchema::uriGhostFolder ) )
-			pView->m_bGhostFolder = TRUE;
-		else
+		ASSERT_VALID( pFolderSelection );
+		ASSERT_VALID( pView );
+
+		if ( Settings.Library.ShowVirtual && m_pView &&
+			 pFolderSelection->m_pVirtual->m_pSchema )
+			pView->m_bGhostFolder = 
+				( pFolderSelection->m_pVirtual->m_pSchema->CheckURI( CSchema::uriGhostFolder ) );
+		else 
 			pView->m_bGhostFolder = FALSE;
 	}
 

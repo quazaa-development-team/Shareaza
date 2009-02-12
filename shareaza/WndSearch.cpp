@@ -1,7 +1,7 @@
 //
 // WndSearch.cpp
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -825,7 +825,7 @@ void CSearchWnd::UpdateMessages(BOOL bActive, CManagedSearch* pManaged)
 /////////////////////////////////////////////////////////////////////////////
 // CSearchWnd event handlers
 
-BOOL CSearchWnd::OnQueryHits(const CQueryHit* pHits)
+BOOL CSearchWnd::OnQueryHits(CQueryHit* pHits)
 {
 	if ( m_bPaused || m_hWnd == NULL )
 		return FALSE;

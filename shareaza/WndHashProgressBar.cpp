@@ -1,7 +1,7 @@
 //
 // WndHashProgressBar.cpp
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -76,40 +76,40 @@ void CHashProgressBar::Run()
 
 		if ( m_hWnd == NULL )
 		{
-			CString strHashProgressWndClass;         
-
+			CString strHashProgressWndClass;			
+			
 			if ( theApp.m_bIsWin2000 == true || theApp.m_nWindowsVersion < 5 ) // Class Style CS_DROPSHADOW requires Windows XP or above
 			{
 				try
-				{
-					strHashProgressWndClass = AfxRegisterWndClass(
-					CS_SAVEBITS );
-				}
-				catch (CResourceException* pEx)
-				{
-					AfxMessageBox(_T("AfxRegisterWndClass error in Hash Progresss Bar with Class Style CS_SAVEBITS."));
-					pEx->Delete();
-				}
+			    {
+				    strHashProgressWndClass = AfxRegisterWndClass(
+                        CS_SAVEBITS );
+			    }
+		    	catch (CResourceException* pEx)
+		    	{
+                    AfxMessageBox(_T("AfxRegisterWndClass error in Hash Progresss Bar with Class Style CS_SAVEBITS."));
+                    pEx->Delete();
+		    	}
 			}
 			else // Use CS_DROPSHADOW on Windows XP and above
-			{
+			{ 
 				try
-				{
-					strHashProgressWndClass = AfxRegisterWndClass(
-					CS_SAVEBITS | CS_DROPSHADOW );
-				}
-				catch (CResourceException* pEx)
-				{
-					AfxMessageBox(_T("AfxRegisterWndClass error in Hash Progresss Bar with Class Styles CS_SAVEBITS and CS_DROPSHADOW."));
-					pEx->Delete();
-				}
+			    {
+				    strHashProgressWndClass = AfxRegisterWndClass(
+                        CS_SAVEBITS | CS_DROPSHADOW );
+			    }
+		    	catch (CResourceException* pEx)
+		    	{
+                    AfxMessageBox(_T("AfxRegisterWndClass error in Hash Progresss Bar with Class Styles CS_SAVEBITS and CS_DROPSHADOW."));
+                    pEx->Delete();
+		    	}
 			}
-			CreateEx( WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
-			strHashProgressWndClass,
-			_T("Shareaza Hashing..."), WS_POPUP, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT,
-			NULL, 0 );
+    		CreateEx( WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+    			strHashProgressWndClass,
+    			_T("Shareaza Hashing..."), WS_POPUP, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT,
+    			NULL, 0 );
 		}
-		if ( m_hWnd != NULL )
+		if ( m_hWnd != NULL ) 
 		{
 			Update();
 		}

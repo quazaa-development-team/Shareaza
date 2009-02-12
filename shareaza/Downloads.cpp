@@ -1,7 +1,7 @@
 //
 // Downloads.cpp
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -1068,17 +1068,16 @@ void CDownloads::OnRun()
 //////////////////////////////////////////////////////////////////////
 // CDownloads query hit handler
 
-void CDownloads::OnQueryHits(const CQueryHit* pHits)
+void CDownloads::OnQueryHits(CQueryHit* pHits)
 {
 	CSingleLock pLock( &Transfers.m_pSection );
 
-	if ( ! pLock.Lock( 250 ) ) return;
+	if ( ! pLock.Lock( 50 ) ) return;
 
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = GetNext( pos );
-		if ( pDownload->IsMoving() == FALSE )
-			pDownload->OnQueryHits( pHits );
+		if ( pDownload->IsMoving() == FALSE ) pDownload->OnQueryHits( pHits );
 	}
 }
 
@@ -1181,7 +1180,7 @@ void CDownloads::Load()
 			}
 			else
 			{
-				theApp.Message( MSG_ERROR, IDS_DOWNLOAD_FILE_OPEN_ERROR, strPath );
+				theApp.Message( MSG_ERROR, _T("Error loading %s"), strPath );
 				pDownload->ClearSources();
 				delete pDownload;
 			}

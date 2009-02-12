@@ -1,7 +1,7 @@
 //
 // Network.h
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -109,7 +109,7 @@ public:
 	BOOL		RouteHits(CQueryHit* pHits, CPacket* pPacket);
 	void		OnWinsock(WPARAM wParam, LPARAM lParam);
 	void		OnQuerySearch(CQuerySearch* pSearch);
-	void		OnQueryHits(CQueryHit* pHits);	// Handle and destroy query hits
+	void		OnQueryHits(CQueryHit* pHits);
 public:
 	void		UDPHostCache(IN_ADDR* pAddress, WORD nPort);
 	void		UDPKnownHubCache(IN_ADDR* pAddress, WORD nPort);

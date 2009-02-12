@@ -1,7 +1,7 @@
 //
 // MatchObjects.h
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -111,7 +111,7 @@ protected:
 	};
 	
 public:
-	void		AddHits(const CQueryHit* pHits, CQuerySearch* pFilter = NULL);
+	void		AddHits(CQueryHit* pHits, CQuerySearch* pFilter = NULL);
 	DWORD		FileToItem(CMatchFile* pFile);
 	void		Clear();
 	BOOL		Select(CMatchFile* pFile, CQueryHit* pHit, BOOL bSelected = TRUE);

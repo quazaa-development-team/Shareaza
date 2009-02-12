@@ -1,7 +1,7 @@
 //
 // Network.cpp
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -979,11 +979,36 @@ void CNetwork::OnQuerySearch(CQuerySearch* pSearch)
 
 void CNetwork::OnQueryHits(CQueryHit* pHits)
 {
+	Downloads.OnQueryHits( pHits );
+
 	CSingleLock pLock( &theApp.m_pSection );
+
 	if ( pLock.Lock( 250 ) )
 	{
-		if ( PostMainWndMessage( WM_QUERYHITS, 0, (LPARAM)pHits ) )
-			return;
+		if ( CMainWnd* pMainWnd = theApp.SafeMainWnd() )
+		{
+			CWindowManager* pWindows	= &pMainWnd->m_pWindows;
+			CChildWnd* pMonitorWnd		= NULL;
+			CRuntimeClass* pMonitorType	= RUNTIME_CLASS(CHitMonitorWnd);
+			CChildWnd* pChildWnd		= NULL;
+
+			while ( ( pChildWnd = pWindows->Find( NULL, pChildWnd ) ) != NULL )
+			{
+				if ( pChildWnd->GetRuntimeClass() == pMonitorType )
+				{
+					pMonitorWnd = pChildWnd;
+				}
+				else
+				{
+					if ( pChildWnd->OnQueryHits( pHits ) ) return;
+				}
+			}
+
+			if ( pMonitorWnd != NULL )
+			{
+				if ( pMonitorWnd->OnQueryHits( pHits ) ) return;
+			}
+		}
 
 		pLock.Unlock();
 	}

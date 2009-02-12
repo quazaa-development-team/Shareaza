@@ -1,7 +1,7 @@
 //
 // QueryHit.h
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -36,7 +36,6 @@ class CQueryHit : public CShareazaFile
 // Construction
 public:
 	CQueryHit(PROTOCOLID nProtocol, const Hashes::Guid& oSearchID = Hashes::Guid());
-	CQueryHit(const CQueryHit& pHit);
 	virtual ~CQueryHit();
 
 // Attributes
@@ -64,6 +63,7 @@ public:
 	int				m_nGroup;
 	DWORD			m_nIndex;
 	BOOL			m_bSize;
+	DWORD			m_nSources;
 	DWORD			m_nPartial;
 	BOOL			m_bPreview;
 	CString			m_sPreview;
@@ -86,7 +86,6 @@ public:
 	BOOL			m_bSelected;
 protected:
 	BOOL			m_bResolveURL;
-	DWORD			m_nHitSources;
 
 // Static Decode Operations
 public:
@@ -100,12 +99,11 @@ protected:
 
 // Operations
 public:
-	CQueryHit&	operator=(const CQueryHit& pOther);
+	void		Copy(CQueryHit* pOther);
 	void		Delete();
 	int			GetRating();
 	void		Serialize(CArchive& ar, int nVersion);
 	void		Ban(int nBanLength);	// Ban by host IP only
-	void		Resolve();
 protected:
 	void		ParseAttributes(const Hashes::Guid& pClientID, CVendor* pVendor, BYTE* nFlags, BOOL bChat, BOOL bBrowseHost);
 	void		ReadG1Packet(CG1Packet* pPacket);
@@ -114,6 +112,7 @@ protected:
 	void		ReadEDAddress(CEDPacket* pPacket, SOCKADDR_IN* pServer) throw(...);
 	BOOL		ParseXML(CXMLElement* pXML, DWORD nRealIndex);
 	BOOL		HasBogusMetadata();
+	void		Resolve();
 	BOOL		AutoDetectSchema(LPCTSTR pszInfo);
 	BOOL		AutoDetectAudio(LPCTSTR pszInfo);
 
@@ -121,7 +120,8 @@ protected:
 public:
 	inline int GetSources() const
 	{
-		return m_nHitSources;
+		return ( m_nProtocol == PROTOCOL_ED2K )
+			? m_nSources : ( m_nSources ? 1 : 0 );
 	}
 	inline BOOL IsRated() const
 	{

@@ -1,7 +1,7 @@
 //
 // Settings.h
 //
-// Copyright © Shareaza Development Team, 2002-2009.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -20,6 +20,7 @@
 //
 
 #pragma once
+#include "LtHookTorrent.hpp"
 
 enum
 {
@@ -442,6 +443,8 @@ public:
 		bool		TrackerKey;					// Send a key (random value) to trackers
 		bool		PreferenceBTSources;		// Preference downloading from BT sources where appropriate
 		DWORD		DhtPruneTime;
+		bool        ManagedTorrent;             // Should torrent be managed torrent
+		LtHook::bit::allocations AllocationType;  //Torrent Allocation Type
 	} BitTorrent;
 
 	struct sDownloads
@@ -496,6 +499,9 @@ public:
 		DWORD		StartDroppingFailedSourcesNumber;	// The number of sources where Shareaza start dropping failed sources after only one attempt
 		bool		WebHookEnable;
 		string_set	WebHookExtensions;
+		bool        TorrentUseTemp;             // Use temporary folder for torrents or save directly to save folder
+		bool        TorrentStartPaused;         // Start torrents paused or not
+		bool        TorrentSavePrompt;          // Use Save Prompt when starting a torrent or just use defaults in shareaza settings every time
 	} Downloads;
 	
 	struct sUploads
