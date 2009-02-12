@@ -28,6 +28,7 @@
 #include "Library.h"
 #include "SharedFile.h"
 #include "Uploads.h"
+#include "DlgSelect.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -313,6 +314,41 @@ CString CFragmentedFile::GetPath(DWORD nIndex) const
 			return (*i).m_sPath;
 
 	return CString();
+}
+
+QWORD CFragmentedFile::GetCompleted(DWORD nIndex) const
+{
+	CQuickLock oLock( m_pSection );
+
+	for( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
+		if ( ! nIndex-- )
+			return GetCompleted( (*i).m_nOffset, (*i).m_nLength );
+
+	return 0;
+}
+
+int CFragmentedFile::SelectFile(CSingleLock* pLock) const
+{
+	if ( GetCount() > 1 )
+	{
+		CSelectDialog dlg;
+
+		{
+			CQuickLock oLock( m_pSection );
+			for( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
+				dlg.Add( (*i).m_sName );
+		}
+
+		if ( pLock ) pLock->Unlock();
+
+		dlg.DoModal();
+
+		if ( pLock ) pLock->Lock();
+
+		return dlg.Get();
+	}
+
+	return 0;
 }
 
 CString CFragmentedFile::GetName(DWORD nIndex) const

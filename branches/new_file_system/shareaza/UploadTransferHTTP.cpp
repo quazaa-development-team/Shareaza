@@ -1183,16 +1183,7 @@ BOOL CUploadTransferHTTP::OpenFileSendHeaders()
 			theApp.Message( MSG_NOTICE, IDS_UPLOAD_FILE,
 				(LPCTSTR)m_sName, (LPCTSTR)m_sAddress );
 			
-			CSingleLock oLock( &Library.m_pSection );
-			if ( oLock.Lock( 1000 ) )
-			{
-				if ( CLibraryFile* pFile = LibraryMaps.LookupFileByPath( m_sPath, TRUE, TRUE ) )
-				{
-					pFile->m_nUploadsToday++;
-					pFile->m_nUploadsTotal++;
-				}
-			}
-			// else Just leave it...
+			PostMainWndMessage( WM_NOWUPLOADING, 0, (LPARAM)new CString( m_sPath ) );
 		}
 		
 		theApp.Message( MSG_INFO,

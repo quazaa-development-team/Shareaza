@@ -82,9 +82,9 @@ public:
 
 // Operations
 public:
-	BOOL		Preview(CSingleLock* pLock = NULL);
+	BOOL		Preview(DWORD nIndex, CSingleLock* pLock = NULL);
 	BOOL		IsPreviewVisible() const;
-	BOOL		CanPreview();
+	BOOL		CanPreview(DWORD nIndex);
 	void		ShowMonitor(CSingleLock* pLock = NULL);
 	void		AddPreviewName(LPCTSTR pszFile);
 	void		DeletePreviews();

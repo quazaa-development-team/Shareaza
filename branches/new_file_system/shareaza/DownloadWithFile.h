@@ -89,6 +89,24 @@ public:
 		return m_pFile ? m_pFile->GetPath( nIndex ) : CString();
 	}
 
+	// Get original name of subfile
+	inline CString GetName(DWORD nIndex) const
+	{
+		return m_pFile ? m_pFile->GetName( nIndex ) : CString();
+	}
+
+	// Get completed size of subfile (in bytes)
+	inline QWORD GetCompleted(DWORD nIndex) const
+	{
+		return m_pFile ? m_pFile->GetCompleted( nIndex ) : 0;
+	}
+
+	// Select subfile (with user interaction)
+	inline int SelectFile(CSingleLock* pLock) const
+	{
+		return m_pFile ? m_pFile->SelectFile( pLock ) : -1;
+	}
+
 	// Is file under move operation?
 	inline BOOL IsMoving() const
 	{
@@ -119,7 +137,6 @@ protected:
 	BOOL			FlushFile();
 	BOOL			ReadFile(QWORD nOffset, LPVOID pData, QWORD nLength, QWORD* pnRead = NULL);
 	BOOL			WriteFile(QWORD nOffset, LPCVOID pData, QWORD nLength, QWORD* pnWritten = NULL);
-//	BOOL			AppendMetadata();
 	virtual void	Serialize(CArchive& ar, int nVersion);
 	void			SerializeFile(CArchive& ar, int nVersion);
 	void			SetVerifyStatus(TRISTATE bVerify);
@@ -130,5 +147,8 @@ private:
 	DWORD				m_nFileError;	// Last file/disk error
 
 	Fragments::List	GetPossibleFragments(const Fragments::List& oAvailable, Fragments::Fragment& oLargest);
+
+	// Not supported
+//	BOOL			AppendMetadata();
 //	BOOL			AppendMetadataID3v1(HANDLE hFile, CXMLElement* pXML);
 };
