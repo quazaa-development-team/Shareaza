@@ -551,60 +551,9 @@ BOOL CHomeDownloadsBox::ExecuteDownload(CDownload* pDownload)
 	CSingleLock pLock( &Transfers.m_pSection );
 	if ( ! pLock.Lock( 1000 ) ) return FALSE;
 	if ( ! Downloads.Check( pDownload ) ) return FALSE;
-	if ( ! pDownload->IsStarted() ) return FALSE;
 	
-	if ( pDownload->IsCompleted() )
-	{
-		CString strName = pDownload->m_sPath;
-		
-		if ( pDownload->m_bVerify == TRI_FALSE )
-		{
-			CString strFormat, strMessage;
-			
-			LoadString( strFormat, IDS_LIBRARY_VERIFY_FAIL );
-			strMessage.Format( strFormat, (LPCTSTR)strName );
-			
-			pLock.Unlock();
-			UINT nResponse = AfxMessageBox( strMessage, MB_ICONEXCLAMATION|MB_YESNO|MB_DEFBUTTON2 );
-			if ( nResponse != IDYES ) return FALSE;
-			pLock.Lock();
-		}
-		
-		pLock.Unlock();
-		CFileExecutor::Execute( strName, FALSE );
-	}
-	else if ( pDownload->IsStarted() && ! pDownload->IsMoving() )
-	{
-		CString strType;
-		BOOL bDangerous = FALSE;
-		
-		int nExtPos = pDownload->m_sName.ReverseFind( '.' );
-		if ( nExtPos > 0 )
-		{
-			strType = pDownload->m_sName.Mid( nExtPos + 1 );
-			if ( theApp.m_pfnAssocIsDangerous )
-				bDangerous = theApp.m_pfnAssocIsDangerous( "." + strType );
-		}
-		// Not in the safe list and dangerous according to MS. Warn then.
-		if ( !IsIn( Settings.Library.SafeExecute, strType ) && bDangerous )
-		{
-			CString strFormat, strPrompt;
-			
-			LoadString( strFormat, IDS_LIBRARY_CONFIRM_EXECUTE );
-			strPrompt.Format( strFormat, (LPCTSTR)pDownload->m_sName );
-			
-			pLock.Unlock();
-			int nResult = AfxMessageBox( strPrompt, MB_ICONQUESTION|MB_YESNO|MB_DEFBUTTON2 );
-			if ( nResult != IDYES ) return FALSE;
-			pLock.Lock();
-		}
-		
-		if ( Downloads.Check( pDownload ) ) pDownload->Preview( &pLock );
-	}
-	else
-	{
+	if ( ! pDownload->Launch( &pLock ) )
 		PostMainWndMessage( WM_COMMAND, ID_VIEW_DOWNLOADS );
-	}
 	
 	return TRUE;
 }

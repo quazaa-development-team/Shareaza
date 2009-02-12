@@ -933,7 +933,6 @@ void CDownloadsWnd::OnDownloadsLaunch()
 {
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
 	CList<CDownload*> pList;
-	int nCount = 0;
 
 	for ( POSITION pos = Downloads.GetIterator() ; pos ; )
 	{
@@ -944,59 +943,9 @@ void CDownloadsWnd::OnDownloadsLaunch()
 	while ( ! pList.IsEmpty() )
 	{
 		CDownload* pDownload = pList.RemoveHead();
-
 		if ( Downloads.Check( pDownload ) )
-		{
-			CString strName = pDownload->GetPath( 0 );
-
-			if ( GetFileAttributes( strName ) & FILE_ATTRIBUTE_DIRECTORY )
-			{
-				ShellExecute( NULL, NULL, strName, NULL, NULL, SW_SHOWNORMAL );
-				continue;
-			}
-
-			if ( pDownload->IsCompleted() )
-			{
-				if ( pDownload->m_bVerify == TRI_FALSE )
-				{
-					CString strFormat, strMessage;
-
-					LoadString( strFormat, IDS_LIBRARY_VERIFY_FAIL );
-					strMessage.Format( strFormat, (LPCTSTR)strName );
-
-					pLock.Unlock();
-					UINT nResponse = AfxMessageBox( strMessage, MB_ICONEXCLAMATION|MB_YESNOCANCEL|MB_DEFBUTTON2 );
-					if ( nResponse == IDCANCEL ) break;
-					pLock.Lock();
-					if ( nResponse == IDNO ) continue;
-				}
-
-				int nDot = pDownload->m_sName.ReverseFind( '.' );
-				CString strExt = pDownload->m_sName.Mid( nDot + 1 );
-				pLock.Unlock();
-				if ( ! CFileExecutor::Execute( strName, FALSE, strExt ) ) break;
-				pLock.Lock();
-
-				if ( ++nCount >= 5 ) break;
-			}
-			else if ( pDownload->IsStarted() && ! pDownload->IsMoving() )
-			{
-				if ( pDownload->CanPreview() )
-				{
-					pDownload->Preview( &pLock );
-				}
-				else
-				{
-					int nDot = pDownload->m_sName.ReverseFind( '.' );
-					CString strExt = pDownload->m_sName.Mid( nDot + 1 );
-					pLock.Unlock();
-					if ( ! CFileExecutor::Execute( strName, FALSE, strExt ) ) break;
-					pLock.Lock();
-				}
-
-				if ( ++nCount >= 3 ) break;
-			}
-		}
+			if ( ! pDownload->Launch( &pLock ) )
+				break;
 	}
 }
 
@@ -1025,7 +974,6 @@ void CDownloadsWnd::OnDownloadsLaunchCopy()
 {
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
 	CList<CDownload*> pList;
-	int nCount = 0;
 
 	for ( POSITION pos = Downloads.GetIterator() ; pos ; )
 	{
@@ -1036,37 +984,9 @@ void CDownloadsWnd::OnDownloadsLaunchCopy()
 	while ( ! pList.IsEmpty() )
 	{
 		CDownload* pDownload = pList.RemoveHead();
-
 		if ( Downloads.Check( pDownload ) )
-		{
-			if ( pDownload->IsStarted() && ! pDownload->IsMoving() )
-			{
-				CString strType;
-
-				int nExtPos = pDownload->m_sName.ReverseFind( '.' );
-				if ( nExtPos > 0 ) strType = pDownload->m_sName.Mid( nExtPos + 1 );
-
-				if ( ! IsIn( Settings.Library.SafeExecute, strType ) ||
-					 pDownload->CanPreview() )
-				{
-					CString strFormat, strPrompt;
-
-					LoadString( strFormat, IDS_LIBRARY_CONFIRM_EXECUTE );
-					strPrompt.Format( strFormat, (LPCTSTR)pDownload->m_sName );
-
-					pLock.Unlock();
-					int nResult = AfxMessageBox( strPrompt, MB_ICONQUESTION|MB_YESNOCANCEL|MB_DEFBUTTON2 );
-					pLock.Lock();
-
-					if ( nResult == IDCANCEL ) break;
-					else if ( nResult == IDNO ) continue;
-				}
-
-				if ( Downloads.Check( pDownload ) ) pDownload->Preview( &pLock );
-
-				if ( ++nCount >= 3 ) break;
-			}
-		}
+			if ( ! pDownload->Preview( &pLock ) )
+				break;
 	}
 }
 
@@ -1098,8 +1018,8 @@ void CDownloadsWnd::OnDownloadsEnqueue()
 			if ( pDownload->IsStarted() )
 			{
 				CString strPath = pDownload->m_sPath;
-				int nDot = pDownload->m_sName.ReverseFind( '.' );
-				CString strExt = pDownload->m_sName.Mid( nDot + 1 );
+				CString strExt = pDownload->m_sName.Mid(
+					pDownload->m_sName.ReverseFind( '.' ) );
 
 				pLock.Unlock();
 				CFileExecutor::Enqueue( strPath, FALSE, strExt );

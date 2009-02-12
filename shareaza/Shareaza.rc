@@ -1899,6 +1899,17 @@ BEGIN
     LTEXT           "WARNING: This dialog provides advanced download editing features for power users which if used incorrectly can and probably will cause corruption.",IDC_STATIC,7,7,286,18
 END
 
+IDD_SELECT DIALOGEX 0, 0, 257, 70
+STYLE DS_SETFONT | DS_MODALFRAME | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Select"
+FONT 8, "Tahoma", 0, 0, 0x1
+BEGIN
+    ICON            IDI_FILE,IDC_STATIC,7,7,20,20
+    LTEXT           "Please select:",IDC_STATIC,36,9,214,10
+    PUSHBUTTON      "OK",IDOK,200,49,50,14
+    COMBOBOX        IDC_FILE_LIST,36,22,214,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2032,6 +2043,30 @@ BEGIN
         BOTTOMMARGIN, 167
     END
 
+    IDD_WIZARD_PROFILE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 270
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 167
+    END
+
+    IDD_WIZARD_INTERFACE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 270
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 166
+    END
+
+    IDD_WIZARD_NETWORKS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 270
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 167
+    END
+
     IDD_WIZARD_FINISHED, DIALOG
     BEGIN
         LEFTMARGIN, 7
@@ -2086,14 +2121,6 @@ BEGIN
         RIGHTMARGIN, 285
         TOPMARGIN, 7
         BOTTOMMARGIN, 147
-    END
-
-    IDD_WIZARD_INTERFACE, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 270
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 166
     END
 
     IDD_URL_COPY, DIALOG
@@ -2340,14 +2367,6 @@ BEGIN
         BOTTOMMARGIN, 192
     END
 
-    IDD_WIZARD_PROFILE, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 270
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 167
-    END
-
     IDD_SETTINGS_UPLOADS, DIALOG
     BEGIN
         LEFTMARGIN, 7
@@ -2434,14 +2453,6 @@ BEGIN
         RIGHTMARGIN, 285
         TOPMARGIN, 7
         BOTTOMMARGIN, 117
-    END
-
-    IDD_WIZARD_NETWORKS, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 270
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 167
     END
 
     IDD_FILE_SHARING, DIALOG
@@ -2627,6 +2638,15 @@ BEGIN
         BOTTOMMARGIN, 215
         HORZGUIDE, 14
         HORZGUIDE, 206
+    END
+
+    IDD_SELECT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 250
+        VERTGUIDE, 36
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 63
     END
 END
 #endif    // APSTUDIO_INVOKED

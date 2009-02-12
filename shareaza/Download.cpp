@@ -28,6 +28,7 @@
 #include "DownloadSource.h"
 #include "DownloadTransfer.h"
 #include "DownloadGroups.h"
+#include "FileExecutor.h"
 #include "Uploads.h"
 #include "SharedFile.h"
 #include "Library.h"
@@ -730,4 +731,91 @@ void CDownload::ForceComplete()
 	StopTrying();
 	Share( FALSE );
 	OnDownloaded();
+}
+
+BOOL CDownload::Launch(CSingleLock* pLock)
+{
+	int nIndex = SelectFile( pLock );
+	if ( nIndex < 0 || ! Downloads.Check( this ) )
+		return TRUE;
+
+	BOOL bResult = TRUE;
+	CString strPath = GetPath( nIndex );
+	CString strName = GetName( nIndex );
+	CString strExt = strName.Mid( strName.ReverseFind( '.' ) );
+	if ( IsCompleted() )
+	{
+		// Run complete file
+		if ( m_bVerify == TRI_FALSE )
+		{
+			CString strFormat, strMessage;
+			LoadString( strFormat, IDS_LIBRARY_VERIFY_FAIL );
+			strMessage.Format( strFormat, (LPCTSTR)strName );
+
+			if ( pLock ) pLock->Unlock();
+
+			UINT nResponse = AfxMessageBox( strMessage,
+				MB_ICONEXCLAMATION | MB_YESNOCANCEL | MB_DEFBUTTON2 );
+
+			if ( pLock ) pLock->Lock();
+
+			if ( nResponse == IDCANCEL )
+				return FALSE;
+
+			if ( nResponse == IDNO )
+				return TRUE;
+		}
+
+		if ( pLock ) pLock->Unlock();
+
+		bResult = CFileExecutor::Execute( strPath, FALSE, strExt );
+
+		if ( pLock ) pLock->Lock();
+	}
+	else if ( CanPreview( nIndex ) )
+	{
+		if ( CDownloadWithExtras::Preview( nIndex, pLock ) )
+		{
+			// Previewing...
+		}
+		else
+		{
+			// Run file as is
+			if ( pLock ) pLock->Unlock();
+
+			bResult = CFileExecutor::Execute( strPath, FALSE, strExt );
+
+			if ( pLock ) pLock->Lock();
+		}
+	}
+
+	return bResult;
+}
+
+BOOL CDownload::Preview(CSingleLock* pLock)
+{
+	int nIndex = SelectFile( pLock );
+	if ( nIndex < 0 || ! Downloads.Check( this ) )
+		return TRUE;
+
+	CString strName = GetName( nIndex );
+	CString strExt = strName.Mid( strName.ReverseFind( '.' ) );
+	if ( CanPreview( nIndex ) )
+	{
+		if ( pLock ) pLock->Unlock();
+
+		TRISTATE bSafe = CFileExecutor::IsSafeExecute( strExt, strName );
+
+		if ( pLock ) pLock->Lock();
+
+		if ( bSafe == TRI_UNKNOWN )
+			return FALSE;
+		else if ( bSafe == TRI_FALSE )
+			return TRUE;
+
+		if ( Downloads.Check( this ) )
+			CDownloadWithExtras::Preview( nIndex, pLock );
+	}
+
+	return TRUE;
 }

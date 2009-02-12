@@ -504,14 +504,7 @@ BOOL CUploadTransferED2K::ServeRequests()
 			return FALSE;
 		}
 
-		{
-			CQuickLock oLock( Library.m_pSection );
-			if ( CLibraryFile* pFile = LibraryMaps.LookupFileByPath( m_sPath, TRUE, TRUE ) )
-			{
-				pFile->m_nUploadsToday++;
-				pFile->m_nUploadsTotal++;
-			}
-		}
+		PostMainWndMessage( WM_NOWUPLOADING, 0, (LPARAM)new CString( m_sPath ) );
 
 		if ( ! StartNextRequest() )
 			return FALSE;

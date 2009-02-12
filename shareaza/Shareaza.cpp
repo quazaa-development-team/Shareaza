@@ -2117,8 +2117,7 @@ bool MarkFileAsDownload(const CString& sFilename)
 		// TODO: pFile->m_bVerify and IDS_LIBRARY_VERIFY_FIX warning features could be merged
 		// with this function, because they resemble the security warning.
 		// Should raza unblock files from the application without forcing user to do that manually?
-		if ( IsIn( Settings.Library.SafeExecute, pszExt + 1 ) &&
-			( !theApp.m_pfnAssocIsDangerous || !theApp.m_pfnAssocIsDangerous( pszExt ) ) )
+		if ( CFileExecutor::IsSafeExecute( pszExt ) )
 			return false;
 
 		// Temporary clear R/O attribute

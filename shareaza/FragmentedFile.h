@@ -172,6 +172,9 @@ public:
 	// Get subfile path
 	CString GetPath(DWORD nIndex) const;
 
+	// Select subfile (with user interaction)
+	int SelectFile(CSingleLock* pLock = NULL) const;
+
 	// Get subfile original name
 	CString GetName(DWORD nIndex) const;
 
@@ -207,14 +210,6 @@ public:
 			SIZE_UNKNOWN : m_oFList.length_sum();
 	}
 
-	// Get completed size of whole file (in bytes)
-	inline QWORD GetCompleted() const
-	{
-		CQuickLock oLock( m_pSection );
-
-		return m_oFList.missing();
-	}
-
 	inline Fragments::List GetEmptyFragmentList() const
 	{
 		CQuickLock oLock( m_pSection );
@@ -243,6 +238,14 @@ public:
 		return m_oFList.overlapping_sum( Fragments::Fragment( nOffset, nOffset + nLength ) );
 	}
 
+	// Get completed size of whole file (in bytes)
+	inline QWORD GetCompleted() const
+	{
+		CQuickLock oLock( m_pSection );
+
+		return m_oFList.missing();
+	}
+
 	// Get completed size of defined range (in bytes)
 	inline QWORD GetCompleted(QWORD nOffset, QWORD nLength) const
 	{
@@ -255,6 +258,9 @@ public:
 
 		return oList.missing();
 	}	
+
+	// Get completed size of subfile (in bytes)
+	QWORD GetCompleted(DWORD nIndex) const;
 
 //	inline QWORD GetEmptyFragmentCount() const
 //	{

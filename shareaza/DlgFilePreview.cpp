@@ -98,9 +98,10 @@ void CFilePreviewDlg::SetDownload(CDownload* pDownload)
 	m_pDownload = pDownload;
 	ASSERT( m_pDownload != NULL );
 
-	m_sSourceName = pDownload->GetPath( 0 );
-	m_sDisplayName = pDownload->m_sName;
-	CString strFileName = pDownload->m_sName;
+	m_sSourceName = m_pDownload->GetPath( 0 );	// TODO: Fix always zero index
+	m_sDisplayName = m_pDownload->GetName( 0 );	// TODO: Fix always zero index
+	CString strFileName = m_pDownload->GetName( 0 );
+	strFileName.Replace( _T('\\'), _T('_') );
 
 	int nPos = m_sSourceName.ReverseFind( '\\' );
 
@@ -322,6 +323,8 @@ void CFilePreviewDlg::OnRun()
 		CloseHandle( hFile );
 	}
 
+	Sleep( 2000 );
+
 	PostMessage( WM_TIMER, 3 );
 }
 
@@ -351,8 +354,6 @@ BOOL CFilePreviewDlg::RunPlugin(HANDLE hFile)
 	m_pPlugin->Release();
 	m_pPlugin = NULL;
 	m_pSection.Unlock();
-
-	if ( hr != S_OK ) Sleep( 1000 );
 
 	return ( hr != S_FALSE );	// Fall through if it's S_FALSE
 }
