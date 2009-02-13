@@ -1,7 +1,7 @@
 //
 // SharedFile.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2007.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -112,7 +112,7 @@ public:
 	CTigerTree*		GetTigerTree();
 	CED2K*			GetED2K();
 public:
-	CSharedSource*	AddAlternateSource(LPCTSTR pszURL);
+	CSharedSource*	AddAlternateSource(LPCTSTR pszURL, FILETIME* tSeen = NULL);
 	CSharedSource*	AddAlternateSources(LPCTSTR pszURL);
 	CString			GetAlternateSources(CList< CString >* pState, int nMaximum, PROTOCOLID nProtocol);
 protected:
@@ -122,10 +122,11 @@ protected:
 	void			Ghost();
     BOOL			OnVerifyDownload(
 						const Hashes::Sha1ManagedHash& oSHA1,
+						const Hashes::TigerManagedHash& oTiger,
 						const Hashes::Ed2kManagedHash& oED2K,
 						const Hashes::BtManagedHash& oBTH,
 						const Hashes::Md5ManagedHash& oMD5,
-						LPCTSTR pszSources );
+						LPCTSTR pszSources);
 	
 // Inlines
 public:
