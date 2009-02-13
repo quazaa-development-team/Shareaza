@@ -1,7 +1,7 @@
 //
 // WndDownloads.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2008.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -941,6 +941,7 @@ void CDownloadsWnd::OnDownloadsLaunch()
 	while ( ! pList.IsEmpty() )
 	{
 		CDownload* pDownload = pList.RemoveHead();
+
 		if ( Downloads.Check( pDownload ) )
 			if ( ! pDownload->Launch( -1, &pLock, TRUE ) )
 				break;
@@ -982,6 +983,7 @@ void CDownloadsWnd::OnDownloadsLaunchCopy()
 	while ( ! pList.IsEmpty() )
 	{
 		CDownload* pDownload = pList.RemoveHead();
+
 		if ( Downloads.Check( pDownload ) )
 			if ( ! pDownload->Launch( -1, &pLock, FALSE ) )
 				break;
@@ -1522,6 +1524,7 @@ void CDownloadsWnd::OnDownloadsFileDelete()
 	{
 		pLock.Lock();
 		CDownload* pDownload = pList.RemoveHead();
+
 		if ( Downloads.Check( pDownload ) && pDownload->IsCompleted() )
 		{
 			CDeleteFileDlg dlg;

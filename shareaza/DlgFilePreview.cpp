@@ -1,7 +1,7 @@
 //
 // DlgFilePreview.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2008.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -102,6 +102,7 @@ CFilePreviewDlg::CFilePreviewDlg(CDownloadWithExtras* pDownload, DWORD nIndex, C
 	if ( ! m_pDownload->GetEmptyFragmentList().empty() )
 	{
 		Fragments::List oRanges = inverse( m_pDownload->GetEmptyFragmentList() );
+
 		for ( Fragments::List::const_iterator pFragment = oRanges.begin();
 			pFragment != oRanges.end(); ++pFragment )
 		{
