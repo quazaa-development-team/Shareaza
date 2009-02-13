@@ -43,6 +43,7 @@ BEGIN_MESSAGE_MAP(CTorrentFilesPage, CPropertyPageAdv)
 	ON_WM_PAINT()
 	ON_WM_TIMER()
 	ON_WM_DESTROY()
+	ON_NOTIFY(NM_DBLCLK, IDC_TORRENT_FILES, &CTorrentFilesPage::OnNMDblclkTorrentFiles)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -197,4 +198,16 @@ void CTorrentFilesPage::OnDestroy()
 	KillTimer( 1 );
 
 	CPropertyPageAdv::OnDestroy();
+}
+
+void CTorrentFilesPage::OnNMDblclkTorrentFiles(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+
+	CSingleLock oLock( &Transfers.m_pSection, TRUE );
+	CDownload* pDownload = ((CDownloadSheet*)GetParent())->m_pDownload;
+	if ( Downloads.Check( pDownload ) )
+		pDownload->Launch( pNMItemActivate->iItem, &oLock, FALSE );
+
+	*pResult = 0;
 }

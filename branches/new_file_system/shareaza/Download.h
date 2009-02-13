@@ -73,8 +73,7 @@ public:
 	void        	Share(BOOL bShared);
 	BOOL        	Rename(LPCTSTR pszName);
 	void        	SetStartTimer();
-	BOOL			Launch(CSingleLock* pLock = NULL);
-	BOOL			Preview(CSingleLock* pLock = NULL);
+	BOOL			Launch(int nIndex, CSingleLock* pLock, BOOL bForceOriginal);
 
 	inline DWORD GetStartTimer() const
 	{
