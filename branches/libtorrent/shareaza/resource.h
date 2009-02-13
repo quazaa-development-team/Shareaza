@@ -220,6 +220,7 @@
 #define IDD_SETTINGS_IRC                997
 #define IDD_IRC_INPUTBOX                998
 #define IDB_IRCICONS                    999
+#define IDD_SELECT			999
 #define IDC_CONNECT_HOST                1000
 #define IDC_CONNECT_PORT                1001
 #define IDC_SCHEMAS                     1002
@@ -794,10 +795,8 @@
 #define IDC_EDIT_TEMP                   1574
 #define IDC_COMBO_ALLOCATION            1575
 #define IDC_CHECK_MANAGED               1576
-#define IDC_CHECK_PAUSE                 1577
 #define IDC_CHECK_PAUSED                1577
 #define IDC_STATIC_ALLOCATION           1578
-#define IDC_TEMP_BROWSE                 1580
 #define IDC_COMPLETE_BROWSE             1580
 #define IDC_TEMPORARY_BROWSE            1581
 #define IDS_FILTER_DELETE_CONFIRM       7000
@@ -1904,7 +1903,7 @@
 #define _APS_3D_CONTROLS                     1
 #define _APS_NEXT_RESOURCE_VALUE        325
 #define _APS_NEXT_COMMAND_VALUE         33322
-#define _APS_NEXT_CONTROL_VALUE         1582
+#define _APS_NEXT_CONTROL_VALUE         1571
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif
