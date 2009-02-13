@@ -552,7 +552,7 @@ BOOL CHomeDownloadsBox::ExecuteDownload(CDownload* pDownload)
 	if ( ! pLock.Lock( 1000 ) ) return FALSE;
 	if ( ! Downloads.Check( pDownload ) ) return FALSE;
 	
-	if ( ! pDownload->Launch( &pLock ) )
+	if ( ! pDownload->Launch( -1, &pLock, FALSE ) )
 		PostMainWndMessage( WM_COMMAND, ID_VIEW_DOWNLOADS );
 	
 	return TRUE;

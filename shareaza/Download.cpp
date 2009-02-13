@@ -733,9 +733,10 @@ void CDownload::ForceComplete()
 	OnDownloaded();
 }
 
-BOOL CDownload::Launch(CSingleLock* pLock)
+BOOL CDownload::Launch(int nIndex, CSingleLock* pLock, BOOL bForceOriginal)
 {
-	int nIndex = SelectFile( pLock );
+	if ( nIndex < 0 )
+		nIndex = SelectFile( pLock );
 	if ( nIndex < 0 || ! Downloads.Check( this ) )
 		return TRUE;
 
@@ -761,7 +762,6 @@ BOOL CDownload::Launch(CSingleLock* pLock)
 
 			if ( nResponse == IDCANCEL )
 				return FALSE;
-
 			if ( nResponse == IDNO )
 				return TRUE;
 		}
@@ -774,48 +774,34 @@ BOOL CDownload::Launch(CSingleLock* pLock)
 	}
 	else if ( CanPreview( nIndex ) )
 	{
-		if ( CDownloadWithExtras::Preview( nIndex, pLock ) )
+		if ( ! bForceOriginal  )
 		{
 			// Previewing...
-		}
-		else
-		{
-			// Run file as is
 			if ( pLock ) pLock->Unlock();
 
-			bResult = CFileExecutor::Execute( strPath, FALSE, strExt );
+			TRISTATE bSafe = CFileExecutor::IsSafeExecute( strExt, strName );
 
 			if ( pLock ) pLock->Lock();
+
+			if ( bSafe == TRI_UNKNOWN )
+				return FALSE;
+			else if ( bSafe == TRI_FALSE )
+				return TRUE;
+
+			if ( ! Downloads.Check( this ) )
+				return TRUE;
+
+			if ( PreviewFile( nIndex, pLock ) )
+				return TRUE;
 		}
+
+		// Run file as is
+		if ( pLock ) pLock->Unlock();
+
+		bResult = CFileExecutor::Execute( strPath, FALSE, strExt );
+
+		if ( pLock ) pLock->Lock();
 	}
 
 	return bResult;
-}
-
-BOOL CDownload::Preview(CSingleLock* pLock)
-{
-	int nIndex = SelectFile( pLock );
-	if ( nIndex < 0 || ! Downloads.Check( this ) )
-		return TRUE;
-
-	CString strName = GetName( nIndex );
-	CString strExt = strName.Mid( strName.ReverseFind( '.' ) );
-	if ( CanPreview( nIndex ) )
-	{
-		if ( pLock ) pLock->Unlock();
-
-		TRISTATE bSafe = CFileExecutor::IsSafeExecute( strExt, strName );
-
-		if ( pLock ) pLock->Lock();
-
-		if ( bSafe == TRI_UNKNOWN )
-			return FALSE;
-		else if ( bSafe == TRI_FALSE )
-			return TRUE;
-
-		if ( Downloads.Check( this ) )
-			CDownloadWithExtras::Preview( nIndex, pLock );
-	}
-
-	return TRUE;
 }

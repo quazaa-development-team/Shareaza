@@ -82,7 +82,7 @@ public:
 
 // Operations
 public:
-	BOOL		Preview(DWORD nIndex, CSingleLock* pLock = NULL);
+	BOOL		PreviewFile(DWORD nIndex, CSingleLock* pLock);
 	BOOL		IsPreviewVisible() const;
 	BOOL		CanPreview(DWORD nIndex);
 	void		ShowMonitor(CSingleLock* pLock = NULL);

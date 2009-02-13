@@ -225,7 +225,7 @@ BOOL CFileExecutor::Execute(LPCTSTR pszFile, BOOL bSkipSecurityCheck, LPCTSTR ps
 	// Handle all by plugins
 	if ( ! bShiftKey )
 	{
-		if ( Plugins.OnExecuteFile( pszFile, bImage || bPartial ) )
+		if ( Plugins.OnExecuteFile( pszFile, bImage ) )
 			return TRUE;
 	}
 

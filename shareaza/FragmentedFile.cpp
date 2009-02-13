@@ -305,6 +305,28 @@ BOOL CFragmentedFile::IsOpen() const
 	return TRUE;
 }
 
+QWORD CFragmentedFile::GetOffset(DWORD nIndex) const
+{
+	CQuickLock oLock( m_pSection );
+
+	for( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
+		if ( ! nIndex-- )
+			return (*i).m_nOffset;
+
+	return 0;
+}
+
+QWORD CFragmentedFile::GetLength(DWORD nIndex) const
+{
+	CQuickLock oLock( m_pSection );
+
+	for( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
+		if ( ! nIndex-- )
+			return (*i).m_nLength;
+
+	return SIZE_UNKNOWN;
+}
+
 CString CFragmentedFile::GetPath(DWORD nIndex) const
 {
 	CQuickLock oLock( m_pSection );
@@ -335,17 +357,22 @@ int CFragmentedFile::SelectFile(CSingleLock* pLock) const
 
 		{
 			CQuickLock oLock( m_pSection );
-			for( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
-				dlg.Add( (*i).m_sName );
+			int index = 0;
+			for( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i, ++index )
+				if ( GetCompleted( (*i).m_nOffset, (*i).m_nLength ) > 0 )
+					dlg.Add( (*i).m_sName, index );
 		}
 
 		if ( pLock ) pLock->Unlock();
 
-		dlg.DoModal();
+		INT_PTR nResult = dlg.DoModal();
 
 		if ( pLock ) pLock->Lock();
 
-		return dlg.Get();
+		if ( nResult != IDOK )
+			return -1;
+
+		return (int)dlg.Get();
 	}
 
 	return 0;

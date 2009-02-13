@@ -438,8 +438,7 @@ void CDownloadsWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 	}
 
 	if ( pDownload != NULL )
-		Skin.TrackPopupMenu( _T("CDownloadsWnd.Download"), point,
-			Settings.General.GUIMode == GUI_BASIC ? ID_DOWNLOADS_LAUNCH_COPY : ID_DOWNLOADS_LAUNCH );
+		Skin.TrackPopupMenu( _T("CDownloadsWnd.Download"), point, ID_DOWNLOADS_LAUNCH_COPY );
 	else
 		Skin.TrackPopupMenu( _T("CDownloadsWnd.Nothing"), point, ID_DOWNLOADS_HELP );
 
@@ -454,11 +453,6 @@ BOOL CDownloadsWnd::PreTranslateMessage(MSG* pMsg)
 		{
 			GetManager()->Open( RUNTIME_CLASS(CUploadsWnd) );
 			return TRUE;
-		}
-		else if ( ( pMsg->wParam == 'V' || pMsg->wParam == VK_INSERT ) &&
-			( GetAsyncKeyState( VK_CONTROL ) & 0x8000 ) )
-		{
-			PostMainWndMessage( WM_COMMAND, ID_TOOLS_DOWNLOAD );
 		}
 	}
 
@@ -678,7 +672,7 @@ void CDownloadsWnd::OnDownloadsPause()
 void CDownloadsWnd::OnUpdateDownloadsClear(CCmdUI* pCmdUI)
 {
 	Prepare();
-	pCmdUI->Enable( m_bSelNoPreview );
+	pCmdUI->Enable( m_bSelNoPreview || m_bSelSource );
 }
 
 void CDownloadsWnd::OnDownloadsClear()
@@ -691,6 +685,10 @@ void CDownloadsWnd::OnDownloadsClear()
 		CDownload* pDownload = Downloads.GetNext( pos );
 		if ( pDownload->m_bSelected ) pList.AddTail( pDownload );
 	}
+
+	// If no downloads selected then process selected sources
+	if ( pList.IsEmpty() )
+		OnTransfersForget();
 
 	while ( ! pList.IsEmpty() )
 	{
@@ -944,7 +942,7 @@ void CDownloadsWnd::OnDownloadsLaunch()
 	{
 		CDownload* pDownload = pList.RemoveHead();
 		if ( Downloads.Check( pDownload ) )
-			if ( ! pDownload->Launch( &pLock ) )
+			if ( ! pDownload->Launch( -1, &pLock, TRUE ) )
 				break;
 	}
 }
@@ -959,7 +957,7 @@ void CDownloadsWnd::OnUpdateDownloadsLaunchComplete(CCmdUI* pCmdUI)
 
 void CDownloadsWnd::OnDownloadsLaunchComplete()
 {
-	OnDownloadsLaunch();
+	OnDownloadsLaunchCopy();
 }
 
 void CDownloadsWnd::OnUpdateDownloadsLaunchCopy(CCmdUI* pCmdUI)
@@ -985,7 +983,7 @@ void CDownloadsWnd::OnDownloadsLaunchCopy()
 	{
 		CDownload* pDownload = pList.RemoveHead();
 		if ( Downloads.Check( pDownload ) )
-			if ( ! pDownload->Preview( &pLock ) )
+			if ( ! pDownload->Launch( -1, &pLock, FALSE ) )
 				break;
 	}
 }

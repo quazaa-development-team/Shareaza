@@ -63,7 +63,7 @@ CDownloadWithExtras::~CDownloadWithExtras()
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithExtras preview function
 
-BOOL CDownloadWithExtras::Preview(DWORD nIndex, CSingleLock* pLock)
+BOOL CDownloadWithExtras::PreviewFile(DWORD nIndex, CSingleLock* pLock)
 {
 	DeletePreviews();
 	
@@ -71,7 +71,7 @@ BOOL CDownloadWithExtras::Preview(DWORD nIndex, CSingleLock* pLock)
 		return FALSE;
 	
 	ASSERT( m_pPreviewWnd == NULL );
-	m_pPreviewWnd = new CFilePreviewDlg( (CDownload*)this );
+	m_pPreviewWnd = new CFilePreviewDlg( this, nIndex );
 	
 	if ( pLock ) pLock->Unlock();
 	

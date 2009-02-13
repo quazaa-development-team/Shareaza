@@ -89,8 +89,22 @@ void CCoolMenu::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 		mii.fMask = MIIM_ID;
 		for ( UINT i = 0; i < pPopupMenu->GetMenuItemCount(); i++ )
 		{
-			pPopupMenu->GetMenuItemInfo( i, &mii, TRUE );
-			if ( mii.wID == ID_SEPARATOR || mii.wID == -1 )
+			if ( pPopupMenu->GetMenuItemInfo( i, &mii, TRUE ) &&
+				mii.wID >= ID_SHELL_MENU_MIN && mii.wID <= ID_SHELL_MENU_MAX )
+			{
+				// Its shell menu
+				CString strHelp;
+				HRESULT hr = m_pContextMenu2->GetCommandString( mii.wID - ID_SHELL_MENU_MIN,
+					GCS_HELPTEXTW, NULL, (LPSTR)strHelp.GetBuffer( 256 ), 256 );
+				strHelp.ReleaseBuffer();
+				if ( SUCCEEDED( hr ) )
+					Skin.AddString( strHelp, mii.wID );
+			}
+		}
+		for ( UINT i = 0; i < pPopupMenu->GetMenuItemCount(); i++ )
+		{
+			if ( ! pPopupMenu->GetMenuItemInfo( i, &mii, TRUE ) ||
+				mii.wID == ID_SEPARATOR || mii.wID == -1 )
 				continue;
 			if ( mii.wID >= ID_SHELL_MENU_MIN && mii.wID <= ID_SHELL_MENU_MAX )
 			{

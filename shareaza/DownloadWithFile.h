@@ -83,6 +83,18 @@ public:
 		return m_pFile ? m_pFile->GetCount() : 0;
 	}
 
+	// Get subfile offset
+	QWORD GetOffset(DWORD nIndex) const
+	{
+		return m_pFile ? m_pFile->GetOffset( nIndex ) : 0;
+	}
+
+	// Get subfile length
+	QWORD GetLength(DWORD nIndex) const
+	{
+		return m_pFile ? m_pFile->GetLength( nIndex ) : SIZE_UNKNOWN;
+	}
+
 	// Get path of subfile
 	inline CString GetPath(DWORD nIndex) const
 	{

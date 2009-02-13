@@ -141,9 +141,9 @@ public:
 		return m_pList.GetPrev( pos );
 	}
 
-	inline BOOL CDownloads::Check(CDownload* pDownload) const
+	inline BOOL CDownloads::Check(const CDownload* pDownload) const
 	{
-		return m_pList.Find( pDownload ) != NULL;
+		return m_pList.Find( const_cast< CDownload* >( pDownload ) ) != NULL;
 	}
 
 	friend class CDownload;

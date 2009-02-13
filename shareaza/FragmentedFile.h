@@ -168,6 +168,12 @@ public:
 
 	// Are all of subfiles open?
 	BOOL IsOpen() const;
+	
+	// Get subfile offset
+	QWORD GetOffset(DWORD nIndex) const;
+	
+	// Get subfile length
+	QWORD GetLength(DWORD nIndex) const;
 
 	// Get subfile path
 	CString GetPath(DWORD nIndex) const;
