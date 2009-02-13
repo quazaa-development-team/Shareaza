@@ -63,7 +63,6 @@ private:
 								// searching, etc). 0 means has not tried this session.
 	BOOL		m_bDownloading;	// This is used to store if a download is downloading. (Performance tweak)
 								// You should count the transfers if you need a 100% current answer.
-
 // Operations
 public:
 	void        	Pause(BOOL bRealPause = TRUE);
