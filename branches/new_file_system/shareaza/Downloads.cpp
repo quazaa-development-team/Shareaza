@@ -1142,9 +1142,7 @@ void CDownloads::Load()
 	m_nLimitDonkey = Settings.Bandwidth.Downloads;
 
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
-	WIN32_FIND_DATA pFind;
 	CString strPath;
-	HANDLE hSearch;
 
 	PurgeDeletes();
 	PurgePreviews();
@@ -1152,37 +1150,40 @@ void CDownloads::Load()
 	DownloadGroups.CreateDefault();
 	LoadFromCompoundFiles();
 
-	strPath = Settings.Downloads.IncompletePath + _T("\\*.sd");
-	hSearch = FindFirstFile( strPath, &pFind );
-
+	WIN32_FIND_DATA pFind = {};
+	HANDLE hSearch = FindFirstFile(
+		Settings.Downloads.IncompletePath + _T("\\*.sd"), &pFind );
 	if ( hSearch != INVALID_HANDLE_VALUE )
 	{
 		do
 		{
-			CDownload* pDownload = new CDownload();
+			CString strPath;
+			strPath.Format( _T("%s\\%s"),
+				(LPCTSTR)Settings.Downloads.IncompletePath, pFind.cFileName );
 
-			strPath.Format( _T("%s\\%s"), (LPCTSTR)Settings.Downloads.IncompletePath, pFind.cFileName );
-
+			auto_ptr< CDownload > pDownload( new CDownload() );
 			if ( pDownload->Load( strPath ) )
 			{
 				if ( pDownload->m_bSeeding )
 				{
 					if ( ! Settings.BitTorrent.AutoSeed )
 					{
-						::DeleteFile( strPath, FALSE, TRUE );
-						delete pDownload;
+						theApp.Message( MSG_NOTICE, IDS_DOWNLOAD_REMOVE, pDownload->m_sName );
+						::DeleteFile( strPath, TRUE, TRUE );
+						::DeleteFile( strPath + _T(".sav"), TRUE, TRUE );
 						continue;
 					}
 					pDownload->m_bComplete = TRUE;
 					pDownload->m_bVerify = TRI_TRUE;
 				}
-				m_pList.AddTail( pDownload );
+				m_pList.AddTail( pDownload.release() );
 			}
 			else
 			{
-				theApp.Message( MSG_ERROR, IDS_DOWNLOAD_FILE_OPEN_ERROR, strPath );
-				pDownload->ClearSources();
-				delete pDownload;
+				theApp.Message( MSG_ERROR, IDS_DOWNLOAD_REMOVE,
+					( pDownload->m_sName.IsEmpty() ? strPath : pDownload->m_sName ) );
+				::DeleteFile( strPath, TRUE, TRUE );
+				::DeleteFile( strPath + _T(".sav"), TRUE, TRUE );
 			}
 		}
 		while ( FindNextFile( hSearch, &pFind ) );

@@ -630,7 +630,10 @@ void CFragmentedFile::Serialize(CArchive& ar, int nVersion)
 				if ( nVersion >= 41 )
 					ar >> sName;
 				if ( ! Open( sPath, nOffset, nLength, bWrite, sName ) )
-					AfxThrowArchiveException( CArchiveException::genericException );
+				{
+					theApp.Message( MSG_ERROR, IDS_DOWNLOAD_FILE_OPEN_ERROR, sPath );
+					AfxThrowFileException( CFileException::fileNotFound );
+				}
 			}
 
 			ASSERT_VALID( this );

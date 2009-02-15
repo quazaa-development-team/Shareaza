@@ -504,40 +504,63 @@ void CDownload::OnMoved(CDownloadTask* pTask)
 
 BOOL CDownload::Load(LPCTSTR pszName)
 {
-	BOOL bSuccess = FALSE;
-	CFile pFile;
-
 	ASSERT( m_sPath.IsEmpty() );
 	m_sPath = pszName;
 
+	BOOL bSuccess = FALSE;
+	CFile pFile;
 	if ( pFile.Open( m_sPath, CFile::modeRead ) )
 	{
-		try
+		TRY
 		{
 			CArchive ar( &pFile, CArchive::load );
 			Serialize( ar, 0 );
 			bSuccess = TRUE;
 		}
-		catch ( CException* pException )
+		CATCH( CFileException, pException )
 		{
+			if ( pException->m_cause == CFileException::fileNotFound )
+			{
+				// Subfile missing
+				pException->Delete();
+				return FALSE;
+			}
 			pException->Delete();
 		}
+		AND_CATCH_ALL( pException )
+		{
+			pException->Delete();
+			theApp.Message( MSG_ERROR, IDS_DOWNLOAD_FILE_OPEN_ERROR, m_sPath );
+		}
+		END_CATCH_ALL
 
 		pFile.Close();
 	}
 
 	if ( ! bSuccess && pFile.Open( m_sPath + _T(".sav"), CFile::modeRead ) )
 	{
-		try
+		TRY
 		{
 			CArchive ar( &pFile, CArchive::load );
 			Serialize( ar, 0 );
 			bSuccess = TRUE;
 		}
-		catch ( CException* pException )
+		CATCH( CFileException, pException )
 		{
+			if ( pException->m_cause == CFileException::fileNotFound )
+			{
+				// Subfile missing
+				pException->Delete();
+				return FALSE;
+			}
 			pException->Delete();
 		}
+		AND_CATCH_ALL( pException )
+		{
+			pException->Delete();
+			theApp.Message( MSG_ERROR, IDS_DOWNLOAD_FILE_OPEN_ERROR, m_sPath + _T(".sav") );
+		}
+		END_CATCH_ALL
 
 		pFile.Close();
 
