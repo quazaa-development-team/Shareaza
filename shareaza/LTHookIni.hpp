@@ -10,21 +10,21 @@
 #include "global/txml_oarchive.hpp"
 #include "global/txml_iarchive.hpp"
 
-#include "LtHookEvent.hpp"
+#include "LTHookEvent.hpp"
 
-namespace LtHook 
+namespace LTHook 
 {
 
 template <class T>
 class IniBase
 {
 public:
-	IniBase(boost::filesystem::path location, std::string name, LtHook::ini_file& ini = LtHook::ini()) :
+	IniBase(boost::filesystem::path location, std::string name, LTHook::ini_file& ini = LTHook::ini()) :
 		adapter_(location, ini),
 		name_(name)
 	{}
 	
-	IniBase(std::string name, LtHook::ini_file& ini = LtHook::ini()) :
+	IniBase(std::string name, LTHook::ini_file& ini = LTHook::ini()) :
 		adapter_(boost::filesystem::path(""), ini),
 		name_(name)
 	{}
@@ -74,8 +74,8 @@ public:
 		catch (const std::exception& e)
 		{	
 			//TODO: Another message to convert ot Shareaza Message log system
-			LtHook::event_log.post(boost::shared_ptr<LtHook::EventDetail>(
-				new LtHook::EventXmlException(LtHook::from_utf8(e.what()), L"load_standalone"))); 
+			LTHook::event_log.post(boost::shared_ptr<LTHook::EventDetail>(
+				new LTHook::EventXmlException(LTHook::from_utf8(e.what()), L"load_standalone"))); 
 
 			return false;
 		}
@@ -97,8 +97,8 @@ public:
 		}
 		catch (const std::exception& e)
 		{			
-			LtHook::event_log.post(boost::shared_ptr<LtHook::EventDetail>(
-				new LtHook::EventXmlException(LtHook::from_utf8(e.what()), LtHook::from_utf8(name_)))); 
+			LTHook::event_log.post(boost::shared_ptr<LTHook::EventDetail>(
+				new LTHook::EventXmlException(LTHook::from_utf8(e.what()), LTHook::from_utf8(name_)))); 
 
 			return false;
 		}
@@ -107,7 +107,7 @@ public:
 	}
 	
 private:
-	LtHook::txml_ini_adapter adapter_;
+	LTHook::txml_ini_adapter adapter_;
 	std::string name_;	
 };
 

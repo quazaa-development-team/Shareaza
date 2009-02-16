@@ -7,15 +7,15 @@
 #pragma once
 
 //TODO: Replace with Shareaza defines
-#include "LtHookTorrentDefines.hpp"
+#include "LTHookTorrentDefines.hpp"
 
 #ifndef LTHOOK_TORRENT_STATE_LOGGING
 #	define TORRENT_STATE_LOG(s)
 #else
-#	include "../LtHookEvent.hpp"
+#	include "../LTHookEvent.hpp"
 #	define TORRENT_STATE_LOG(msg) \
-	LtHook::event_log.post(boost::shared_ptr<LtHook::EventDetail>( \
-			new LtHook::EventMsg(msg, LtHook::event_logger::torrent_dev))) 
+	LTHook::event_log.post(boost::shared_ptr<LTHook::EventDetail>( \
+			new LTHook::EventMsg(msg, LTHook::event_logger::torrent_dev))) 
 #endif
 
 #pragma warning (push, 1)
@@ -47,20 +47,20 @@
 #include <boost/statechart/state_machine.hpp>
 #include <boost/statechart/simple_state.hpp>
 
-#include "LtHookIni.hpp"
-#include "LtHookTypes.hpp"
-#include "LtHookSignaler.hpp"
+#include "LTHookIni.hpp"
+#include "LTHookTypes.hpp"
+#include "LTHookSignaler.hpp"
 
-namespace LtHook 
+namespace LTHook 
 {
 class TorrentInternalOld;
 class torrent_internal;
 }
 
-BOOST_CLASS_VERSION(LtHook::TorrentInternalOld, 9)
-BOOST_CLASS_VERSION(LtHook::torrent_internal, 2)
+BOOST_CLASS_VERSION(LTHook::TorrentInternalOld, 9)
+BOOST_CLASS_VERSION(LTHook::torrent_internal, 2)
 
-namespace LtHook 
+namespace LTHook 
 {
 
 namespace libt = libtorrent;
@@ -68,7 +68,7 @@ namespace sc = boost::statechart;
 
 
 inline
-libt::entry LtHookDecode(const wpath &file) 
+libt::entry LTHookDecode(const wpath &file) 
 {
 	fs::ifstream ifs(file, fs::ifstream::binary);
 	if (ifs.is_open()) 
@@ -80,7 +80,7 @@ libt::entry LtHookDecode(const wpath &file)
 }
 
 inline
-bool LtHookEncode(const wpath &file, const libt::entry &e) 
+bool LTHookEncode(const wpath &file, const libt::entry &e) 
 {
 	fs::ofstream ofs(file, fs::ofstream::binary);
 
@@ -115,7 +115,7 @@ std::pair<std::string, std::string> extract_names(const wpath &file)
 				filename += ".torrent";
 		//TODO: Convert to Shareaza event handling
 		event_log.post(shared_ptr<EventDetail>(new EventMsg(
-			LtHook::wform(L"Loaded names: %1%, %2%") % from_utf8(name) % from_utf8(filename))));
+			LTHook::wform(L"Loaded names: %1%, %2%") % from_utf8(name) % from_utf8(filename))));
 
 		return std::make_pair(name, filename);
 	}
@@ -258,10 +258,10 @@ class torrent_internal;
 typedef shared_ptr<torrent_internal> torrent_internal_ptr;
 
 struct torrent_standalone :
-	public LtHook::IniBase<torrent_standalone>
+	public LTHook::IniBase<torrent_standalone>
 {
 	typedef torrent_standalone thisClass;
-	typedef LtHook::IniBase<thisClass> iniClass;
+	typedef LTHook::IniBase<thisClass> iniClass;
 
 	torrent_standalone() :
 		iniClass("torrent")
@@ -466,7 +466,7 @@ public:
 			name_, filename_, 
 			save_directory().string(), 
 			state_str, 
-			LtHook::from_utf8(statusMemory_.current_tracker), 
+			LTHook::from_utf8(statusMemory_.current_tracker), 
 			std::pair<float, float>(
 				statusMemory_.download_payload_rate, 
 				statusMemory_.upload_payload_rate),
@@ -596,16 +596,16 @@ public:
 		mutex_t::scoped_lock l(mutex_);	
 		assert(the_session_ != 0);
 
-		LTHOOK_DEV_MSG(LtHook::wform(L"add_to_session() paused=%1%") % paused);
+		LTHOOK_DEV_MSG(LTHook::wform(L"add_to_session() paused=%1%") % paused);
 		
 		if (!in_session()) 
 		{	
 			libt::add_torrent_params p;
 
-			string torrent_file = to_utf8((LtHook::app().get_working_directory()/L"torrents"/filename_).string());
+			string torrent_file = to_utf8((LTHook::app().get_working_directory()/L"torrents"/filename_).string());
 			info_memory_.reset(new libt::torrent_info(torrent_file.c_str()));
 
-			std::string resume_file = to_utf8((LtHook::app().get_working_directory()/L"resume" / (name_ + L".fastresume")).string());
+			std::string resume_file = to_utf8((LTHook::app().get_working_directory()/L"resume" / (name_ + L".fastresume")).string());
 
 			std::vector<char> buf;
 			if (libt::load_file(resume_file.c_str(), buf) == 0)
@@ -616,7 +616,7 @@ public:
 
 			p.ti = info_memory_;
 			p.save_path = path_to_utf8(save_directory_);
-			p.storage_mode = LtHook_allocation_to_libt(allocation_);
+			p.storage_mode = LTHook_allocation_to_libt(allocation_);
 			p.paused = paused;
 			p.duplicate_is_error = false;
 			p.auto_managed = managed_;
@@ -638,8 +638,8 @@ public:
 		}
 		catch(std::exception& e)
 		{
-			LtHook::event_log.post(boost::shared_ptr<LtHook::EventDetail>(
-				new LtHook::EventStdException(event_logger::critical, e, L"add_to_session"))); 
+			LTHook::event_log.post(boost::shared_ptr<LTHook::EventDetail>(
+				new LTHook::EventStdException(event_logger::critical, e, L"add_to_session"))); 
 		}
 	}
 	
@@ -647,7 +647,7 @@ public:
 	{
 		try
 		{
-		LTHOOK_DEV_MSG(LtHook::wform(L"remove_from_session() write_data=%1%") % write_data);
+		LTHOOK_DEV_MSG(LTHook::wform(L"remove_from_session() write_data=%1%") % write_data);
 
 		mutex_t::scoped_lock l(mutex_);
 		if (!in_session())
@@ -684,8 +684,8 @@ public:
 		}
 		catch(std::exception& e)
 		{
-			LtHook::event_log.post(boost::shared_ptr<LtHook::EventDetail>(
-				new LtHook::EventStdException(event_logger::critical, e, L"remove_from_session()"))); 
+			LTHook::event_log.post(boost::shared_ptr<LTHook::EventDetail>(
+				new LTHook::EventStdException(event_logger::critical, e, L"remove_from_session()"))); 
 			return false;
 		}
 	}
@@ -700,7 +700,7 @@ public:
 	void resume()
 	{
 		mutex_t::scoped_lock l(mutex_);
-		LTHOOK_DEV_MSG(LtHook::wform(L"resume() - %1%") % name_);
+		LTHOOK_DEV_MSG(LTHook::wform(L"resume() - %1%") % name_);
 
 		if (state() == torrent_details::torrent_stopped)
 		{	
@@ -720,7 +720,7 @@ public:
 	void pause()
 	{
 		mutex_t::scoped_lock l(mutex_);
-		LTHOOK_DEV_MSG(LtHook::wform(L"pause() - %1%") % name_);
+		LTHOOK_DEV_MSG(LTHook::wform(L"pause() - %1%") % name_);
 
 		if (state() == torrent_details::torrent_stopped)
 		{	
@@ -733,7 +733,7 @@ public:
 		{
 			assert(in_session());
 
-			LTHOOK_DEV_MSG(LtHook::wform(L"pause() - handle_.pause()"));
+			LTHOOK_DEV_MSG(LTHook::wform(L"pause() - handle_.pause()"));
 			handle_.pause();
 
 			signaler_wrapper<>* sig = new signaler_wrapper<>(bind(&torrent_internal::completed_pause, this));
@@ -746,9 +746,9 @@ public:
 	void stop()
 	{
 		mutex_t::scoped_lock l(mutex_);
-		LTHOOK_DEV_MSG(LtHook::wform(L"stop() - %1%") % name_);
+		LTHOOK_DEV_MSG(LTHook::wform(L"stop() - %1%") % name_);
 
-		LTHOOK_DEV_MSG(LtHook::wform(L"stop() requesting"));
+		LTHOOK_DEV_MSG(LTHook::wform(L"stop() requesting"));
 
 		if (state() != torrent_details::torrent_stopped)
 		{
@@ -760,7 +760,7 @@ public:
 				signaler_wrapper<>* sig = new signaler_wrapper<>(bind(&torrent_internal::completed_stop, this));
 				signals().torrent_paused.connect(bind(&signaler_wrapper<>::operator(), sig));
 				
-				LTHOOK_DEV_MSG(LtHook::wform(L"stop() - handle_.pause()"));
+				LTHOOK_DEV_MSG(LTHook::wform(L"stop() - handle_.pause()"));
 				handle_.pause();
 
 				state(torrent_details::torrent_stopping);
@@ -810,7 +810,7 @@ public:
 	{					
 		LTHOOK_DEV_MSG(L"write_resume_data()");
 
-		wpath resume_dir = LtHook::app().get_working_directory()/L"resume";
+		wpath resume_dir = LTHook::app().get_working_directory()/L"resume";
 		
 		if (!exists(resume_dir))
 			create_directory(resume_dir);
@@ -824,7 +824,7 @@ public:
 	
 	void clear_resume_data()
 	{
-		wpath resume_file = LtHook::app().get_working_directory()/L"resume"/filename_;
+		wpath resume_file = LTHook::app().get_working_directory()/L"resume"/filename_;
 		
 		if (exists(resume_file))
 			remove(resume_file);
@@ -952,7 +952,7 @@ public:
 			foreach (const libt::announce_entry& entry, trackers)
 			{
 				trackers_.push_back(
-					tracker_detail(LtHook::from_utf8(entry.url), entry.tier));
+					tracker_detail(LTHook::from_utf8(entry.url), entry.tier));
 			}
 		}		
 		return trackers_;
@@ -1129,7 +1129,7 @@ public:
 			
 			for(size_t i=0, e=files.size(); i<e; ++i)
 			{
-				wstring fullPath = LtHook::from_utf8(files[i].path.string());
+				wstring fullPath = LTHook::from_utf8(files[i].path.string());
 				boost::int64_t size = static_cast<boost::int64_t>(files[i].size);
 				
 				fileDetailsMemory_.push_back(FileDetail(fullPath, size, 0, filePriorities_[i], i));
@@ -1160,17 +1160,17 @@ public:
 		
 		extract_names(info_memory());			
 		
-		const wpath resumeFile = LtHook::app().get_working_directory()/L"resume"/filename_;
-		const wpath torrentFile = LtHook::app().get_working_directory()/L"torrents"/filename_;
+		const wpath resumeFile = LTHook::app().get_working_directory()/L"resume"/filename_;
+		const wpath torrentFile = LTHook::app().get_working_directory()/L"torrents"/filename_;
 		
 		event_log.post(shared_ptr<EventDetail>(new EventMsg(
-			LtHook::wform(L"File: %1%, %2%.") % resumeFile % torrentFile)));
+			LTHook::wform(L"File: %1%, %2%.") % resumeFile % torrentFile)));
 		
 	//	if (exists(resumeFile)) 
-	//		resumedata_ = LtHookDecode(resumeFile);
+	//		resumedata_ = LTHookDecode(resumeFile);
 
-		if (!exists(LtHook::app().get_working_directory()/L"torrents"))
-			create_directory(LtHook::app().get_working_directory()/L"torrents");
+		if (!exists(LTHook::app().get_working_directory()/L"torrents"))
+			create_directory(LTHook::app().get_working_directory()/L"torrents");
 
 		if (!exists(torrentFile))
 			copy_file(filename.string(), torrentFile);
@@ -1196,14 +1196,14 @@ public:
 	{
 		mutex_t::scoped_lock l(mutex_);
 				
-		name_ = LtHook::from_utf8_safe(metadata->name());
+		name_ = LTHook::from_utf8_safe(metadata->name());
 		
 		filename_ = name_;
 		if (!boost::find_last(filename_, L".torrent")) 
 				filename_ += L".torrent";
 		
 		event_log.post(shared_ptr<EventDetail>(new EventMsg(
-			LtHook::wform(L"Loaded names: %1%, %2%") % name_ % filename_)));
+			LTHook::wform(L"Loaded names: %1%, %2%") % name_ % filename_)));
 	}
 	
 	boost::intrusive_ptr<libt::torrent_info> info_memory()
@@ -1246,7 +1246,7 @@ private:
 			int up = (transfer_limit_.second > 0) ? static_cast<int>(transfer_limit_.second*1024) : -1;
 			handle_.set_upload_limit(up);
 
-			LTHOOK_DEV_MSG(LtHook::wform(L"Applying Transfer Speed %1% - %2%") % down % up);
+			LTHOOK_DEV_MSG(LTHook::wform(L"Applying Transfer Speed %1% - %2%") % down % up);
 		}
 	}
 
@@ -1258,7 +1258,7 @@ private:
 			handle_.set_max_connections(connections_);
 			handle_.set_max_uploads(uploads_);
 
-			LTHOOK_DEV_MSG(LtHook::wform(L"Applying Connection Limit %1% - %2%") % connections_ % uploads_);
+			LTHOOK_DEV_MSG(LTHook::wform(L"Applying Connection Limit %1% - %2%") % connections_ % uploads_);
 		}
 	}
 	
@@ -1269,7 +1269,7 @@ private:
 		{
 			handle_.set_ratio(ratio_);
 
-			LTHOOK_DEV_MSG(LtHook::wform(L"Applying Ratio %1%") % ratio_);
+			LTHOOK_DEV_MSG(LTHook::wform(L"Applying Ratio %1%") % ratio_);
 		}
 	}
 	
@@ -1288,7 +1288,7 @@ private:
 				foreach (const tracker_detail& tracker, trackers_)
 				{
 					trackers.push_back(
-						libt::announce_entry(LtHook::to_utf8(tracker.url)));
+						libt::announce_entry(LTHook::to_utf8(tracker.url)));
 					trackers.back().tier = tracker.tier;
 				}
 				handle_.replace_trackers(trackers);
@@ -1305,11 +1305,11 @@ private:
 		{
 			if (tracker_username_ != L"")
 			{
-				handle_.set_tracker_login(LtHook::to_utf8(tracker_username_),
-					LtHook::to_utf8(tracker_password_));
+				handle_.set_tracker_login(LTHook::to_utf8(tracker_username_),
+					LTHook::to_utf8(tracker_password_));
 			}
 
-			LTHOOK_DEV_MSG(LtHook::wform(L"Applying Tracker Login User: %1%, Pass: %2%") % tracker_username_ % tracker_password_ );
+			LTHOOK_DEV_MSG(LTHook::wform(L"Applying Tracker Login User: %1%, Pass: %2%") % tracker_username_ % tracker_password_ );
 		}
 	}
 	
@@ -1332,7 +1332,7 @@ private:
 		{
 			handle_.resolve_countries(resolve_countries_);
 			
-			LTHOOK_DEV_MSG(LtHook::wform(L"Applying Resolve Countries %1%") % resolve_countries_);
+			LTHOOK_DEV_MSG(LTHook::wform(L"Applying Resolve Countries %1%") % resolve_countries_);
 		}
 	}
 	
@@ -1505,10 +1505,10 @@ typedef std::map<std::string, TorrentInternalOld> TorrentMap;
 typedef std::pair<std::string, TorrentInternalOld> TorrentPair;
 
 class TorrentManager : 
-	public LtHook::IniBase<TorrentManager>
+	public LTHook::IniBase<TorrentManager>
 {
 	typedef TorrentManager thisClass;
-	typedef LtHook::IniBase<thisClass> iniClass;
+	typedef LTHook::IniBase<thisClass> iniClass;
 
 	struct TorrentHolder
 	{
@@ -1636,6 +1636,6 @@ private:
 	TorrentMultiIndex torrents_;
 };
 
-} // namespace LtHook
+} // namespace LTHook
 
-BOOST_CLASS_VERSION(LtHook::TorrentManager::TorrentHolder, 1)
+BOOST_CLASS_VERSION(LTHook::TorrentManager::TorrentHolder, 1)

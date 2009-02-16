@@ -11,7 +11,7 @@
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-namespace LtHook
+namespace LTHook
 {	
 	namespace fs = boost::filesystem;
 	namespace pt = boost::posix_time;

@@ -33,12 +33,12 @@
 #include <boost/preprocessor/stringize.hpp>
 #include "win32_exception.hpp"
 
-#include "LtHookTorrent.hpp"
+#include "LTHookTorrent.hpp"
 
 #ifdef TORRENT_LOGGING
 #	define LTHOOK_DEV_MSG(msg) \
-	LtHook::event_log.post(boost::shared_ptr<LtHook::EventDetail>( \
-			new LtHook::EventMsg(msg, LtHook::event_logger::dev))) 
+	LTHook::event_log.post(boost::shared_ptr<LTHook::EventDetail>( \
+			new LTHook::EventMsg(msg, LTHook::event_logger::dev))) 
 #else
 #	define LTHOOK_DEV_MSG(msg)
 #endif
@@ -46,30 +46,30 @@
 #define LTHOOK_GENERIC_FN_EXCEPTION_CATCH(FUNCTION) \
 catch (const access_violation& e) \
 { \
-	LtHook::event_log.post(shared_ptr<LtHook::EventDetail>( \
-		new LtHook::EventMsg(LtHook::wform(L"%1% access_violation (code %2$x) at %3$x. Bad address %4$x") % LtHook::to_wstr_shim(FUNCTION) % e.code() % (unsigned)e.where() % (unsigned)e.badAddress(), \
-			LtHook::event_logger::critical))); \
+	LTHook::event_log.post(shared_ptr<LTHook::EventDetail>( \
+		new LTHook::EventMsg(LTHook::wform(L"%1% access_violation (code %2$x) at %3$x. Bad address %4$x") % LTHook::to_wstr_shim(FUNCTION) % e.code() % (unsigned)e.where() % (unsigned)e.badAddress(), \
+			LTHook::event_logger::critical))); \
 } \
 catch (const win32_exception& e) \
 { \
-	LtHook::event_log.post(shared_ptr<LtHook::EventDetail>( \
-		new LtHook::EventMsg(LtHook::wform(L"%1% win32_exception (code %2$x) at %3$x") % LtHook::to_wstr_shim(FUNCTION) % e.code() % (unsigned)e.where(), \
-			LtHook::event_logger::critical))); \
+	LTHook::event_log.post(shared_ptr<LTHook::EventDetail>( \
+		new LTHook::EventMsg(LTHook::wform(L"%1% win32_exception (code %2$x) at %3$x") % LTHook::to_wstr_shim(FUNCTION) % e.code() % (unsigned)e.where(), \
+			LTHook::event_logger::critical))); \
 } \
 catch(std::exception& e) \
 { \
-	LtHook::event_log.post(shared_ptr<LtHook::EventDetail>( \
-		new LtHook::EventMsg(LtHook::wform(L"%1% std::exception, %2%") % LtHook::to_wstr_shim(FUNCTION) % LtHook::from_utf8(e.what()), \
-			LtHook::event_logger::critical))); \
+	LTHook::event_log.post(shared_ptr<LTHook::EventDetail>( \
+		new LTHook::EventMsg(LTHook::wform(L"%1% std::exception, %2%") % LTHook::to_wstr_shim(FUNCTION) % LTHook::from_utf8(e.what()), \
+			LTHook::event_logger::critical))); \
 } \
 catch(...) \
 { \
-	LtHook::event_log.post(shared_ptr<LtHook::EventDetail>( \
-		new LtHook::EventMsg(LtHook::wform(L"%1% catch all") % LtHook::to_wstr_shim(FUNCTION), \
-			LtHook::event_logger::critical))); \
+	LTHook::event_log.post(shared_ptr<LTHook::EventDetail>( \
+		new LTHook::EventMsg(LTHook::wform(L"%1% catch all") % LTHook::to_wstr_shim(FUNCTION), \
+			LTHook::event_logger::critical))); \
 }
 
-namespace LtHook 
+namespace LTHook 
 {
 
 struct event_impl;
@@ -152,7 +152,7 @@ public:
 	
 	virtual std::wstring msg()
 	{
-		return (wform(LtHook::app().res_wstr(code())) % msg_).str();
+		return (wform(LTHook::app().res_wstr(code())) % msg_).str();
 	}
 	
 private:
@@ -175,19 +175,19 @@ public:
 	template<typename str_t>
 	EventGeneral(event_logger::eventLevel l, str_t m) :
 		EventDetail(l, boost::posix_time::second_clock::universal_time(), event_logger::noEvent),
-		msg_(LtHook::to_wstr_shim(m))
+		msg_(LTHook::to_wstr_shim(m))
 	{}
 	
 	template<typename str_t>	
 	EventGeneral(event_logger::eventLevel l, boost::posix_time::ptime t, str_t m) :
 		EventDetail(l, t, event_logger::noEvent),
-		msg_(LtHook::to_wstr_shim(m))
+		msg_(LTHook::to_wstr_shim(m))
 	{}
 	
 	virtual std::wstring msg()
 	{
 		if (event_logger::noEvent != code())
-			return (wform(LtHook::app().res_wstr(code())) % msg_).str();
+			return (wform(LTHook::app().res_wstr(code())) % msg_).str();
 		else
 			return msg_;
 	}
@@ -203,13 +203,13 @@ public:
 	EventMsg(str_t m, event_logger::eventLevel l=event_logger::debug, 
 		boost::posix_time::ptime t=boost::posix_time::second_clock::universal_time(), event_logger::codes c=event_logger::noEvent) :
 		EventDetail(l, t, c),
-		msg_(LtHook::to_wstr_shim(m))
+		msg_(LTHook::to_wstr_shim(m))
 	{}
 	
 	virtual std::wstring msg()
 	{
 		if (event_logger::noEvent != code())
-			return (wform(LtHook::app().res_wstr(code())) % msg_).str();
+			return (wform(LTHook::app().res_wstr(code())) % msg_).str();
 		else
 			return msg_;
 	}
@@ -228,7 +228,7 @@ public:
 	
 	virtual std::wstring msg()
 	{
-		return (wform(LtHook::app().res_wstr(code())) % msg_).str();
+		return (wform(LTHook::app().res_wstr(code())) % msg_).str();
 	}
 	
 private:
@@ -246,7 +246,7 @@ public:
 	
 	virtual std::wstring msg()
 	{
-		return (wform(LtHook::app().res_wstr(LTHOOK_EVENT_XML_EXP)) % exp_ % msg_).str();
+		return (wform(LTHook::app().res_wstr(LTHOOK_EVENT_XML_EXP)) % exp_ % msg_).str();
 	}
 	
 private:
@@ -260,13 +260,13 @@ public:
 	template<typename t_str, typename f_str>
 	EventInvalidTorrent(event_logger::eventLevel l, event_logger::codes code, t_str t, f_str f) :
 		EventDetail(l, boost::posix_time::second_clock::universal_time(), code),
-		torrent_(LtHook::to_wstr_shim(t)),
-		function_(LtHook::to_wstr_shim(f))
+		torrent_(LTHook::to_wstr_shim(t)),
+		function_(LTHook::to_wstr_shim(f))
 	{}
 	
 	virtual std::wstring msg()
 	{
-		return (wform(LtHook::app().res_wstr(code())) % torrent_ % function_).str();
+		return (wform(LTHook::app().res_wstr(code())) % torrent_ % function_).str();
 	}
 	
 private:
@@ -281,14 +281,14 @@ public:
 	template<typename e_str, typename t_str, typename f_str>
 	EventTorrentException(event_logger::eventLevel l, event_logger::codes code, e_str e, t_str t, f_str f) :
 		EventDetail(l, boost::posix_time::second_clock::universal_time(), code),
-		torrent_(LtHook::to_wstr_shim(t)),
-		function_(LtHook::to_wstr_shim(f)),
-		exception_(LtHook::to_wstr_shim(e))
+		torrent_(LTHook::to_wstr_shim(t)),
+		function_(LTHook::to_wstr_shim(f)),
+		exception_(LTHook::to_wstr_shim(e))
 	{}
 	
 	virtual std::wstring msg()
 	{
-		return (wform(LtHook::app().res_wstr(code())) % torrent_ % exception_ % function_).str();
+		return (wform(LTHook::app().res_wstr(code())) % torrent_ % exception_ % function_).str();
 	}
 	
 private:
@@ -302,13 +302,13 @@ class EventStdException : public EventDetail
 public:
 	EventStdException(event_logger::eventLevel l, const std::exception& e, std::wstring from) :
 		EventDetail(l, boost::posix_time::second_clock::universal_time(), event_logger::generalException),
-		exception_(LtHook::from_utf8(e.what())),
+		exception_(LTHook::from_utf8(e.what())),
 		from_(from)
 	{}
 	
 	virtual std::wstring msg()
 	{
-		return (wform(LtHook::app().res_wstr(code())) % exception_ % from_).str();
+		return (wform(LTHook::app().res_wstr(code())) % exception_ % from_).str();
 	}
 	
 private:
@@ -326,7 +326,7 @@ public:
 	
 	virtual std::wstring msg()
 	{
-		return (wform(LtHook::app().res_wstr(code())) % msg_).str();
+		return (wform(LTHook::app().res_wstr(code())) % msg_).str();
 	}
 	
 private:
@@ -353,6 +353,6 @@ class EventSession : public EventDetail
 
 };
 
-}// namespace LtHook
+}// namespace LTHook
 
 #endif

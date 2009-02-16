@@ -1614,15 +1614,15 @@ BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,254,116,50,14
     LTEXT           "Torrent Save Folder:",IDC_STATIC_TORRENT_SAVE,7,33,73,9
     EDITTEXT        IDC_EDIT_SAVE,5,42,271,12,ES_AUTOHSCROLL
-    CONTROL         "Download Torrent In Temporary Folder",IDC_CHECK_TEMP,
+    CONTROL         "Download Torrent In Temporary Folder:",IDC_CHECK_TEMP,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,56,140,12
     EDITTEXT        IDC_EDIT_TEMP,7,69,269,12,ES_AUTOHSCROLL
     LTEXT           "Allocation Mode:",IDC_STATIC_ALLOCATION,7,88,57,9
     COMBOBOX        IDC_COMBO_ALLOCATION,63,85,185,30,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     CONTROL         "Managed Torrent",IDC_CHECK_MANAGED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,103,69,10
     CONTROL         "Pause Torrent",IDC_CHECK_PAUSED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,114,108,12
-    PUSHBUTTON      "",IDC_COMPLETE_BROWSE,281,38,23,20,BS_ICON
-    PUSHBUTTON      "",IDC_TEMPORARY_BROWSE,281,65,23,20,BS_ICON
+    PUSHBUTTON      "",IDC_SAVE_BROWSE,281,38,23,20,BS_ICON
+    PUSHBUTTON      "",IDC_TEMP_BROWSE,281,65,23,20,BS_ICON
     CONTROL         154,IDC_BANNER,"Static",SS_BITMAP | WS_GROUP,0,0,400,31
 END
 
@@ -3483,7 +3483,7 @@ BEGIN
     IDS_HANDSHAKE_BOOTSTRAP "Closing surplus connection from %s with host hint (%s port %i)."
     IDS_HANDSHAKE_REJECTED  "Connection to %s rejected (%s)."
     IDS_HANDSHAKE_SURPLUS   "Closing surplus connection from %s."
-    IDS_HANDSHAKE_IAMLEAF   "Refusing connection from %s because this is a shielded leaf node."
+    IDS_HANDSHAKE_IAMLEAF   "Not a hub, refusing leaf to hub connection from %s."
     IDS_HANDSHAKE_CANTBEPEER 
                             "Hub neighbour %s won't accept us as a hub, closing connection."
     IDS_HANDSHAKE_BACK2LEAF "Connecting neighbour %s falling back to shielded leaf mode."

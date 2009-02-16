@@ -3,9 +3,9 @@
 
 #include <boost/signal.hpp>
 
-#include "LtHookEvent.hpp"
+#include "LTHookEvent.hpp"
 
-namespace LtHook
+namespace LTHook
 {
 
 template<typename F=boost::function<bool ()> >

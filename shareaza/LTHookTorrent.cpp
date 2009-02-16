@@ -10,21 +10,21 @@
 #include "global/string_conv.hpp"
 #include "global/ini_adapter.hpp"
 
-#include "LtHookTorrent.hpp"
-#include "LtHookTypes.hpp"
-#include "LtHookEvent.hpp"
-#include "LtHookSignaler.hpp"
+#include "LTHookTorrent.hpp"
+#include "LTHookTypes.hpp"
+#include "LTHookEvent.hpp"
+#include "LTHookSignaler.hpp"
 
-#include "LtHookTorrentInternal.hpp"
-#include "LtHookSession.hpp"
-//#include "LtHookSessionAlert.hpp"
+#include "LTHookTorrentInternal.hpp"
+#include "LTHookSession.hpp"
+//#include "LTHookSessionAlert.hpp"
 
-namespace LtHook 
+namespace LTHook 
 {
 	libtorrent::session* torrent_internal::the_session_ = 0;
 }
 
-namespace LtHook 
+namespace LTHook 
 {
 
 bit& bittorrent()
@@ -37,7 +37,7 @@ const PeerDetails& torrent_details::peerDetails() const
 {
 	if (!peerDetailsFilled_)
 	{
-		bittorrent().get_all_peer_details(LtHook::to_utf8(name_), peerDetails_);
+		bittorrent().get_all_peer_details(LTHook::to_utf8(name_), peerDetails_);
 		peerDetailsFilled_ = true;
 	}
 	
@@ -48,7 +48,7 @@ const FileDetails& torrent_details::fileDetails() const
 {
 	if (!fileDetailsFilled_)
 	{
-		bittorrent().get_all_file_details(LtHook::to_utf8(name_), fileDetails_);
+		bittorrent().get_all_file_details(LTHook::to_utf8(name_), fileDetails_);
 		fileDetailsFilled_ = true;
 	}
 	
@@ -69,19 +69,19 @@ void torrent_details_manager::sort(
 web_seed_or_dht_node_detail::web_seed_or_dht_node_detail() : 
 	url(L""), 
 	port(-1), 
-	type(LtHook::app().res_wstr(LTHOOK_INT_NEWT_ADD_PEERS_WEB)) 
+	type(LTHook::app().res_wstr(LTHOOK_INT_NEWT_ADD_PEERS_WEB)) 
 {}
 
 web_seed_or_dht_node_detail::web_seed_or_dht_node_detail(std::wstring u) : 
 	url(u), 
 	port(-1), 
-	type(LtHook::app().res_wstr(LTHOOK_INT_NEWT_ADD_PEERS_WEB)) 
+	type(LTHook::app().res_wstr(LTHOOK_INT_NEWT_ADD_PEERS_WEB)) 
 {}
 
 web_seed_or_dht_node_detail::web_seed_or_dht_node_detail(std::wstring u, int p) : 
 	url(u), 
 	port(p), 
-	type(LtHook::app().res_wstr(LTHOOK_INT_NEWT_ADD_PEERS_DHT)) 
+	type(LTHook::app().res_wstr(LTHOOK_INT_NEWT_ADD_PEERS_DHT)) 
 {}
 
 bit::bit() :
@@ -127,7 +127,7 @@ void bit::stop_listening()
 	pimpl->stop_listening();
 }
 
-bool bit::ensure_dht_on(const LtHook::dht_settings& dht)
+bool bit::ensure_dht_on(const LTHook::dht_settings& dht)
 {
 	return pimpl->ensure_dht_on(dht);
 }
@@ -277,7 +277,7 @@ void bit::set_session_half_open_limit(int halfConn)
 	pimpl->session_.set_max_half_open_connections(halfConn);
 
 	event_log.post(shared_ptr<EventDetail>(new EventMsg(
-		LtHook::wform(L"Set half-open connections limit to %1%.") % pimpl->session_.max_half_open_connections())));
+		LTHook::wform(L"Set half-open connections limit to %1%.") % pimpl->session_.max_half_open_connections())));
 }
 
 void bit::set_torrent_defaults(const connections& defaults)
@@ -286,14 +286,14 @@ void bit::set_torrent_defaults(const connections& defaults)
 	pimpl->default_torrent_max_uploads_ = defaults.uploads;
 
 	event_log.post(shared_ptr<EventDetail>(new EventMsg(
-		LtHook::wform(L"Set torrent connections total %1% and uploads %2%.") 
+		LTHook::wform(L"Set torrent connections total %1% and uploads %2%.") 
 			% defaults.total % defaults.uploads)));
 
 	pimpl->default_torrent_download_ = defaults.download_rate;
 	pimpl->default_torrent_upload_ = defaults.upload_rate;
 
 	event_log.post(shared_ptr<EventDetail>(new EventMsg(
-		LtHook::wform(L"Set torrent default rates at %1$.2fkb/s down and %2$.2fkb/s upload.") 
+		LTHook::wform(L"Set torrent default rates at %1$.2fkb/s down and %2$.2fkb/s upload.") 
 			% defaults.download_rate % defaults.upload_rate)));
 }
 
@@ -350,16 +350,16 @@ void bit::close_all(boost::optional<report_num_active> fn)
 }
 
 PeerDetail::PeerDetail(libt::peer_info& peerInfo) :
-	ipAddress(LtHook::from_utf8_safe(peerInfo.ip.address().to_string())),
+	ipAddress(LTHook::from_utf8_safe(peerInfo.ip.address().to_string())),
 	country(L""),
 	speed(std::make_pair(peerInfo.payload_down_speed, peerInfo.payload_up_speed)),
-	client(LtHook::from_utf8_safe(peerInfo.client))
+	client(LTHook::from_utf8_safe(peerInfo.client))
 {
 	std::vector<wstring> status_vec;
 	
 #ifndef TORRENT_DISABLE_RESOLVE_COUNTRIES
 	if (peerInfo.country[0] != 0 && peerInfo.country[1] != 0)
-		country = (LtHook::wform(L"(%1%)") % LtHook::from_utf8_safe(string(peerInfo.country, 2))).str().c_str();
+		country = (LTHook::wform(L"(%1%)") % LTHook::from_utf8_safe(string(peerInfo.country, 2))).str().c_str();
 #endif	
 
 	if (peerInfo.flags & libt::peer_info::handshake)
@@ -444,7 +444,7 @@ void bit::get_all_file_details(const std::wstring& filename, FileDetails& fileDe
 
 bool bit::is_torrent(const std::string& filename)
 {	
-	return is_torrent(LtHook::to_wstr_shim(filename));
+	return is_torrent(LTHook::to_wstr_shim(filename));
 }
 
 bool bit::is_torrent(const std::wstring& filename)
@@ -460,7 +460,7 @@ bool bit::is_torrent(const std::wstring& filename)
 
 void bit::pause_torrent(const std::string& filename)
 {
-	pause_torrent(LtHook::to_wstr_shim(filename));
+	pause_torrent(LTHook::to_wstr_shim(filename));
 }
 
 void bit::pause_torrent(const std::wstring& filename)
@@ -474,7 +474,7 @@ void bit::pause_torrent(const std::wstring& filename)
 
 void bit::resume_torrent(const std::string& filename)
 {
-	resume_torrent(LtHook::to_wstr_shim(filename));
+	resume_torrent(LTHook::to_wstr_shim(filename));
 }
 
 void bit::resume_torrent(const std::wstring& filename)
@@ -488,7 +488,7 @@ void bit::resume_torrent(const std::wstring& filename)
 
 void bit::stop_torrent(const std::string& filename)
 {
-	stop_torrent(LtHook::to_wstr_shim(filename));
+	stop_torrent(LTHook::to_wstr_shim(filename));
 }
 
 void bit::stop_torrent(const std::wstring& filename)
@@ -502,7 +502,7 @@ void bit::stop_torrent(const std::wstring& filename)
 
 bool bit::is_torrent_active(const std::string& filename)
 {
-	return is_torrent_active(LtHook::to_wstr_shim(filename));
+	return is_torrent_active(LTHook::to_wstr_shim(filename));
 }
 
 bool bit::is_torrent_active(const std::wstring& filename)
@@ -518,7 +518,7 @@ bool bit::is_torrent_active(const std::wstring& filename)
 
 void bit::reannounce_torrent(const std::string& filename)
 {
-	reannounce_torrent(LtHook::to_wstr_shim(filename));
+	reannounce_torrent(LTHook::to_wstr_shim(filename));
 }
 
 void bit::reannounce_torrent(const std::wstring& filename)
@@ -533,7 +533,7 @@ void bit::reannounce_torrent(const std::wstring& filename)
 
 void bit::recheck_torrent(const std::string& filename)
 {
-	recheck_torrent(LtHook::to_wstr_shim(filename));
+	recheck_torrent(LTHook::to_wstr_shim(filename));
 }
 
 void bit::recheck_torrent(const std::wstring& filename)
@@ -552,7 +552,7 @@ void bit::remove_torrent_wstr(const std::wstring& filename)
 
 void bit::remove_torrent_wipe_files_wstr(const std::wstring& filename)
 {
-	pimpl->remove_torrent_wipe_files(LtHook::to_wstr_shim(filename));
+	pimpl->remove_torrent_wipe_files(LTHook::to_wstr_shim(filename));
 }
 
 void bit::pause_all_torrents()

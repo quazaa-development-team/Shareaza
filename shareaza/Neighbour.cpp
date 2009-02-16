@@ -210,7 +210,7 @@ void CNeighbour::Close(UINT nError)
 	if ( nError && nError != IDS_HANDSHAKE_REJECTED )
 	{
 		// Report a voluntary default close, or an error
-		theApp.Message( bVoluntary ? MSG_INFO : MSG_ERROR, nError, (LPCTSTR)m_sAddress );
+		theApp.Message( bVoluntary ? MSG_INFO : MSG_NOTICE, nError, (LPCTSTR)m_sAddress );
 	}
 
 	// Delete this CNeighbour object, calling its destructor right now

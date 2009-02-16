@@ -35,11 +35,11 @@
 #	include <libtorrent/extensions/smart_ban.hpp>
 #pragma warning (pop) 
 
-#include "LtHookIni.hpp"
-#include "LtHookTypes.hpp"
-#include "LtHookEvent.hpp"
-#include "LtHookTorrentInternal.hpp"
-#include "LtHookSignaler.hpp"
+#include "LTHookIni.hpp"
+#include "LTHookTypes.hpp"
+#include "LTHookEvent.hpp"
+#include "LTHookTorrentInternal.hpp"
+#include "LTHookSignaler.hpp"
 
 namespace boost {
 namespace serialization {
@@ -93,7 +93,7 @@ void serialize(Archive& ar, libtorrent::ip_range<address_type>& addr, const unsi
 }
 
 template<class Archive>
-void serialize(Archive& ar, LtHook::tracker_detail& tracker, const unsigned int version)
+void serialize(Archive& ar, LTHook::tracker_detail& tracker, const unsigned int version)
 {	
 	ar & BOOST_SERIALIZATION_NVP(tracker.url);
 	ar & BOOST_SERIALIZATION_NVP(tracker.tier);
@@ -125,7 +125,7 @@ std::ostream& operator<<(std::ostream& os, libtorrent::ip_range<asio::ip::addres
 
 } // namespace libtorrent
 
-namespace LtHook
+namespace LTHook
 {
 
 namespace libt = libtorrent;
@@ -172,7 +172,7 @@ void read_range_to_filter(fs::ifstream& ifs, libt::ip_filter& ip_filter)
 		libt::ip_filter::blocked);
 }
 
-static event_logger::eventLevel lbtAlertToLtHookEvent(libt::alert::severity_t severity)
+static event_logger::eventLevel lbtAlertToLTHookEvent(libt::alert::severity_t severity)
 {
 	switch (severity)
 	{
@@ -234,15 +234,15 @@ catch (const invalidTorrent& t) \
 } \
 catch (const access_violation& e) \
 { \
-	LtHook::event_log.post(shared_ptr<LtHook::EventDetail>( \
-		new LtHook::EventMsg(LtHook::wform(L"Torrent property %1% access_violation (code %2$x) at %3$x. Bad address %4$x") % LtHook::from_utf8(FUNCTION) % e.code() % (unsigned)e.where() % (unsigned)e.badAddress(), \
-			LtHook::event_logger::critical))); \
+	LTHook::event_log.post(shared_ptr<LTHook::EventDetail>( \
+		new LTHook::EventMsg(LTHook::wform(L"Torrent property %1% access_violation (code %2$x) at %3$x. Bad address %4$x") % LTHook::from_utf8(FUNCTION) % e.code() % (unsigned)e.where() % (unsigned)e.badAddress(), \
+			LTHook::event_logger::critical))); \
 } \
 catch (const win32_exception& e) \
 { \
-	LtHook::event_log.post(shared_ptr<LtHook::EventDetail>( \
-		new LtHook::EventMsg(LtHook::wform(L"Torrent property %1% win32_exception (code %2$x) at %3$x") % LtHook::from_utf8(FUNCTION) % e.code() % (unsigned)e.where(), \
-			LtHook::event_logger::critical))); \
+	LTHook::event_log.post(shared_ptr<LTHook::EventDetail>( \
+		new LTHook::EventMsg(LTHook::wform(L"Torrent property %1% win32_exception (code %2$x) at %3$x") % LTHook::from_utf8(FUNCTION) % e.code() % (unsigned)e.where(), \
+			LTHook::event_logger::critical))); \
 } \
 catch (const std::exception& e) \
 { \
@@ -251,9 +251,9 @@ catch (const std::exception& e) \
 } \
 catch(...) \
 { \
-	LtHook::event_log.post(shared_ptr<LtHook::EventDetail>( \
-		new LtHook::EventMsg(LtHook::wform(L"%1% catch all") % LtHook::from_utf8(FUNCTION), \
-			LtHook::event_logger::critical))); \
+	LTHook::event_log.post(shared_ptr<LTHook::EventDetail>( \
+		new LTHook::EventMsg(LTHook::wform(L"%1% catch all") % LTHook::from_utf8(FUNCTION), \
+			LTHook::event_logger::critical))); \
 }
 
 #define LTHOOK_GENERIC_TORRENT_EXCEPTION_CATCH(TORRENT, FUNCTION) \
@@ -269,15 +269,15 @@ catch (const invalidTorrent& t) \
 }\
 catch (const access_violation& e) \
 { \
-	LtHook::event_log.post(shared_ptr<LtHook::EventDetail>( \
-		new LtHook::EventMsg(LtHook::wform(L"Generic Torrent %1% access_violation (code %2$x) at %3$x. Bad address %4$x (%5%)") % LtHook::from_utf8(FUNCTION) % e.code() % (unsigned)e.where() % (unsigned)e.badAddress() % TORRENT, \
-			LtHook::event_logger::critical))); \
+	LTHook::event_log.post(shared_ptr<LTHook::EventDetail>( \
+		new LTHook::EventMsg(LTHook::wform(L"Generic Torrent %1% access_violation (code %2$x) at %3$x. Bad address %4$x (%5%)") % LTHook::from_utf8(FUNCTION) % e.code() % (unsigned)e.where() % (unsigned)e.badAddress() % TORRENT, \
+			LTHook::event_logger::critical))); \
 } \
 catch (const win32_exception& e) \
 { \
-	LtHook::event_log.post(shared_ptr<LtHook::EventDetail>( \
-		new LtHook::EventMsg(LtHook::wform(L"Generic Torrent %1% win32_exception (code %2$x) at %3$x (%4%)") % LtHook::from_utf8(FUNCTION) % e.code() % (unsigned)e.where() % TORRENT, \
-			LtHook::event_logger::critical))); \
+	LTHook::event_log.post(shared_ptr<LTHook::EventDetail>( \
+		new LTHook::EventMsg(LTHook::wform(L"Generic Torrent %1% win32_exception (code %2$x) at %3$x (%4%)") % LTHook::from_utf8(FUNCTION) % e.code() % (unsigned)e.where() % TORRENT, \
+			LTHook::event_logger::critical))); \
 } \
 catch (const std::exception& e) \
 { \
@@ -286,9 +286,9 @@ catch (const std::exception& e) \
 } \
 catch (...) \
 { \
-	LtHook::event_log.post(shared_ptr<LtHook::EventDetail>( \
-		new LtHook::EventMsg(LtHook::wform(L"Generic Torrent %1% catch all") % LtHook::from_utf8(FUNCTION), \
-			LtHook::event_logger::critical))); \
+	LTHook::event_log.post(shared_ptr<LTHook::EventDetail>( \
+		new LTHook::EventMsg(LTHook::wform(L"Generic Torrent %1% catch all") % LTHook::from_utf8(FUNCTION), \
+			LTHook::event_logger::critical))); \
 }
 
 class bit_impl
@@ -359,7 +359,7 @@ public:
 		settings.service_port = dht.service_port;
 		settings.max_fail_count = dht.max_fail_count;
 		
-		LTHOOK_DEV_MSG(LtHook::wform(L"Seleted DHT port = %1%") % settings.service_port);
+		LTHOOK_DEV_MSG(LTHook::wform(L"Seleted DHT port = %1%") % settings.service_port);
 		
 		if (dht_settings_ != settings)
 		{
@@ -437,7 +437,7 @@ public:
 		session_.set_settings(settings);
 
 		event_log.post(shared_ptr<EventDetail>(new EventMsg(
-			LtHook::wform(L"Set Timeouts, peer %1%, tracker %2%.") % peers % tracker)));
+			LTHook::wform(L"Set Timeouts, peer %1%, tracker %2%.") % peers % tracker)));
 	}
 
 	cache_settings get_cache_settings()
@@ -461,7 +461,7 @@ public:
 		session_.set_settings(settings);
 
 		event_log.post(shared_ptr<EventDetail>(new EventMsg(
-			LtHook::wform(L"Set cache parameters, %1% size and %2% expiry.") 
+			LTHook::wform(L"Set cache parameters, %1% size and %2% expiry.") 
 				% settings.cache_size % settings.cache_expiry)));
 	}
 
@@ -504,7 +504,7 @@ public:
 		session_.set_settings(settings);
 
 		event_log.post(shared_ptr<EventDetail>(new EventMsg(
-			LtHook::wform(L"Set queue parameters, %1% downloads and %2% active seeds.") 
+			LTHook::wform(L"Set queue parameters, %1% downloads and %2% active seeds.") 
 				% settings.active_downloads % settings.active_seeds)));
 	}
 
@@ -551,7 +551,7 @@ public:
 		session_.set_settings(settings);
 
 		event_log.post(shared_ptr<EventDetail>(new EventMsg(
-			LtHook::wform(L"Set timeouts, peers- %1% secs, tracker- %2% secs.") 
+			LTHook::wform(L"Set timeouts, peers- %1% secs, tracker- %2% secs.") 
 				% settings.peer_timeout % settings.tracker_receive_timeout)));
 	}
 
@@ -561,7 +561,7 @@ public:
 		session_.set_max_connections(maxConn);
 		
 		event_log.post(shared_ptr<EventDetail>(new EventMsg(
-			LtHook::wform(L"Set connections totals %1% and uploads %2%.") 
+			LTHook::wform(L"Set connections totals %1% and uploads %2%.") 
 				% maxConn % maxUpload)));
 	}
 
@@ -573,7 +573,7 @@ public:
 		session_.set_upload_rate_limit(up);
 		
 		event_log.post(shared_ptr<EventDetail>(new EventMsg(
-			LtHook::wform(L"Set session rates at download %1% and upload %2%.") 
+			LTHook::wform(L"Set session rates at download %1% and upload %2%.") 
 				% session_.download_rate_limit() % session_.upload_rate_limit())));
 	}
 
@@ -607,8 +607,8 @@ public:
 		}
 		catch(const std::exception& e)
 		{		
-			LtHook::event_log.post(boost::shared_ptr<LtHook::EventDetail>(
-				new LtHook::EventStdException(event_logger::critical, e, L"ensureIpFilterOn"))); 
+			LTHook::event_log.post(boost::shared_ptr<LTHook::EventDetail>(
+				new LTHook::EventStdException(event_logger::critical, e, L"ensureIpFilterOn"))); 
 
 			ensure_ip_filter_off();
 		}
@@ -645,9 +645,9 @@ public:
 			default:
 				pe.allowed_enc_level = libt::pe_settings::both;
 				
-				LtHook::event_log.post(shared_ptr<LtHook::EventDetail>(
-					new LtHook::EventGeneral(LtHook::event_logger::warning, LtHook::event_logger::unclassified, 
-						(LtHook::wform(LtHook::app().res_wstr(LTHOOK_INCORRECT_ENCODING_LEVEL)) % pe_s.encrypt_level).str())));
+				LTHook::event_log.post(shared_ptr<LTHook::EventDetail>(
+					new LTHook::EventGeneral(LTHook::event_logger::warning, LTHook::event_logger::unclassified, 
+						(LTHook::wform(LTHook::app().res_wstr(LTHOOK_INCORRECT_ENCODING_LEVEL)) % pe_s.encrypt_level).str())));
 		}
 
 		switch (pe_s.conn_in_policy)
@@ -664,9 +664,9 @@ public:
 			default:
 				pe.in_enc_policy = libt::pe_settings::enabled;
 				
-				LtHook::event_log.post(shared_ptr<LtHook::EventDetail>(
-					new LtHook::EventGeneral(LtHook::event_logger::warning, LtHook::event_logger::unclassified, 
-						(LtHook::wform(LtHook::app().res_wstr(LTHOOK_INCORRECT_CONNECT_POLICY)) % pe_s.conn_in_policy).str())));
+				LTHook::event_log.post(shared_ptr<LTHook::EventDetail>(
+					new LTHook::EventGeneral(LTHook::event_logger::warning, LTHook::event_logger::unclassified, 
+						(LTHook::wform(LTHook::app().res_wstr(LTHOOK_INCORRECT_CONNECT_POLICY)) % pe_s.conn_in_policy).str())));
 		}
 
 		switch (pe_s.conn_out_policy)
@@ -683,9 +683,9 @@ public:
 			default:
 				pe.out_enc_policy = libt::pe_settings::enabled;
 				
-				LtHook::event_log.post(shared_ptr<LtHook::EventDetail>(
-					new LtHook::EventGeneral(LtHook::event_logger::warning, LtHook::event_logger::unclassified, 
-						(LtHook::wform(LtHook::app().res_wstr(LTHOOK_INCORRECT_CONNECT_POLICY)) % pe_s.conn_out_policy).str())));
+				LTHook::event_log.post(shared_ptr<LTHook::EventDetail>(
+					new LTHook::EventGeneral(LTHook::event_logger::warning, LTHook::event_logger::unclassified, 
+						(LTHook::wform(LTHook::app().res_wstr(LTHOOK_INCORRECT_CONNECT_POLICY)) % pe_s.conn_out_policy).str())));
 		}
 		
 		pe.prefer_rc4 = pe_s.prefer_rc4;
@@ -698,8 +698,8 @@ public:
 		}
 		catch(const std::exception& e)
 		{
-			LtHook::event_log.post(boost::shared_ptr<LtHook::EventDetail>(
-					new LtHook::EventStdException(event_logger::critical, e, L"ensurePeOn"))); 
+			LTHook::event_log.post(boost::shared_ptr<LTHook::EventDetail>(
+					new LTHook::EventStdException(event_logger::critical, e, L"ensurePeOn"))); 
 					
 			ensure_pe_off();		
 		}
@@ -869,15 +869,15 @@ public:
 	{
 		libt::torrent_info info(path_to_utf8(filename));
 	 	
-		wstring torrentName = LtHook::from_utf8_safe(info.name());
+		wstring torrentName = LTHook::from_utf8_safe(info.name());
 		if (!boost::find_last(torrentName, L".torrent")) 
 			torrentName += L".torrent";
 		
 		wpath torrentFilename = torrentName;
-		const wpath resumeFile = LtHook::app().get_working_directory()/L"resume"/torrentFilename.filename();
+		const wpath resumeFile = LTHook::app().get_working_directory()/L"resume"/torrentFilename.filename();
 		
 		//  vvv Handle old naming style!
-		const wpath oldResumeFile = LtHook::app().get_working_directory()/L"resume"/filename.filename();
+		const wpath oldResumeFile = LTHook::app().get_working_directory()/L"resume"/filename.filename();
 		
 		if (filename.filename() != torrentFilename.filename() && exists(oldResumeFile))
 			fs::rename(oldResumeFile, resumeFile);
@@ -889,22 +889,22 @@ public:
 		{
 			try 
 			{
-				resumeData = LtHookDecode(resumeFile);
+				resumeData = LTHookDecode(resumeFile);
 			}
 			catch(std::exception &e) 
 			{		
-				LtHook::event_log.post(boost::shared_ptr<LtHook::EventDetail>(
-					new LtHook::EventStdException(event_logger::critical, e, L"prepTorrent, Resume"))); 
+				LTHook::event_log.post(boost::shared_ptr<LTHook::EventDetail>(
+					new LTHook::EventStdException(event_logger::critical, e, L"prepTorrent, Resume"))); 
 		
 				fs::remove(resumeFile);
 			}
 		}
 
-		if (!fs::exists(LtHook::app().get_working_directory()/L"torrents"))
-			fs::create_directory(LtHook::app().get_working_directory()/L"torrents");
+		if (!fs::exists(LTHook::app().get_working_directory()/L"torrents"))
+			fs::create_directory(LTHook::app().get_working_directory()/L"torrents");
 
-		if (!fs::exists(LtHook::app().get_working_directory()/L"torrents"/torrentFilename.filename()))
-			fs::copy_file(filename.string(), LtHook::app().get_working_directory()/L"torrents"/torrentFilename.filename());
+		if (!fs::exists(LTHook::app().get_working_directory()/L"torrents"/torrentFilename.filename()))
+			fs::copy_file(filename.string(), LTHook::app().get_working_directory()/L"torrents"/torrentFilename.filename());
 
 		if (!fs::exists(saveDirectory))
 			fs::create_directory(saveDirectory);
@@ -937,7 +937,7 @@ public:
 				for (libt::torrent_info::file_iterator i = m_info.begin_files(true)
 					, end(m_info.end_files(true)); i != end; ++i)
 				{
-					std::string p = (LtHook::path_to_utf8(pIT->save_directory()) / i->path).string();
+					std::string p = (LTHook::path_to_utf8(pIT->save_directory()) / i->path).string();
 					fs::path bp = i->path.parent_path();
 					
 					std::pair<std::set<std::string>::iterator, bool> ret;
@@ -945,10 +945,10 @@ public:
 					while (ret.second && !bp.empty())
 					{
 						std::pair<std::set<std::string>::iterator, bool> ret = 
-							directories.insert((LtHook::path_to_utf8(pIT->save_directory()) / bp).string());
+							directories.insert((LTHook::path_to_utf8(pIT->save_directory()) / bp).string());
 						bp = bp.parent_path();
 					}
-					if (!fs::remove(LtHook::from_utf8(p).c_str()) && errno != ENOENT)
+					if (!fs::remove(LTHook::from_utf8(p).c_str()) && errno != ENOENT)
 						error = std::strerror(errno);
 				}
 
@@ -957,7 +957,7 @@ public:
 				for (std::set<std::string>::reverse_iterator i = directories.rbegin()
 					, end(directories.rend()); i != end; ++i)
 				{
-					if (!fs::remove(LtHook::from_utf8(*i).c_str()) && errno != ENOENT)
+					if (!fs::remove(LTHook::from_utf8(*i).c_str()) && errno != ENOENT)
 						error = std::strerror(errno);
 				}
 				*/
@@ -1001,7 +1001,7 @@ public:
 		
 		for (TorrentManager::torrentByName::iterator i=the_torrents_.begin(), e=the_torrents_.end(); i != e;)
 		{
-			wpath file = wpath(LtHook::app().get_working_directory())/L"torrents"/(*i).torrent->filename();
+			wpath file = wpath(LTHook::app().get_working_directory())/L"torrents"/(*i).torrent->filename();
 			
 			if (exists(file))
 			{		
@@ -1030,15 +1030,15 @@ public:
 				}
 				catch(const libt::duplicate_torrent&)
 				{
-					LtHook::event_log.post(shared_ptr<LtHook::EventDetail>(
-						new LtHook::EventDebug(LtHook::event_logger::debug, L"Encountered duplicate torrent")));
+					LTHook::event_log.post(shared_ptr<LTHook::EventDetail>(
+						new LTHook::EventDebug(LTHook::event_logger::debug, L"Encountered duplicate torrent")));
 					
 					++i; // Harmless, don't worry about it.
 				}
 				catch(const std::exception& e) 
 				{
-					LtHook::event_log.post(shared_ptr<LtHook::EventDetail>(
-						new LtHook::EventStdException(LtHook::event_logger::warning, e, L"resumeAll")));
+					LTHook::event_log.post(shared_ptr<LTHook::EventDetail>(
+						new LTHook::EventStdException(LTHook::event_logger::warning, e, L"resumeAll")));
 					
 					the_torrents_.erase(i++);
 				}			
@@ -1080,7 +1080,7 @@ public:
 					++num_active;
 			}
 			
-			event_log.post(shared_ptr<EventDetail>(new EventInfo(LtHook::wform(L"%1% still active") % num_active)));
+			event_log.post(shared_ptr<EventDetail>(new EventInfo(LTHook::wform(L"%1% still active") % num_active)));
 
 			if (fn)	(*fn)(num_active);
 			boost::this_thread::sleep(pt::milliseconds(500));
@@ -1103,7 +1103,7 @@ public:
 			
 		if (dht_on_) 
 		{	
-			LtHookEncode(LtHook::app().get_working_directory()/L"DHTState.bin", session_.dht_state());
+			LTHookEncode(LTHook::app().get_working_directory()/L"DHTState.bin", session_.dht_state());
 		}
 		
 		}		

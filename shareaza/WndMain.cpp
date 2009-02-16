@@ -51,7 +51,7 @@
 #include "SharedFile.h"
 #include "DiscoveryServices.h"
 #include "DlgDonkeyImport.h"
-#include "LtHookTorrent.hpp"
+#include "LTHookTorrent.hpp"
 
 #include "WndMain.h"
 #include "WndChild.h"
@@ -1208,23 +1208,23 @@ void CMainWnd::OnHandleTorrent(LPCTSTR lpszPath)
 	{
 	
 	wstring sTempFolder = Settings.Downloads.TorrentPath;
-	wstring sCompleteFolder = Settings.Downloads.CompletePath;
+	wstring sSaveFolder = Settings.Downloads.CompletePath;
 	bool bStartPaused = Settings.Downloads.TorrentStartPaused;
 	bool bUseTemp = Settings.Downloads.TorrentUseTemp;
 	bool bManaged = Settings.BitTorrent.ManagedTorrent;
-	LtHook::bit::allocations iAllocationType = Settings.BitTorrent.AllocationType;
+	LTHook::bit::allocations nAllocationType = Settings.BitTorrent.AllocationType;
 	
-	if (Settings.Downloads.TorrentSavePrompt)
+	if ( Settings.Downloads.TorrentSavePrompt )
 	{
-		CTorrentAddDlg addTorrent(sTempFolder, sCompleteFolder, bUseTemp, bStartPaused, bManaged, iAllocationType);	
+		CTorrentAddDlg addTorrent( this, sSaveFolder, sTempFolder, bUseTemp, bStartPaused, bManaged, nAllocationType);	
 		
-		if (IDOK != addTorrent.DoModal())
+		if ( IDOK != addTorrent.DoModal() )
 			return;
 	}
 	
-	wpath file(lpszPath, boost::filesystem::native);	
-	hal::bittorrent().add_torrent(file, wpath(default_save_folder), startPaused, managed, allocation_type, 
-		wpath(default_move_folder), use_move_to);
+	wpath pFile( lpszPath, boost::filesystem::native );	
+	LTHook::bittorrent().add_torrent(pFile, wpath(sSaveFolder), bStartPaused, bManaged, nAllocationType, 
+		wpath(sTempFolder), bUseTemp);
 
 	issueUiUpdate();
 
