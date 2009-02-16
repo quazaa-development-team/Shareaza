@@ -828,3 +828,26 @@ BOOL CDownload::Launch(int nIndex, CSingleLock* pLock, BOOL bForceOriginal)
 
 	return bResult;
 }
+
+BOOL CDownload::Enqueue(int nIndex, CSingleLock* pLock)
+{
+	if ( nIndex < 0 )
+		nIndex = SelectFile( pLock );
+	if ( nIndex < 0 || ! Downloads.Check( this ) )
+		return TRUE;
+
+	BOOL bResult = TRUE;
+	CString strPath = GetPath( nIndex );
+	CString strName = GetName( nIndex );
+	CString strExt = strName.Mid( strName.ReverseFind( '.' ) );
+	if ( IsStarted() )
+	{
+		if ( pLock ) pLock->Unlock();
+
+		bResult = CFileExecutor::Enqueue( strPath, FALSE, strExt );
+
+		if ( pLock ) pLock->Lock();
+	}
+
+	return bResult;
+}

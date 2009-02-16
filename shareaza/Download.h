@@ -73,6 +73,7 @@ public:
 	BOOL        	Rename(LPCTSTR pszName);
 	void        	SetStartTimer();
 	BOOL			Launch(int nIndex, CSingleLock* pLock, BOOL bForceOriginal);
+	BOOL			Enqueue(int nIndex, CSingleLock* pLock);
 
 	inline DWORD GetStartTimer() const
 	{
