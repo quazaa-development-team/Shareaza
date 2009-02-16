@@ -397,7 +397,7 @@ CSettings::CSettings()
 
 	Add( _T("BitTorrent"), _T("AdvancedInterface"), &BitTorrent.AdvancedInterface, false );
 	Add( _T("BitTorrent"), _T("AdvancedInterfaceSet"), &BitTorrent.AdvancedInterfaceSet, false );
-	Add( _T("BitTorrent"), _T("AllocationType"), &BitTorrent.AllocationType, LtHook::bit::sparse_allocation );
+	Add( _T("BitTorrent"), _T("AllocationType"), &BitTorrent.AllocationType, LTHook::bit::sparse_allocation );
 	Add( _T("BitTorrent"), _T("AutoClear"), &BitTorrent.AutoClear, false );
 	Add( _T("BitTorrent"), _T("AutoSeed"), &BitTorrent.AutoSeed, true );
 	Add( _T("BitTorrent"), _T("BandwidthPercentage"), &BitTorrent.BandwidthPercentage, 80, 1, 50, 95, _T(" %") );

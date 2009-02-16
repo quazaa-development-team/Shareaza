@@ -2818,7 +2818,7 @@
 	<string id="16147" value="Closing surplus connection from %s with host hint (%s port %i)."/>
 	<string id="16148" value="Connection to %s rejected (%s)."/>
 	<string id="16150" value="Closing surplus connection from %s."/>
-	<string id="16151" value="Refusing connection from %s because this is a shielded leaf node."/>
+	<string id="16151" value="Not a hub, refusing leaf to hub connection from %s."/>
 	<string id="16152" value="Hub neighbour %s won't accept us as a hub, closing connection."/>
 	<string id="16153" value="Connecting neighbour %s falling back to shielded leaf mode."/>
 	<string id="16154" value="Hub connection established, closing peer connections."/>

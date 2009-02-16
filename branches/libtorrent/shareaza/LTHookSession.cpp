@@ -17,17 +17,17 @@
 #include "global/string_conv.hpp"
 #include "global/ini_adapter.hpp"
 
-#include "LtHookIni.hpp"
-#include "LtHookTypes.hpp"
-#include "LtHookEvent.hpp"
-#include "LtHookSignaler.hpp"
-#include "LtHookSession.hpp"
+#include "LTHookIni.hpp"
+#include "LTHookTypes.hpp"
+#include "LTHookEvent.hpp"
+#include "LTHookSignaler.hpp"
+#include "LTHookSession.hpp"
 
 #pragma warning (push, 1)
 #	include <libtorrent/create_torrent.hpp>
 #pragma warning (pop) 
 
-namespace LtHook
+namespace LTHook
 {
 
 bit_impl::bit_impl() :
@@ -57,24 +57,24 @@ bit_impl::bit_impl() :
 	session_.set_max_half_open_connections(10);
 	
 	//TODO: Use includes from Shareaza to use equivalent functions and change over to them
-	LtHook::event_log.post(shared_ptr<LtHook::EventDetail>(
-		new LtHook::EventMsg(L"Libtorrent loading BitTorrent.xml.", LtHook::event_logger::info)));		
+	LTHook::event_log.post(shared_ptr<LTHook::EventDetail>(
+		new LTHook::EventMsg(L"Libtorrent loading BitTorrent.xml.", LTHook::event_logger::info)));		
 	bittorrentIni.load_data();
-	LtHook::event_log.post(shared_ptr<LtHook::EventDetail>(
-		new LtHook::EventMsg(L"Libtorrent loading torrent parameters.", LtHook::event_logger::info)));	
+	LTHook::event_log.post(shared_ptr<LTHook::EventDetail>(
+		new LTHook::EventMsg(L"Libtorrent loading torrent parameters.", LTHook::event_logger::info)));	
 	the_torrents_.load_from_ini();
-	LtHook::event_log.post(shared_ptr<LtHook::EventDetail>(
-		new LtHook::EventMsg(L"Libtorrent loading done!", LtHook::event_logger::info)));
+	LTHook::event_log.post(shared_ptr<LTHook::EventDetail>(
+		new LTHook::EventMsg(L"Libtorrent loading done!", LTHook::event_logger::info)));
 	
 	try
 	{			
 	//TODO: Use includes from Shareaza to use equivalent functions and change over to them
-	if (fs::exists(LtHook::app().get_working_directory()/L"Torrents.xml"))
+	if (fs::exists(LTHook::app().get_working_directory()/L"Torrents.xml"))
 	{
 		assert(false);
 #if 0
 		{
-		fs::wifstream ifs(LtHook::app().get_working_directory()/L"Torrents.xml");
+		fs::wifstream ifs(LTHook::app().get_working_directory()/L"Torrents.xml");
 	
 		event_log.post(shared_ptr<EventDetail>(new EventMsg(L"Loading old Torrents.xml")));
 	
@@ -86,9 +86,9 @@ bit_impl::bit_impl() :
 		}
 		//TODO: Use includes from Shareaza to use equivalent functions and change over to them
 		event_log.post(shared_ptr<EventDetail>(new EventMsg(
-			LtHook::wform(L"Total %1%.") % the_torrents_.size())));				
+			LTHook::wform(L"Total %1%.") % the_torrents_.size())));				
 		
-		fs::rename(LtHook::app().get_working_directory()/L"Torrents.xml", LtHook::app().get_working_directory()/L"Torrents.xml.safe.to.delete");
+		fs::rename(LTHook::app().get_working_directory()/L"Torrents.xml", LTHook::app().get_working_directory()/L"Torrents.xml.safe.to.delete");
 #endif
 	}			
 	}
@@ -98,11 +98,11 @@ bit_impl::bit_impl() :
 			new EventStdException(event_logger::fatal, e, L"Loading Old Torrents.xml")));
 	}		
 	//TODO: Use includes from Shareaza to use equivalent functions and change over to them		
-	if (exists(LtHook::app().get_working_directory()/L"DHTState.bin"))
+	if (exists(LTHook::app().get_working_directory()/L"DHTState.bin"))
 	{
 		try
 		{
-			dht_state_ = LtHookDecode(LtHook::app().get_working_directory()/L"DHTState.bin");
+			dht_state_ = LTHookDecode(LTHook::app().get_working_directory()/L"DHTState.bin");
 		}		
 		catch(const std::exception& e)
 		{
@@ -133,7 +133,7 @@ bit_impl::~bit_impl()
 	
 	if (ip_filter_changed_)
 	{	
-		fs::ofstream ofs(LtHook::app().get_working_directory()/L"IPFilter.bin", std::ios::binary);
+		fs::ofstream ofs(LTHook::app().get_working_directory()/L"IPFilter.bin", std::ios::binary);
 //		boost::archive::binary_oarchive oba(ofs);
 		
 		libt::ip_filter::filter_tuple_t vectors = ip_filter_.export_filter();	
@@ -164,7 +164,7 @@ void bit_impl::ip_filter_count()
 
 void bit_impl::ip_filter_load(progress_callback fn)
 {
-	fs::ifstream ifs(LtHook::app().get_working_directory()/L"IPFilter.bin", std::ios::binary);
+	fs::ifstream ifs(LTHook::app().get_working_directory()/L"IPFilter.bin", std::ios::binary);
 	if (ifs)
 	{
 		size_t v4_size;
@@ -179,7 +179,7 @@ void bit_impl::ip_filter_load(progress_callback fn)
 			{
 				previous = i;
 
-				if (fn) if (fn(size_t(i/total), LtHook::app().res_wstr(LTHOOK_TORRENT_LOAD_FILTERS))) break;
+				if (fn) if (fn(size_t(i/total), LTHook::app().res_wstr(LTHOOK_TORRENT_LOAD_FILTERS))) break;
 			}
 			
 			read_range_to_filter<boost::asio::ip::address_v4>(ifs, ip_filter_);
@@ -229,7 +229,7 @@ bool bit_impl::ip_filter_import_dat(boost::filesystem::path file, progress_callb
 				previous = progress;
 				if (fn)
 				{
-					if (fn(size_t(progress/total), LtHook::app().res_wstr(LTHOOK_TORRENT_IMPORT_FILTERS))) 
+					if (fn(size_t(progress/total), LTHook::app().res_wstr(LTHOOK_TORRENT_IMPORT_FILTERS))) 
 						break;
 				}
 			}
@@ -264,8 +264,8 @@ bool bit_impl::ip_filter_import_dat(boost::filesystem::path file, progress_callb
 				}
 				catch(...)
 				{
-					LtHook::event_log.post(shared_ptr<LtHook::EventDetail>(
-						new LtHook::EventDebug(LtHook::event_logger::info, 
+					LTHook::event_log.post(shared_ptr<LTHook::EventDetail>(
+						new LTHook::EventDebug(LTHook::event_logger::info, 
 						from_utf8((boost::format("Invalid IP range: %1%-%2%.") % first % last).str()))));
 				}
 			}
@@ -296,12 +296,12 @@ bool bit_impl::create_torrent(const create_torrent_params& params, fs::wpath out
 	for (file_size_pairs_t::const_iterator i = params.file_size_pairs.begin(), e = params.file_size_pairs.end();
 			i != e; ++i)
 	{
-		LTHOOK_DEV_MSG(LtHook::wform(L"file path: %1%, size: %2%") % (*i).first % (*i).second);
+		LTHOOK_DEV_MSG(LTHook::wform(L"file path: %1%, size: %2%") % (*i).first % (*i).second);
 		fs.add_file(to_utf8((*i).first.string()), (*i).second);
 	}
 
 	int piece_size = params.piece_size;
-	LTHOOK_DEV_MSG(LtHook::wform(L"piece size: %1%") % piece_size);
+	LTHOOK_DEV_MSG(LTHook::wform(L"piece size: %1%") % piece_size);
 	
 	libt::create_torrent t(fs, piece_size);
 	
@@ -313,7 +313,7 @@ bool bit_impl::create_torrent(const create_torrent_params& params, fs::wpath out
 	for (tracker_details_t::const_iterator i = params.trackers.begin(), e = params.trackers.end();
 			i != e; ++i)
 	{
-		LTHOOK_DEV_MSG(LtHook::wform(L"URL: %1%, Tier: %2%") % (*i).url % (*i).tier);
+		LTHOOK_DEV_MSG(LTHook::wform(L"URL: %1%, Tier: %2%") % (*i).url % (*i).tier);
 		t.add_tracker(to_utf8((*i).url), (*i).tier);
 	}
 
@@ -321,7 +321,7 @@ bool bit_impl::create_torrent(const create_torrent_params& params, fs::wpath out
 	for (web_seed_details_t::const_iterator i = params.web_seeds.begin(), e = params.web_seeds.end();
 			i != e; ++i)
 	{
-		LTHOOK_DEV_MSG(LtHook::wform(L"URL: %1%") % (*i).url);
+		LTHOOK_DEV_MSG(LTHook::wform(L"URL: %1%") % (*i).url);
 		t.add_url_seed(to_utf8((*i).url));
 	}
 
@@ -329,8 +329,8 @@ bool bit_impl::create_torrent(const create_torrent_params& params, fs::wpath out
 	for (dht_node_details_t::const_iterator i = params.dht_nodes.begin(), e = params.dht_nodes.end();
 			i != e; ++i)
 	{
-		LTHOOK_DEV_MSG(LtHook::wform(L"URL: %1%, port: %2%") % (*i).url % (*i).port);
-		t.add_node(LtHook::make_pair(to_utf8((*i).url), (*i).port));
+		LTHOOK_DEV_MSG(LTHook::wform(L"URL: %1%, port: %2%") % (*i).url % (*i).port);
+		t.add_node(LTHook::make_pair(to_utf8((*i).url), (*i).port));
 	}
 
 	boost::scoped_ptr<libt::storage_interface> store(
@@ -348,12 +348,12 @@ bool bit_impl::create_torrent(const create_torrent_params& params, fs::wpath out
 		libt::hasher h(&piece_buf[0], t.piece_size(i));
 		t.set_hash(i, h.final());
 
-		if (fn(100*i / num, LtHook::app().res_wstr(LTHOOK_NEWT_HASHING_PIECES)))
+		if (fn(100*i / num, LTHook::app().res_wstr(LTHOOK_NEWT_HASHING_PIECES)))
 		{
 			// User canceled torrent creation.
 
-			LtHook::event_log.post(shared_ptr<LtHook::EventDetail>(
-				new LtHook::EventMsg(LtHook::app().res_wstr(LTHOOK_NEWT_CREATION_CANCELED), LtHook::event_logger::info)));
+			LTHook::event_log.post(shared_ptr<LTHook::EventDetail>(
+				new LTHook::EventMsg(LTHook::app().res_wstr(LTHOOK_NEWT_CREATION_CANCELED), LTHook::event_logger::info)));
 
 			return true;
 		}
@@ -366,7 +366,7 @@ bool bit_impl::create_torrent(const create_torrent_params& params, fs::wpath out
 
 	// create the torrent and print it to out
 	libt::entry e = t.generate();
-	LtHookEncode(out_file, e);
+	LTHookEncode(out_file, e);
 
 	} LTHOOK_GENERIC_FN_EXCEPTION_CATCH(L"bit_impl::create_torrent()")
 
@@ -379,7 +379,7 @@ void bit_impl::start_alert_handler()
 
 	if (alert_checker_ == boost::none)
 	{	
-		LTHOOK_DEV_MSG(LtHook::wform(L"start_alert_handler"));
+		LTHOOK_DEV_MSG(LTHook::wform(L"start_alert_handler"));
 
 		boost::function<void (void)> f = bind(&bit_impl::alert_handler, this);
 
@@ -396,14 +396,14 @@ void bit_impl::stop_alert_handler()
 
 	if (alert_checker_)
 	{
-		LTHOOK_DEV_MSG(LtHook::wform(L"Interrupting alert handler"));
+		LTHOOK_DEV_MSG(LTHook::wform(L"Interrupting alert handler"));
 
 		alert_checker_->interrupt();
 		alert_checker_ = boost::none;
 	}
 	else
 	{
-		LTHOOK_DEV_MSG(LtHook::wform(L"Alert handler already stopped"));
+		LTHOOK_DEV_MSG(LTHook::wform(L"Alert handler already stopped"));
 	}
 }
 	
@@ -430,9 +430,9 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(lbt_category_to_event(a.category()), a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_EXTERNAL_IP_ALERT))
-					% LtHook::from_utf8_safe(a.message())
-					% LtHook::from_utf8_safe(a.external_address.to_string()))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_EXTERNAL_IP_ALERT))
+					% LTHook::from_utf8_safe(a.message())
+					% LTHook::from_utf8_safe(a.external_address.to_string()))
 		)	);				
 	}
 
@@ -440,10 +440,10 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(lbt_category_to_event(a.category()), a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_PORTMAP_ERROR_ALERT))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_PORTMAP_ERROR_ALERT))
 				% (a.type == 0 ? 
-					LtHook::app().res_wstr(LTHOOK_PORTMAP_TYPE_PMP) : 
-					LtHook::app().res_wstr(LTHOOK_PORTMAP_TYPE_UPNP)))
+					LTHook::app().res_wstr(LTHOOK_PORTMAP_TYPE_PMP) : 
+					LTHook::app().res_wstr(LTHOOK_PORTMAP_TYPE_UPNP)))
 		)	);				
 	}
 
@@ -451,10 +451,10 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(lbt_category_to_event(a.category()), a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_PORTMAP_ALERT))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_PORTMAP_ALERT))
 				% (a.type == 0 ? 
-					LtHook::app().res_wstr(LTHOOK_PORTMAP_TYPE_PMP) : 
-					LtHook::app().res_wstr(LTHOOK_PORTMAP_TYPE_UPNP))
+					LTHook::app().res_wstr(LTHOOK_PORTMAP_TYPE_PMP) : 
+					LTHook::app().res_wstr(LTHOOK_PORTMAP_TYPE_UPNP))
 				% a.external_port)
 		)	);				
 	}
@@ -463,9 +463,9 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(lbt_category_to_event(a.category()), a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_FILE_ERROR_ALERT))
-				% LtHook::from_utf8_safe(a.file)
-				% LtHook::from_utf8_safe(a.msg))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_FILE_ERROR_ALERT))
+				% LTHook::from_utf8_safe(a.file)
+				% LTHook::from_utf8_safe(a.msg))
 		)	);				
 	}
 	
@@ -473,7 +473,7 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(lbt_category_to_event(a.category()), a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_DHT_REPLY_ALERT))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_DHT_REPLY_ALERT))
 					% a.num_peers)
 		)	);				
 	}
@@ -483,7 +483,7 @@ void bit_impl::alert_handler()
 		LTHOOK_DEV_MSG(L"torrent_finished_alert");
 
 		event_log.post(shared_ptr<EventDetail>(
-			new EventMsg((LtHook::wform(LtHook::app().res_wstr(LBT_EVENT_TORRENT_FINISHED)) 
+			new EventMsg((LTHook::wform(LTHook::app().res_wstr(LBT_EVENT_TORRENT_FINISHED)) 
 					% get(a.handle)->name()), 
 				event_logger::info, a.timestamp())));
 		
@@ -495,7 +495,7 @@ void bit_impl::alert_handler()
 		LTHOOK_DEV_MSG(L"torrent_paused_alert");
 
 		event_log.post(shared_ptr<EventDetail>(
-			new EventMsg((LtHook::wform(LtHook::app().res_wstr(LBT_EVENT_TORRENT_PAUSED)) 
+			new EventMsg((LTHook::wform(LTHook::app().res_wstr(LBT_EVENT_TORRENT_PAUSED)) 
 					% get(a.handle)->name()), 
 				event_logger::info, a.timestamp())));
 
@@ -505,7 +505,7 @@ void bit_impl::alert_handler()
 	void operator()(libt::save_resume_data_alert const& a) const
 	{
 		event_log.post(shared_ptr<EventDetail>(
-			new EventMsg((LtHook::wform(LtHook::app().res_wstr(LTHOOK_WRITE_RESUME_ALERT)) 
+			new EventMsg((LTHook::wform(LTHook::app().res_wstr(LTHOOK_WRITE_RESUME_ALERT)) 
 					% get(a.handle)->name()), 
 				event_logger::info, a.timestamp())));
 
@@ -518,9 +518,9 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(lbt_category_to_event(a.category()), a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_PEER_ALERT))
-					% LtHook::from_utf8_safe(a.message())
-					% LtHook::from_utf8_safe(a.ip.address().to_string()))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_PEER_ALERT))
+					% LTHook::from_utf8_safe(a.message())
+					% LTHook::from_utf8_safe(a.ip.address().to_string()))
 		)	);				
 	}
 		
@@ -528,9 +528,9 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(lbt_category_to_event(a.category()), a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_PEER_BAN_ALERT))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_PEER_BAN_ALERT))
 					% get(a.handle)->name()
-					% LtHook::from_utf8_safe(a.ip.address().to_string()))
+					% LTHook::from_utf8_safe(a.ip.address().to_string()))
 		)	);				
 	}
 		
@@ -538,7 +538,7 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(lbt_category_to_event(a.category()), a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_HASH_FAIL_ALERT))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_HASH_FAIL_ALERT))
 					% get(a.handle)->name()
 					% a.piece_index)
 		)	);				
@@ -548,10 +548,10 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(lbt_category_to_event(a.category()), a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_URL_SEED_ALERT))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_URL_SEED_ALERT))
 					% get(a.handle)->name()
-					% LtHook::from_utf8_safe(a.url)
-					% LtHook::from_utf8_safe(a.message()))
+					% LTHook::from_utf8_safe(a.url)
+					% LTHook::from_utf8_safe(a.message()))
 		)	);				
 	}
 	
@@ -559,18 +559,18 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(lbt_category_to_event(a.category()), a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_TRACKER_WARNING_ALERT))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_TRACKER_WARNING_ALERT))
 					% get(a.handle)->name()
-					% LtHook::from_utf8_safe(a.message()))
+					% LTHook::from_utf8_safe(a.message()))
 		)	);				
 	}
 	
 	void operator()(libt::tracker_announce_alert const& a) const
 	{
-		LTHOOK_DEV_MSG(LtHook::wform(L"LTHOOK_TRACKER_ANNOUNCE_ALERT"));
+		LTHOOK_DEV_MSG(LTHook::wform(L"LTHOOK_TRACKER_ANNOUNCE_ALERT"));
 
 		event_log.post(shared_ptr<EventDetail>(
-			new EventMsg((LtHook::wform(LtHook::app().res_wstr(LTHOOK_TRACKER_ANNOUNCE_ALERT)) 
+			new EventMsg((LTHook::wform(LTHook::app().res_wstr(LTHOOK_TRACKER_ANNOUNCE_ALERT)) 
 					% get(a.handle)->name()), 
 				event_logger::info, a.timestamp())));
 	}
@@ -579,9 +579,9 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(lbt_category_to_event(a.category()), a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_TRACKER_ALERT))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_TRACKER_ALERT))
 					% get(a.handle)->name()
-					% LtHook::from_utf8_safe(a.message())
+					% LTHook::from_utf8_safe(a.message())
 					% a.times_in_row
 					% a.status_code)
 		)	);				
@@ -591,9 +591,9 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(lbt_category_to_event(a.category()), a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_TRACKER_REPLY_ALERT))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_TRACKER_REPLY_ALERT))
 					% get(a.handle)->name()
-					% LtHook::from_utf8_safe(a.message())
+					% LTHook::from_utf8_safe(a.message())
 					% a.num_peers)
 		)	);				
 	}
@@ -602,9 +602,9 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(lbt_category_to_event(a.category()), a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_FAST_RESUME_ALERT))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_FAST_RESUME_ALERT))
 					% get(a.handle)->name()
-					% LtHook::from_utf8_safe(a.message()))
+					% LTHook::from_utf8_safe(a.message()))
 		)	);				
 	}
 	
@@ -612,7 +612,7 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(event_logger::debug, a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_PIECE_FINISHED_ALERT))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_PIECE_FINISHED_ALERT))
 					% get(a.handle)->name()
 					% a.piece_index)
 		)	);				
@@ -622,7 +622,7 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(event_logger::debug, a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_BLOCK_FINISHED_ALERT))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_BLOCK_FINISHED_ALERT))
 					% get(a.handle)->name()
 					% a.block_index
 					% a.piece_index)
@@ -633,7 +633,7 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(event_logger::debug, a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_BLOCK_DOWNLOADING_ALERT))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_BLOCK_DOWNLOADING_ALERT))
 					% get(a.handle)->name()
 					% a.block_index
 					% a.piece_index)
@@ -646,15 +646,15 @@ void bit_impl::alert_handler()
 		{	
 			event_log.post(shared_ptr<EventDetail>(
 				new EventGeneral(event_logger::info, a.timestamp(),
-					LtHook::app().res_wstr(LTHOOK_LISTEN_V6_FAILED_ALERT))
+					LTHook::app().res_wstr(LTHOOK_LISTEN_V6_FAILED_ALERT))
 			)	);		
 		}
 		else
 		{
 			event_log.post(shared_ptr<EventDetail>(
 				new EventGeneral(event_logger::info, a.timestamp(),
-					LtHook::wform(LtHook::app().res_wstr(LTHOOK_LISTEN_FAILED_ALERT))
-						% LtHook::from_utf8_safe(a.message()))
+					LTHook::wform(LTHook::app().res_wstr(LTHOOK_LISTEN_FAILED_ALERT))
+						% LTHook::from_utf8_safe(a.message()))
 			)	);
 		}
 	}
@@ -663,8 +663,8 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(event_logger::info, a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_LISTEN_SUCCEEDED_ALERT))
-					% LtHook::from_utf8_safe(a.message()))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_LISTEN_SUCCEEDED_ALERT))
+					% LTHook::from_utf8_safe(a.message()))
 		)	);	
 
 		//bit_impl_.signals.successful_listen();
@@ -674,17 +674,17 @@ void bit_impl::alert_handler()
 	{
 		event_log.post(shared_ptr<EventDetail>(
 			new EventGeneral(event_logger::debug, a.timestamp(),
-				LtHook::wform(LtHook::app().res_wstr(LTHOOK_IPFILTER_ALERT))
-					% LtHook::from_utf8_safe(a.ip.to_string())
-					% LtHook::from_utf8_safe(a.message()))
+				LTHook::wform(LTHook::app().res_wstr(LTHOOK_IPFILTER_ALERT))
+					% LTHook::from_utf8_safe(a.ip.to_string())
+					% LTHook::from_utf8_safe(a.message()))
 		)	);				
 	}
 	
 /*	void operator()(libt::alert const& a) const
 	{
 		event_log.post(shared_ptr<EventDetail>(
-				new EventLibtorrent(lbtAlertToLtHookEvent(a.severity()), 
-					a.timestamp(), event_logger::unclassified, LtHook::from_utf8_safe(a.message()))));		
+				new EventLibtorrent(lbtAlertToLTHookEvent(a.severity()), 
+					a.timestamp(), event_logger::unclassified, LTHook::from_utf8_safe(a.message()))));		
 	}*/
 	
 	private:

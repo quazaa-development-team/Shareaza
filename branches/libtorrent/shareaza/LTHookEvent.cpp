@@ -8,7 +8,7 @@
 
 #include "stdAfx.hpp"
 
-#include "LtHookEvent.hpp"
+#include "LTHookEvent.hpp"
 //TODO: Find code this is needed for and replace it with Shareaza Code
 //#include "Halite.hpp"
 
@@ -32,7 +32,7 @@
 #	include <libtorrent/peer_connection.hpp>
 #pragma warning (pop) 
 
-namespace LtHook
+namespace LTHook
 {
 
 struct event_impl
@@ -84,7 +84,7 @@ void event_logger::post(boost::shared_ptr<EventDetail> e)
 	if (pimpl_)
 	{//TODO: Replace commented out code with Shareaza equivalent
 	mutex_t::scoped_lock l(pimpl_->mutex_);
-	if (e->level() != LtHook::event_logger::debug || /*halite().logDebug()*/)
+	if (e->level() != LTHook::event_logger::debug || /*halite().logDebug()*/)
 		pimpl_->event_signal_(e);
 	}
 }
@@ -94,22 +94,22 @@ std::wstring event_logger::eventLevelToStr(eventLevel event)
 	switch (event)
 	{
 	case debug:
-		return LtHook::app().res_wstr(LTHOOK_EVENTDEBUG);
+		return LTHook::app().res_wstr(LTHOOK_EVENTDEBUG);
 	case info:
-		return LtHook::app().res_wstr(LTHOOK_EVENTINFO);
+		return LTHook::app().res_wstr(LTHOOK_EVENTINFO);
 	case warning:
-		return LtHook::app().res_wstr(LTHOOK_EVENTWARNING);
+		return LTHook::app().res_wstr(LTHOOK_EVENTWARNING);
 	case critical:
-		return LtHook::app().res_wstr(LTHOOK_EVENTCRITICAL);
+		return LTHook::app().res_wstr(LTHOOK_EVENTCRITICAL);
 	case fatal:
-		return LtHook::app().res_wstr(LTHOOK_EVENTCRITICAL);
+		return LTHook::app().res_wstr(LTHOOK_EVENTCRITICAL);
 	case xml_dev:
 		return L"XML Log";
 	case torrent_dev:
 		return L"Torrent Log";
 	default:
-		return LtHook::app().res_wstr(LTHOOK_EVENTNONE);
+		return LTHook::app().res_wstr(LTHOOK_EVENTNONE);
 	}
 }
 
-} // namespace LtHook
+} // namespace LTHook

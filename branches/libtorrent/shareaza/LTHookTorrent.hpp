@@ -43,11 +43,11 @@
 #include <boost/asio/ip/udp.hpp>
 //#endif
 
-#include "LtHookTypes.hpp"
+#include "LTHookTypes.hpp"
 
 namespace libtorrent { struct peer_info; }
 
-namespace LtHook 
+namespace LTHook 
 {
 
 inline boost::wformat wform(const std::wstring & f_string) 
@@ -853,7 +853,7 @@ public:
 	}
 	
 	template<>
-	torrent get(const LtHook::torrent_details_ptr t)
+	torrent get(const LTHook::torrent_details_ptr t)
 	{
 		if (t) 
 			return get_wstr(t->name());
@@ -910,7 +910,7 @@ public:
 
 	void set_torrent_defaults(const connections& defaults);	
 	void add_torrent(boost::filesystem::wpath file, boost::filesystem::wpath saveDirectory, 
-		bool startPaused=false, bool managed=false, allocations alloc=LtHook::bit::sparse_allocation, 
+		bool startPaused=false, bool managed=false, allocations alloc=LTHook::bit::sparse_allocation, 
 		boost::filesystem::wpath moveToDirectory=L"", bool useMoveTo=false);
 	
 	void get_all_peer_details(const std::string& filename, PeerDetails& peerContainer);

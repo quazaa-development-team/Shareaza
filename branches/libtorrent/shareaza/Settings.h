@@ -20,7 +20,7 @@
 //
 
 #pragma once
-#include "LtHookTorrent.hpp"
+#include "LTHookTorrent.hpp"
 
 enum
 {
@@ -444,7 +444,7 @@ public:
 		bool		PreferenceBTSources;		// Preference downloading from BT sources where appropriate
 		DWORD		DhtPruneTime;
 		bool        ManagedTorrent;             // Should torrent be managed torrent
-		LtHook::bit::allocations AllocationType;  //Torrent Allocation Type
+		LTHook::bit::allocations AllocationType;  //Torrent Allocation Type
 	} BitTorrent;
 
 	struct sDownloads
