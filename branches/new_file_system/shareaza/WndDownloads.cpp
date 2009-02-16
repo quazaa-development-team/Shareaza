@@ -1015,16 +1015,8 @@ void CDownloadsWnd::OnDownloadsEnqueue()
 
 		if ( Downloads.Check( pDownload ) )
 		{
-			if ( pDownload->IsStarted() )
-			{
-				CString strPath = pDownload->m_sPath;
-				CString strExt = pDownload->m_sName.Mid(
-					pDownload->m_sName.ReverseFind( '.' ) );
-
-				pLock.Unlock();
-				CFileExecutor::Enqueue( strPath, FALSE, strExt );
-				pLock.Lock();
-			}
+			if ( ! pDownload->Enqueue( -1, &pLock ) )
+				break;
 		}
 	}
 }
