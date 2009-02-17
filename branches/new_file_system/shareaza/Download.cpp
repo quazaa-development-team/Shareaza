@@ -173,9 +173,9 @@ void CDownload::Remove(bool bDelete)
 
 	if ( ! m_sPath.IsEmpty() )
 	{
-		::DeleteFile( m_sPath + _T(".png"), FALSE, TRUE );
-		::DeleteFile( m_sPath + _T(".sav"), FALSE, TRUE );
-		::DeleteFile( m_sPath, FALSE, TRUE );
+		DeleteFileEx( m_sPath + _T(".png"), FALSE, FALSE, TRUE );
+		DeleteFileEx( m_sPath + _T(".sav"), FALSE, FALSE, TRUE );
+		DeleteFileEx( m_sPath, FALSE, FALSE, TRUE );
 		m_sPath.Empty();
 	}
 
@@ -493,9 +493,9 @@ void CDownload::OnMoved(CDownloadTask* pTask)
 	ClearSources();
 
 	ASSERT( ! m_sPath.IsEmpty() );
-	::DeleteFile( m_sPath + _T(".png"), FALSE, TRUE );
-	::DeleteFile( m_sPath + _T(".sav"), FALSE, TRUE );
-	::DeleteFile( m_sPath, FALSE, TRUE );
+	DeleteFileEx( m_sPath + _T(".png"), FALSE, FALSE, TRUE );
+	DeleteFileEx( m_sPath + _T(".sav"), FALSE, FALSE, TRUE );
+	DeleteFileEx( m_sPath, FALSE, FALSE, TRUE );
 	m_sPath.Empty();
 }
 
@@ -591,7 +591,7 @@ BOOL CDownload::Save(BOOL bFlush)
 	if ( m_bSeeding && !Settings.BitTorrent.AutoSeed )
 		return TRUE;
 
-	::DeleteFile( m_sPath + _T(".sav"), FALSE, FALSE );
+	DeleteFileEx( m_sPath + _T(".sav"), FALSE, FALSE, FALSE );
 
 	CFile pFile;
 	if ( ! pFile.Open( m_sPath + _T(".sav"),
@@ -635,7 +635,7 @@ BOOL CDownload::Save(BOOL bFlush)
 			MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH );
 	}
 	else
-		::DeleteFile( m_sPath + _T(".sav"), FALSE, FALSE );
+		DeleteFileEx( m_sPath + _T(".sav"), FALSE, FALSE, FALSE );
 
 	ASSERT( bSuccess );
 	return bSuccess;

@@ -428,7 +428,7 @@ BOOL CFilePreviewDlg::RunManual(HANDLE hFile)
 
 	if ( m_bCancel )
 	{
-		DeleteFile( m_sTargetName, FALSE, TRUE );
+		DeleteFileEx( m_sTargetName, FALSE, FALSE, TRUE );
 		return FALSE;
 	}
 

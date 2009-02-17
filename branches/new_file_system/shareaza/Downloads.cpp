@@ -1144,7 +1144,6 @@ void CDownloads::Load()
 	CSingleLock pLock( &Transfers.m_pSection, TRUE );
 	CString strPath;
 
-	PurgeDeletes();
 	PurgePreviews();
 
 	DownloadGroups.CreateDefault();
@@ -1169,8 +1168,9 @@ void CDownloads::Load()
 					if ( ! Settings.BitTorrent.AutoSeed )
 					{
 						theApp.Message( MSG_NOTICE, IDS_DOWNLOAD_REMOVE, pDownload->m_sName );
-						::DeleteFile( strPath, TRUE, TRUE );
-						::DeleteFile( strPath + _T(".sav"), TRUE, TRUE );
+						DeleteFileEx( strPath, FALSE, TRUE, TRUE );
+						DeleteFileEx( strPath + _T(".sav"), FALSE, FALSE, TRUE );
+						DeleteFileEx( strPath + _T(".png"), FALSE, FALSE, TRUE );
 						continue;
 					}
 					pDownload->m_bComplete = TRUE;
@@ -1182,8 +1182,9 @@ void CDownloads::Load()
 			{
 				theApp.Message( MSG_ERROR, IDS_DOWNLOAD_REMOVE,
 					( pDownload->m_sName.IsEmpty() ? strPath : pDownload->m_sName ) );
-				::DeleteFile( strPath, TRUE, TRUE );
-				::DeleteFile( strPath + _T(".sav"), TRUE, TRUE );
+				DeleteFileEx( strPath, FALSE, TRUE, TRUE );
+				DeleteFileEx( strPath + _T(".sav"), FALSE, FALSE, TRUE );
+				DeleteFileEx( strPath + _T(".png"), FALSE, FALSE, TRUE );
 			}
 		}
 		while ( FindNextFile( hSearch, &pFind ) );
@@ -1225,11 +1226,11 @@ void CDownloads::LoadFromCompoundFiles()
 		// Good
 	}
 
-	DeleteFile( Settings.Downloads.IncompletePath + _T("\\Shareaza Downloads.dat"), TRUE, TRUE );
-	DeleteFile( Settings.Downloads.IncompletePath + _T("\\Shareaza Downloads.bak"), TRUE, TRUE );
-	DeleteFile( Settings.Downloads.IncompletePath + _T("\\Shareaza.dat"), TRUE, TRUE );
-	DeleteFile( Settings.Downloads.IncompletePath + _T("\\Shareaza1.dat"), TRUE, TRUE );
-	DeleteFile( Settings.Downloads.IncompletePath + _T("\\Shareaza2.dat"), TRUE, TRUE );
+	DeleteFileEx( Settings.Downloads.IncompletePath + _T("\\Shareaza Downloads.dat"), FALSE, TRUE, TRUE );
+	DeleteFileEx( Settings.Downloads.IncompletePath + _T("\\Shareaza Downloads.bak"), FALSE, TRUE, TRUE );
+	DeleteFileEx( Settings.Downloads.IncompletePath + _T("\\Shareaza.dat"), FALSE, TRUE, TRUE );
+	DeleteFileEx( Settings.Downloads.IncompletePath + _T("\\Shareaza1.dat"), FALSE, TRUE, TRUE );
+	DeleteFileEx( Settings.Downloads.IncompletePath + _T("\\Shareaza2.dat"), FALSE, TRUE, TRUE );
 }
 
 BOOL CDownloads::LoadFromCompoundFile(LPCTSTR pszFile)
@@ -1335,36 +1336,6 @@ void CDownloads::SerializeCompound(CArchive& ar)
 //////////////////////////////////////////////////////////////////////
 // CDownloads left over file purge operations
 
-void CDownloads::PurgeDeletes()
-{
-	CList< CString > pRemove;
-	HKEY hKey = NULL;
-
-	if ( ERROR_SUCCESS != RegOpenKeyEx( HKEY_CURRENT_USER,
-		_T("Software\\Shareaza\\Shareaza\\Delete"), 0, KEY_ALL_ACCESS, &hKey ) ) return;
-
-	for ( DWORD nIndex = 0 ; nIndex < 1000 ; nIndex ++ )
-	{
-		DWORD nPath = MAX_PATH*2;
-		TCHAR szPath[MAX_PATH*2];
-
-		if ( ERROR_SUCCESS != RegEnumValue( hKey, nIndex, szPath, &nPath, NULL,
-			NULL, NULL, NULL ) ) break;
-
-		if ( DeleteFile( szPath, FALSE, FALSE ) )
-		{
-			pRemove.AddTail( szPath );
-		}
-	}
-
-	while ( ! pRemove.IsEmpty() )
-	{
-		RegDeleteValue( hKey, pRemove.RemoveHead() );
-	}
-
-	RegCloseKey( hKey );
-}
-
 void CDownloads::PurgePreviews()
 {
 	WIN32_FIND_DATA pFind;
@@ -1380,7 +1351,7 @@ void CDownloads::PurgePreviews()
 		if ( _tcsnicmp( pFind.cFileName, _T("Preview of "), 11 ) == 0 )
 		{
 			strPath = Settings.Downloads.IncompletePath + '\\' + pFind.cFileName;
-			DeleteFile( strPath, FALSE, TRUE );
+			DeleteFileEx( strPath, FALSE, FALSE, TRUE );
 		}
 	}
 	while ( FindNextFile( hSearch, &pFind ) );
