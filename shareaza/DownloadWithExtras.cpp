@@ -111,7 +111,7 @@ void CDownloadWithExtras::DeletePreviews()
 		POSITION posRemove = pos;
 		CString strPath = m_pPreviews.GetNext( pos );
 		
-		if ( ::DeleteFile( strPath, FALSE, TRUE ) )
+		if ( DeleteFileEx( strPath, FALSE, FALSE, TRUE ) )
 			m_pPreviews.RemoveAt( posRemove );
 	}
 	

@@ -770,7 +770,7 @@ void CLibraryFolder::Maintain(BOOL bAdd)
 			SetFileAttributes( sDesktopINI, dwDesktopINIAttr &
 				~( FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM ) );
 
-			DeleteFile( sDesktopINI, FALSE, TRUE );
+			DeleteFileEx( sDesktopINI, FALSE, FALSE, FALSE );
 		}
 	}
 }

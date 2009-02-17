@@ -116,7 +116,6 @@ protected:
 	BOOL		LoadFromCompoundFile(LPCTSTR pszFile);
 	BOOL		LoadFromTimePair();
 	void		SerializeCompound(CArchive& ar);
-	void		PurgeDeletes();
 	void		PurgePreviews();
 
 // Inlines

@@ -502,7 +502,8 @@ BOOL CZIPFile::File::Extract(LPCTSTR pszFile)
 
 	if ( nUncompressed >= m_nSize ) return TRUE;
 
-	DeleteFile( pszFile, FALSE, TRUE );
+	DeleteFileEx( pszFile, FALSE, FALSE, TRUE );
+
 	return FALSE;
 }
 

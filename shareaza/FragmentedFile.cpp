@@ -425,12 +425,9 @@ void CFragmentedFile::Delete()
 
 	for( CVirtualFile::const_iterator i = oFoo.begin(); i != oFoo.end(); ++i )
 	{
-		// Close chained uploads
-		while( ! Uploads.OnRename( (*i).m_sPath, NULL, true ) )
-			Sleep( 250ul );
-
 		// Delete subfile
-		DeleteFile( (*i).m_sPath, ! (*i).m_bWrite, TRUE );
+		BOOL bToRecycleBin = ! (*i).m_bWrite;
+		DeleteFileEx( (*i).m_sPath, TRUE, bToRecycleBin, TRUE );
 	}
 }
 

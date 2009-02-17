@@ -479,7 +479,7 @@ BOOL CDownloadTask::CopyFile(HANDLE hSource, LPCTSTR pszTarget, QWORD nLength)
 
 	CloseHandle( hTarget );
 	if ( nLength > 0 )
-		DeleteFile( pszTarget, FALSE, TRUE );
+		DeleteFileEx( pszTarget, TRUE, FALSE, TRUE );
 
 	return ( nLength == 0 );
 }
