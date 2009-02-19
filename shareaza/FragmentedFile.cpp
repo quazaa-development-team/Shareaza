@@ -592,7 +592,7 @@ void CFragmentedFile::Serialize(CArchive& ar, int nVersion)
 	{
 		SerializeOut1( ar, m_oFList );
 
-		ar << m_oFile.size();
+		ar << (DWORD)m_oFile.size();
 		for ( CVirtualFile::const_iterator i = m_oFile.begin();
 			i != m_oFile.end(); ++i )
 		{
@@ -611,9 +611,9 @@ void CFragmentedFile::Serialize(CArchive& ar, int nVersion)
 
 		if ( nVersion >= 40 )
 		{
-			size_t count = 0;
+			DWORD count = 0;
 			ar >> count;
-			for ( size_t i = 0; i < count; ++i )
+			for ( DWORD i = 0; i < count; ++i )
 			{
 				CString sPath;
 				ar >> sPath;
