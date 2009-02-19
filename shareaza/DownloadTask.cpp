@@ -1,7 +1,7 @@
 //
 // DownloadTask.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2008.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -568,7 +568,6 @@ CBuffer* CDownloadTask::IsPreviewAnswerValid()
 
 		if ( m_pDownload )
 		{
-			ASSERT( Downloads.Check( m_pDownload ) );
 			if ( oSHA1.fromUrn( strURN ) && validAndUnequal( oSHA1, m_pDownload->m_oSHA1 ) )
 				bValid = false;
 		}

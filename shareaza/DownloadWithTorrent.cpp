@@ -257,9 +257,11 @@ BOOL CDownloadWithTorrent::SetTorrent(const CBTInfo& oTorrent)
 	ZeroMemory( m_pTorrentBlock, sizeof(BYTE) * m_nTorrentBlock );
 	SetModified();
 	
-	CreateDirectory( Settings.Downloads.TorrentPath );
-	LibraryFolders.AddFolder( Settings.Downloads.TorrentPath, FALSE );
-	oTorrent.SaveTorrentFile( Settings.Downloads.TorrentPath );
+	if ( CreateDirectory( Settings.Downloads.TorrentPath ) )
+	{
+		LibraryFolders.AddFolder( Settings.Downloads.TorrentPath, FALSE );
+		oTorrent.SaveTorrentFile( Settings.Downloads.TorrentPath );
+	}
 
 	if ( ! Settings.BitTorrent.AdvancedInterfaceSet )
 	{
