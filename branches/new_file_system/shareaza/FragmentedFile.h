@@ -163,7 +163,7 @@ public:
 	// Get amount of files
 	inline DWORD GetCount() const
 	{
-		return m_oFile.size();
+		return (DWORD)m_oFile.size();
 	}
 
 	// Are all of subfiles open?
