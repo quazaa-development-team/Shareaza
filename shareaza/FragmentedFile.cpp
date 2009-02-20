@@ -626,7 +626,13 @@ void CFragmentedFile::Serialize(CArchive& ar, int nVersion)
 				CString sName;
 				if ( nVersion >= 41 )
 					ar >> sName;
-				if ( ! Open( sPath, nOffset, nLength, bWrite, sName ) )
+
+				if ( ! Open( sPath, nOffset, nLength, bWrite, sName ) &&
+					// Try to open file for write from current incomplete folder
+					// (in case of changed folder)
+					( ! bWrite || ! Open( Settings.Downloads.IncompletePath +
+						sPath.Mid( sPath.ReverseFind( _T('\\') ) ), nOffset,
+						nLength, bWrite, sName ) ) )
 				{
 					theApp.Message( MSG_ERROR, IDS_DOWNLOAD_FILE_OPEN_ERROR, sPath );
 					AfxThrowFileException( CFileException::fileNotFound );
