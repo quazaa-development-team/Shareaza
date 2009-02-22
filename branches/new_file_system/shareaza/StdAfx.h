@@ -227,6 +227,11 @@ using augment::IUnknownImplementation;
 
 #include "../HashLib/HashLib.h"
 
+// BugTrap http://www.intellesoft.net/
+#ifdef _DEBUG
+	#include "../BugTrap/BugTrap.h"
+#endif
+
 typedef CString StringType;
 
 //! \brief Hash function needed for CMap with const CString& as ARG_KEY.
