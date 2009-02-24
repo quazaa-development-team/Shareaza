@@ -404,6 +404,7 @@ CSettings::CSettings()
 	Add( _T("BitTorrent"), _T("ClearRatio"), &BitTorrent.ClearRatio, 120, 1, 100, 999, _T(" %") );
 	Add( _T("BitTorrent"), _T("DefaultTracker"), &BitTorrent.DefaultTracker );
 	Add( _T("BitTorrent"), _T("DefaultTrackerPeriod"), &BitTorrent.DefaultTrackerPeriod, 5*60000, 60000, 5, 120, _T(" m") );
+	Add( _T("BitTorrent"), _T("EnableToday"), &BitTorrent.EnableToday, true );
 	Add( _T("BitTorrent"), _T("DhtPruneTime"), &BitTorrent.DhtPruneTime, 30*60, 60, 10, 7*24*60*60, _T(" m") );
 	Add( _T("BitTorrent"), _T("DownloadConnections"), &BitTorrent.DownloadConnections, 40, 1, 1, 800 );
 	Add( _T("BitTorrent"), _T("DownloadTorrents"), &BitTorrent.DownloadTorrents, 3, 1, 1, 10 );

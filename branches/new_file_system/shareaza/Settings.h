@@ -421,6 +421,7 @@ public:
 
 	struct sBitTorrent
 	{
+		bool		EnableToday;
 		bool		AdvancedInterface;			// Display BT 'extras' (Seed Torrent box, etc)
 		bool		AdvancedInterfaceSet;		// Has Shareaza auto-set the above value (first time a user downloads a torrent)
 		CString		TorrentCreatorPath;			// Location of the program used to create .torrent files
