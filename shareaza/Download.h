@@ -110,7 +110,7 @@ public:
 	inline BOOL IsShared() const
 	{
 		return ! IsPaused(TRUE) ? m_bShared ||
-			( IsTorrent() && ( IsSeeding() || IsStarted() ) ) ||
+			( Settings.BitTorrent.EnableToday && IsTorrent() && ( IsSeeding() || IsStarted() ) ) ||
 			( Settings.eDonkey.EnableToday && m_oED2K ) : m_bShared;
 	}
 
