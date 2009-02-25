@@ -141,15 +141,18 @@ BOOL CGGEPBlock::ReadInternal()
 {
 	while ( m_nInput )
 	{
-		if ( ReadByte() == GGEP_MAGIC ) break;
+		if ( ReadByte() == GGEP_MAGIC )
+			break;
 	}
 
-	if ( ! m_nInput ) return FALSE;
+	if ( ! m_nInput )
+		return FALSE;
 
 	while ( m_nInput >= 3 )
 	{
 		BYTE nFlags = ReadByte();
-		if ( ! ( nFlags & GGEP_HDR_IDLEN ) ) return FALSE;
+		if ( ( nFlags & GGEP_HDR_IDLEN ) == 0 )
+			return FALSE;
 
 		CGGEPItem* pItem = new CGGEPItem();
 
@@ -166,7 +169,8 @@ BOOL CGGEPBlock::ReadInternal()
 			return FALSE;
 		}
 
-		if ( nFlags & GGEP_HDR_LAST ) return TRUE;
+		if ( ( nFlags & GGEP_HDR_LAST ) == GGEP_HDR_LAST )
+			return TRUE;
 	}
 
 	return FALSE;
