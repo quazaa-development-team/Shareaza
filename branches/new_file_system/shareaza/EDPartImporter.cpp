@@ -1,7 +1,7 @@
 //
 // EDPartImporter.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2008.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -296,7 +296,8 @@ BOOL CEDPartImporter::ImportFile(LPCTSTR pszPath, LPCTSTR pszFile)
 	if ( ! pData.Open( strPath, CFile::modeRead ) ) return FALSE;
 	pData.GetStatus( pStatus );
 	pData.Close();
-	if ( nDate > mktime( pStatus.m_mtime.GetLocalTm( NULL ) ) )
+	struct tm ptmTemp = {};
+	if ( nDate > mktime( pStatus.m_mtime.GetLocalTm( &ptmTemp ) ) )
 	{
 		Message( IDS_ED2K_EPI_FILE_OLD );
 		return FALSE;
@@ -318,6 +319,7 @@ BOOL CEDPartImporter::ImportFile(LPCTSTR pszPath, LPCTSTR pszFile)
 	Transfers.m_pSection.Lock();
 
 	CDownload* pDownload = Downloads.Add();
+	
 	pDownload->m_oED2K			= oED2K;
 	pDownload->m_bED2KTrusted	= true; // .part use trusted hashes
 	pDownload->m_nSize			= nSize;
