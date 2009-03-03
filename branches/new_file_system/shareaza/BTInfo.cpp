@@ -157,7 +157,7 @@ CString	CBTInfo::CBTFile::FindFile()
 						if ( ! pShared ||
 							 GetFileSize( CString( _T("\\\\?\\") ) + strFile ) != m_nSize )
 						{
-							return CString();
+							return m_sPath;
 						}
 					}
 				}

@@ -229,7 +229,7 @@ BOOL CFragmentedFile::Open(const CShareazaFile& oSHFile, BOOL bWrite)
 	return TRUE;
 }
 
-BOOL CFragmentedFile::Open(const CBTInfo& oInfo, BOOL bWrite)
+BOOL CFragmentedFile::Open(const CBTInfo& oInfo, BOOL bWrite, CString& sErrorMessage)
 {
 	CString sUniqueName = oInfo.GetFilename();
 	int i = 0;
@@ -261,11 +261,11 @@ BOOL CFragmentedFile::Open(const CBTInfo& oInfo, BOOL bWrite)
 
 		if ( ! Open( strSource, nOffset, pBTFile->m_nSize, bWrite, pBTFile->m_sPath ) )
 		{
-			CString strMessage;
-			strMessage.Format( bWrite ? IDS_DOWNLOAD_FILE_CREATE_ERROR :
+			sErrorMessage.Format( bWrite ? IDS_DOWNLOAD_FILE_CREATE_ERROR :
 				IDS_BT_SEED_SOURCE_LOST, (LPCTSTR)strSource );
-			theApp.Message( MSG_ERROR, _T("%s %s"),
-				strMessage, (LPCTSTR)GetErrorString( m_nFileError ) );
+			sErrorMessage += _T(" ");
+			sErrorMessage += (LPCTSTR)GetErrorString( m_nFileError );
+			theApp.Message( MSG_ERROR, _T("%s"), sErrorMessage );
 
 			Close();
 			return FALSE;
