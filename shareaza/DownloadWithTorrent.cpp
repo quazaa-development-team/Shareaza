@@ -862,7 +862,8 @@ BOOL CDownloadWithTorrent::SeedTorrent(CString& sErrorMessage)
 	ASSERT( m_pTorrent.GetCount() );
 
 	CFragmentedFile* pFragmentedFile = new CFragmentedFile;
-	if ( ! pFragmentedFile || ! pFragmentedFile->Open( m_pTorrent ) )
+	if ( ! pFragmentedFile ||
+		 ! pFragmentedFile->Open( m_pTorrent, FALSE, sErrorMessage ) )
 	{
 		if ( pFragmentedFile )
 			pFragmentedFile->Release();

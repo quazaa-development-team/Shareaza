@@ -271,8 +271,9 @@ BOOL CUploadTransferBT::OpenFile()
 		// HACK: Open from disk (replace this with SeedTorrent in OnDownloadComplete)
 		if ( m_pClient->m_pDownload->IsSeeding() )
 		{
+			CString sFoo;
 			pFile = new CFragmentedFile;
-			if ( pFile && pFile->Open( m_pClient->m_pDownload->m_pTorrent ) )
+			if ( pFile && pFile->Open( m_pClient->m_pDownload->m_pTorrent, FALSE, sFoo ) )
 			{
 				AttachFile( pFile );
 				return TRUE;
