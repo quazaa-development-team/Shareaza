@@ -654,12 +654,18 @@ void CFragmentedFile::Serialize(CArchive& ar, int nVersion)
 					ar >> nPriority;
 				}
 
+				if ( sPath.IsEmpty() ||
+					bWrite < FALSE || bWrite > TRUE ||
+					sName.IsEmpty() ||
+					nPriority < prNotWanted || nPriority > prHigh )
+					AfxThrowArchiveException( CArchiveException::genericException );
+
 				if ( ! Open( sPath, nOffset, nLength, bWrite, sName, nPriority ) &&
 					// Try to open file for write from current incomplete folder
 					// (in case of changed folder)
 					( ! bWrite || ! Open( Settings.Downloads.IncompletePath +
-						sPath.Mid( sPath.ReverseFind( _T('\\') ) ), nOffset,
-						nLength, bWrite, sName, nPriority ) ) )
+							sPath.Mid( sPath.ReverseFind( _T('\\') ) ), nOffset,
+							nLength, bWrite, sName, nPriority ) ) )
 				{
 					theApp.Message( MSG_ERROR, IDS_DOWNLOAD_FILE_OPEN_ERROR, sPath );
 					AfxThrowFileException( CFileException::fileNotFound );

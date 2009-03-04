@@ -522,14 +522,11 @@ BOOL CDownload::Load(LPCTSTR pszName)
 			if ( pException->m_cause == CFileException::fileNotFound )
 			{
 				// Subfile missing
-				pException->Delete();
 				return FALSE;
 			}
-			pException->Delete();
 		}
 		AND_CATCH_ALL( pException )
 		{
-			pException->Delete();
 			theApp.Message( MSG_ERROR, IDS_DOWNLOAD_FILE_OPEN_ERROR, m_sPath );
 		}
 		END_CATCH_ALL
@@ -550,14 +547,11 @@ BOOL CDownload::Load(LPCTSTR pszName)
 			if ( pException->m_cause == CFileException::fileNotFound )
 			{
 				// Subfile missing
-				pException->Delete();
 				return FALSE;
 			}
-			pException->Delete();
 		}
 		AND_CATCH_ALL( pException )
 		{
-			pException->Delete();
 			theApp.Message( MSG_ERROR, IDS_DOWNLOAD_FILE_OPEN_ERROR, m_sPath + _T(".sav") );
 		}
 		END_CATCH_ALL
