@@ -100,7 +100,8 @@ BOOL CDownloadWithFile::OpenFile()
 
 		if ( pThis->IsTorrent() )
 		{
-			if ( m_pFile->Open( pThis->m_pTorrent, ! IsCompleted() ) )
+			CString sFoo;
+			if ( m_pFile->Open( pThis->m_pTorrent, ! IsCompleted(), sFoo ) )
 				return TRUE;
 		}
 		else
@@ -344,11 +345,11 @@ Fragments::List CDownloadWithFile::GetPossibleFragments(
 
 	if ( oAvailable.empty() )
 	{
-		oPossible = GetEmptyFragmentList();
+		oPossible = GetWantedFragmentList();
 	}
 	else
 	{
-		Fragments::List tmp( inverse( GetEmptyFragmentList() ) );
+		Fragments::List tmp( inverse( GetWantedFragmentList() ) );
 		oPossible.erase( tmp.begin(), tmp.end() );
 	}
 
@@ -480,13 +481,13 @@ BOOL CDownloadWithFile::IsPositionEmpty(QWORD nOffset)
 BOOL CDownloadWithFile::AreRangesUseful(const Fragments::List& oAvailable)
 {
 	return m_pFile && m_pFile->IsValid() &&
-		GetEmptyFragmentList().overlaps( oAvailable );
+		GetWantedFragmentList().overlaps( oAvailable );
 }
 
 BOOL CDownloadWithFile::IsRangeUseful(QWORD nOffset, QWORD nLength)
 {
 	return m_pFile && m_pFile->IsValid() &&
-		GetEmptyFragmentList().overlaps( Fragments::Fragment( nOffset, nOffset + nLength ) );
+		GetWantedFragmentList().overlaps( Fragments::Fragment( nOffset, nOffset + nLength ) );
 }
 
 // like IsRangeUseful( ) but take the amount of useful ranges relative to the amount of garbage
@@ -504,7 +505,7 @@ BOOL CDownloadWithFile::IsRangeUsefulEnough(CDownloadTransfer* pTransfer, QWORD 
 		if ( !pTransfer->m_bRecvBackwards ) nOffset += nLength - nLength2;
 		nLength = nLength2;
 	}
-	return GetEmptyFragmentList().overlaps( Fragments::Fragment( nOffset, nOffset + nLength ) );
+	return GetWantedFragmentList().overlaps( Fragments::Fragment( nOffset, nOffset + nLength ) );
 }
 
 //////////////////////////////////////////////////////////////////////

@@ -40,11 +40,21 @@ public:
 	virtual void Dump(CDumpContext& dc) const;
 #endif
 
+	// Download priority
+	enum { prNotWanted, prLow, prNormal, prHigh };
+
 protected:
 	virtual ~CFragmentedFile();
 
-	struct CVirtualFilePart
+	class CVirtualFilePart
 	{
+	public:
+		CVirtualFilePart();
+		CVirtualFilePart(const CVirtualFilePart& p);
+		CVirtualFilePart& operator=(const CVirtualFilePart& p);
+
+		void Release();
+
 		inline bool operator ==(LPCTSTR pszFile) const
 		{
 			return ! m_sPath.CompareNoCase( pszFile );
@@ -61,9 +71,18 @@ protected:
 		QWORD			m_nLength;	// File size
 		BOOL			m_bWrite;	// File opened for write
 		CString			m_sName;	// Original filename (without path)
+		int				m_nPriority;	// Download priority (NotWanted, Low, Normal or High)
 	};
 
-	typedef std::list< CVirtualFilePart > CVirtualFile;
+	typedef std::vector< CVirtualFilePart > CVirtualFile;
+	
+	struct Less : public std::binary_function< CVirtualFilePart, CVirtualFilePart, bool >
+	{
+		inline bool operator()(const CVirtualFilePart& _Left, const CVirtualFilePart& _Right) const
+		{
+			return _Left < _Right;
+		}
+	};
 
 	struct Greater : public std::binary_function< CVirtualFilePart, QWORD, bool >
 	{
@@ -122,9 +141,6 @@ protected:
 		}
 	};
 
-	typedef std::list< CString > CStringList;
-	typedef std::list< QWORD > COffsetList;
-
 	mutable CCriticalSection	m_pSection;
 	CVirtualFile				m_oFile;
 	QWORD						m_nUnflushed;
@@ -138,7 +154,7 @@ protected:
 public:
 	// Open file from disk
 	BOOL	Open(LPCTSTR pszFile, QWORD nOffset = 0, QWORD nLength = SIZE_UNKNOWN,
-		BOOL bWrite = FALSE, LPCTSTR pszName = NULL);
+		BOOL bWrite = FALSE, LPCTSTR pszName = NULL, int nPriority = prNormal );
 	// Open file from disk or create file inside incomplete folder from library by hash
 	BOOL	Open(const CShareazaFile& oSHFile, BOOL bWrite);
 	// Open file from disk or create file inside incomplete folder file(s) from .torrent
@@ -177,6 +193,9 @@ public:
 
 	// Get subfile path
 	CString GetPath(DWORD nIndex) const;
+	
+	// Set subfile path
+	void SetPath(DWORD nIndex, LPCTSTR szPath);
 
 	// Select subfile (with user interaction)
 	int SelectFile(CSingleLock* pLock = NULL) const;
@@ -186,6 +205,12 @@ public:
 
 	// Set subfile original name
 	void SetName(DWORD nIndex, LPCTSTR szName);
+
+	// Get subfile priority
+	int GetPriority(DWORD nIndex) const;
+
+	// Set subfile priority
+	void SetPriority(DWORD nIndex, int nPriority);
 
 	// Get last file/disk error
 	inline DWORD GetFileError() const
@@ -216,11 +241,29 @@ public:
 			SIZE_UNKNOWN : m_oFList.length_sum();
 	}
 
+	// Get list of empty fragments
 	inline Fragments::List GetEmptyFragmentList() const
 	{
 		CQuickLock oLock( m_pSection );
 
 		return m_oFList;
+	}
+
+	// Get list of empty fragments we really want to download
+	inline Fragments::List GetWantedFragmentList() const
+	{
+		CQuickLock oLock( m_pSection );
+
+		// TODO: Implement several priorities
+		// TODO: Optimize this by caching
+
+		// Exclude not wanted files
+		Fragments::List oList( m_oFList );
+		for ( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
+			if ( (*i).m_nPriority == prNotWanted )
+				oList.erase( Fragments::Fragment( (*i).m_nOffset, (*i).m_nOffset + (*i).m_nLength ) );
+
+		return oList;
 	}
 
 	inline BOOL IsPositionRemaining(QWORD nOffset) const
