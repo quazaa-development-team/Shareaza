@@ -23,13 +23,12 @@
 
 typedef CMap< CString, CString&, FILETIME, FILETIME& > CMapStringToFILETIME;
 
-class CShareazaFile : boost::noncopyable
+class CShareazaFile
 {
 public:
-	CShareazaFile() :
-		m_nSize( SIZE_UNKNOWN )
-	{
-	}
+	CShareazaFile();
+	CShareazaFile(const CShareazaFile& pFile);
+	CShareazaFile& operator=(const CShareazaFile& pFile);
 
 	CString				m_sName;	// Filename only
 	QWORD				m_nSize;	/* Size if any

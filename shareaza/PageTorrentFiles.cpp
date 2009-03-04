@@ -109,7 +109,7 @@ BOOL CTorrentFilesPage::OnInitDialog()
 			LV_ITEM pItem = {};
 			pItem.mask		= LVIF_TEXT|LVIF_IMAGE|LVIF_PARAM;
 			pItem.iItem		= m_wndFiles.GetItemCount();
-			pItem.lParam	= (LPARAM)i;
+			pItem.lParam	= (LPARAM)pFragFile->GetAt( i );
 			pItem.iImage	= ShellIcons.Get( pFragFile->GetName( i ), 16 );
 			pItem.pszText	= (LPTSTR)(LPCTSTR)pFragFile->GetName( i );
 			pItem.iItem		= m_wndFiles.InsertItem( &pItem );

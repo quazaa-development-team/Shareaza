@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "ShareazaFile.h"
 #include "FileFragments.hpp"
 #include "TransferFile.h"
 
@@ -46,7 +47,7 @@ public:
 protected:
 	virtual ~CFragmentedFile();
 
-	class CVirtualFilePart
+	class CVirtualFilePart : public CShareazaFile
 	{
 	public:
 		CVirtualFilePart();
@@ -65,13 +66,10 @@ protected:
 			return ( m_nOffset < p.m_nOffset );
 		}
 
-		CString			m_sPath;	// Full filename
 		CTransferFile*	m_pFile;	// Opened file handler
 		QWORD			m_nOffset;	// File offset (0 - for first/single file)
-		QWORD			m_nLength;	// File size
 		BOOL			m_bWrite;	// File opened for write
-		CString			m_sName;	// Original filename (without path)
-		int				m_nPriority;	// Download priority (NotWanted, Low, Normal or High)
+		int				m_nPriority;// Download priority (NotWanted, Low, Normal or High)
 	};
 
 	typedef std::vector< CVirtualFilePart > CVirtualFile;
@@ -125,7 +123,7 @@ protected:
 				if ( hFile != INVALID_HANDLE_VALUE )
 				{
 					LARGE_INTEGER nLength;
-					nLength.QuadPart = p.m_nLength;
+					nLength.QuadPart = p.m_nSize;
 					SetFilePointerEx( hFile, nLength, NULL, FILE_BEGIN );
 					SetEndOfFile( hFile );
 				}
@@ -180,6 +178,15 @@ public:
 	inline DWORD GetCount() const
 	{
 		return (DWORD)m_oFile.size();
+	}
+
+	// Get subfile
+	inline const CShareazaFile* GetAt(DWORD nIndex) const
+	{
+		CQuickLock oLock( m_pSection );
+
+		return nIndex < m_oFile.size() ? 
+			static_cast< const CShareazaFile* >( &m_oFile[ nIndex ] ) : NULL;
 	}
 
 	// Are all of subfiles open?
@@ -261,7 +268,7 @@ public:
 		Fragments::List oList( m_oFList );
 		for ( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
 			if ( (*i).m_nPriority == prNotWanted )
-				oList.erase( Fragments::Fragment( (*i).m_nOffset, (*i).m_nOffset + (*i).m_nLength ) );
+				oList.erase( Fragments::Fragment( (*i).m_nOffset, (*i).m_nOffset + (*i).m_nSize ) );
 
 		return oList;
 	}
