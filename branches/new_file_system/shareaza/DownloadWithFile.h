@@ -60,12 +60,19 @@ public:
 	BOOL			MakeComplete();
 	QWORD			InvalidateFileRange(QWORD nOffset, QWORD nLength);
 
+	// Get list of empty fragments
 	inline Fragments::List GetEmptyFragmentList() const
 	{
 		return m_pFile ? m_pFile->GetEmptyFragmentList() : Fragments::List( 0 );
 	}
 
-	inline CFragmentedFile* GetFile()
+	// Get list of empty fragments we really want to download
+	inline Fragments::List GetWantedFragmentList() const
+	{
+		return m_pFile ? m_pFile->GetWantedFragmentList() : Fragments::List( 0 );
+	}
+
+	inline CFragmentedFile* GetFile() // Don't forget to call Release()!
 	{
 		if ( m_pFile )
 			m_pFile->AddRef();

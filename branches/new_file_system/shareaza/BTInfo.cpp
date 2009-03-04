@@ -96,7 +96,6 @@ CBTInfo::~CBTInfo()
 
 CBTInfo::CBTFile::CBTFile(const CBTInfo* pInfo, const CBTFile* pBTFile) :
 	m_pInfo				( pInfo )
-,	m_nFilePriority		( pBTFile ? pBTFile->m_nFilePriority : CBTInfo::prNormal )
 ,	m_nOffset			( pBTFile ? pBTFile->m_nOffset : 0 )
 {
 	if ( pBTFile )
@@ -430,7 +429,6 @@ void CBTInfo::CBTFile::Serialize(CArchive& ar, int nVersion)
         SerializeOut( ar, m_oSHA1 );
 		SerializeOut( ar, m_oED2K );
 		SerializeOut( ar, m_oTiger );
-		ar << m_nFilePriority;
 		SerializeOut( ar, m_oMD5 );
 	}
 	else
@@ -453,7 +451,6 @@ void CBTInfo::CBTFile::Serialize(CArchive& ar, int nVersion)
 		{
 			SerializeIn( ar, m_oED2K, nVersion );
 			SerializeIn( ar, m_oTiger, nVersion );
-            ar >> m_nFilePriority;
 		}
 
 		if ( nVersion >= 6 )

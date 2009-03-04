@@ -38,6 +38,47 @@ static char THIS_FILE[]=__FILE__;
 
 IMPLEMENT_DYNCREATE( CFragmentedFile, CObject )
 
+CFragmentedFile::CVirtualFilePart::CVirtualFilePart() :
+	m_pFile( NULL ),
+	m_nOffset( 0 ),
+	m_nLength( SIZE_UNKNOWN ),
+	m_bWrite( FALSE ),
+	m_nPriority( CFragmentedFile::prNormal )
+{
+}
+
+CFragmentedFile::CVirtualFilePart::CVirtualFilePart(const CVirtualFilePart& p) :
+	m_sPath( p.m_sPath ),
+	m_pFile( p.m_pFile ),
+	m_nOffset( p.m_nOffset ),
+	m_nLength( p.m_nLength ),
+	m_bWrite( p.m_bWrite ),
+	m_sName( p.m_sName ),
+	m_nPriority( p.m_nPriority )
+{
+}
+
+CFragmentedFile::CVirtualFilePart& CFragmentedFile::CVirtualFilePart::operator=(const CVirtualFilePart& p)
+{
+	m_sPath = p.m_sPath;
+	m_pFile = p.m_pFile;
+	m_nOffset = p.m_nOffset;
+	m_nLength = p.m_nLength;
+	m_bWrite = p.m_bWrite;
+	m_sName = p.m_sName;
+	m_nPriority = p.m_nPriority;
+	return *this;
+}
+
+void CFragmentedFile::CVirtualFilePart::Release()
+{
+	if ( m_pFile )
+	{
+		m_pFile->Release();
+		m_pFile = NULL;
+	}
+}
+
 //////////////////////////////////////////////////////////////////////
 // CFragmentedFile construction
 
@@ -106,7 +147,8 @@ void CFragmentedFile::Dump(CDumpContext& dc) const
 //////////////////////////////////////////////////////////////////////
 // CFragmentedFile open
 
-BOOL CFragmentedFile::Open(LPCTSTR pszFile, QWORD nOffset, QWORD nLength, BOOL bWrite, LPCTSTR pszName)
+BOOL CFragmentedFile::Open(LPCTSTR pszFile, QWORD nOffset, QWORD nLength,
+	BOOL bWrite, LPCTSTR pszName, int nPriority)
 {
 	if ( ! pszFile || ! *pszFile )
 	{
@@ -119,29 +161,25 @@ BOOL CFragmentedFile::Open(LPCTSTR pszFile, QWORD nOffset, QWORD nLength, BOOL b
 
 	m_nFileError = ERROR_SUCCESS;
 
-	BOOL bNew;
 	CVirtualFile::iterator i = std::find( m_oFile.begin(), m_oFile.end(), pszFile );
-	if ( i != m_oFile.end() )
-	{
-		// Use existing
-		bNew = FALSE;
-		if ( (*i).m_pFile )
-			// Already opened
-			return ! bWrite || (*i).m_pFile->EnsureWrite();
-	}
-	else
+	BOOL bNew = ( i == m_oFile.end() );
+	if ( bNew )
 	{
 		// Use new
-		bNew = TRUE;
 		CVirtualFilePart part;
 		part.m_sPath = pszFile;
-		part.m_pFile = NULL;
 		part.m_nOffset = nOffset;
-		part.m_nLength = SIZE_UNKNOWN;
 		part.m_bWrite = bWrite;
 		if ( pszName ) part.m_sName = pszName;
 		m_oFile.push_back( part );
 		i = --m_oFile.end();
+	}
+	else
+	{
+		// Use existing
+		if ( (*i).m_pFile )
+			// Already opened
+			return ! bWrite || (*i).m_pFile->EnsureWrite();
 	}
 
 	QWORD nRealLength = SIZE_UNKNOWN;
@@ -166,8 +204,9 @@ BOOL CFragmentedFile::Open(LPCTSTR pszFile, QWORD nOffset, QWORD nLength, BOOL b
 
 	(*i).m_nLength = nLength;
 	(*i).m_pFile = pFile;
+	(*i).m_nPriority = nPriority;
 
-	m_oFile.sort();
+	std::sort( m_oFile.begin(), m_oFile.end(), Less() );
 
 	// Set minimum size
 	QWORD nLastBlockLength = m_oFile.back().m_nLength;
@@ -237,9 +276,10 @@ BOOL CFragmentedFile::Open(const CBTInfo& oInfo, BOOL bWrite, CString& sErrorMes
 	bool bReopen = ! m_oFile.empty();
 	QWORD nOffset = 0;
 
-	for ( POSITION pos = oInfo.m_pFiles.GetHeadPosition() ; pos ; )
+	for ( POSITION pos = oInfo.m_pFiles.GetHeadPosition() ; pos ; ++i )
 	{
 		CBTInfo::CBTFile* pBTFile = oInfo.m_pFiles.GetNext( pos );
+		ASSERT( pBTFile->m_nSize != SIZE_UNKNOWN );
 
 		CString strSource;
 		if ( bReopen )
@@ -251,7 +291,7 @@ BOOL CFragmentedFile::Open(const CBTInfo& oInfo, BOOL bWrite, CString& sErrorMes
 		{
 			// Generate new filename (inside incomplete folder)
 			strSource.Format( _T("%s\\%s_%d.partial"), 
-				Settings.Downloads.IncompletePath, sUniqueName, i++ );
+				Settings.Downloads.IncompletePath, sUniqueName, i );
 		}
 		else
 		{
@@ -309,44 +349,67 @@ QWORD CFragmentedFile::GetOffset(DWORD nIndex) const
 {
 	CQuickLock oLock( m_pSection );
 
-	for( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
-		if ( ! nIndex-- )
-			return (*i).m_nOffset;
-
-	return 0;
+	return ( nIndex < m_oFile.size() ) ? m_oFile[ nIndex ].m_nOffset : 0;
 }
 
 QWORD CFragmentedFile::GetLength(DWORD nIndex) const
 {
 	CQuickLock oLock( m_pSection );
 
-	for( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
-		if ( ! nIndex-- )
-			return (*i).m_nLength;
-
-	return SIZE_UNKNOWN;
+	return ( nIndex < m_oFile.size() ) ? m_oFile[ nIndex ].m_nLength : SIZE_UNKNOWN;
 }
 
 CString CFragmentedFile::GetPath(DWORD nIndex) const
 {
 	CQuickLock oLock( m_pSection );
 
-	for( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
-		if ( ! nIndex-- )
-			return (*i).m_sPath;
+	return ( nIndex < m_oFile.size() ) ? m_oFile[ nIndex ].m_sPath : CString();
+}
 
-	return CString();
+void CFragmentedFile::SetPath(DWORD nIndex, LPCTSTR szPath)
+{
+	CQuickLock oLock( m_pSection );
+
+	if ( nIndex < m_oFile.size() )
+		m_oFile[ nIndex ].m_sPath = szPath;
+}
+
+CString CFragmentedFile::GetName(DWORD nIndex) const
+{
+	CQuickLock oLock( m_pSection );
+
+	return ( nIndex < m_oFile.size() ) ? m_oFile[ nIndex ].m_sName : CString();
+}
+
+void CFragmentedFile::SetName(DWORD nIndex, LPCTSTR szName)
+{
+	CQuickLock oLock( m_pSection );
+
+	if ( nIndex < m_oFile.size() )
+		m_oFile[ nIndex ].m_sName = szName;
+}
+
+int CFragmentedFile::GetPriority(DWORD nIndex) const
+{
+	CQuickLock oLock( m_pSection );
+
+	return ( nIndex < m_oFile.size() ) ? m_oFile[ nIndex ].m_nPriority : prNotWanted;
+}
+
+void CFragmentedFile::SetPriority(DWORD nIndex, int nPriority)
+{
+	CQuickLock oLock( m_pSection );
+
+	if ( nIndex < m_oFile.size() )
+		m_oFile[ nIndex ].m_nPriority = nPriority;
 }
 
 QWORD CFragmentedFile::GetCompleted(DWORD nIndex) const
 {
 	CQuickLock oLock( m_pSection );
 
-	for( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
-		if ( ! nIndex-- )
-			return GetCompleted( (*i).m_nOffset, (*i).m_nLength );
-
-	return 0;
+	return ( nIndex < m_oFile.size() ) ?
+		GetCompleted( m_oFile[ nIndex ].m_nOffset, m_oFile[ nIndex ].m_nLength ) : 0;
 }
 
 int CFragmentedFile::SelectFile(CSingleLock* pLock) const
@@ -376,29 +439,6 @@ int CFragmentedFile::SelectFile(CSingleLock* pLock) const
 	}
 
 	return 0;
-}
-
-CString CFragmentedFile::GetName(DWORD nIndex) const
-{
-	CQuickLock oLock( m_pSection );
-
-	for( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
-		if ( ! nIndex-- )
-			return (*i).m_sName;
-
-	return CString();
-}
-
-void CFragmentedFile::SetName(DWORD nIndex, LPCTSTR szName)
-{
-	CQuickLock oLock( m_pSection );
-
-	for( CVirtualFile::iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
-		if ( ! nIndex-- )
-		{
-			(*i).m_sName = szName;
-			break;
-		}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -439,21 +479,14 @@ DWORD CFragmentedFile::Move(DWORD nIndex, LPCTSTR pszDestination, LPPROGRESS_ROU
 	{
 		CQuickLock oLock( m_pSection );
 
-		CVirtualFile::iterator i = m_oFile.begin();
-		for( DWORD j = 0; i != m_oFile.end() && j < nIndex; ++i, ++j );
-		ASSERT( i != m_oFile.end() );
-		if ( i == m_oFile.end() )
+		if ( nIndex >= m_oFile.size() )
 			return ERROR_FILE_NOT_FOUND;
 
-		sPath = (*i).m_sPath;
-		sName = (*i).m_sName;
+		sPath = m_oFile[ nIndex ].m_sPath;
+		sName = m_oFile[ nIndex ].m_sName;
 
 		// Close our handle
-		if ( (*i).m_pFile )
-		{
-			(*i).m_pFile->Release();
-			(*i).m_pFile = NULL;
-		}
+		m_oFile[ nIndex ].Release();
 	}
 
 	ASSERT( ! sName.IsEmpty() );
@@ -497,18 +530,7 @@ DWORD CFragmentedFile::Move(DWORD nIndex, LPCTSTR pszDestination, LPPROGRESS_ROU
 			(LPCTSTR)sPath, (LPCTSTR)GetErrorString( dwError ) );
 
 	// Set subfile new attributes
-	{
-		CQuickLock oLock( m_pSection );
-
-		CVirtualFile::iterator i = m_oFile.begin();
-		for( DWORD j = 0; i != m_oFile.end() && j < nIndex; ++i, ++j );
-		ASSERT( i != m_oFile.end() );
-		if ( i != m_oFile.end() )
-		{
-			(*i).m_sPath = sPath;
-//			(*i).m_sName = sName;
-		}
-	}
+	SetPath( nIndex, sPath );
 
 	return ( bSuccess ? ERROR_SUCCESS : dwError );
 }
@@ -603,6 +625,7 @@ void CFragmentedFile::Serialize(CArchive& ar, int nVersion)
 			ar << (*i).m_bWrite;
 			ASSERT( ! (*i).m_sName.IsEmpty() );
 			ar << (*i).m_sName;
+			ar << (*i).m_nPriority;
 		}
 	}
 	else
@@ -624,15 +647,19 @@ void CFragmentedFile::Serialize(CArchive& ar, int nVersion)
 				BOOL bWrite = FALSE;
 				ar >> bWrite;
 				CString sName;
+				int nPriority = prNormal;
 				if ( nVersion >= 41 )
+				{
 					ar >> sName;
+					ar >> nPriority;
+				}
 
-				if ( ! Open( sPath, nOffset, nLength, bWrite, sName ) &&
+				if ( ! Open( sPath, nOffset, nLength, bWrite, sName, nPriority ) &&
 					// Try to open file for write from current incomplete folder
 					// (in case of changed folder)
 					( ! bWrite || ! Open( Settings.Downloads.IncompletePath +
 						sPath.Mid( sPath.ReverseFind( _T('\\') ) ), nOffset,
-						nLength, bWrite, sName ) ) )
+						nLength, bWrite, sName, nPriority ) ) )
 				{
 					theApp.Message( MSG_ERROR, IDS_DOWNLOAD_FILE_OPEN_ERROR, sPath );
 					AfxThrowFileException( CFileException::fileNotFound );
@@ -684,8 +711,10 @@ BOOL CFragmentedFile::Write(QWORD nOffset, LPCVOID pData, QWORD nLength, QWORD* 
 	}
 
 	m_nUnflushed += nProcessed;
+
 	m_oFList.erase( oMatch );
-	return nProcessed > 0;
+
+	return ( nProcessed > 0 );
 }
 
 //////////////////////////////////////////////////////////////////////

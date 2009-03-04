@@ -81,8 +81,6 @@ BOOL CTorrentFilesPage::OnInitDialog()
 	if ( ! Downloads.Check( pDownload ) || ! pDownload->IsTorrent() )
 		return FALSE;
 	
-	CBTInfo& oInfo = pDownload->m_pTorrent;
-
 	auto_ptr< CCoolTipCtrl > pTip( new CLibraryTipCtrl );
 	pTip->Create( this, &Settings.Interface.TipDownloads );
 	m_wndFiles.EnableTips( pTip );
@@ -98,26 +96,29 @@ BOOL CTorrentFilesPage::OnInitDialog()
 	Skin.Translate( _T("CTorrentFileList"), m_wndFiles.GetHeaderCtrl() );
 
 	BEGIN_COLUMN_MAP()
-		COLUMN_MAP( CBTInfo::prNotWanted,	LoadString( IDS_PRIORITY_OFF ) )
-		COLUMN_MAP( CBTInfo::prLow,			LoadString( IDS_PRIORITY_LOW ) )
-		COLUMN_MAP( CBTInfo::prNormal,		LoadString( IDS_PRIORITY_NORMAL ) )
-		COLUMN_MAP( CBTInfo::prHigh,		LoadString( IDS_PRIORITY_HIGH ) )
+		COLUMN_MAP( CFragmentedFile::prNotWanted,	LoadString( IDS_PRIORITY_OFF ) )
+		COLUMN_MAP( CFragmentedFile::prLow,			LoadString( IDS_PRIORITY_LOW ) )
+		COLUMN_MAP( CFragmentedFile::prNormal,		LoadString( IDS_PRIORITY_NORMAL ) )
+		COLUMN_MAP( CFragmentedFile::prHigh,		LoadString( IDS_PRIORITY_HIGH ) )
 	END_COLUMN_MAP( m_wndFiles, 3 )
 
-	for ( POSITION pos = oInfo.m_pFiles.GetHeadPosition(); pos ; )
+	if ( CFragmentedFile* pFragFile = pDownload->GetFile() )
 	{
-		CBTInfo::CBTFile* pFile = oInfo.m_pFiles.GetNext( pos );
-		
-		LV_ITEM pItem = {};
-		pItem.mask		= LVIF_TEXT|LVIF_IMAGE|LVIF_PARAM;
-		pItem.iItem		= m_wndFiles.GetItemCount();
-		pItem.lParam	= (LPARAM)pFile;
-		pItem.iImage	= ShellIcons.Get( pFile->m_sPath, 16 );
-		pItem.pszText	= (LPTSTR)(LPCTSTR)pFile->m_sPath;
-		pItem.iItem		= m_wndFiles.InsertItem( &pItem );
-		
-		m_wndFiles.SetItemText( pItem.iItem, 1, Settings.SmartVolume( pFile->m_nSize ) );
-		m_wndFiles.SetColumnData( pItem.iItem, 3, pFile->GetPriority() );
+		for ( DWORD i = 0 ; i < pFragFile->GetCount() ; ++i )
+		{
+			LV_ITEM pItem = {};
+			pItem.mask		= LVIF_TEXT|LVIF_IMAGE|LVIF_PARAM;
+			pItem.iItem		= m_wndFiles.GetItemCount();
+			pItem.lParam	= (LPARAM)i;
+			pItem.iImage	= ShellIcons.Get( pFragFile->GetName( i ), 16 );
+			pItem.pszText	= (LPTSTR)(LPCTSTR)pFragFile->GetName( i );
+			pItem.iItem		= m_wndFiles.InsertItem( &pItem );
+			m_wndFiles.SetItemText( pItem.iItem, 1,
+				Settings.SmartVolume( pFragFile->GetLength( i ) ) );
+			m_wndFiles.SetColumnData( pItem.iItem, 3,
+				pFragFile->GetPriority( i ) );
+		}
+		pFragFile->Release();
 	}
 
 	Update();
@@ -137,17 +138,14 @@ BOOL CTorrentFilesPage::OnApply()
 	if ( ! Downloads.Check( pDownload ) || ! pDownload->IsTorrent() )
 		return FALSE;
 
-	CBTInfo& oInfo = pDownload->m_pTorrent;
-
-	for ( int i = 0; i < m_wndFiles.GetItemCount(); ++i )
+	if ( CFragmentedFile* pFragFile = pDownload->GetFile() )
 	{
-		CBTInfo::CBTFile* pFile = (CBTInfo::CBTFile*)m_wndFiles.GetItemData( i );
-		
-		// Check if file still valid
-		if ( POSITION pos = oInfo.m_pFiles.Find( pFile ) )
+		for ( int i = 0; i < m_wndFiles.GetItemCount(); ++i )
 		{
-			pFile->SetPriority( m_wndFiles.GetColumnData( i, 3 ) );
+			pFragFile->SetPriority( (DWORD)m_wndFiles.GetItemData( i ),
+				m_wndFiles.GetColumnData( i, 3 ) );
 		}
+		pFragFile->Release();
 	}
 
 	return CPropertyPageAdv::OnApply();
