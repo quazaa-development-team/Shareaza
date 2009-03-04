@@ -30,6 +30,36 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
+CShareazaFile::CShareazaFile() :
+	m_nSize( SIZE_UNKNOWN )
+{
+}
+
+CShareazaFile::CShareazaFile(const CShareazaFile& pFile) :
+	m_nSize( pFile.m_nSize ),
+	m_oSHA1( pFile.m_oSHA1 ),
+	m_oTiger( pFile.m_oTiger ),
+	m_oED2K( pFile.m_oED2K ),
+	m_oBTH( pFile.m_oBTH ),
+	m_oMD5( pFile.m_oMD5 ),
+	m_sPath( pFile.m_sPath ),
+	m_sURL( pFile.m_sURL )
+{
+}
+
+CShareazaFile& CShareazaFile::operator=(const CShareazaFile& pFile)
+{
+	m_nSize = pFile.m_nSize;
+	m_oSHA1 = pFile.m_oSHA1;
+	m_oTiger = pFile.m_oTiger;
+	m_oED2K = pFile.m_oED2K;
+	m_oBTH = pFile.m_oBTH;
+	m_oMD5 = pFile.m_oMD5;
+	m_sPath = pFile.m_sPath;
+	m_sURL = pFile.m_sURL;
+	return *this;
+}
+
 CString CShareazaFile::GetURL(const IN_ADDR& nAddress, WORD nPort) const
 {
 	CString strURL;
