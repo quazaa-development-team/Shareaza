@@ -85,12 +85,12 @@ LPDISPATCH CComObject::GetDispatch(BOOL bAddRef)
 /////////////////////////////////////////////////////////////////////////////
 // CComObject IUnknown implementation
 
-STDMETHODIMP_(ULONG) CComObject::ComAddRef(LPUNKNOWN /*pUnk*/)
+STDMETHODIMP_(ULONG) CComObject::AddRef()
 {
 	return ExternalAddRef();
 }
 
-STDMETHODIMP_(ULONG) CComObject::ComRelease(LPUNKNOWN /*pUnk*/)
+STDMETHODIMP_(ULONG) CComObject::Release()
 {
 	return ExternalRelease();
 }
@@ -103,7 +103,7 @@ STDMETHODIMP CComObject::ComQueryInterface(LPUNKNOWN pUnk, REFIID iid, LPVOID* p
 		if ( m_pDispatchMap.Lookup( pUnk, pIID ) )
 		{
 			*ppvObj = pUnk;
-			ComAddRef( pUnk );
+			AddRef();
 			return S_OK;
 		}
 	}

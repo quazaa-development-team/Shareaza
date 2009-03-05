@@ -70,7 +70,7 @@ protected:
 	DWORD			m_tRatingTime;	// When rating was last calculated
 
 private:
-	CFragmentedFile* m_pFile;		// Disk file
+	CComPtr< CFragmentedFile > m_pFile;		// Disk file
 
 public:
 	virtual void	Remove(BOOL bMessage = TRUE);

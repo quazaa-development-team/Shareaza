@@ -56,25 +56,16 @@ CDownloadWithFile::CDownloadWithFile() :
 ,	m_nFileError( ERROR_SUCCESS )
 ,	m_bMoving	( FALSE )
 {
+	m_pFile->InternalRelease();
 }
 
 CDownloadWithFile::~CDownloadWithFile()
 {
-	if ( m_pFile )
-	{
-		m_pFile->Release();
-		m_pFile = NULL;
-	}
 }
 
 BOOL CDownloadWithFile::IsFileOpen() const
 {
 	return m_pFile && m_pFile->IsOpen();
-}
-
-QWORD CDownloadWithFile::GetCompleted(QWORD nOffset, QWORD nLength) const
-{
-	return m_pFile ? m_pFile->GetCompleted( nOffset, nLength ) : 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -155,16 +146,7 @@ BOOL CDownloadWithFile::PrepareFile()
 
 void CDownloadWithFile::AttachFile(CFragmentedFile* pFile)
 {
-	if ( pFile )
-		pFile->AddRef();
-
-	if ( m_pFile )
-		m_pFile->Release();
-
-	m_pFile = pFile;
-
-	if ( pFile )
-		pFile->Release();
+	m_pFile.Attach( pFile );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -177,8 +159,7 @@ void CDownloadWithFile::DeleteFile()
 	if ( m_pFile )
 	{
 		m_pFile->Delete();
-		m_pFile->Release();
-		m_pFile = NULL;
+		m_pFile.Release();
 	}
 
 	SetModified();
