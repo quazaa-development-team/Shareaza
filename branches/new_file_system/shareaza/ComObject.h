@@ -35,13 +35,13 @@ public:
 	BOOL		EnableDispatch(REFIID pIID);
 	LPUNKNOWN	GetInterface(REFIID pIID, BOOL bAddRef = FALSE);
 	LPDISPATCH	GetDispatch(BOOL bAddRef = FALSE);
+	STDMETHOD_(ULONG, AddRef)();
+	STDMETHOD_(ULONG, Release)();
 
 protected:
 	const CLSID*	m_pCLSID;
 	CMap< LPUNKNOWN, LPUNKNOWN, const IID*, const IID* > m_pDispatchMap;
 
-	STDMETHOD_(ULONG, ComAddRef)(LPUNKNOWN);
-	STDMETHOD_(ULONG, ComRelease)(LPUNKNOWN);
 	STDMETHOD(ComQueryInterface)(LPUNKNOWN, REFIID, LPVOID*);
 	STDMETHOD(ComGetTypeInfoCount)(LPUNKNOWN, UINT FAR*);
 	STDMETHOD(ComGetTypeInfo)(LPUNKNOWN, UINT, LCID, LPTYPEINFO FAR*);
@@ -82,12 +82,12 @@ private:
 	STDMETHODIMP_(ULONG) theClass##::X##localClass##::AddRef()	\
 	{															\
 	   METHOD_PROLOGUE(theClass, localClass)					\
-	   return pThis->ComAddRef( this );							\
+	   return pThis->AddRef();									\
 	}															\
 	STDMETHODIMP_(ULONG) theClass##::X##localClass##::Release()	\
 	{															\
 	   METHOD_PROLOGUE(theClass, localClass)					\
-	   return pThis->ComRelease( this );						\
+	   return pThis->Release();									\
 	}															\
 	STDMETHODIMP theClass##::X##localClass##::QueryInterface(REFIID iid, LPVOID* ppvObj)	\
 	{															\

@@ -36,7 +36,7 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
-IMPLEMENT_DYNCREATE( CFragmentedFile, CObject )
+IMPLEMENT_DYNCREATE( CFragmentedFile, CComObject )
 
 CFragmentedFile::CVirtualFilePart::CVirtualFilePart() :
 	m_pFile( NULL ),
@@ -80,37 +80,22 @@ void CFragmentedFile::CVirtualFilePart::Release()
 CFragmentedFile::CFragmentedFile() :
 	m_nUnflushed	( 0 )
 ,	m_oFList		( 0 )
-,	m_nRefCount		( 1 )
 ,	m_nFileError	( ERROR_SUCCESS )
 {
 }
 
 CFragmentedFile::~CFragmentedFile()
 {
-	ASSERT( m_nRefCount == 0 );
+	ASSERT( m_dwRef == 0 );
 
 	Close();
-}
-
-ULONG CFragmentedFile::AddRef()
-{
-	return (ULONG)InterlockedIncrement( &m_nRefCount );
-}
-
-ULONG CFragmentedFile::Release()
-{
-	ULONG ref_count = (ULONG)InterlockedDecrement( &m_nRefCount );
-	if ( ref_count )
-		return ref_count;
-	delete this;
-	return 0;
 }
 
 #ifdef _DEBUG
 
 void CFragmentedFile::AssertValid() const
 {
-	CObject::AssertValid();
+	CComObject::AssertValid();
 
 	if ( m_oFile.size() != 0 )
 	{
@@ -127,7 +112,7 @@ void CFragmentedFile::AssertValid() const
 
 void CFragmentedFile::Dump(CDumpContext& dc) const
 {
-	CObject::Dump( dc );
+	CComObject::Dump( dc );
 
 	int n = 1;
 	for ( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i, ++n )
@@ -397,6 +382,35 @@ void CFragmentedFile::SetPriority(DWORD nIndex, int nPriority)
 
 	if ( nIndex < m_oFile.size() )
 		m_oFile[ nIndex ].m_nPriority = nPriority;
+}
+
+float CFragmentedFile::GetProgress(DWORD nIndex) const
+{
+	CQuickLock oLock( m_pSection );
+
+	if ( nIndex >= m_oFile.size() )
+		return -1.f;
+	else if ( m_oFile[ nIndex ].m_nSize == 0 )
+		return 100.f;
+	else
+		return ( (float)GetCompleted( m_oFile[ nIndex ].m_nOffset,
+			m_oFile[ nIndex ].m_nSize ) * 100.f ) / (float)m_oFile[ nIndex ].m_nSize;
+}
+
+Fragments::List CFragmentedFile::GetWantedFragmentList() const
+{
+	CQuickLock oLock( m_pSection );
+
+	// TODO: Implement several priorities
+	// TODO: Optimize this by caching
+
+	// Exclude not wanted files
+	Fragments::List oList( m_oFList );
+	for ( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
+		if ( (*i).m_nPriority == prNotWanted )
+			oList.erase( Fragments::Fragment( (*i).m_nOffset, (*i).m_nOffset + (*i).m_nSize ) );
+
+	return oList;
 }
 
 QWORD CFragmentedFile::GetCompleted(DWORD nIndex) const

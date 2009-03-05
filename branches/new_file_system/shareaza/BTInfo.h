@@ -59,9 +59,6 @@ public:
 	class CBTFile : public CShareazaFile
 	{
 	public:
-		// Returns file download progress ( < 0 - unknown or 0..100% )
-		float GetProgress() const;
-
 		// Find file on disk
 		CString	FindFile();
 

@@ -531,24 +531,19 @@ BOOL CUploadTransfer::IsFileOpen() const
 
 BOOL CUploadTransfer::OpenFile()
 {
-	CFragmentedFile* pFile = new CFragmentedFile;
+	CComPtr< CFragmentedFile > pFile = new CFragmentedFile;
+	pFile->InternalRelease();
 	if ( pFile && pFile->Open( m_sPath ) )
 	{
 		AttachFile( pFile );
 		return TRUE;
 	}
-	if ( pFile )
-		pFile->Release();
 	return FALSE;
 }
 
 void CUploadTransfer::CloseFile()
 {
-	if ( m_pFile )
-	{
-		m_pFile->Release();
-		m_pFile = NULL;
-	}
+	m_pFile.Release();
 }
 
 BOOL CUploadTransfer::WriteFile(QWORD nOffset, LPCVOID pData, QWORD nLength, QWORD* pnWritten)
@@ -569,13 +564,7 @@ BOOL CUploadTransfer::ReadFile(QWORD nOffset, LPVOID pData, QWORD nLength, QWORD
 
 void CUploadTransfer::AttachFile(CFragmentedFile* pFile)
 {
-	if ( pFile )
-		pFile->AddRef();
-
 	CloseFile();
 
-	m_pFile = pFile;
-
-	if ( pFile )
-		pFile->Release();
+	m_pFile.Attach( pFile );
 }

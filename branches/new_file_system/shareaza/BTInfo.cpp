@@ -460,25 +460,6 @@ void CBTInfo::CBTFile::Serialize(CArchive& ar, int nVersion)
 	}
 }
 
-float CBTInfo::CBTFile::GetProgress() const
-{
-	CSingleLock pLock( &Transfers.m_pSection, TRUE );
-
-	if ( CDownload* pDownload = Downloads.FindByBTH( m_pInfo->m_oBTH ) )
-	{
-		if ( pDownload->IsFileOpen() )
-		{
-			if ( m_nSize == 0 )
-				return 100.f;
-			else
-				return ( (float)pDownload->GetCompleted( m_nOffset, m_nSize ) *
-					100.f ) / (float)m_nSize;
-		}
-	}
-
-	return -1.f;
-}
-
 //////////////////////////////////////////////////////////////////////
 // CBTInfo load .torrent file
 

@@ -29,7 +29,7 @@ class CShareazaFile;
 class CBTInfo;
 
 
-class CFragmentedFile : public CObject
+class CFragmentedFile : public CComObject
 {
 	DECLARE_DYNCREATE( CFragmentedFile )
 
@@ -143,7 +143,6 @@ protected:
 	CVirtualFile				m_oFile;
 	QWORD						m_nUnflushed;
 	Fragments::List				m_oFList;
-	volatile LONG				m_nRefCount;
 	DWORD						m_nFileError;
 
 	BOOL	VirtualRead(QWORD nOffset, char* pBuffer, QWORD nBuffer, QWORD* pnRead);
@@ -157,8 +156,8 @@ public:
 	BOOL	Open(const CShareazaFile& oSHFile, BOOL bWrite);
 	// Open file from disk or create file inside incomplete folder file(s) from .torrent
 	BOOL	Open(const CBTInfo& oInfo, BOOL bWrite, CString& sErrorMessage);
-	ULONG	AddRef();
-	ULONG	Release();
+//	ULONG	AddRef();
+//	ULONG	Release();
 	BOOL	Flush();
 	void	Close();
 	BOOL	MakeComplete();
@@ -230,6 +229,9 @@ public:
 	{
 		return m_oFList.limit() > 0;
 	}
+	
+	// Returns file download progress ( < 0 - unknown or 0..100% )
+	float GetProgress(DWORD nIndex) const;
 
 	// Get total size of whole file (in bytes)
 	inline QWORD GetTotal() const
@@ -257,21 +259,7 @@ public:
 	}
 
 	// Get list of empty fragments we really want to download
-	inline Fragments::List GetWantedFragmentList() const
-	{
-		CQuickLock oLock( m_pSection );
-
-		// TODO: Implement several priorities
-		// TODO: Optimize this by caching
-
-		// Exclude not wanted files
-		Fragments::List oList( m_oFList );
-		for ( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i )
-			if ( (*i).m_nPriority == prNotWanted )
-				oList.erase( Fragments::Fragment( (*i).m_nOffset, (*i).m_nOffset + (*i).m_nSize ) );
-
-		return oList;
-	}
+	Fragments::List GetWantedFragmentList() const;
 
 	inline BOOL IsPositionRemaining(QWORD nOffset) const
 	{

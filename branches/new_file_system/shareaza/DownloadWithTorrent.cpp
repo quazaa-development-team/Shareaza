@@ -861,14 +861,12 @@ BOOL CDownloadWithTorrent::SeedTorrent(CString& sErrorMessage)
 
 	ASSERT( m_pTorrent.GetCount() );
 
-	CFragmentedFile* pFragmentedFile = new CFragmentedFile;
+	CComPtr< CFragmentedFile > pFragmentedFile = new CFragmentedFile;
+	pFragmentedFile->InternalRelease();
 	if ( ! pFragmentedFile ||
 		 ! pFragmentedFile->Open( m_pTorrent, FALSE, sErrorMessage ) )
-	{
-		if ( pFragmentedFile )
-			pFragmentedFile->Release();
 		return FALSE;
-	}
+
 	AttachFile( pFragmentedFile );
 
 	CBTInfo::CBTFile* pFile = m_pTorrent.m_pFiles.GetHead();

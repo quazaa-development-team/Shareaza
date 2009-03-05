@@ -39,7 +39,6 @@ public:
 
 // Operations
 public:
-	QWORD			GetCompleted(QWORD nOffset, QWORD nLength) const;
 	float			GetProgress() const;
 	QWORD			GetVolumeComplete() const;
 	QWORD			GetVolumeRemaining() const;
@@ -72,10 +71,8 @@ public:
 		return m_pFile ? m_pFile->GetWantedFragmentList() : Fragments::List( 0 );
 	}
 
-	inline CFragmentedFile* GetFile() // Don't forget to call Release()!
+	inline CComPtr< CFragmentedFile >GetFile()
 	{
-		if ( m_pFile )
-			m_pFile->AddRef();
 		return m_pFile;
 	}
 
@@ -162,8 +159,8 @@ protected:
 	BOOL			OnVerify(LPCTSTR pszPath, BOOL bVerified);
 
 private:
-	CFragmentedFile*	m_pFile;		// File(s)
-	DWORD				m_nFileError;	// Last file/disk error
+	CComPtr< CFragmentedFile >	m_pFile;// File(s)
+	DWORD			m_nFileError;		// Last file/disk error
 
 	Fragments::List	GetPossibleFragments(const Fragments::List& oAvailable, Fragments::Fragment& oLargest);
 

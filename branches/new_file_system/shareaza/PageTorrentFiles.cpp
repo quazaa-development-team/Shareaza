@@ -102,13 +102,13 @@ BOOL CTorrentFilesPage::OnInitDialog()
 		COLUMN_MAP( CFragmentedFile::prHigh,		LoadString( IDS_PRIORITY_HIGH ) )
 	END_COLUMN_MAP( m_wndFiles, 3 )
 
-	if ( CFragmentedFile* pFragFile = pDownload->GetFile() )
+	if ( CComPtr< CFragmentedFile > pFragFile = pDownload->GetFile() )
 	{
 		for ( DWORD i = 0 ; i < pFragFile->GetCount() ; ++i )
 		{
 			LV_ITEM pItem = {};
 			pItem.mask		= LVIF_TEXT|LVIF_IMAGE|LVIF_PARAM;
-			pItem.iItem		= m_wndFiles.GetItemCount();
+			pItem.iItem		= i;
 			pItem.lParam	= (LPARAM)pFragFile->GetAt( i );
 			pItem.iImage	= ShellIcons.Get( pFragFile->GetName( i ), 16 );
 			pItem.pszText	= (LPTSTR)(LPCTSTR)pFragFile->GetName( i );
@@ -118,7 +118,6 @@ BOOL CTorrentFilesPage::OnInitDialog()
 			m_wndFiles.SetColumnData( pItem.iItem, 3,
 				pFragFile->GetPriority( i ) );
 		}
-		pFragFile->Release();
 	}
 
 	Update();
@@ -138,14 +137,12 @@ BOOL CTorrentFilesPage::OnApply()
 	if ( ! Downloads.Check( pDownload ) || ! pDownload->IsTorrent() )
 		return FALSE;
 
-	if ( CFragmentedFile* pFragFile = pDownload->GetFile() )
+	if ( CComPtr< CFragmentedFile > pFragFile = pDownload->GetFile() )
 	{
-		for ( int i = 0; i < m_wndFiles.GetItemCount(); ++i )
+		for ( DWORD i = 0; i < pFragFile->GetCount(); ++i )
 		{
-			pFragFile->SetPriority( (DWORD)m_wndFiles.GetItemData( i ),
-				m_wndFiles.GetColumnData( i, 3 ) );
+			pFragFile->SetPriority( i, m_wndFiles.GetColumnData( i, 3 ) );
 		}
-		pFragFile->Release();
 	}
 
 	return CPropertyPageAdv::OnApply();
@@ -171,23 +168,16 @@ void CTorrentFilesPage::Update()
 	if ( ! Downloads.Check( pDownload ) || ! pDownload->IsTorrent() )
 		return;
 
-	CBTInfo& oInfo = pDownload->m_pTorrent;
-
-	for ( int i = 0; i < m_wndFiles.GetItemCount(); ++i )
+	if ( CComPtr< CFragmentedFile > pFragFile = pDownload->GetFile() )
 	{
-		CBTInfo::CBTFile* pFile = (CBTInfo::CBTFile*)m_wndFiles.GetItemData( i );
-
-		CString sCompleted;
-
-		// Check if file still valid
-		if ( POSITION pos = oInfo.m_pFiles.Find( pFile ) )
+		for ( DWORD i = 0 ; i < pFragFile->GetCount() ; ++i )
 		{
-			float fProgress = pFile->GetProgress();
+			CString sCompleted;
+			float fProgress = pFragFile->GetProgress( i );
 			if ( fProgress >= 0.0 )
 				sCompleted.Format( _T("%.2f%%"), fProgress );
+			m_wndFiles.SetItemText( i, 2, sCompleted );
 		}
-
-		m_wndFiles.SetItemText( i, 2, sCompleted );
 	}
 }
 
