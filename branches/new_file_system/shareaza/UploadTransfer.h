@@ -1,7 +1,7 @@
 //
 // UploadTransfer.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2007.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -70,7 +70,7 @@ protected:
 	DWORD			m_tRatingTime;	// When rating was last calculated
 
 private:
-	CComPtr< CFragmentedFile > m_pFile;		// Disk file
+	auto_ptr< CFragmentedFile > m_pFile;	// Disk file
 
 public:
 	virtual void	Remove(BOOL bMessage = TRUE);
@@ -106,7 +106,7 @@ protected:
 	virtual void	CloseFile();
 	virtual BOOL	WriteFile(QWORD nOffset, LPCVOID pData, QWORD nLength, QWORD* pnWritten = NULL);
 	virtual BOOL	ReadFile(QWORD nOffset, LPVOID pData, QWORD nLength, QWORD* pnRead = NULL);
-	virtual void	AttachFile(CFragmentedFile* pFile);
+	void	AttachFile(auto_ptr< CFragmentedFile >& pFile);
 };
 
 enum UserRating

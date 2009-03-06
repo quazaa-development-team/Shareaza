@@ -1,7 +1,7 @@
 //
 // DownloadWithFile.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2008.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -62,65 +62,66 @@ public:
 	// Get list of empty fragments
 	inline Fragments::List GetEmptyFragmentList() const
 	{
-		return m_pFile ? m_pFile->GetEmptyFragmentList() : Fragments::List( 0 );
+		return m_pFile.get() ? m_pFile->GetEmptyFragmentList() : Fragments::List( 0 );
 	}
 
 	// Get list of empty fragments we really want to download
 	inline Fragments::List GetWantedFragmentList() const
 	{
-		return m_pFile ? m_pFile->GetWantedFragmentList() : Fragments::List( 0 );
+		return m_pFile.get() ? m_pFile->GetWantedFragmentList() : Fragments::List( 0 );
 	}
 
-	inline CComPtr< CFragmentedFile >GetFile()
+	inline CFragmentedFile* GetFile()
 	{
-		return m_pFile;
+		m_pFile->AddRef();
+		return m_pFile.get();
 	}
 
 	inline BOOL FindByPath(const CString& sPath) const
 	{
-		return m_pFile && m_pFile->FindByPath( sPath );
+		return m_pFile.get() && m_pFile->FindByPath( sPath );
 	}
 
 	// Get amount of subfiles
 	inline DWORD GetFileCount() const
 	{
-		return m_pFile ? m_pFile->GetCount() : 0;
+		return m_pFile.get() ? m_pFile->GetCount() : 0;
 	}
 
 	// Get subfile offset
 	QWORD GetOffset(DWORD nIndex) const
 	{
-		return m_pFile ? m_pFile->GetOffset( nIndex ) : 0;
+		return m_pFile.get() ? m_pFile->GetOffset( nIndex ) : 0;
 	}
 
 	// Get subfile length
 	QWORD GetLength(DWORD nIndex) const
 	{
-		return m_pFile ? m_pFile->GetLength( nIndex ) : SIZE_UNKNOWN;
+		return m_pFile.get() ? m_pFile->GetLength( nIndex ) : SIZE_UNKNOWN;
 	}
 
 	// Get path of subfile
 	inline CString GetPath(DWORD nIndex) const
 	{
-		return m_pFile ? m_pFile->GetPath( nIndex ) : CString();
+		return m_pFile.get() ? m_pFile->GetPath( nIndex ) : CString();
 	}
 
 	// Get original name of subfile
 	inline CString GetName(DWORD nIndex) const
 	{
-		return m_pFile ? m_pFile->GetName( nIndex ) : CString();
+		return m_pFile.get() ? m_pFile->GetName( nIndex ) : CString();
 	}
 
 	// Get completed size of subfile (in bytes)
 	inline QWORD GetCompleted(DWORD nIndex) const
 	{
-		return m_pFile ? m_pFile->GetCompleted( nIndex ) : 0;
+		return m_pFile.get() ? m_pFile->GetCompleted( nIndex ) : 0;
 	}
 
 	// Select subfile (with user interaction)
 	inline int SelectFile(CSingleLock* pLock) const
 	{
-		return m_pFile ? m_pFile->SelectFile( pLock ) : -1;
+		return m_pFile.get() ? m_pFile->SelectFile( pLock ) : -1;
 	}
 
 	// Is file under move operation?
@@ -145,7 +146,7 @@ protected:
 	virtual CString	GetAvailableRanges() const;
 	BOOL			OpenFile();
 	void			CloseFile();
-	void			AttachFile(CFragmentedFile* pFile);
+	void			AttachFile(auto_ptr< CFragmentedFile >& pFile);
 	// Delete file(s)
 	void			DeleteFile();
 	// Move file(s) to destination. Returns 0 on success or file error number.
@@ -159,7 +160,7 @@ protected:
 	BOOL			OnVerify(LPCTSTR pszPath, BOOL bVerified);
 
 private:
-	CComPtr< CFragmentedFile >	m_pFile;// File(s)
+	auto_ptr< CFragmentedFile >	m_pFile;// File(s)
 	DWORD			m_nFileError;		// Last file/disk error
 
 	Fragments::List	GetPossibleFragments(const Fragments::List& oAvailable, Fragments::Fragment& oLargest);

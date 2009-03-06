@@ -261,7 +261,8 @@ BOOL CUploadTransferBT::OpenFile()
 	if ( m_pClient && Downloads.Check( m_pClient->m_pDownload ) )
 	{
 		// Try to get existing file object from download
-		if ( CComPtr< CFragmentedFile > pFile = m_pClient->m_pDownload->GetFile() )
+		auto_ptr< CFragmentedFile > pFile( m_pClient->m_pDownload->GetFile() );
+		if ( pFile.get() )
 		{
 			AttachFile( pFile );
 			return TRUE;
@@ -271,12 +272,14 @@ BOOL CUploadTransferBT::OpenFile()
 		if ( m_pClient->m_pDownload->IsSeeding() )
 		{
 			CString sFoo;
-			CComPtr< CFragmentedFile > pFile = new CFragmentedFile;
-			pFile->InternalRelease();
-			if ( pFile && pFile->Open( m_pClient->m_pDownload->m_pTorrent, FALSE, sFoo ) )
+			auto_ptr< CFragmentedFile > pFile( new CFragmentedFile );
+			if ( pFile.get() )
 			{
-				AttachFile( pFile );
-				return TRUE;
+				if ( pFile->Open( m_pClient->m_pDownload->m_pTorrent, FALSE, sFoo ) )
+				{
+					AttachFile( pFile );
+					return TRUE;
+				}
 			}
 		}
 	}
