@@ -1,7 +1,7 @@
 //
 // DownloadWithFile.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2008.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -56,7 +56,6 @@ CDownloadWithFile::CDownloadWithFile() :
 ,	m_nFileError( ERROR_SUCCESS )
 ,	m_bMoving	( FALSE )
 {
-	m_pFile->InternalRelease();
 }
 
 CDownloadWithFile::~CDownloadWithFile()
@@ -65,7 +64,7 @@ CDownloadWithFile::~CDownloadWithFile()
 
 BOOL CDownloadWithFile::IsFileOpen() const
 {
-	return m_pFile && m_pFile->IsOpen();
+	return m_pFile.get() && m_pFile->IsOpen();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -85,7 +84,7 @@ BOOL CDownloadWithFile::OpenFile()
 	SetModified();
 
 	CDownload* pThis = static_cast< CDownload* >( this );
-	if ( m_pFile )
+	if ( m_pFile.get() )
 	{
 		ClearFileError();
 
@@ -129,7 +128,7 @@ void CDownloadWithFile::CloseFile()
 {
 	ASSERT( ! m_bMoving );
 
-	if ( m_pFile )
+	if ( m_pFile.get() )
 		m_pFile->Close();
 }
 
@@ -144,9 +143,9 @@ BOOL CDownloadWithFile::PrepareFile()
 //////////////////////////////////////////////////////////////////////
 // CDownloadWithFile attach the file
 
-void CDownloadWithFile::AttachFile(CFragmentedFile* pFile)
+void CDownloadWithFile::AttachFile(auto_ptr< CFragmentedFile >& pFile)
 {
-	m_pFile.Attach( pFile );
+	m_pFile = pFile;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -156,10 +155,10 @@ void CDownloadWithFile::DeleteFile()
 {
 	ASSERT( ! m_bMoving );
 
-	if ( m_pFile )
+	if ( m_pFile.get() )
 	{
 		m_pFile->Delete();
-		m_pFile.Release();
+		m_pFile.reset();
 	}
 
 	SetModified();
@@ -169,7 +168,7 @@ DWORD CDownloadWithFile::MoveFile(LPCTSTR pszDestination, LPPROGRESS_ROUTINE lpP
 {
 	ASSERT( m_bMoving );
 
-	if ( ! m_pFile )
+	if ( ! m_pFile.get() )
 		return ERROR_FILE_NOT_FOUND;
 
 	for( DWORD nIndex = 0; nIndex < m_pFile->GetCount(); ++nIndex )
@@ -227,27 +226,27 @@ DWORD CDownloadWithFile::MoveFile(LPCTSTR pszDestination, LPPROGRESS_ROUTINE lpP
 
 BOOL CDownloadWithFile::FlushFile()
 {
-	return m_pFile && m_pFile->Flush();
+	return m_pFile.get() && m_pFile->Flush();
 }
 
 BOOL CDownloadWithFile::IsComplete() const
 {
-	return m_pFile && ( m_pFile->GetRemaining() == 0 );
+	return m_pFile.get() && ( m_pFile->GetRemaining() == 0 );
 }
 
 BOOL CDownloadWithFile::ReadFile(QWORD nOffset, LPVOID pData, QWORD nLength, QWORD* pnRead)
 {
-	return m_pFile && m_pFile->Read( nOffset, pData, nLength, pnRead );
+	return m_pFile.get() && m_pFile->Read( nOffset, pData, nLength, pnRead );
 }
 
 BOOL CDownloadWithFile::WriteFile(QWORD nOffset, LPCVOID pData, QWORD nLength, QWORD* pnWritten)
 {
-	return m_pFile && m_pFile->Write( nOffset, pData, nLength, pnWritten );
+	return m_pFile.get() && m_pFile->Write( nOffset, pData, nLength, pnWritten );
 }
 
 QWORD CDownloadWithFile::InvalidateFileRange(QWORD nOffset, QWORD nLength)
 {
-	return m_pFile && m_pFile->InvalidateRange( nOffset, nLength );
+	return m_pFile.get() && m_pFile->InvalidateRange( nOffset, nLength );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -262,7 +261,7 @@ float CDownloadWithFile::GetProgress() const
 
 QWORD CDownloadWithFile::GetVolumeComplete() const
 {
-	if ( m_pFile )
+	if ( m_pFile.get() )
 	{
 		if ( m_pFile->IsValid() )
 			return m_pFile->GetCompleted();
@@ -274,7 +273,7 @@ QWORD CDownloadWithFile::GetVolumeComplete() const
 
 QWORD CDownloadWithFile::GetVolumeRemaining() const
 {
-	if ( m_pFile )
+	if ( m_pFile.get() )
 	{
 		if ( m_pFile->IsValid() )
 			return m_pFile->GetRemaining();
@@ -452,7 +451,7 @@ BOOL CDownloadWithFile::GetFragment(CDownloadTransfer* pTransfer)
 
 BOOL CDownloadWithFile::IsPositionEmpty(QWORD nOffset)
 {
-	return m_pFile && m_pFile->IsValid() &&
+	return m_pFile.get() && m_pFile->IsValid() &&
 		m_pFile->IsPositionRemaining( nOffset );
 }
 
@@ -461,13 +460,13 @@ BOOL CDownloadWithFile::IsPositionEmpty(QWORD nOffset)
 
 BOOL CDownloadWithFile::AreRangesUseful(const Fragments::List& oAvailable)
 {
-	return m_pFile && m_pFile->IsValid() &&
+	return m_pFile.get() && m_pFile->IsValid() &&
 		GetWantedFragmentList().overlaps( oAvailable );
 }
 
 BOOL CDownloadWithFile::IsRangeUseful(QWORD nOffset, QWORD nLength)
 {
-	return m_pFile && m_pFile->IsValid() &&
+	return m_pFile.get() && m_pFile->IsValid() &&
 		GetWantedFragmentList().overlaps( Fragments::Fragment( nOffset, nOffset + nLength ) );
 }
 
@@ -475,7 +474,7 @@ BOOL CDownloadWithFile::IsRangeUseful(QWORD nOffset, QWORD nLength)
 // and source speed into account
 BOOL CDownloadWithFile::IsRangeUsefulEnough(CDownloadTransfer* pTransfer, QWORD nOffset, QWORD nLength)
 {
-	if ( m_pFile == NULL || !m_pFile->IsValid() )
+	if ( ! m_pFile.get() || ! m_pFile->IsValid() )
 		return FALSE;
 
 	// range is useful if at least byte within the next amount of data transferable within the next 5 seconds
@@ -496,7 +495,7 @@ CString CDownloadWithFile::GetAvailableRanges() const
 {
 	CString strRange, strRanges;
 
-	if ( m_pFile == NULL || !m_pFile->IsValid() )
+	if ( ! m_pFile.get() || ! m_pFile->IsValid() )
 		return strRanges;
 
 	Fragments::List oAvailable( inverse( GetEmptyFragmentList() ) );
@@ -525,7 +524,7 @@ CString CDownloadWithFile::GetAvailableRanges() const
 
 BOOL CDownloadWithFile::ClipUploadRange(QWORD nOffset, QWORD& nLength) const
 {
-	if ( m_pFile == NULL || !m_pFile->IsValid() )
+	if ( ! m_pFile.get() || ! m_pFile->IsValid() )
 		return FALSE;
 
 	if ( nOffset >= m_nSize )
@@ -557,7 +556,7 @@ BOOL CDownloadWithFile::ClipUploadRange(QWORD nOffset, QWORD& nLength) const
 
 BOOL CDownloadWithFile::GetRandomRange(QWORD& nOffset, QWORD& nLength) const
 {
-	if ( m_pFile == NULL || !m_pFile->IsValid() )
+	if ( ! m_pFile.get() || ! m_pFile->IsValid() )
 		return FALSE;
 
 	if ( m_pFile->GetCompleted() == 0 ) return FALSE;
@@ -588,7 +587,7 @@ BOOL CDownloadWithFile::SubmitData(QWORD nOffset, LPBYTE pData, QWORD nLength)
 		}
 	}
 
-	return ( m_pFile && m_pFile->Write( nOffset, pData, nLength ) );
+	return ( m_pFile.get() && m_pFile->Write( nOffset, pData, nLength ) );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -596,7 +595,7 @@ BOOL CDownloadWithFile::SubmitData(QWORD nOffset, LPBYTE pData, QWORD nLength)
 
 QWORD CDownloadWithFile::EraseRange(QWORD nOffset, QWORD nLength)
 {
-	if ( m_pFile == NULL ) return 0;
+	if ( ! m_pFile.get() ) return 0;
 	QWORD nCount = m_pFile->InvalidateRange( nOffset, nLength );
 	if ( nCount > 0 ) SetModified();
 	return nCount;
@@ -709,7 +708,7 @@ void CDownloadWithFile::Serialize(CArchive& ar, int nVersion)
 
 	if ( ar.IsStoring() )
 	{
-		ar.WriteCount( m_pFile != NULL );
+		ar.WriteCount( m_pFile.get() != NULL );
 		
 		// Restore original filename added in nVersion == 41
 		{
@@ -764,7 +763,7 @@ void CDownloadWithFile::Serialize(CArchive& ar, int nVersion)
 
 void CDownloadWithFile::SerializeFile(CArchive& ar, int nVersion)
 {
-	if ( m_pFile )
+	if ( m_pFile.get() )
 		m_pFile->Serialize( ar, nVersion );
 }
 
@@ -780,7 +779,7 @@ void CDownloadWithFile::SetVerifyStatus(TRISTATE bVerify)
 BOOL CDownloadWithFile::OnVerify(LPCTSTR pszPath, BOOL bVerified)
 {
 	if ( m_bVerify != TRI_UNKNOWN ) return FALSE;
-	if ( m_pFile != NULL ) return FALSE;
+	if ( m_pFile.get() ) return FALSE;
 
 	if ( ! m_pFile->FindByPath( pszPath ) ) return FALSE;
 

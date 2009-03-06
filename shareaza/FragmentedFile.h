@@ -1,7 +1,7 @@
 //
 // FragmentedFile.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2008.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -29,7 +29,7 @@ class CShareazaFile;
 class CBTInfo;
 
 
-class CFragmentedFile : public CComObject
+class CFragmentedFile : public CObject
 {
 	DECLARE_DYNCREATE( CFragmentedFile )
 
@@ -144,6 +144,7 @@ protected:
 	QWORD						m_nUnflushed;
 	Fragments::List				m_oFList;
 	DWORD						m_nFileError;
+	volatile LONG				m_dwRef;
 
 	BOOL	VirtualRead(QWORD nOffset, char* pBuffer, QWORD nBuffer, QWORD* pnRead);
 	BOOL	VirtualWrite(QWORD nOffset, const char* pBuffer, QWORD nBuffer, QWORD* pnWritten);
@@ -156,8 +157,8 @@ public:
 	BOOL	Open(const CShareazaFile& oSHFile, BOOL bWrite);
 	// Open file from disk or create file inside incomplete folder file(s) from .torrent
 	BOOL	Open(const CBTInfo& oInfo, BOOL bWrite, CString& sErrorMessage);
-//	ULONG	AddRef();
-//	ULONG	Release();
+	ULONG	AddRef();
+	ULONG	Release();
 	BOOL	Flush();
 	void	Close();
 	BOOL	MakeComplete();
@@ -320,3 +321,10 @@ public:
 //		return ( m_pFile != NULL ) && ( m_nUnflushed > 0 );
 //	}
 };
+
+// For auto_ptr< CFragmentedFile >
+template<>
+inline void boost::checked_delete< CFragmentedFile >(CFragmentedFile* x)
+{
+    x->Release();
+}

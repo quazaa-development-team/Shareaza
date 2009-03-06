@@ -81,6 +81,7 @@ CFragmentedFile::CFragmentedFile() :
 	m_nUnflushed	( 0 )
 ,	m_oFList		( 0 )
 ,	m_nFileError	( ERROR_SUCCESS )
+,	m_dwRef			( 1 )
 {
 }
 
@@ -91,11 +92,25 @@ CFragmentedFile::~CFragmentedFile()
 	Close();
 }
 
+ULONG CFragmentedFile::AddRef()
+{
+	return (ULONG)InterlockedIncrement( &m_dwRef );
+}
+
+ULONG CFragmentedFile::Release()
+{
+	ULONG ref_count = (ULONG)InterlockedDecrement( &m_dwRef );
+	if ( ref_count )
+		return ref_count;
+	delete this;
+	return 0;
+}
+
 #ifdef _DEBUG
 
 void CFragmentedFile::AssertValid() const
 {
-	CComObject::AssertValid();
+	CObject::AssertValid();
 
 	if ( m_oFile.size() != 0 )
 	{
@@ -112,7 +127,7 @@ void CFragmentedFile::AssertValid() const
 
 void CFragmentedFile::Dump(CDumpContext& dc) const
 {
-	CComObject::Dump( dc );
+	CObject::Dump( dc );
 
 	int n = 1;
 	for ( CVirtualFile::const_iterator i = m_oFile.begin(); i != m_oFile.end(); ++i, ++n )
@@ -726,10 +741,8 @@ BOOL CFragmentedFile::Write(QWORD nOffset, LPCVOID pData, QWORD nLength, QWORD* 
 	}
 
 	m_nUnflushed += nProcessed;
-
 	m_oFList.erase( oMatch );
-
-	return ( nProcessed > 0 );
+	return nProcessed > 0;
 }
 
 //////////////////////////////////////////////////////////////////////

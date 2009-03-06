@@ -1,7 +1,7 @@
 //
 // UploadTransfer.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2008.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -131,7 +131,7 @@ BOOL CUploadTransfer::Promote()
 
 BOOL CUploadTransfer::OnRename(LPCTSTR pszSource, LPCTSTR pszTarget)
 {
-	if ( ! m_pFile || ! m_pFile->FindByPath( pszSource ) )
+	if ( ! m_pFile.get() || ! m_pFile->FindByPath( pszSource ) )
 		// Unknown name
 		return FALSE;
 
@@ -526,14 +526,13 @@ void CUploadTransfer::AllocateBaseFile()
 
 BOOL CUploadTransfer::IsFileOpen() const
 {
-	return ( m_pFile != NULL );
+	return ( m_pFile.get() != NULL );
 }
 
 BOOL CUploadTransfer::OpenFile()
 {
-	CComPtr< CFragmentedFile > pFile = new CFragmentedFile;
-	pFile->InternalRelease();
-	if ( pFile && pFile->Open( m_sPath ) )
+	auto_ptr< CFragmentedFile > pFile( new CFragmentedFile );
+	if ( pFile.get() && pFile->Open( m_sPath ) )
 	{
 		AttachFile( pFile );
 		return TRUE;
@@ -543,7 +542,7 @@ BOOL CUploadTransfer::OpenFile()
 
 void CUploadTransfer::CloseFile()
 {
-	m_pFile.Release();
+	m_pFile.reset();
 }
 
 BOOL CUploadTransfer::WriteFile(QWORD nOffset, LPCVOID pData, QWORD nLength, QWORD* pnWritten)
@@ -562,9 +561,7 @@ BOOL CUploadTransfer::ReadFile(QWORD nOffset, LPVOID pData, QWORD nLength, QWORD
 	return m_pFile->Read( nOffset, pData, nLength, pnRead );
 }
 
-void CUploadTransfer::AttachFile(CFragmentedFile* pFile)
+void CUploadTransfer::AttachFile(auto_ptr< CFragmentedFile >& pFile)
 {
-	CloseFile();
-
-	m_pFile.Attach( pFile );
+	m_pFile = pFile;
 }
