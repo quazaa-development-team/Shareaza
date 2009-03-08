@@ -36,7 +36,7 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
-IMPLEMENT_DYNCREATE( CFragmentedFile, CComObject )
+IMPLEMENT_DYNCREATE( CFragmentedFile, CObject )
 
 CFragmentedFile::CVirtualFilePart::CVirtualFilePart() :
 	m_pFile( NULL ),
