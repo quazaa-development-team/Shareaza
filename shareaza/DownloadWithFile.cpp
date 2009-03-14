@@ -231,7 +231,7 @@ BOOL CDownloadWithFile::FlushFile()
 
 BOOL CDownloadWithFile::IsComplete() const
 {
-	return m_pFile.get() && ( m_pFile->GetRemaining() == 0 );
+	return m_pFile.get() && m_pFile->IsComplete();
 }
 
 BOOL CDownloadWithFile::ReadFile(QWORD nOffset, LPVOID pData, QWORD nLength, QWORD* pnRead)

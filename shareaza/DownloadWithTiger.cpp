@@ -320,24 +320,82 @@ BOOL CDownloadWithTiger::ValidationCanFinish() const
 
 	if ( m_pTorrentBlock != NULL )
 	{
-		if ( m_nTorrentSuccess >= m_nTorrentBlock ) return TRUE;
 		bAvailable = TRUE;
+
+		// Quick check
+		if ( m_nTorrentSuccess >= m_nTorrentBlock )
+			return TRUE;
+
+		// Full check
+		if ( GetFileCount() > 1 )
+		{
+			Fragments::List oList = GetWantedFragmentList();
+			for ( DWORD i = 0 ; i < m_nTorrentBlock; i++ )
+			{
+				if ( m_pTorrentBlock[ i ] == TRI_TRUE )
+				{
+					QWORD nOffset = i * (QWORD)m_nTorrentSize;
+					oList.erase( Fragments::Fragment( nOffset,
+						min( nOffset + m_nTorrentSize, m_nSize ) ) );
+				}
+			}
+			if ( oList.empty() )
+				return TRUE;
+		}
 	}
 
 	if ( m_pTigerBlock != NULL && Settings.Downloads.VerifyTiger )
 	{
-		if ( m_nTigerSuccess >= m_nTigerBlock ) return TRUE;
 		bAvailable = TRUE;
+
+		// Quick check
+		if ( m_nTigerSuccess >= m_nTigerBlock )
+			return TRUE;
+
+		// Full check
+		if ( GetFileCount() > 1 )
+		{
+			Fragments::List oList = GetWantedFragmentList();
+			for ( DWORD i = 0 ; i < m_nTigerBlock; i++ )
+			{
+				if ( m_pTigerBlock[ i ] == TRI_TRUE )
+				{
+					QWORD nOffset = i * (QWORD)m_nTigerSize;
+					oList.erase( Fragments::Fragment( nOffset,
+						min( nOffset + m_nTigerSize, m_nSize ) ) );
+				}
+			}
+			if ( oList.empty() )
+				return TRUE;
+		}
 	}
 
 	if ( m_pHashsetBlock != NULL && Settings.Downloads.VerifyED2K )
 	{
-		if ( m_nSize && m_nSize % ED2K_PART_SIZE == 0 &&
-			 m_nHashsetSuccess >= m_nHashsetBlock - 1 )
-			return TRUE;
-		else if ( m_nHashsetSuccess >= m_nHashsetBlock )
-			return TRUE;
 		bAvailable = TRUE;
+
+		// Quick check
+		if ( ( m_nSize && m_nSize % ED2K_PART_SIZE == 0 &&
+			m_nHashsetSuccess >= m_nHashsetBlock - 1 ) ||
+			( m_nHashsetSuccess >= m_nHashsetBlock ) )
+			return TRUE;
+
+		// Full check
+		if ( GetFileCount() > 1 )
+		{
+			Fragments::List oList = GetWantedFragmentList();
+			for ( DWORD i = 0 ; i < m_nHashsetBlock; i++ )
+			{
+				if ( m_pHashsetBlock[ i ] == TRI_TRUE )
+				{
+					QWORD nOffset = i * (QWORD)ED2K_PART_SIZE;
+					oList.erase( Fragments::Fragment( nOffset,
+						min( nOffset + ED2K_PART_SIZE, m_nSize ) ) );
+				}
+			}
+			if ( oList.empty() )
+				return TRUE;
+		}
 	}
 
 	return ! bAvailable;

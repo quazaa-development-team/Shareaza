@@ -149,6 +149,9 @@ protected:
 	BOOL	VirtualRead(QWORD nOffset, char* pBuffer, QWORD nBuffer, QWORD* pnRead);
 	BOOL	VirtualWrite(QWORD nOffset, const char* pBuffer, QWORD nBuffer, QWORD* pnWritten);
 
+	// Get completed size of defined range (in bytes)
+	QWORD GetCompleted(QWORD nOffset, QWORD nLength) const;
+
 public:
 	// Open file from disk
 	BOOL	Open(LPCTSTR pszFile, QWORD nOffset = 0, QWORD nLength = SIZE_UNKNOWN,
@@ -291,21 +294,16 @@ public:
 		return m_oFList.missing();
 	}
 
-	// Get completed size of defined range (in bytes)
-	inline QWORD GetCompleted(QWORD nOffset, QWORD nLength) const
+	// Get completed size of subfile (in bytes)
+	QWORD GetCompleted(DWORD nIndex) const;
+	
+	// Is download complete?
+	inline bool IsComplete() const
 	{
 		CQuickLock oLock( m_pSection );
 
-		// TODO: Optimize this
-		Fragments::List oList( m_oFList );	
-		oList.insert( Fragments::Fragment( 0, nOffset ) );
-		oList.insert( Fragments::Fragment( nOffset + nLength, m_oFList.limit() ) );
-
-		return oList.missing();
-	}	
-
-	// Get completed size of subfile (in bytes)
-	QWORD GetCompleted(DWORD nIndex) const;
+		return GetWantedFragmentList().empty();
+	}
 
 //	inline QWORD GetEmptyFragmentCount() const
 //	{
@@ -326,5 +324,6 @@ public:
 template<>
 inline void boost::checked_delete< CFragmentedFile >(CFragmentedFile* x)
 {
-    x->Release();
+    if ( x )
+		x->Release();
 }
