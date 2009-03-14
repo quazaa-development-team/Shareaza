@@ -428,6 +428,18 @@ Fragments::List CFragmentedFile::GetWantedFragmentList() const
 	return oList;
 }
 
+QWORD CFragmentedFile::GetCompleted(QWORD nOffset, QWORD nLength) const
+{
+	CQuickLock oLock( m_pSection );
+
+	// TODO: Optimize this
+	Fragments::List oList( m_oFList );	
+	oList.insert( Fragments::Fragment( 0, nOffset ) );
+	oList.insert( Fragments::Fragment( nOffset + nLength, m_oFList.limit() ) );
+
+	return oList.missing();
+}
+
 QWORD CFragmentedFile::GetCompleted(DWORD nIndex) const
 {
 	CQuickLock oLock( m_pSection );
@@ -498,6 +510,7 @@ void CFragmentedFile::Delete()
 DWORD CFragmentedFile::Move(DWORD nIndex, LPCTSTR pszDestination, LPPROGRESS_ROUTINE lpProgressRoutine, LPVOID lpData)
 {
 	CString sPath, sName;
+	bool bSkip;
 
 	// Get subfile attributes
 	{
@@ -508,6 +521,7 @@ DWORD CFragmentedFile::Move(DWORD nIndex, LPCTSTR pszDestination, LPPROGRESS_ROU
 
 		sPath = m_oFile[ nIndex ].m_sPath;
 		sName = m_oFile[ nIndex ].m_sName;
+		bSkip = ( m_oFile[ nIndex ].m_nPriority == prNotWanted );
 
 		// Close our handle
 		m_oFile[ nIndex ].Release();
@@ -522,31 +536,31 @@ DWORD CFragmentedFile::Move(DWORD nIndex, LPCTSTR pszDestination, LPPROGRESS_ROU
 		// Already moved
 		return ERROR_SUCCESS;
 
-	theApp.Message( MSG_DEBUG, _T("Moving \"%s\" to \"%s\"..."),
-		(LPCTSTR)sPath, (LPCTSTR)strTargetDir );
+	if ( bSkip )
+		theApp.Message( MSG_DEBUG, _T("Skiping \"%s\"..."),
+			(LPCTSTR)sPath );
+	else
+		theApp.Message( MSG_DEBUG, _T("Moving \"%s\" to \"%s\"..."),
+			(LPCTSTR)sPath, (LPCTSTR)strTargetDir );
+
+	// Close chained uploads
+	while( ! Uploads.OnRename( sPath ) )
+		Sleep( 250ul );
 
 	// Create directory for file recursively
 	BOOL bSuccess = CreateDirectory( strTargetDir );
 	DWORD dwError = ::GetLastError();
 	if ( bSuccess )
 	{
-		// Close chained uploads
-		while( ! Uploads.OnRename( sPath ) )
-			Sleep( 250ul );
+		if ( bSkip )
+			bSuccess = DeleteFileEx( sPath, FALSE, TRUE, TRUE );
+		else
+			// Move/copy file using very long filenames
+			bSuccess = MoveFileWithProgress( CString( _T("\\\\?\\") ) + sPath,
+				CString( _T("\\\\?\\") ) + strTarget, lpProgressRoutine, lpData,
+				MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED | MOVEFILE_WRITE_THROUGH );
 
-		// Move/copy file using very long filenames
-		bSuccess = MoveFileWithProgress( CString( _T("\\\\?\\") ) + sPath,
-			CString( _T("\\\\?\\") ) + strTarget, lpProgressRoutine, lpData,
-			MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED | MOVEFILE_WRITE_THROUGH );
 		dwError = ::GetLastError();
-
-		// Enable uploads
-		while( ! Uploads.OnRename( sPath, bSuccess ? strTarget : sPath ) )
-			Sleep( 250ul );
-
-		if ( bSuccess )
-			// Use new name
-			sPath = strTarget;
 	}
 
 	if ( ! bSuccess )
@@ -554,7 +568,13 @@ DWORD CFragmentedFile::Move(DWORD nIndex, LPCTSTR pszDestination, LPPROGRESS_ROU
 			(LPCTSTR)sPath, (LPCTSTR)GetErrorString( dwError ) );
 
 	// Set subfile new attributes
-	SetPath( nIndex, sPath );
+	if ( bSuccess )
+		SetPath( nIndex, strTarget );
+
+	if ( ! bSkip )
+		// ReEnable uploads
+		while( ! Uploads.OnRename( sPath, bSuccess ? strTarget : sPath ) )
+			Sleep( 250ul );
 
 	return ( bSuccess ? ERROR_SUCCESS : dwError );
 }
