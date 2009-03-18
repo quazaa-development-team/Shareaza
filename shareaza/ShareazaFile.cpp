@@ -36,6 +36,7 @@ CShareazaFile::CShareazaFile() :
 }
 
 CShareazaFile::CShareazaFile(const CShareazaFile& pFile) :
+	m_sName( pFile.m_sName ),
 	m_nSize( pFile.m_nSize ),
 	m_oSHA1( pFile.m_oSHA1 ),
 	m_oTiger( pFile.m_oTiger ),
@@ -49,6 +50,7 @@ CShareazaFile::CShareazaFile(const CShareazaFile& pFile) :
 
 CShareazaFile& CShareazaFile::operator=(const CShareazaFile& pFile)
 {
+	m_sName = pFile.m_sName;
 	m_nSize = pFile.m_nSize;
 	m_oSHA1 = pFile.m_oSHA1;
 	m_oTiger = pFile.m_oTiger;
