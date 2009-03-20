@@ -464,7 +464,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About Shareaza"
 FONT 8, "Tahoma", 0, 0, 0x1
 BEGIN
-    CONTROL         154,IDC_STATIC,"Static",SS_BITMAP,0,0,367,31
+    CONTROL         154,IDC_BANNER,"Static",SS_BITMAP,0,0,367,31
     LTEXT           "Shareaza File Sharing Client ",IDC_TITLE,20,45,262,10,SS_CENTERIMAGE
     LTEXT           "Copyright © Shareaza Development Team, 2002-",IDC_COPYRIGHT,20,60,262,12
     LTEXT           "Shareaza is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.",IDC_STATIC,20,75,262,24
@@ -787,7 +787,7 @@ BEGIN
     COMBOBOX        IDC_SERVICE_TYPE,148,74,130,70,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     DEFPUSHBUTTON   "OK",IDOK,179,124,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,235,124,50,14
-    CONTROL         154,IDC_STATIC,"Static",SS_BITMAP,0,0,400,31
+    CONTROL         154,IDC_BANNER,"Static",SS_BITMAP,0,0,400,31
 END
 
 IDD_SETTINGS_BANDWIDTH DIALOG  0, 0, 282, 220
@@ -1909,6 +1909,21 @@ BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,200,49,50,14
 END
 
+IDD_MESSAGE DIALOGEX 0, 0, 300, 112
+STYLE DS_SETFONT | DS_MODALFRAME | WS_MINIMIZEBOX | WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_CAPTION | WS_SYSMENU
+CAPTION "Shareaza"
+FONT 8, "Tahoma", 0, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "1",IDC_INFO_BUTTON1,243,65,50,14
+    PUSHBUTTON      "2",IDC_INFO_BUTTON2,188,65,50,14
+    PUSHBUTTON      "3",IDC_INFO_BUTTON3,132,65,50,14
+    CONTROL         "&Remember my selection next time",IDC_INFO_REMEMBER,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,95,286,10
+    LTEXT           "",IDC_INFO_TEXT,38,7,255,58
+    ICON            IDR_MAINFRAME,IDC_INFO_ICON,7,7,20,20
+    CONTROL         "",IDC_INFO_SPLIT,"Static",SS_ETCHEDFRAME,0,87,299,1
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2645,6 +2660,14 @@ BEGIN
         RIGHTMARGIN, 250
         TOPMARGIN, 7
         BOTTOMMARGIN, 63
+    END
+
+    IDD_MESSAGE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 293
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 105
     END
 END
 #endif    // APSTUDIO_INVOKED

@@ -2169,6 +2169,10 @@
 					>
 				</File>
 				<File
+					RelativePath="DlgMessage.cpp"
+					>
+				</File>
+				<File
 					RelativePath="DlgNewSearch.cpp"
 					>
 				</File>
@@ -3891,6 +3895,10 @@
 				</File>
 				<File
 					RelativePath="DlgMediaVis.h"
+					>
+				</File>
+				<File
+					RelativePath="DlgMessage.h"
 					>
 				</File>
 				<File
