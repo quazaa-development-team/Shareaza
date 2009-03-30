@@ -41,8 +41,6 @@ typename list_type::range_type selectBlock(const list_type& src,
 
 	if ( src.empty() ) return range_type( 0, 0 );
 
-	if ( src.limit() == SIZE_UNKNOWN ) return range_type( 0, block_size );
-
 	std::deque< range_size_type > blocks;
 
 	for ( const_iterator select = src.begin(); select != src.end(); ++select )

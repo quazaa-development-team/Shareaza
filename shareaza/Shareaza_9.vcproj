@@ -1917,10 +1917,6 @@
 					>
 				</File>
 				<File
-					RelativePath="CtrlLibraryPanel.cpp"
-					>
-				</File>
-				<File
 					RelativePath="CtrlLibraryThumbView.cpp"
 					>
 				</File>
@@ -1970,6 +1966,11 @@
 				</File>
 				<File
 					RelativePath="CtrlNetworkCombo.cpp"
+					>
+				</File>
+				<File
+					RelativePath="CtrlPanel.cpp"
+					DeploymentContent="true"
 					>
 				</File>
 				<File
@@ -3530,10 +3531,6 @@
 					>
 				</File>
 				<File
-					RelativePath="CtrlLibraryPanel.h"
-					>
-				</File>
-				<File
 					RelativePath="CtrlLibraryThumbView.h"
 					>
 				</File>
@@ -3583,6 +3580,10 @@
 				</File>
 				<File
 					RelativePath="CtrlNetworkCombo.h"
+					>
+				</File>
+				<File
+					RelativePath="CtrlPanel.h"
 					>
 				</File>
 				<File
