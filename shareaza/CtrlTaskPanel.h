@@ -95,12 +95,14 @@ public:
 	void		SetCaption(LPCTSTR pszCaption);
 	void		SetIcon(HICON hIcon);
 	void		SetSize(int nHeight);
+	void		SetWindowPos(const CRect& rcBox);
 	void		SetPrimary(BOOL bPrimary = TRUE);
 	void		SetWatermark(HBITMAP hBitmap);
 	void		SetCaptionmark(HBITMAP hBitmap, BOOL bDefault = TRUE);
 	void		Expand(BOOL bOpen = TRUE);
 
 protected:
+	CRgn		m_rgnWindow;
 	CTaskPanel*	m_pPanel;
 	int			m_nHeight;
 	BOOL		m_bVisible;
@@ -129,6 +131,7 @@ protected:
 	afx_msg ONNCHITTESTRESULT OnNcHitTest(CPoint point);
 	afx_msg BOOL OnNcActivate(BOOL bActive);
 	afx_msg void OnPaint();
+	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 	afx_msg void OnNcLButtonUp(UINT nHitTest, CPoint point);
