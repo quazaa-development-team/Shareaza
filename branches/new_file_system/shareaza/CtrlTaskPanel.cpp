@@ -34,29 +34,26 @@ static char THIS_FILE[] = __FILE__;
 IMPLEMENT_DYNAMIC(CTaskPanel, CWnd)
 
 BEGIN_MESSAGE_MAP(CTaskPanel, CWnd)
-	//{{AFX_MSG_MAP(CTaskPanel)
 	ON_WM_SIZE()
 	ON_WM_PAINT()
 	ON_WM_ERASEBKGND()
 	ON_WM_CREATE()
-	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 IMPLEMENT_DYNAMIC(CTaskBox, CButton)
 
 BEGIN_MESSAGE_MAP(CTaskBox, CButton)
-	//{{AFX_MSG_MAP(CTaskBox)
 	ON_WM_NCCALCSIZE()
 	ON_WM_NCPAINT()
 	ON_WM_NCHITTEST()
 	ON_WM_NCACTIVATE()
 	ON_WM_PAINT()
+	ON_WM_ERASEBKGND()
 	ON_WM_SYSCOMMAND()
 	ON_WM_SETCURSOR()
 	ON_WM_NCLBUTTONUP()
 	ON_WM_TIMER()
 	ON_WM_NCLBUTTONDOWN()
-	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 #define CAPTION_HEIGHT	25
@@ -69,7 +66,7 @@ CTaskPanel::CTaskPanel()
 {
 	m_pStretch	= NULL;
 	m_nMargin	= 12;
-	m_nCurve	= 2;
+	m_nCurve	= 5;
 	m_bLayout	= FALSE;
 }
 
@@ -273,8 +270,7 @@ void CTaskPanel::Layout(CRect& rcClient)
 			
 			rcBox.bottom = rcBox.top + nHeight;
 			
-			pBox->SetWindowPos( NULL, rcBox.left, rcBox.top, rcBox.Width(), rcBox.Height(),
-				SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOACTIVATE );
+			pBox->SetWindowPos( rcBox );
 
 			for( CWnd* pChild = pBox->GetWindow( GW_CHILD ); pChild;
 				pChild = pChild->GetWindow( GW_HWNDNEXT ) )
@@ -383,6 +379,25 @@ void CTaskBox::SetSize(int nHeight)
 	if ( m_nHeight == nHeight ) return;
 	m_nHeight = nHeight;
 	if ( m_pPanel ) m_pPanel->OnChanged();
+}
+
+void CTaskBox::SetWindowPos(const CRect& rcBox)
+{
+	if ( m_pPanel->m_nCurve != 0 && m_bCaptionCurve )
+	{
+		SetWindowRgn( NULL, TRUE );
+		if ( m_rgnWindow.m_hObject )
+			m_rgnWindow.DeleteObject();
+		m_rgnWindow.CreateRoundRectRgn( 0, 0, rcBox.Width(), rcBox.Height(),
+			m_pPanel->m_nCurve, m_pPanel->m_nCurve );
+		CRgn rgn2;
+		rgn2.CreateRectRgn( 0, m_pPanel->m_nCurve, rcBox.Width(), rcBox.Height() );
+		m_rgnWindow.CombineRgn( &m_rgnWindow, &rgn2, RGN_OR );
+		SetWindowRgn( m_rgnWindow, TRUE );
+	}
+
+	CButton::SetWindowPos( NULL, rcBox.left, rcBox.top, rcBox.Width(), rcBox.Height(),
+		SWP_SHOWWINDOW | SWP_NOZORDER | SWP_NOACTIVATE );
 }
 
 void CTaskBox::SetPrimary(BOOL bPrimary)
@@ -532,21 +547,6 @@ void CTaskBox::PaintBorders()
 	GetWindowRect( &rc );
 	rc.OffsetRect( -rc.left, -rc.top );
 	
-	if ( m_pPanel->m_nCurve != 0 && m_bCaptionCurve )
-	{
-		dc.SetPixel( 0, 0, CoolInterface.m_crTaskPanelBack );
-		dc.SetPixel( 1, 0, CoolInterface.m_crTaskPanelBack );
-		dc.SetPixel( 0, 1, CoolInterface.m_crTaskPanelBack );
-		dc.SetPixel( rc.right - 1, 0, CoolInterface.m_crTaskPanelBack );
-		dc.SetPixel( rc.right - 2, 0, CoolInterface.m_crTaskPanelBack );
-		dc.SetPixel( rc.right - 1, 1, CoolInterface.m_crTaskPanelBack );
-		
-		dc.ExcludeClipRect( 0, 0, 2, 1 );
-		dc.ExcludeClipRect( 0, 1, 1, 2 );
-		dc.ExcludeClipRect( rc.right - 2, 0, rc.right, 1 );
-		dc.ExcludeClipRect( rc.right - 1, 1, rc.right, 2 );
-	}
-	
 	rcc.SetRect( 0, 0, rc.right, CAPTION_HEIGHT );
 
 	CSize size= rcc.Size();
@@ -616,6 +616,11 @@ void CTaskBox::OnPaint()
 	{
 		dc.FillSolidRect( &rc, CoolInterface.m_crTaskBoxClient );
 	}
+}
+
+BOOL CTaskBox::OnEraseBkgnd(CDC* /*pDC*/) 
+{
+	return TRUE;
 }
 
 void CTaskBox::OnSysCommand(UINT /*nID*/, LPARAM /*lParam*/) 
