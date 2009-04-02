@@ -1970,7 +1970,6 @@
 				</File>
 				<File
 					RelativePath="CtrlPanel.cpp"
-					DeploymentContent="true"
 					>
 				</File>
 				<File
@@ -4976,7 +4975,7 @@
 				>
 			</File>
 			<File
-				RelativePath="Res\WizardDot.bmp"
+				RelativePath="Res\WizardDot.ico"
 				>
 			</File>
 			<File

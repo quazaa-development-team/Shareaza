@@ -70,7 +70,7 @@ CWizardConnectionPage::~CWizardConnectionPage()
 
 void CWizardConnectionPage::DoDataExchange(CDataExchange* pDX)
 {
-	CPropertyPage::DoDataExchange(pDX);
+	CWizardPage::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CWizardConnectionPage)
 	DDX_Control(pDX, IDC_CONNECTION_TYPE, m_wndType);
 	DDX_Control(pDX, IDC_WIZARD_DOWNLOAD_SPEED, m_wndDownloadSpeed);
@@ -86,7 +86,7 @@ void CWizardConnectionPage::DoDataExchange(CDataExchange* pDX)
 
 BOOL CWizardConnectionPage::OnInitDialog()
 {
-	CPropertyPage::OnInitDialog();
+	CWizardPage::OnInitDialog();
 
 	Skin.Apply( _T("CWizardConnectionPage"), this );
 
@@ -260,7 +260,7 @@ LRESULT CWizardConnectionPage::OnWizardNext()
 		try
 		{
 			if ( !theApp.m_pUPnPFinder )
-				theApp.m_pUPnPFinder.reset( new CUPnPFinder );
+				theApp.m_pUPnPFinder.Attach( new CUPnPFinder );
 			if ( theApp.m_pUPnPFinder->AreServicesHealthy() )
 				theApp.m_pUPnPFinder->StartDiscovery();
 		}

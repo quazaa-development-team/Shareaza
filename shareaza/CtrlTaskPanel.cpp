@@ -66,7 +66,7 @@ CTaskPanel::CTaskPanel()
 {
 	m_pStretch	= NULL;
 	m_nMargin	= 12;
-	m_nCurve	= 5;
+	m_nCurve	= 2;
 	m_bLayout	= FALSE;
 }
 
