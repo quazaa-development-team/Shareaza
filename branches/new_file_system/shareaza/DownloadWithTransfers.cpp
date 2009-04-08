@@ -258,6 +258,8 @@ BOOL CDownloadWithTransfers::StartTransfersIfNeeded(DWORD tNow)
 
 BOOL CDownloadWithTransfers::StartNewTransfer(DWORD tNow)
 {
+	ASSUME_LOCK( Transfers.m_pSection );
+
 	if ( tNow == 0 ) tNow = GetTickCount();
 	
 	BOOL bConnected = Network.IsConnected();

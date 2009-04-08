@@ -30,6 +30,7 @@
 #include "DownloadGroups.h"
 #include "FragmentedFile.h"
 #include "Uploads.h"
+#include "Transfers.h"
 
 #include "ID3.h"
 #include "XML.h"
@@ -360,6 +361,8 @@ inline DWORD CalcChunkSize(QWORD nSize)
 
 BOOL CDownloadWithFile::GetFragment(CDownloadTransfer* pTransfer)
 {
+	ASSUME_LOCK( Transfers.m_pSection );
+
 	if ( !PrepareFile() )
 		return NULL;
 
