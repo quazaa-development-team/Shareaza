@@ -1418,9 +1418,10 @@ BOOL CDiscoveryServices::RunWebCacheGet(BOOL bCaches)
 
 		if ( ! oParts[ 0 ].CompareNoCase( _T("h") ) )
 		{
-			// Hosts: "h|Host:Port|Age|Cluster|VendorCode|Uptime|Max Leaves"
+			// Hosts: "h|Host:Port|Age|Cluster|CurrentLeaves|VendorCode|Uptime|LeafLimit"
 			if ( oParts.GetCount() >= 3 )
 			{
+				// Get host and age fields
 				DWORD nAddress = INADDR_NONE;
 				int nPort = 0, nSeconds = 0;
 				int nPos = oParts[ 1 ].Find( _T(':') );
@@ -1429,51 +1430,71 @@ BOOL CDiscoveryServices::RunWebCacheGet(BOOL bCaches)
 					_stscanf( oParts[ 1 ].Mid( nPos + 1 ), _T("%i"), &nPort ) == 1 &&
 					nPort > 0 && nPort < 65536 &&
 					_stscanf( oParts[ 2 ], _T("%i"), &nSeconds ) == 1 &&
-					nSeconds >= 0 && nSeconds < 60 * 60 * 24 * 3 ) // 3 days
+					nSeconds >= 0 && nSeconds < 60 * 60 * 24 * 365 )
 				{
 					DWORD tSeen	= static_cast< DWORD >( time( NULL ) ) - nSeconds;
-					CVendor* pVendor = NULL;
-					DWORD tUptime = 0;
-					DWORD nMaxLeaves = 0;
-					if ( oParts.GetCount() >= 4 )
-					{
-						// Skip cluster field
 
-						if ( oParts.GetCount() >= 5 )
+					// Skip cluster field
+					
+					// Get current leaves field
+					DWORD nCurrentLeaves = 0;
+					if ( oParts.GetCount() >= 5 )
+					{
+						int nCurrentLeavesTmp;
+						if ( _stscanf( oParts[ 4 ], _T("%i"), &nCurrentLeavesTmp ) == 1 &&
+							nCurrentLeavesTmp >= 0 && nCurrentLeavesTmp < 2048 )
 						{
-							pVendor = VendorCache.Lookup( oParts[ 4 ].Left( 4 ) );
-							if ( oParts.GetCount() >= 6 )
-							{
-								int tUptimeTmp;
-								if ( _stscanf( oParts[ 5 ], _T("%i"), &tUptimeTmp ) == 1 &&
-									tUptimeTmp > 60 && tUptimeTmp < 60 * 60 * 24 * 365 )
-								{
-									tUptime = tUptimeTmp;
-									if ( oParts.GetCount() >= 7 )
-									{
-										int nMaxLeavesTmp;
-										if ( _stscanf( oParts[ 6 ], _T("%i"), &nMaxLeavesTmp ) == 1 &&
-											nMaxLeavesTmp >= 0 && nMaxLeavesTmp < 2048 )
-										{
-											nMaxLeaves = nMaxLeavesTmp;
-										}
-										else
-											// Bad max leaves format
-											return FALSE;
-									}
-								}
-								else
-									// Bad uptime format
-									return FALSE;
-							}
+							nCurrentLeaves = nCurrentLeavesTmp;
 						}
+						else
+							// Bad current leaves format
+							return FALSE;
+					}
+
+					// Get vendor field
+					CVendor* pVendor = NULL;
+					if ( oParts.GetCount() >= 6 )
+					{
+						pVendor = VendorCache.Lookup( oParts[ 5 ].Left( 4 ) );
+					}
+
+					// Get uptime field
+					DWORD tUptime = 0;
+					if ( oParts.GetCount() >= 7 )
+					{
+						int tUptimeTmp;
+						if ( _stscanf( oParts[ 6 ], _T("%i"), &tUptimeTmp ) == 1 &&
+							tUptimeTmp > 60 && tUptimeTmp < 60 * 60 * 24 * 365 )
+						{
+							tUptime = tUptimeTmp;
+						}
+						else
+							// Bad uptime format
+							return FALSE;
+					}
+
+					// Get leaf limit field
+					DWORD nLeafLimit = 0;
+					if ( oParts.GetCount() >= 8 )
+					{
+						int nLeafLimitTmp;
+						if ( _stscanf( oParts[ 7 ], _T("%i"), &nLeafLimitTmp ) == 1 &&
+							nLeafLimitTmp >= 0 && nLeafLimitTmp < 2048 )
+						{
+							nLeafLimit = nLeafLimitTmp;
+						}
+						else
+							// Bad leaf limit format
+							return FALSE;
 					}
 
 					if ( ( m_nLastQueryProtocol == PROTOCOL_G2 ) ? 
 						HostCache.Gnutella2.Add( (IN_ADDR*)&nAddress, (WORD)nPort,
-							tSeen, ( pVendor ? (LPCTSTR)pVendor->m_sCode : NULL ), tUptime, 0, nMaxLeaves ) :
+							tSeen, ( pVendor ? (LPCTSTR)pVendor->m_sCode : NULL ),
+							tUptime, nCurrentLeaves, nLeafLimit ) :
 						HostCache.Gnutella1.Add( (IN_ADDR*)&nAddress, (WORD)nPort,
-							tSeen, ( pVendor ? (LPCTSTR)pVendor->m_sCode : NULL ), tUptime, 0, nMaxLeaves ) )
+							tSeen, ( pVendor ? (LPCTSTR)pVendor->m_sCode : NULL ),
+							tUptime,nCurrentLeaves, nLeafLimit ) )
 					{
 						m_pWebCache->OnHostAdd();
 						nHosts++;
@@ -1555,7 +1576,41 @@ BOOL CDiscoveryServices::RunWebCacheGet(BOOL bCaches)
 			// Informational Response: "i|command|...."
 			if ( oParts.GetCount() >= 2 )
 			{
-				if ( ! oParts[ 1 ].CompareNoCase( _T("access") ) )
+				if ( ! oParts[ 1 ].CompareNoCase( _T("pong") ) )
+				{
+					// "i|pong|vendor x.x.x|networks"
+					// pong v2 (Skulls-type PONG network extension usage)
+					// Usage here: Used to check if cache supports requested network.
+					if ( m_nLastQueryProtocol != PROTOCOL_G2 )
+					{
+						//Mystery pong received - possibly a hosted static webpage.
+						theApp.Message( MSG_ERROR, _T("GWebCache %s : PONG received when no ping was given"), (LPCTSTR)m_pWebCache->m_sAddress );
+						return FALSE;
+					}
+					if ( oParts.GetCount() >= 3 )
+					{
+						m_pWebCache->m_sPong = oParts[ 2 ];
+
+						if ( oParts.GetCount() >= 4 )
+						{
+							BOOL IsNetwork = FALSE;
+							for ( int i = 0 ; ; )
+							{
+								CString sNetwork = oParts[ 3 ].Tokenize( _T("-"), i );
+								if ( i == -1 )
+									break;
+								if ( ( ! sNetwork.CompareNoCase( _T("gnutella2") ) && m_nLastQueryProtocol == PROTOCOL_G2 ) ||
+									 ( ! sNetwork.CompareNoCase( _T("gnutella") ) && m_nLastQueryProtocol != PROTOCOL_G2 ) )
+								{
+									IsNetwork = TRUE;
+								}
+							}
+							if ( ! IsNetwork )
+								return FALSE;
+						}
+					}
+				}
+				else if ( ! oParts[ 1 ].CompareNoCase( _T("access") ) )
 				{
 					// "i|access|..."
 					if ( oParts.GetCount() >= 4 &&
@@ -1590,40 +1645,6 @@ BOOL CDiscoveryServices::RunWebCacheGet(BOOL bCaches)
 						// "i|update|warning|bad url"
 						m_pWebCache->Remove();
 						return FALSE;
-					}
-				}
-				else if ( ! oParts[ 1 ].CompareNoCase( _T("pong") ) )
-				{
-					// "i|pong|vendor x.x.x|networks"
-					// pong v2 (Skulls-type PONG network extension usage)
-					// Usage here: Used to check if cache supports requested network.
-					if ( m_nLastQueryProtocol != PROTOCOL_G2 )
-					{
-						//Mystery pong received - possibly a hosted static webpage.
-						theApp.Message( MSG_ERROR, _T("GWebCache %s : PONG received when no ping was given"), (LPCTSTR)m_pWebCache->m_sAddress );
-						return FALSE;
-					}
-					if ( oParts.GetCount() >= 3 )
-					{
-						m_pWebCache->m_sPong = oParts[ 2 ];
-
-						if ( oParts.GetCount() >= 4 )
-						{
-							BOOL IsNetwork = FALSE;
-							for ( int i = 0 ; ; )
-							{
-								CString sNetwork = oParts[ 3 ].Tokenize( _T("-"), i );
-								if ( i == -1 )
-									break;
-								if ( ( ! sNetwork.CompareNoCase( _T("gnutella2") ) && m_nLastQueryProtocol == PROTOCOL_G2 ) ||
-									 ( ! sNetwork.CompareNoCase( _T("gnutella") ) && m_nLastQueryProtocol != PROTOCOL_G2 ) )
-								{
-									IsNetwork = TRUE;
-								}
-							}
-							if ( ! IsNetwork )
-								return FALSE;
-						}
 					}
 				}
 				else if ( ! oParts[ 1 ].CompareNoCase( _T("networks") ) )
