@@ -21,10 +21,14 @@
 
 #pragma once
 
+#include "ShareazaOM.h"
+
 typedef CMap< CString, CString&, FILETIME, FILETIME& > CMapStringToFILETIME;
 
-class CShareazaFile
+class CShareazaFile : public CComObject
 {
+	DECLARE_DYNAMIC(CShareazaFile)
+
 public:
 	CShareazaFile();
 	CShareazaFile(const CShareazaFile& pFile);
@@ -71,4 +75,18 @@ public:
 	{
 		return ( ( m_nSize == SIZE_UNKNOWN ) ? 0 : m_nSize );
 	}
+
+// Automation
+protected:
+	BEGIN_INTERFACE_PART(ShareazaFile, IShareazaFile)
+		DECLARE_DISPATCH()
+		STDMETHOD(get_Path)(BSTR FAR* psPath);
+		STDMETHOD(get_Name)(BSTR FAR* psName);
+		STDMETHOD(get_Size)(ULONGLONG FAR* pnSize);
+		STDMETHOD(get_URN)(BSTR sURN, BSTR FAR* psURN);
+		STDMETHOD(get_Hash)(URN_TYPE nType, ENCODING nBase, BSTR FAR* psURN);
+		STDMETHOD(get_URL)(BSTR FAR* psURL);
+	END_INTERFACE_PART(ShareazaFile)
+
+	DECLARE_INTERFACE_MAP()
 };
