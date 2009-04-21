@@ -32,8 +32,6 @@
 
 #if 1
 
-#if _MSC_VER >= 1400	// VS 2005 & VS 2008
-
 // Warnings that are normally ON by default
 #pragma warning ( disable : 4350 )	// (Level 1)	behavior change: 'member1' called instead of 'member2'
 #pragma warning ( disable : 4351 )	// (Level 1)	new behavior: elements of array 'array' will be default initialized
@@ -71,23 +69,6 @@
 // For detecting Memory Leaks
 #ifdef _DEBUG
 #define _CRTDBG_MAP_ALLOC
-#endif
-
-#else	// VS 2003
-
-// 64bit related - need to be fixed
-#pragma warning ( disable : 4302 4311 4312 )
-// general - fix where feasable then move to useless
-#pragma warning ( disable : 4061 4127 4191 4244 4263 4264 4265 4296 4529 4548 4555 4640 4668 4686 4946 )
-// copy/asignment-related
-#pragma warning ( disable : 4511 4512 4625 4626 )
-// behaviour change - check for regression
-#pragma warning ( disable : 4347 )
-// padding
-#pragma warning ( disable : 4820 )
-// useless
-#pragma warning ( disable : 4217 4514 4619 4702 4710 4711 )
-
 #endif
 
 #endif
@@ -159,9 +140,12 @@
 #include <MsiDefs.h>
 #include <Powrprof.h>		// The power policy applicator
 
-#if _MSC_VER < 1400 || _MSC_VER >= 1500
+// Work-around for Microsoft double declaration
+#define _interlockedbittestandset _ms_set
+#define _interlockedbittestandreset _ms_reset
 #include <intrin.h>
-#endif
+#undef _interlockedbittestandset
+#undef _interlockedbittestandreset
 
 //
 // STL
@@ -291,15 +275,6 @@ template<> AFX_INLINE UINT AFXAPI HashKey(DWORD_PTR key)
 
 #define BIF_NEWDIALOGSTYLE	0x0040
 #define OFN_ENABLESIZING	0x00800000
-
-// MFC changed resulttype of CWnd::OnNcHitTest method
-#if _MSC_VER <= 1310
-typedef UINT ONNCHITTESTRESULT;
-// broken standard auto_ptr fix
-#pragma warning ( disable : 4239 )
-#else
-typedef LRESULT ONNCHITTESTRESULT;
-#endif
 
 //
 // 64-bit type
@@ -704,7 +679,7 @@ inline QWORD GetFileSize(LPCTSTR pszFile)
 // MB_YESNO				| 0 - ask, 1 - IDNO, 2 - IDYES
 // MB_RETRYCANCEL		| 0 - ask, 1 - IDRETRY, 2 - IDCANCEL
 // MB_CANCELTRYCONTINUE	| 0 - ask, 1 - IDCANCEL, 2 - IDTRYAGAIN, 3 - IDCONTINUE
-int MsgBox(LPCTSTR lpszText, UINT nType = MB_OK, UINT nIDHelp = 0, DWORD* pnDefault = NULL);
-int MsgBox(UINT nIDPrompt, UINT nType = MB_OK, UINT nIDHelp = 0, DWORD* pnDefault = NULL);
+INT_PTR MsgBox(LPCTSTR lpszText, UINT nType = MB_OK, UINT nIDHelp = 0, DWORD* pnDefault = NULL);
+INT_PTR MsgBox(UINT nIDPrompt, UINT nType = MB_OK, UINT nIDHelp = 0, DWORD* pnDefault = NULL);
 #undef AfxMessageBox
 #define AfxMessageBox MsgBox

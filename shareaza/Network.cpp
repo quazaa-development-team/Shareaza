@@ -303,7 +303,7 @@ void CNetwork::AcquireLocalAddress(LPCTSTR pszHeader)
 	pAddress.S_un.S_un_b.s_b3 = (BYTE)nIPb3;
 	pAddress.S_un.S_un_b.s_b4 = (BYTE)nIPb4;
 
-	if ( IsFirewalledAddress( &pAddress, FALSE, TRUE ) ) return;
+	if ( IsFirewalledAddress( &pAddress ) ) return;
 
 	// Add new address to address list
 	if ( ! m_pHostAddresses.Find( pAddress.s_addr ) )
