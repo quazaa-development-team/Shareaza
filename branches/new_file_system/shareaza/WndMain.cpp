@@ -1676,7 +1676,7 @@ void CMainWnd::OnNetworkBrowseTo()
 
 	if ( Network.Resolve( dlg.m_sHost, dlg.m_nPort, &pAddress ) )
 	{
-		new CBrowseHostWnd( &pAddress );
+		new CBrowseHostWnd( PROTOCOLID( dlg.m_nProtocol + 1 ), &pAddress );
 	}
 }
 
@@ -2708,7 +2708,7 @@ void CMainWnd::OnNcCalcSize(BOOL bCalcValidRects, NCCALCSIZE_PARAMS FAR* lpncsp)
 		CMDIFrameWnd::OnNcCalcSize( bCalcValidRects, lpncsp );
 }
 
-ONNCHITTESTRESULT CMainWnd::OnNcHitTest(CPoint point)
+LRESULT CMainWnd::OnNcHitTest(CPoint point)
 {
 	if ( m_pSkin )
 		return m_pSkin->OnNcHitTest( this, point, TRUE );

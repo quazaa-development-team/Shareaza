@@ -45,6 +45,9 @@
 #include "ThumbCache.h"
 
 #include "ChatCore.h"
+#include "WndBrowseHost.h"
+#include "VendorCache.h"
+#include "QueryHit.h"
 #include "Security.h"
 #include "UploadQueues.h"
 #include "Schema.h"
@@ -104,6 +107,8 @@ CEDClient::CEDClient()
 	m_mInput.pLimit		= &Settings.Bandwidth.Request;
 	m_mOutput.pLimit	= &Settings.Bandwidth.Request;
 
+	m_nDirsWaiting = 0;
+
 	EDClients.Add( this );
 }
 
@@ -114,6 +119,31 @@ CEDClient::~CEDClient()
 	ASSERT( m_pDownload == NULL );
 
 	EDClients.Remove( this );
+}
+
+bool CEDClient::AdviseBrowser(CHostBrowser* pHandler)
+{
+	for ( POSITION pos = m_oHandlers.GetHeadPosition(); pos; )
+	{
+		if ( m_oHandlers.GetNext( pos ) == pHandler )
+			return false;
+	}
+	m_oHandlers.AddTail( pHandler );
+	return true;
+}
+
+bool CEDClient::UnAdviseBrowser(CHostBrowser* pHandler)
+{
+	for ( POSITION pos = m_oHandlers.GetHeadPosition(); pos; )
+	{
+		POSITION posRemove = pos;
+		if ( m_oHandlers.GetNext( pos ) == pHandler )
+		{
+			m_oHandlers.RemoveAt( posRemove );
+			return true;
+		}
+	}
+	return false;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -567,6 +597,14 @@ BOOL CEDClient::OnLoggedIn()
 
 	if ( m_pUpload != NULL ) m_pUpload->OnConnected();
 
+	if ( ! m_oHandlers.IsEmpty() )
+	{
+		if ( CEDPacket* pPacket = CEDPacket::New( ED2K_C2C_ASKSHAREDDIRS ) )
+		{
+			Send( pPacket );
+		}
+	}
+
 	return TRUE;
 }
 
@@ -633,15 +671,23 @@ BOOL CEDClient::OnPacket(CEDPacket* pPacket)
 			if ( m_pDownload != NULL ) m_pDownload->OnSendingPart( pPacket );
 			return TRUE;
 
-		// Misc
+		// Chat
 		case ED2K_C2C_MESSAGE:
 			return OnMessage( pPacket );
 
-		// Browse
+		// Browse us
 		case ED2K_C2C_ASKSHAREDDIRS:
 			return OnAskSharedDirs( pPacket );
 		case ED2K_C2C_VIEWSHAREDDIR:
 			return OnViewSharedDir( pPacket );
+
+		// Browse remote host
+		case ED2K_C2C_ASKSHAREDDIRSANSWER:
+			return OnAskSharedDirsAnswer( pPacket );
+		case ED2K_C2C_VIEWSHAREDDIRANSWER:
+			return OnViewSharedDirAnswer( pPacket );
+		case ED2K_C2C_ASKSHAREDDIRSDENIED:
+			return OnAskSharedDirsDenied( pPacket );
 		}
 	}
 	else if ( pPacket->m_nEdProtocol == ED2K_PROTOCOL_EMULE )
@@ -779,14 +825,14 @@ void CEDClient::SendHello(BYTE nType)
 				 ( nExtendedRequests << 8) |			// Extended requests
 				 ( ED2K_VERSION_COMMENTS << 4) |		// Comments
 				 ( FALSE << 3) |						// Peer Cache
-				 ( TRUE << 2) |							// No browse
+				 ( FALSE << 2) |						// Browse
 				 ( FALSE << 1) |						// Multipacket
 				 ( Settings.Uploads.SharePreviews ? 1 : 0 ) );	// Preview
 
 	CEDTag( ED2K_CT_FEATUREVERSIONS, nVersion ).Write( pPacket );
 
 	// 5- ED2K_CT_MOREFEATUREVERSIONS - basically for Kad and Large File support
-	nVersion = ( ( FALSE << 5 ) |								// Multipacket
+	nVersion = ( ( FALSE << 5 ) |								// Ext Multipacket
 				 ( Settings.eDonkey.LargeFileSupport << 4 ) );	// LargeFile support
 	CEDTag( ED2K_CT_MOREFEATUREVERSIONS, nVersion ).Write( pPacket );
 
@@ -869,7 +915,7 @@ BOOL CEDClient::OnHello(CEDPacket* pPacket)
 				m_bEmRequest	= (pTag.m_nValue >> 8 ) & 0x0F;
 				m_bEmComments	= (pTag.m_nValue >> 4 ) & 0x0F;
 				m_bEmPeerCache	= (pTag.m_nValue >> 3 ) & 0x01;
-				m_bEmBrowse		=!( ( pTag.m_nValue >> 2 ) & 0x01 );
+				m_bEmBrowse		= ! ( ( pTag.m_nValue >> 2 ) & 0x01 );
 				m_bEmMultiPacket= (pTag.m_nValue >> 1 ) & 0x01;
 				m_bEmPreview	= (pTag.m_nValue) & 0x01;
 				if ( m_pDownload && m_pDownload->m_pSource && m_pDownload->m_pSource->m_bClientExtended )
@@ -940,7 +986,6 @@ BOOL CEDClient::OnHello(CEDPacket* pPacket)
 		// MLdonkey
 		if ( nValue == 0x4B444C4D ) m_nEmCompatible = 10;
 	}
-
 
 	// Get client name/version
 	DeriveSoftwareVersion();
@@ -1024,7 +1069,7 @@ BOOL CEDClient::OnEmuleInfo(CEDPacket* pPacket)
 		switch ( pTag.m_nKey )
 		{
 		case ED2K_ET_COMPRESSION:
-			 if ( pTag.m_nType == ED2K_TAG_INT ) m_bEmDeflate = (BOOL)pTag.m_nValue;
+			if ( pTag.m_nType == ED2K_TAG_INT ) m_bEmDeflate = (BOOL)pTag.m_nValue;
 			break;
 		case ED2K_ET_UDPPORT:
 			if ( pTag.m_nType == ED2K_TAG_INT ) m_nUDP = (WORD)pTag.m_nValue;
@@ -1049,6 +1094,14 @@ BOOL CEDClient::OnEmuleInfo(CEDPacket* pPacket)
 		case ED2K_CT_MODVERSION:	// Some clients send this here
 			if ( m_nEmCompatible == ED2K_CLIENT_UNKNOWN )
 				m_nEmCompatible = ED2K_CLIENT_MOD;
+			break;
+		case ED2K_ET_L2HAC:
+			// LowID 2 High ID callback request feature
+			//if ( pTag.m_nType == ED2K_TAG_INT ) m_nL2HACTime = (DWORD)pTag.m_nValue;
+			break;
+		case ED2K_ET_MOD_PLUS:
+			// eMule Plus version
+			//if ( pTag.m_nType == ED2K_TAG_INT ) m_nPlusVers = (DWORD)pTag.m_nValue;
 			break;
 		default:
 			CString str;
@@ -1624,7 +1677,7 @@ BOOL CEDClient::OnAskSharedDirs(CEDPacket* /*pPacket*/)
 
 			if ( CEDPacket* pReply = CEDPacket::New( ED2K_C2C_ASKSHAREDDIRSANSWER ) )
 			{
-				pReply->WriteLongLE( oFolderPath.GetCount() );
+				pReply->WriteLongLE( (DWORD)oFolderPath.GetCount() );
 
 				for ( POSITION pos = oFolderPath.GetHeadPosition(); pos ; )
 				{
@@ -1695,12 +1748,12 @@ BOOL CEDClient::OnViewSharedDir(CEDPacket* pPacket)
 						pReply->Write( pFile->m_oED2K );
 
 						// ID
-						pReply->WriteLongLE( m_nClientID );
+						pReply->WriteLongLE( Network.m_pHost.sin_addr.s_addr );
 
 						// Port
 						pReply->WriteShortLE( htons( Network.m_pHost.sin_port ) );
 
-						DWORD nTags = 2;
+						DWORD nTags = 5;
 
 						CString strType, strTitle, strArtist, strAlbum, strCodec;
 						DWORD nBitrate = 0, nLength = 0;
@@ -1739,7 +1792,6 @@ BOOL CEDClient::OnViewSharedDir(CEDPacket* pPacket)
 								// Bitrate
 								if ( pFile->m_pMetadata->GetAttributeValue( _T("bitrate") ).GetLength() )	//And has a bitrate
 								{
-									nBitrate = 0;
 									_stscanf( pFile->m_pMetadata->GetAttributeValue( _T("bitrate") ), _T("%i"), &nBitrate );
 									if ( nBitrate )
 										nTags ++;
@@ -1795,13 +1847,22 @@ BOOL CEDClient::OnViewSharedDir(CEDPacket* pPacket)
 						// File size
 						CEDTag( ED2K_FT_FILESIZE, (DWORD)pFile->m_nSize ).Write( pReply );
 						if ( pFile->m_nSize > MAX_SIZE_32BIT )
-							CEDTag( ED2K_FT_FILESIZEUPPER,
+							CEDTag( ED2K_FT_FILESIZE_HI,
 								(DWORD)(pFile->m_nSize >> 32 ) ).Write( pReply );
+
+						// Sources
+						CEDTag( ED2K_FT_SOURCES, 1ull ).Write( pReply );
+
+						// Complete sources
+						CEDTag( ED2K_FT_COMPLETE_SOURCES, 1ull ).Write( pReply );
+
+						// Last seen
+						CEDTag( ED2K_FT_LASTSEENCOMPLETE, 0ull ).Write( pReply );
 
 						// File type
 						if ( strType.GetLength() )
 							CEDTag( ED2K_FT_FILETYPE, strType ).Write( pReply );
-						
+
 						// Title
 						if ( strTitle.GetLength() )
 							CEDTag( ED2K_FT_TITLE, strTitle ).Write( pReply );
@@ -1845,6 +1906,102 @@ BOOL CEDClient::OnViewSharedDir(CEDPacket* pPacket)
 	{
 		Send( pReply );
 	}
+
+	return TRUE;
+}
+
+BOOL CEDClient::OnAskSharedDirsAnswer(CEDPacket* pPacket)
+{
+	if ( pPacket->GetRemaining() >= 4 )
+	{
+		// Read number of directories
+		DWORD nCount = pPacket->ReadLongLE();
+
+		for ( DWORD i = 0; i < nCount; i++ )
+		{
+			if ( pPacket->GetRemaining() < 2 )
+				break;
+
+			// Read directory name
+			CString sDir = pPacket->ReadEDString( m_bEmUnicode );
+
+			TRACE( _T("Folder: %s\n"), sDir );
+
+			// Request directory content
+			if ( CEDPacket* pReply = CEDPacket::New( ED2K_C2C_VIEWSHAREDDIR ) )
+			{
+				pReply->WriteEDString( sDir, m_bEmUnicode );
+
+				Send( pReply );
+
+				m_nDirsWaiting ++;
+			}
+		}
+	}
+
+	return TRUE;
+}
+
+BOOL CEDClient::OnViewSharedDirAnswer(CEDPacket* pPacket)
+{
+	CQueryHit* pHits = NULL;
+
+	if ( pPacket->GetRemaining() >= 2 )
+	{
+		// Read original directory name
+		CString sDir = pPacket->ReadEDString( m_bEmUnicode );
+
+		if ( pPacket->GetRemaining() >= 4 )
+		{
+			// Read number of files
+			DWORD nCount = pPacket->ReadLongLE();
+
+			for ( DWORD i = 0; i < nCount; i++ )
+			{
+				if ( pPacket->GetRemaining() < Hashes::Ed2kHash::byteCount + 4 + 2 + 4 )
+					break;
+
+				CQueryHit* pHit = new CQueryHit( PROTOCOL_ED2K );
+				pHit->m_bBrowseHost = TRUE;
+				pHit->m_bChat = TRUE;
+				pHit->m_pVendor = VendorCache.Lookup( _T("ED2K") );
+				if ( ! pHit->m_pVendor ) pHit->m_pVendor = VendorCache.m_pNull;
+				pHit->ReadEDPacket( pPacket, &m_pServer );
+				pHit->m_pAddress = m_pHost.sin_addr;
+				pHit->m_nPort = m_pHost.sin_port;
+				pHit->Resolve();
+				pHit->m_pNext = pHits;
+				pHits = pHit;
+			}
+		}
+	}
+
+	if ( pHits )
+	{
+		for ( POSITION pos = m_oHandlers.GetHeadPosition(); pos; )
+		{
+			CHostBrowser* pBrowser = m_oHandlers.GetNext( pos );
+			if ( pBrowser->m_pNotify != NULL )
+				pBrowser->m_pNotify->OnBrowseHits( pHits );
+		}
+
+		Network.OnQueryHits( pHits );
+	}
+
+	ASSERT( m_nDirsWaiting );
+	if ( --m_nDirsWaiting == 0 )
+	{
+		for ( POSITION pos = m_oHandlers.GetHeadPosition(); pos; )
+			 m_oHandlers.GetNext( pos )->Stop( TRUE );
+	}
+
+	return TRUE;
+}
+
+BOOL CEDClient::OnAskSharedDirsDenied(CEDPacket* /*pPacket*/)
+{
+	for ( POSITION pos = m_oHandlers.GetHeadPosition(); pos; )
+		 m_oHandlers.GetNext( pos )->Stop( TRUE );
 
 	return TRUE;
 }
