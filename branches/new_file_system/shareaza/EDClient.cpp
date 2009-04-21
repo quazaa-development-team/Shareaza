@@ -1992,7 +1992,9 @@ BOOL CEDClient::OnViewSharedDirAnswer(CEDPacket* pPacket)
 	if ( --m_nDirsWaiting == 0 )
 	{
 		for ( POSITION pos = m_oHandlers.GetHeadPosition(); pos; )
-			 m_oHandlers.GetNext( pos )->Stop( TRUE );
+		{
+			m_oHandlers.GetNext( pos )->Stop( TRUE );
+		}
 	}
 
 	return TRUE;
@@ -2001,7 +2003,9 @@ BOOL CEDClient::OnViewSharedDirAnswer(CEDPacket* pPacket)
 BOOL CEDClient::OnAskSharedDirsDenied(CEDPacket* /*pPacket*/)
 {
 	for ( POSITION pos = m_oHandlers.GetHeadPosition(); pos; )
-		 m_oHandlers.GetNext( pos )->Stop( TRUE );
+	{
+		m_oHandlers.GetNext( pos )->Stop( TRUE );
+	}
 
 	return TRUE;
 }
