@@ -428,8 +428,8 @@ BOOL CUploadTransfer::RequestComplete(CLibraryFile* pFile)
 
 	m_sName	= pFile->m_sName;
 	m_sPath	= pFile->GetPath();
-	m_nFileBase	= pFile->m_nVirtualSize > 0 ? pFile->m_nVirtualBase : 0;
-	m_nSize	= pFile->m_nVirtualSize > 0 ? pFile->m_nVirtualSize : pFile->m_nSize;
+	m_nFileBase	= pFile->GetBase();
+	m_nSize	= pFile->GetSize();
 	m_sFileTags	= pFile->m_sShareTags;
 	m_bFilePartial = FALSE;
 
