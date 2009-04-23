@@ -1,7 +1,7 @@
 //
 // EDPacket.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2007.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -25,6 +25,12 @@
 #include "EDPacket.h"
 #include "Buffer.h"
 #include "ZLib.h"
+#include "Schema.h"
+#include "XML.h"
+#include "Network.h"
+#include "SharedFile.h"
+#include "EDClient.h"
+#include "EDNeighbour.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -97,6 +103,183 @@ void CEDPacket::WriteLongEDString(LPCTSTR psz, BOOL bUnicode)
 		WriteLongLE( nLen );
 		WriteString( psz, FALSE );
 	}
+}
+
+void CEDPacket::WriteFile(const CShareazaFile* pShareazaFile, QWORD nSize,
+	const CEDClient* pClient, const CEDNeighbour* pServer, bool bPartial)
+{
+	ASSERT( pShareazaFile );
+	ASSERT( ( pClient && ! pServer ) || ( ! pClient && pServer ) );
+
+	const CLibraryFile* pFile = bPartial ?
+		NULL : static_cast< const CLibraryFile* >( pShareazaFile );
+
+	bool bDeflate = ( pServer && ( pServer->m_nTCPFlags & ED2K_SERVER_TCP_DEFLATE ) != 0 );
+	bool bUnicode = ( pServer && ( pServer->m_nTCPFlags & ED2K_SERVER_TCP_UNICODE ) != 0 ) ||
+		( pClient && pClient->m_bEmUnicode );
+	bool bSmlTags = ( pServer && ( pServer->m_nTCPFlags & ED2K_SERVER_TCP_SMALLTAGS ) != 0 ) ||
+		( pClient != NULL );
+
+	// Send the file hash
+	Write( pShareazaFile->m_oED2K );
+
+	// Send client ID + port
+	DWORD nClientID = 0;
+	WORD nClientPort = 0;
+	if ( pServer )
+	{
+		// If we have a 'new' ed2k server
+		if ( bDeflate )
+		{
+			if ( bPartial )
+			{
+				// Partial file
+				nClientID = 0xFCFCFCFC;
+				nClientPort = 0xFCFC;
+			}
+			else
+			{
+				// Complete file
+				nClientID = 0xFBFBFBFB;
+				nClientPort = 0xFBFB;
+			}
+		}
+		else
+		{
+			nClientID = pServer->GetID();
+			nClientPort = ntohs( Network.m_pHost.sin_port );
+		}
+	}
+	else
+	{
+		nClientID = pClient->GetID();
+		nClientPort = ntohs( Network.m_pHost.sin_port );
+	}
+	WriteLongLE( nClientID );
+	WriteShortLE( nClientPort );
+
+	// Load metadata
+	CString strType, strTitle, strArtist, strAlbum, strCodec;
+	DWORD nBitrate = 0, nLength = 0;
+	BYTE nRating = 0;
+	if ( bSmlTags && pFile )
+	{
+		if ( pFile->m_pSchema && pFile->m_pSchema->m_sDonkeyType.GetLength() )
+		{
+			// File type
+			strType = pFile->m_pSchema->m_sDonkeyType;
+
+			if ( pFile->m_pMetadata )
+			{
+				// Title
+				if ( pFile->m_pMetadata->GetAttributeValue( _T("title") ).GetLength() )
+					strTitle = pFile->m_pMetadata->GetAttributeValue( _T("title") );
+
+				if ( pFile->IsSchemaURI( CSchema::uriAudio ) )
+				{
+					// Artist
+					if ( pFile->m_pMetadata->GetAttributeValue( _T("artist") ).GetLength() )
+						strArtist = pFile->m_pMetadata->GetAttributeValue( _T("artist") );
+
+					// Album
+					if ( pFile->m_pMetadata->GetAttributeValue( _T("album") ).GetLength() )
+						strAlbum = pFile->m_pMetadata->GetAttributeValue( _T("album") );
+
+					// Bitrate
+					if ( pFile->m_pMetadata->GetAttributeValue( _T("bitrate") ).GetLength() )
+						_stscanf( pFile->m_pMetadata->GetAttributeValue( _T("bitrate") ), _T("%i"), &nBitrate );
+
+					// Length
+					if ( pFile->m_pMetadata->GetAttributeValue( _T("seconds") ).GetLength() )
+						_stscanf( pFile->m_pMetadata->GetAttributeValue( _T("seconds") ), _T("%i"), &nLength );
+				}
+				else if ( pFile->IsSchemaURI( CSchema::uriVideo ) )
+				{
+					// Codec
+					if ( pFile->m_pMetadata->GetAttributeValue( _T("codec") ).GetLength() )
+						strCodec = pFile->m_pMetadata->GetAttributeValue( _T("codec") );
+
+					// Length
+					if ( pFile->m_pMetadata->GetAttributeValue( _T("minutes") ).GetLength() )
+					{
+						double nMins = 0.0;
+						_stscanf( pFile->m_pMetadata->GetAttributeValue( _T("minutes") ), _T("%lf"), &nMins );
+						nLength = (DWORD)( nMins * (double)60 );	// Convert to seconds
+					}
+				}
+			}
+		}
+
+		// File rating
+		if ( pFile->m_nRating )
+			nRating = (BYTE)min( pFile->m_nRating, 5 );
+	}
+
+	// Set the number of tags present
+	DWORD nTags = 2; // File name and size are always present
+	if ( nSize > MAX_SIZE_32BIT ) nTags++;
+	if ( pClient ) nTags += 2; //3;
+	if ( strType.GetLength() ) nTags++;
+	if ( strTitle.GetLength() ) nTags++;
+	if ( strArtist.GetLength() ) nTags++;
+	if ( strAlbum.GetLength() ) nTags++;
+	if ( nBitrate )	 nTags++;
+	if ( nLength ) nTags++;
+	if ( strCodec.GetLength() )  nTags++;
+	if ( nRating )  nTags++;
+	WriteLongLE( nTags );
+
+	// Filename
+	CEDTag( ED2K_FT_FILENAME, pShareazaFile->m_sName ).Write( this, bUnicode, bSmlTags );
+
+	// File size
+	CEDTag( ED2K_FT_FILESIZE, (DWORD)nSize ).Write( this, bUnicode, bSmlTags );
+	if ( nSize > MAX_SIZE_32BIT )
+		CEDTag( ED2K_FT_FILESIZE_HI,(DWORD)( nSize >> 32 ) ).Write( this, bUnicode, bSmlTags );
+
+	// Sources
+	//if ( pClient )
+	//	CEDTag( ED2K_FT_SOURCES, 1ull ).Write( this, bUnicode, bSmlTags );
+
+	// Complete sources
+	if ( pClient )
+		CEDTag( ED2K_FT_COMPLETE_SOURCES, 1ull ).Write( this, bUnicode, bSmlTags );
+
+	// Last seen
+	if ( pClient )
+		CEDTag( ED2K_FT_LASTSEENCOMPLETE, 0ull ).Write( this, bUnicode, bSmlTags );
+
+	// File type
+	if ( strType.GetLength() )
+		CEDTag( ED2K_FT_FILETYPE, strType ).Write( this, bUnicode, bSmlTags );
+
+	// Title
+	if ( strTitle.GetLength() )
+		CEDTag( ED2K_FT_TITLE, strTitle ).Write( this, bUnicode, bSmlTags );
+	
+	// Artist
+	if ( strArtist.GetLength() )
+		CEDTag( ED2K_FT_ARTIST, strArtist ).Write( this, bUnicode, bSmlTags );
+
+	// Album
+	if ( strAlbum.GetLength() )
+		CEDTag( ED2K_FT_ALBUM, strAlbum ).Write( this, bUnicode, bSmlTags );
+
+	// Bitrate
+	if ( nBitrate )
+		CEDTag( ED2K_FT_BITRATE, nBitrate ).Write( this, bUnicode, bSmlTags );
+	
+	// Length
+	if ( nLength )
+		CEDTag( ED2K_FT_LENGTH, nLength ).Write( this, bUnicode, bSmlTags );
+	
+	// Codec
+	if ( strCodec.GetLength() )
+		CEDTag( ED2K_FT_CODEC, strCodec ).Write( this, bUnicode, bSmlTags );
+
+	// File rating
+	if ( nRating )
+		CEDTag( ED2K_FT_FILERATING, nRating ).Write( this, bUnicode, bSmlTags );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -652,7 +835,7 @@ ED2K_PACKET_DESC CEDPacket::m_pszTypes[] =
 	{ ED2K_C2S_OFFERFILES,			_T("ShareFiles") },
 	{ ED2K_C2S_SEARCHREQUEST,		_T("Search") },
 	{ ED2K_C2S_SEARCHUSER,			_T("Browse") },
-	{ ED2K_C2S_GETSOURCES,			_T("FindSource") },
+	{ ED2K_C2S_GETSOURCES,			_T("Find Source 1") },
 	{ ED2K_C2S_CALLBACKREQUEST,		_T("Push1") },
 	{ ED2K_C2S_MORERESULTS,			_T("Continue") },
 	{ ED2K_S2C_REJECTED,			_T("Rejected") },
@@ -667,14 +850,17 @@ ED2K_PACKET_DESC CEDPacket::m_pszTypes[] =
 
 	{ ED2K_C2SG_SERVERSTATUSREQUEST,_T("GetStatus") },
 	{ ED2K_S2CG_SERVERSTATUS,		_T("Status") },
-	{ ED2K_C2SG_SEARCHREQUEST,		_T("Search") },
+	{ ED2K_C2SG_SEARCHREQUEST,		_T("Search 1") },
+	{ ED2K_C2SG_SEARCHREQUEST2,		_T("Search 2") },
+	{ ED2K_C2SG_SEARCHREQUEST3,		_T("Search 3") },
 	{ ED2K_S2CG_SEARCHRESULT,		_T("Result") },
-	{ ED2K_C2SG_GETSOURCES,			_T("FindSource") },
+	{ ED2K_C2SG_GETSOURCES,			_T("Find Source 1") },
+	{ ED2K_C2SG_GETSOURCES2,		_T("Find Source 2") },
 	{ ED2K_S2CG_FOUNDSOURCES,		_T("Sources") },
 	{ ED2K_C2SG_CALLBACKREQUEST,	_T("Push1") },
 
-	{ ED2K_C2C_HELLO,				_T("Handshake1") },
-	{ ED2K_C2C_HELLOANSWER,			_T("Handshake2") },
+	{ ED2K_C2C_HELLO,				_T("Handshake 1") },
+	{ ED2K_C2C_HELLOANSWER,			_T("Handshake 2") },
 	{ ED2K_C2C_FILEREQUEST,			_T("FileRequest") },
 	{ ED2K_C2C_FILEREQANSWER,		_T("FileName") },
 	{ ED2K_C2C_FILENOTFOUND,		_T("FileNotFound") },
@@ -692,7 +878,7 @@ ED2K_PACKET_DESC CEDPacket::m_pszTypes[] =
 	{ ED2K_C2C_ASKSHAREDFILES,		_T("Browse") },
 	{ ED2K_C2C_ASKSHAREDFILESANSWER,_T("BrowseResp") },
 	{ ED2K_C2C_MESSAGE,				_T("Message") },
-	{ ED2K_C2C_REQUESTPREVIEW,		_T("RequestPreview") },
+	{ ED2K_C2C_REQUESTPREVIEW,		_T("Request Preview") },
 	{ ED2K_C2C_PREVIEWANWSER,		_T("Preview") },
 	{ ED2K_C2C_COMPRESSEDPART,		_T("CompFragment") },
 	{ ED2K_C2C_COMPRESSEDPART_I64,	_T("CompFragment64") },
