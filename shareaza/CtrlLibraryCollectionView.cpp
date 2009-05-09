@@ -1,7 +1,7 @@
 //
 // CtrlLibraryCollectionView.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2007.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -190,7 +190,7 @@ int CLibraryCollectionView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		// Disable cool menu because in RTL mode the text is drawn mirrored
 		// It worked before, but somehow was broken and nothing helps.
 		// TODO: fix it
-		if ( !Settings.General.LanguageRTL ) 
+		if ( !Settings.General.LanguageRTL )
 			m_pWebCtrl->EnableCoolMenu();
 		m_pWebCtrl->EnableSandbox();
 		m_pWebCtrl->SetExternal( m_xExternal.GetDispatch() );
@@ -213,7 +213,7 @@ void CLibraryCollectionView::OnDestroy()
 		delete m_pWebCtrl;
 		m_pWebCtrl = NULL;
 	}
-	
+
 	m_pCollection->Close();
 
 	CLibraryFileView::OnDestroy();

@@ -46,7 +46,6 @@ public:
 	DWORD			m_nBandwidth;	// Bandwidth
 	CString			m_sNick;		// User Nick
 	DWORD			m_nUserRating;	// Has the downloader uploaded anything?
-	BOOL			m_bClientExtended;// Does the user support extended (G2) functions? (In practice, this means can we use G2 chat, browse, etc...)
 
 	QWORD			m_nFileBase;	// Base offset in requested file
 	BOOL			m_bFilePartial;	// Partial file flag

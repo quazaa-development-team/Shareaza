@@ -207,7 +207,6 @@ CShareazaApp::CShareazaApp() :
 #ifdef _DEBUG
 	BT_InstallSehFilter();
 	BT_SetTerminate();
-	BT_SetAppName( _T( CLIENT_NAME ) );
 	BT_SetFlags( BTF_INTERCEPTSUEF | BTF_SHOWADVANCEDUI | BTF_DESCRIBEERROR |
 		BTF_DETAILEDMODE | BTF_ATTACHREPORT | BTF_EDITMAIL );
 	BT_SetSupportEMail( _T("shareaza-bugtrap@lists.sourceforge.net") );
@@ -870,7 +869,7 @@ void CShareazaApp::InitResources()
 		GeoIP_newFunc pfnGeoIP_new = (GeoIP_newFunc)GetProcAddress( m_hGeoIP, "GeoIP_new" );
 		m_pfnGeoIP_country_code_by_ipnum = (GeoIP_country_code_by_ipnumFunc)GetProcAddress( m_hGeoIP, "GeoIP_country_code_by_ipnum" );
 		m_pfnGeoIP_country_name_by_ipnum = (GeoIP_country_name_by_ipnumFunc)GetProcAddress( m_hGeoIP, "GeoIP_country_name_by_ipnum" );
-		if ( pfnGeoIP_new ) 
+		if ( pfnGeoIP_new )
 			m_pGeoIP = pfnGeoIP_new( GEOIP_MEMORY_CACHE );
 	}
 
@@ -1059,7 +1058,7 @@ void CShareazaApp::LogMessage(const CString& strLog)
 		{
 			// Close the file
 			pFile.Close();
-			
+
 			// Rotate the logs
 			MoveFileEx( CString( _T("\\\\?\\") ) + Settings.General.UserPath + _T("\\Data\\Shareaza.log"),
 				CString( _T("\\\\?\\") ) + Settings.General.UserPath + _T("\\Data\\Shareaza.old.log"),
@@ -2561,4 +2560,73 @@ void SafeMessageLoop()
 	{
 	}
 	InterlockedDecrement( &theApp.m_bBusy );
+}
+
+const bool IsCharacter(const WCHAR nChar)
+{
+	WORD nCharType( 0u );
+
+	if ( GetStringTypeW( CT_CTYPE3, &nChar, 1, &nCharType ) )
+		return ( nCharType & C3_ALPHA
+			|| ( ( nCharType & ( C3_KATAKANA | C3_HIRAGANA ) ) && ( nCharType & C3_DIACRITIC ) )
+			|| iswdigit( nChar ) );
+
+	return false;
+}
+
+const bool IsHiragana(const WCHAR nChar)
+{
+	WORD nCharType( 0u );
+
+	if ( GetStringTypeW( CT_CTYPE3, &nChar, 1, &nCharType ) )
+		return ( nCharType & C3_HIRAGANA ) != 0;
+
+	return false;
+}
+
+const bool IsKatakana(const WCHAR nChar)
+{
+	WORD nCharType( 0u );
+
+	if ( GetStringTypeW( CT_CTYPE3, &nChar, 1, &nCharType ) )
+		return ( nCharType & C3_KATAKANA ) != 0;
+
+	return false;
+}
+
+const bool IsKanji(const WCHAR nChar)
+{
+	WORD nCharType( 0u );
+
+	if ( GetStringTypeW( CT_CTYPE3, &nChar, 1, &nCharType ) )
+		return ( nCharType & C3_IDEOGRAPH ) != 0;
+
+	return false;
+}
+
+const bool IsWord(LPCTSTR pszString, size_t nStart, size_t nLength)
+{
+	for ( pszString += nStart ; *pszString && nLength ; pszString++, nLength-- )
+	{
+		if ( _istdigit( *pszString ) ) return false;
+	}
+	return true;
+}
+
+void IsType(LPCTSTR pszString, size_t nStart, size_t nLength, bool& bWord, bool& bDigit, bool& bMix)
+{
+	bWord = false;
+	bDigit = false;
+	for ( pszString += nStart ; *pszString && nLength ; pszString++, nLength-- )
+	{
+		if ( _istdigit( *pszString ) ) bDigit = true;
+		else if ( IsCharacter( *pszString ) ) bWord = true;
+	}
+
+	bMix = bWord && bDigit;
+	if ( bMix )
+	{
+		bWord = false;
+		bDigit = false;
+	}
 }

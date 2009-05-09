@@ -302,7 +302,7 @@ public:
 	{
 		CQuickLock oLock( m_pSection );
 
-		return GetWantedFragmentList().empty();
+		return IsValid() && GetWantedFragmentList().empty();
 	}
 
 //	inline QWORD GetEmptyFragmentCount() const
