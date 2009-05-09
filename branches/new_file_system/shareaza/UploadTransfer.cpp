@@ -50,7 +50,6 @@ CUploadTransfer::CUploadTransfer(PROTOCOLID nProtocol) :
 	m_pBaseFile( NULL ),
 	m_nBandwidth( Settings.Bandwidth.Request ),
 	m_nUserRating( urNew ),
-	m_bClientExtended( FALSE ),
 	m_nFileBase( 0 ),
 	m_bFilePartial( FALSE ),
 	m_bLive( TRUE ),
