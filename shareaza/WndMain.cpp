@@ -2856,6 +2856,17 @@ LRESULT CMainWnd::OnQueryHits(WPARAM /*wParam*/, LPARAM lParam)
 
 	pHits->Delete();
 
+	// Overload protection
+	if ( GetTickCount() - GetMessageTime() > 2000 )
+	{
+		MSG msg = {};
+		while( PeekMessage( &msg, NULL, WM_QUERYHITS, WM_QUERYHITS, PM_REMOVE ) )
+		{
+			CQueryHit* pHits = (CQueryHit*)msg.lParam;
+			pHits->Delete();
+		}
+	}
+
 	return 0;
 }
 
