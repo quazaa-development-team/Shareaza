@@ -31,7 +31,7 @@
 			<Tool
 				Name="VCPreBuildEventTool"
 				Description="Copy SQLite DLL, zlib DLL, HashLib DLL ..."
-				CommandLine="copy /b /y &quot;..\sqlite3\$(PlatformName)\$(ConfigurationName)\sqlite3.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\HashLib\$(PlatformName)\$(ConfigurationName)\HashLib.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\GeoIP\$(PlatformName)\$(ConfigurationName)\GeoIP.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\GeoIP\GeoIP.dat&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\BugTrap\BugTrapU.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;"
+				CommandLine="copy /b /y &quot;..\sqlite3\$(PlatformName)\$(ConfigurationName)\sqlite3.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\HashLib\$(PlatformName)\$(ConfigurationName)\HashLib.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\GeoIP\$(PlatformName)\$(ConfigurationName)\GeoIP.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\GeoIP\GeoIP.dat&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\BugTrap\BugTrapU.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;cscript.exe //nologo revision.js&#x0D;&#x0A;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -123,7 +123,7 @@
 			<Tool
 				Name="VCPreBuildEventTool"
 				Description="Copy SQLite DLL, zlib DLL, HashLib DLL ..."
-				CommandLine="copy /b /y &quot;..\sqlite3\$(PlatformName)\$(ConfigurationName)\sqlite3.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\HashLib\$(PlatformName)\$(ConfigurationName)\HashLib.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\GeoIP\$(PlatformName)\$(ConfigurationName)\GeoIP.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\GeoIP\GeoIP.dat&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\BugTrap\BugTrapU-x64.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;"
+				CommandLine="copy /b /y &quot;..\sqlite3\$(PlatformName)\$(ConfigurationName)\sqlite3.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\HashLib\$(PlatformName)\$(ConfigurationName)\HashLib.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\GeoIP\$(PlatformName)\$(ConfigurationName)\GeoIP.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\GeoIP\GeoIP.dat&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\BugTrap\BugTrapU-x64.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;cscript.exe //nologo revision.js"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -217,7 +217,7 @@
 			<Tool
 				Name="VCPreBuildEventTool"
 				Description="Copy SQLite DLL, zlib DLL, HashLib DLL ..."
-				CommandLine="copy /b /y &quot;..\sqlite3\$(PlatformName)\$(ConfigurationName)\sqlite3.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\HashLib\$(PlatformName)\$(ConfigurationName)\HashLib.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\GeoIP\$(PlatformName)\$(ConfigurationName)\GeoIP.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\GeoIP\GeoIP.dat&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;"
+				CommandLine="copy /b /y &quot;..\sqlite3\$(PlatformName)\$(ConfigurationName)\sqlite3.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\HashLib\$(PlatformName)\$(ConfigurationName)\HashLib.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\GeoIP\$(PlatformName)\$(ConfigurationName)\GeoIP.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\GeoIP\GeoIP.dat&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;cscript.exe //nologo revision.js"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -315,7 +315,7 @@
 			<Tool
 				Name="VCPreBuildEventTool"
 				Description="Copy SQLite DLL, zlib DLL, HashLib DLL ..."
-				CommandLine="copy /b /y &quot;..\sqlite3\$(PlatformName)\$(ConfigurationName)\sqlite3.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\HashLib\$(PlatformName)\$(ConfigurationName)\HashLib.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\GeoIP\$(PlatformName)\$(ConfigurationName)\GeoIP.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\GeoIP\GeoIP.dat&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;"
+				CommandLine="copy /b /y &quot;..\sqlite3\$(PlatformName)\$(ConfigurationName)\sqlite3.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\HashLib\$(PlatformName)\$(ConfigurationName)\HashLib.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\GeoIP\$(PlatformName)\$(ConfigurationName)\GeoIP.dll&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;copy /b /y &quot;..\GeoIP\GeoIP.dat&quot; &quot;$(TargetDir)&quot;&#x0D;&#x0A;cscript.exe //nologo revision.js"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -3151,6 +3151,10 @@
 				>
 			</File>
 			<File
+				RelativePath="revision.h"
+				>
+			</File>
+			<File
 				RelativePath="RichDocument.h"
 				>
 			</File>
@@ -5036,6 +5040,10 @@
 				</FileConfiguration>
 			</File>
 		</Filter>
+		<File
+			RelativePath="revision.js"
+			>
+		</File>
 	</Files>
 	<Globals>
 		<Global
