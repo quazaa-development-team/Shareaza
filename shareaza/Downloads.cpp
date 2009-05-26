@@ -951,28 +951,32 @@ void CDownloads::OnRun()
 					if ( pTransfer->m_nProtocol == PROTOCOL_ED2K )
 					{
 						CDownloadTransferED2K* pED2K = (CDownloadTransferED2K*)pTransfer;
-						if ( pED2K->m_pClient == NULL || pED2K->m_pClient->m_bConnected == FALSE ) continue;
-						if ( pTransfer->m_nState == dtsQueued ) continue;
+						if ( !pED2K->m_pClient || !pED2K->m_pClient->m_bConnected )
+							continue;
+
+						if ( pTransfer->m_nState == dtsQueued )
+							continue;
 					}
 					else if ( pTransfer->m_nProtocol == PROTOCOL_BT )
 					{
 						CDownloadTransferBT* pBT = (CDownloadTransferBT*)pTransfer;
-						if ( pBT->m_nState == dtsTorrent && pBT->m_bChoked ) continue;
+						if ( pBT->m_nState == dtsTorrent && pBT->m_bChoked )
+							continue;
 					}
 
-					nTemp ++;
+					++nTemp;
 
 					if ( pTransfer->m_nState == dtsDownloading )
 					{
 						DWORD nSpeed = pTransfer->GetMeasuredSpeed();
 						nTotalBandwidth += nSpeed;
-						nActiveTransfers ++;
-						nRunningTransfers ++;
+						++nActiveTransfers;
+						++nRunningTransfers;
 						pTransfersToLimit.AddTail( pTransfer );
 						if ( pTransfer->m_nProtocol == PROTOCOL_ED2K )
 						{
 							nTotalBandwidthED2K += nSpeed;
-							nRunningTransfersED2K ++;
+							++nRunningTransfersED2K;
 						}
 						// Limit will be set below, once all data is collected
 					}
@@ -980,7 +984,7 @@ void CDownloads::OnRun()
 
 				if ( nTemp )
 				{
-					nActiveDownloads ++;
+					++nActiveDownloads;
 					nTotalTransfers += nTemp;
 				}
 			}
@@ -1077,11 +1081,11 @@ void CDownloads::OnRun()
 //////////////////////////////////////////////////////////////////////
 // CDownloads query hit handler
 
-void CDownloads::OnQueryHits(const CQueryHit* pHits)
+bool CDownloads::OnQueryHits(const CQueryHit* pHits)
 {
 	CSingleLock pLock( &Transfers.m_pSection );
-
-	if ( ! pLock.Lock( 250 ) ) return;
+	if ( ! pLock.Lock( 250 ) )
+		return false;
 
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
@@ -1089,6 +1093,8 @@ void CDownloads::OnQueryHits(const CQueryHit* pHits)
 		if ( pDownload->IsMoving() == FALSE )
 			pDownload->OnQueryHits( pHits );
 	}
+
+	return true;
 }
 
 //////////////////////////////////////////////////////////////////////
