@@ -88,9 +88,6 @@ void CDownload::Pause(BOOL bRealPause)
 
 	theApp.Message( MSG_NOTICE, IDS_DOWNLOAD_PAUSED, GetDisplayName() );
 
-	if ( IsTrying() )
-		Downloads.StopTrying( IsTorrent() );
-
 	if ( !bRealPause )
 	{
 		StopTrying();
@@ -236,6 +233,9 @@ void CDownload::StopTrying()
 {
 	if ( m_bComplete )
 		return;
+
+	if ( IsTrying() )
+		Downloads.StopTrying( IsTorrent() );
 
 	m_tBegan = 0;
 	m_bDownloading	= FALSE;
@@ -465,16 +465,21 @@ void CDownload::OnTaskComplete(CDownloadTask* pTask)
 
 void CDownload::OnMoved(CDownloadTask* pTask)
 {
-	m_bMoving = FALSE;
-
-	if ( ! pTask->m_bSuccess )
+	if ( !pTask->HasSucceeded() )
+	{
+		SetFileError( pTask->GetFileError() );
 		return;
+	}
+
+	m_bMoving = FALSE;
 
 	// We just completed torrent
 	if ( m_nTorrentBlock > 0 && m_nTorrentSuccess >= m_nTorrentBlock )
 	{
 		CloseTorrentUploads();
 		SendCompleted();
+		if ( IsTrying() )
+			Downloads.StopTrying( IsTorrent() );
 		m_bSeeding = TRUE;
 		m_tBegan = 0;
 		m_bDownloading	= FALSE;
@@ -493,7 +498,6 @@ void CDownload::OnMoved(CDownloadTask* pTask)
 		StopTrying();
 
 	// Download finalized, tracker notified, set flags that we completed
-	Downloads.StopTrying( IsTorrent() );
 	m_bComplete		= TRUE;
 	m_tCompleted	= GetTickCount();
 
