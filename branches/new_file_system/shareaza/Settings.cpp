@@ -149,7 +149,6 @@ void CSettings::Load()
 	Add( _T("Library"), _T("MarkFileAsDownload"), &Library.MarkFileAsDownload, true );
 	Add( _T("Library"), _T("MaxMaliciousFileSize"), &Library.MaxMaliciousFileSize, 1024, 1, 1024, 1024*5, _T(" B") );
 	Add( _T("Library"), _T("PanelSize"), &Library.PanelSize, 120, 1, 0, 1024, _T(" px") );
-	Add( _T("Library"), _T("PartialMatch"), &Library.PartialMatch, true );
 	Add( _T("Library"), _T("PreferAPETags"), &Library.PreferAPETags, true );
 	Add( _T("Library"), _T("PrivateTypes"), &Library.PrivateTypes, _T("|vbs|js|jc!|fb!|bc!|!ut|dbx|part|partial|pst|reget|getright|pif|lnk|sd|url|wab|m4p|infodb|racestats|chk|tmp|temp|ini|inf|log|old|manifest|met|bak|$$$|---|~~~|###|__incomplete___|") );
 	Add( _T("Library"), _T("QueryRouteSize"), &Library.QueryRouteSize, 20, 1, 8, 24 );
@@ -251,7 +250,7 @@ void CSettings::Load()
 	Add( _T("Web"), _T("Torrent"), &Web.Torrent, true );
 
 	Add( _T("Connection"), _T("AutoConnect"), &Connection.AutoConnect, true );
-	Add( _T("Connection"), _T("ConnectThrottle"), &Connection.ConnectThrottle, 0, 1, 0, 500, _T(" ms") );
+	Add( _T("Connection"), _T("ConnectThrottle"), &Connection.ConnectThrottle, 250, 1, 0, 5000, _T(" ms") );
 	Add( _T("Connection"), _T("DeleteFirewallException"), &Connection.DeleteFirewallException, false );
 	Add( _T("Connection"), _T("DeleteUPnPPorts"), &Connection.DeleteUPnPPorts, true );
 	Add( _T("Connection"), _T("DetectConnectionLoss"), &Connection.DetectConnectionLoss, true );
@@ -312,7 +311,7 @@ void CSettings::Load()
 	Add( _T("Discovery"), _T("UpdatePeriod"), &Discovery.UpdatePeriod, 30*60, 60, 1, 60*24, _T(" m") );
 
 	Add( _T("Gnutella"), _T("ConnectFactor"), &Gnutella.ConnectFactor, 4, 1, 1, 20, _T("x") );
-	Add( _T("Gnutella"), _T("ConnectThrottle"), &Gnutella.ConnectThrottle, 120, 1, 60, 3600, _T(" s") );
+	Add( _T("Gnutella"), _T("ConnectThrottle"), &Gnutella.ConnectThrottle, 30, 1, 0, 3600, _T(" s") );
 	Add( _T("Gnutella"), _T("DeflateHub2Hub"), &Gnutella.DeflateHub2Hub, true );
 	Add( _T("Gnutella"), _T("DeflateHub2Leaf"), &Gnutella.DeflateHub2Leaf, true );
 	Add( _T("Gnutella"), _T("DeflateLeaf2Hub"), &Gnutella.DeflateLeaf2Hub, false );
@@ -716,6 +715,32 @@ void CSettings::Normalize(LPVOID pSetting)
 	}
 }
 
+bool CSettings::IsDefault(LPVOID pSetting) const
+{
+	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
+	{
+		Item* pItem = m_pItems.GetNext( pos );
+		if ( *pItem == pSetting )
+		{
+			return pItem->IsDefault();
+		}
+	}
+	return false;
+}
+
+void CSettings::SetDefault(LPVOID pSetting)
+{
+	for ( POSITION pos = m_pItems.GetHeadPosition() ; pos ; )
+	{
+		Item* pItem = m_pItems.GetNext( pos );
+		if ( *pItem == pSetting )
+		{
+			pItem->SetDefault();
+			break;
+		}
+	}
+}
+
 //////////////////////////////////////////////////////////////////////
 // CSettings smart upgrade
 
@@ -1076,7 +1101,6 @@ void CSettings::SmartUpgrade()
 
 void CSettings::OnChangeConnectionSpeed()
 {
-#ifndef LAN_MODE
 	bool bLimited = theApp.m_bLimitedConnections && !General.IgnoreXPsp2;
 
 	if ( Connection.InSpeed <= 80 )
@@ -1181,14 +1205,13 @@ void CSettings::OnChangeConnectionSpeed()
 	}
 	else if( General.ItWasLimited )	// We change the settings back if the user path the half-open connection limit
 	{
-		Connection.ConnectThrottle		= 0;
-		Downloads.ConnectThrottle		= 250;
-		Gnutella.ConnectFactor			= 4;
-		Connection.SlowConnect			= false;
+		SetDefault( &Connection.ConnectThrottle );
+		SetDefault( &Downloads.ConnectThrottle );
+		SetDefault( &Gnutella.ConnectFactor );
+		SetDefault( &Connection.SlowConnect );
 
 		General.ItWasLimited			= false;
 	}
-#endif // LAN_MODE
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1689,6 +1712,34 @@ void CSettings::Item::Normalize()
 	{
 		*m_pDword = max( min( *m_pDword, m_nMax * m_nScale ), m_nMin * m_nScale );
 	}
+}
+
+bool CSettings::Item::IsDefault() const
+{
+	if ( m_pDword )
+		return ( m_DwordDefault == *m_pDword );
+	else if ( m_pBool )
+		return ( m_BoolDefault == *m_pBool );
+	else if ( m_pFloat )
+		return ( m_FloatDefault == *m_pFloat );
+	else if ( m_pString )
+		return ( m_StringDefault == *m_pString );
+	else
+		return ( SaveSet( m_pSet ).CompareNoCase( m_StringDefault ) == 0 );
+}
+
+void CSettings::Item::SetDefault()
+{
+	if ( m_pDword )
+		*m_pDword = m_DwordDefault;
+	else if ( m_pBool )
+		*m_pBool = m_BoolDefault;
+	else if ( m_pFloat )
+		*m_pFloat = m_FloatDefault;
+	else if ( m_pString )
+		*m_pString = m_StringDefault;
+	else
+		LoadSet( m_pSet, m_StringDefault );
 }
 
 template<>

@@ -902,96 +902,284 @@ bool CQueryHashTable::OnPatch(CPacket* pPacket)
 	return true;
 }
 
-//////////////////////////////////////////////////////////////////////
-// CQueryHashTable add strings and words
-
-int CQueryHashTable::AddString(const CString& strString)
+void CQueryHashTable::MakeKeywords(const CString& strPhrase, CStringList& oKeywords)
 {
-	if ( !m_pHash )
-		return 0;
+	if ( strPhrase.IsEmpty() )
+		return;
 
-	return Add( strString, 0, strString.GetLength() );
+	WORD boundary[ 2 ] = { C3_NOTAPPLICABLE, C3_NOTAPPLICABLE };
+	WORD nKanaType[ 2 ] = { C3_NOTAPPLICABLE, C3_NOTAPPLICABLE };
+	int nPos = 0, nNextWord = 0;
+
+	for ( ; nPos < strPhrase.GetLength() ; ++nPos )
+	{
+		// boundary[ 0 ] -- previous character;
+		// boundary[ 1 ] -- current character;
+		boundary[ 0 ] = boundary[ 1 ];
+		nKanaType[ 0 ] = nKanaType[ 1 ];
+		const WCHAR nChar = strPhrase[ nPos ];
+		GetStringTypeW( CT_CTYPE3, &nChar, 1, &boundary[ 1 ] );
+
+		nKanaType[ 1 ] = boundary[ 1 ] & ( C3_KATAKANA | C3_HIRAGANA );
+		if ( nKanaType[ 1 ] == ( C3_KATAKANA | C3_HIRAGANA )
+			&& nKanaType[ 0 ] )
+		{
+			boundary[ 1 ] = boundary[ 0 ];
+			nKanaType[ 1 ] = nKanaType[ 0 ];
+		}
+
+		// Letter is a character if it is alpha-numeric
+		// Work-around for WinXP: Katakana/Hiragana diacritic characters in
+		// the NLS table aren't marked as being alpha (Win2000 & >Vista are OK)
+		const bool bCharacter = ( boundary[ 1 ] & C3_ALPHA )
+			|| iswdigit( nChar )
+			|| ( nKanaType[ 1 ] && ( boundary[ 1 ] & C3_DIACRITIC ) );
+
+		if ( !bCharacter
+			|| ( nKanaType[ 0 ] && boundary[ 0 ] != boundary[ 1 ] ) )
+		{
+			// Join two phrases if the previous was a single character word.
+			// Joining single characters breaks GDF compatibility completely,
+			// but Shareaza 2.2 and above are not really following GDF about
+			// word length limit for ASIAN chars, so merging needs to be done.
+			if ( nPos > nNextWord )
+			{
+				MakeKeywords( strPhrase.Mid( nNextWord, nPos - nNextWord ), boundary[ 0 ], oKeywords );
+			}
+			nNextWord = nPos;
+			nNextWord += ( bCharacter ? 0 : 1 );
+		}
+	}
+
+	MakeKeywords( strPhrase.Right( nPos - nNextWord ), boundary[ 0 ], oKeywords );
 }
 
-int CQueryHashTable::AddExactString(const CString& strString)
+void CQueryHashTable::MakeKeywords(const CString& strWord, WORD nWordType, CStringList& oKeywords)
 {
-	if ( !m_pHash )
-		return 0;
+	const int nLength = strWord.GetLength();
+	if ( ! nLength )
+		return;
 
-	return AddExact( strString, 0, strString.GetLength() );
+	oKeywords.AddTail( strWord );
+
+	if ( nWordType & C3_HIRAGANA )
+	{
+		// Continuous Hiragana string can be structured with a few prefix or
+		// postfix or both. Assume Prefix/Postfix length is MAX 2 chars.
+		// Note: according to GDF, minimum char length for Hiragana is 2 char
+		if ( nLength < 3 )
+			return;
+
+		// take off last 1 char
+		oKeywords.AddTail( strWord.Left( nLength - 1 ) );
+
+		// take off first 1 char
+		oKeywords.AddTail( strWord.Right( nLength - 1 ) );
+
+		if ( nLength < 4 )
+			return;
+
+		// take off last 2 chars
+		oKeywords.AddTail( strWord.Left( nLength - 2 ) );
+
+		// take off first 2 chars
+		oKeywords.AddTail( strWord.Right( nLength - 2 ) );
+
+		// take off first 1 & last 1 chars
+		oKeywords.AddTail( strWord.Mid( 1, nLength - 2 ) );
+
+		if ( nLength < 5 )
+			return;
+
+		// take off first 1 & last 2 chars
+		oKeywords.AddTail( strWord.Mid( 1, nLength - 3 ) );
+
+		// take off first 2 & last 1 chars
+		oKeywords.AddTail( strWord.Mid( 2, nLength - 3 ) );
+
+		if ( nLength < 6 )
+			return;
+
+		// take off first 2 & last 2 chars
+		oKeywords.AddTail( strWord.Mid( 2, nLength - 4 ) );
+
+		return;
+	}
+
+	if ( nWordType & C3_KATAKANA )
+	{
+		// Continuous Katakana string does not have Prefix or postfix
+		// but can contain a few words in one continuous string
+		// Assume MAX number of Words contained in one continuous Katakana
+		// string as Two words
+		// Note: according to GDF, minimum char length for Katakana is 2 char
+		// moreover, it is not known how long the prefix/postfix
+		// not even the length of chars in one word.
+		if ( nLength < 3 )
+			return;
+
+		for ( int nLen = 2 ; nLen < nLength ; ++nLen )
+		{
+			oKeywords.AddTail( strWord.Left( nLen ) );
+			oKeywords.AddTail( strWord.Right( nLen ) );
+		}
+
+		return;
+	}
+
+	if ( nWordType & C3_IDEOGRAPH )
+	{
+		// Continuous Kanji string may have Prefix or postfix
+		// but can contain a few words in one continuous string
+		// Assume MAX number of Words contained in one continuous Kanji string
+		// as Two words
+		// Note: according to GDF, minimum char length for Kanji is 1 char
+		// moreover, it is not known how long the prefix/postfix
+		// not even the length of chars in one word.
+		if ( nLength < 2 )
+			return;
+
+		for ( int nLen = 1 ; nLen < nLength ; ++nLen )
+		{
+			oKeywords.AddTail( strWord.Left( nLen ) );
+			oKeywords.AddTail( strWord.Right( nLen ) );
+		}
+
+		return;
+	}
+
+	if ( nLength >= 5 && IsWord( strWord, 0, nLength ) )
+	{
+		oKeywords.AddTail( strWord.Left( nLength - 1 ) );
+		oKeywords.AddTail( strWord.Left( nLength - 2 ) );
+	}
 }
 
-int CQueryHashTable::Add(LPCTSTR pszString, size_t nStart, size_t nLength)
+void CQueryHashTable::AddFile(const CShareazaFile& oFile)
+{
+	if ( ! m_pHash )
+		return;
+
+	AddHashes( oFile );
+
+	CStringList oKeywords;
+	MakeKeywords( oFile.GetSearchName(), oKeywords );
+	for ( POSITION pos = oKeywords.GetHeadPosition(); pos; )
+	{
+		AddExactString( oKeywords.GetNext( pos ) );
+	}
+}
+
+void CQueryHashTable::AddHashes(const CShareazaFile& oFile)
+{
+	if ( ! m_pHash )
+		return;
+
+	if ( oFile.m_oSHA1 )
+	{
+		AddExactString( oFile.m_oSHA1.toUrn() );
+	}
+
+	if ( oFile.m_oTiger )
+	{
+		AddExactString( oFile.m_oTiger.toUrn() );
+	}
+
+	if ( oFile.m_oED2K )
+	{
+		AddExactString( oFile.m_oED2K.toUrn() );
+	}
+
+	if ( oFile.m_oMD5 )
+	{
+		AddExactString( oFile.m_oMD5.toUrn() );
+	}
+
+	if ( oFile.m_oBTH )
+	{
+		AddExactString( oFile.m_oBTH.toUrn() );
+	}
+}
+
+void CQueryHashTable::AddString(const CString& strString)
+{
+	if ( ! m_pHash )
+		return;
+
+	Add( strString, 0, strString.GetLength() );
+}
+
+void CQueryHashTable::AddExactString(const CString& strString)
+{
+	if ( ! m_pHash )
+		return;
+
+	AddExact( strString, 0, strString.GetLength() );
+}
+
+void CQueryHashTable::Add(LPCTSTR pszString, size_t nStart, size_t nLength)
 {
 	const bool bWord = IsWord( pszString, nStart, nLength );
-	if ( ! nLength || !bWord && nLength < 4 )
-		return 0;
+	if ( ! nLength || ! bWord && nLength < 4 )
+		return;
 
-	if ( !bWord )
-		return AddExact( pszString, nStart, nLength );
+	DWORD tNow = GetTickCount();
 
-	m_nCookie = GetTickCount();
-
-	TRACE( _T("[QHT] \"%hs\"\n"), (LPCSTR)CT2A( CString( pszString + nStart, nLength ) ) );
+	//TRACE( _T("[QHT] \"%hs\"\n"), (LPCSTR)CT2A( CString( pszString + nStart, nLength ) ) );
 	DWORD nHash	= HashWord( pszString, nStart, nLength, m_nBits );
 	BYTE* pHash	= m_pHash + ( nHash >> 3 );
 	BYTE nMask	= BYTE( 1 << ( nHash & 7 ) );
-
 	if ( *pHash & nMask )
 	{
+		m_nCookie = tNow;
 		++m_nCount;
 		*pHash &= ~nMask;
 	}
+
+	if ( ! bWord )
+		return;
 
 	if ( nLength >= 5 )
 	{
-		TRACE( _T("[QHT] \"%hs\"\n"), (LPCSTR)CT2A( CString( pszString + nStart, nLength - 1 ) ) );
+		//TRACE( _T("[QHT] \"%hs\"\n"), (LPCSTR)CT2A( CString( pszString + nStart, nLength - 1 ) ) );
 		nHash	= HashWord( pszString, nStart, nLength - 1, m_nBits );
 		pHash	= m_pHash + ( nHash >> 3 );
 		nMask	= BYTE( 1 << ( nHash & 7 ) );
-
 		if ( *pHash & nMask )
 		{
+			m_nCookie = tNow;
 			++m_nCount;
 			*pHash &= ~nMask;
 		}
 
-		TRACE( _T("[QHT] \"%hs\"\n"), (LPCSTR)CT2A( CString( pszString + nStart, nLength - 2 ) ) );
+		//TRACE( _T("[QHT] \"%hs\"\n"), (LPCSTR)CT2A( CString( pszString + nStart, nLength - 2 ) ) );
 		nHash	= HashWord( pszString, nStart, nLength - 2, m_nBits );
 		pHash	= m_pHash + ( nHash >> 3 );
 		nMask	= BYTE( 1 << ( nHash & 7 ) );
-
 		if ( *pHash & nMask )
 		{
+			m_nCookie = tNow;
 			++m_nCount;
 			*pHash &= ~nMask;
 		}
-
-		return 3;
 	}
-
-	return 1;
 }
 
-int CQueryHashTable::AddExact(LPCTSTR pszString, size_t nStart, size_t nLength)
+void CQueryHashTable::AddExact(LPCTSTR pszString, size_t nStart, size_t nLength)
 {
 	if ( ! nLength )
-		return 0;
-
-	m_nCookie = GetTickCount();
+		return;
 	
-	TRACE( _T("[QHT] \"%hs\"\n"), (LPCSTR)CT2A( CString( pszString + nStart, nLength ) ) );
+	//TRACE( _T("[QHT] \"%hs\"\n"), (LPCSTR)CT2A( CString( pszString + nStart, nLength ) ) );
 	DWORD nHash	= HashWord( pszString, nStart, nLength, m_nBits );
 	BYTE* pHash	= m_pHash + ( nHash >> 3 );
 	BYTE nMask	= BYTE( 1 << ( nHash & 7 ) );
-
 	if ( *pHash & nMask )
 	{
+		m_nCookie = GetTickCount();
 		++m_nCount;
 		*pHash &= ~nMask;
 	}
-
-	return 1;
 }
 
 bool CQueryHashTable::CheckString(const CString& strString) const

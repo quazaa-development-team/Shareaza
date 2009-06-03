@@ -128,7 +128,6 @@ public:
 	{
 		bool		WatchFolders;
 		DWORD		WatchFoldersTimeout;
-		bool		PartialMatch;
 		bool		VirtualFiles;
 		bool		SourceMesh;
 		DWORD		SourceExpire;
@@ -336,7 +335,7 @@ public:
 		DWORD		RouteCache;
 		DWORD		HostCacheSize;
 		DWORD		HostCacheView;
-		DWORD		ConnectThrottle;			// Delay between connection attempts (seconds)
+		DWORD		ConnectThrottle;			// Delay between connection attempts for same host (seconds)
 		bool		SpecifyProtocol;			// Specify G1 or G2 when initiating a connection
 	} Gnutella;
 
@@ -734,6 +733,8 @@ public:
 		void	Load();
 		void	Save() const;
 		void	Normalize();
+		bool	IsDefault() const;
+		void	SetDefault();
 		template< class T > void	SetRange(T& pCtrl);
 
 		const LPCTSTR		m_szSection;
@@ -777,6 +778,8 @@ public:
 		return m_pItems.GetNext( rPosition );
 	}
 	void	Normalize(LPVOID pSetting);
+	bool	IsDefault(LPVOID pSetting) const;
+	void	SetDefault(LPVOID pSetting);
 
 	template< class T >
 	void	SetRange(LPVOID pSetting, T& pCtrl)
