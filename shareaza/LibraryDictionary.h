@@ -47,10 +47,10 @@ private:
 	class CWord
 	{
 	public:
-		CWord(CFilePtrList* pList = NULL, bool bPartial = false) : m_pList( pList ), m_bPartial( bPartial ) {}
-		CWord(const CWord& oWord) : m_pList( oWord.m_pList ), m_bPartial( oWord.m_bPartial ) {}
+		CWord(CFilePtrList* pList = NULL) : m_pList( pList ), m_nCount( 1 ) {}
+		CWord(const CWord& oWord) : m_pList( oWord.m_pList ), m_nCount( oWord.m_nCount ) {}
 		CFilePtrList*	m_pList;
-		bool			m_bPartial;
+		DWORD			m_nCount;
 	};
 	typedef CMap< CString, const CString&, CWord, CWord& > CWordMap;
 
@@ -61,9 +61,7 @@ private:
 
 	void					ProcessFile(const CLibraryFile& oFile, bool bAdd, bool bCanUpload);
 	void					ProcessPhrase(const CLibraryFile& oFile, const CString& strPhrase, bool bAdd, bool bCanUpload);
-	void					MakeKeywords(const CLibraryFile& oFile, const CString& strWord, WORD nWordType, bool bAdd, bool bCanUpload);
-	void					ProcessWord(const CLibraryFile& oFile, const CString& strWord, bool bAdd, bool bCanUpload, bool bPartial = false);
-	void					AddHashes(const CLibraryFile& oFile);
+	void					ProcessWord(const CLibraryFile& oFile, const CString& strWord, bool bAdd, bool bCanUpload);
 };
 
 extern CLibraryDictionary LibraryDictionary;
