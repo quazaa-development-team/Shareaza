@@ -188,15 +188,15 @@ void CLibraryDictionary::BuildHashTable()
 	m_pTable->Clear();
 
 	// Add words to hash table
-	TRACE( _T("[LD] Dictionary size: %d words\n"), m_oWordMap.GetCount() );
-	TRACE( _T("[LD] Hash table size: %d\n"), m_oWordMap.GetHashTableSize() );
+	//TRACE( _T("[LD] Dictionary size: %d words\n"), m_oWordMap.GetCount() );
+	//TRACE( _T("[LD] Hash table size: %d\n"), m_oWordMap.GetHashTableSize() );
 	for ( POSITION pos = m_oWordMap.GetStartPosition() ; pos ; )
 	{
 		CString strWord;
 		CWord oWord;
 		m_oWordMap.GetNextAssoc( pos, strWord, oWord );
 
-		TRACE( _T("[LD] Word \"%hs\" found %d time(s) in %d file(s)\n"), (LPCSTR)CT2A( strWord ), oWord.m_nCount, oWord.m_pList->GetCount() );
+		//TRACE( _T("[LD] Word \"%hs\" found %d time(s) in %d file(s)\n"), (LPCSTR)CT2A( strWord ), oWord.m_nCount, oWord.m_pList->GetCount() );
 		for ( POSITION pos = oWord.m_pList->GetHeadPosition() ; pos ; )
 		{
 			const CLibraryFile& oFile = *oWord.m_pList->GetNext( pos );
