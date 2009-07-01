@@ -988,9 +988,9 @@
 		<item id="ID_DOWNLOADS_REMOTE_PREVIEW" text="R_emote Preview"/>
 		<item id="ID_DOWNLOADS_VIEW_REVIEWS" text="_View Reviews"/>
 		<separator/>
-		<item id="ID_DOWNLOADS_RESUME" text="_Resume"/>
-		<item id="ID_DOWNLOADS_PAUSE" text="P_ause"/>
-		<item id="ID_DOWNLOADS_CLEAR_INCOMPLETE" text="_Cancel"/>
+		<item id="ID_DOWNLOADS_RESUME" text="_Resume Download"/>
+		<item id="ID_DOWNLOADS_PAUSE" text="P_ause Download"/>
+		<item id="ID_DOWNLOADS_CLEAR_INCOMPLETE" text="_Cancel Download"/>
 		<separator/>
 		<item id="ID_DOWNLOADS_SOURCES" text="_Find More Sources"/>
 		<!-- <separator/>
@@ -1006,9 +1006,9 @@
 		<item id="ID_DOWNLOADS_ENQUEUE" text="Add to Pla_ylist"/>
 		<item id="ID_DOWNLOADS_VIEW_REVIEWS" text="_View Reviews"/>
 		<separator/>
-		<item id="ID_DOWNLOADS_RESUME" text="_Resume"/>
-		<item id="ID_DOWNLOADS_PAUSE" text="P_ause"/>
-		<item id="ID_DOWNLOADS_CLEAR_INCOMPLETE" text="_Cancel"/>
+		<item id="ID_DOWNLOADS_RESUME" text="_Resume Download"/>
+		<item id="ID_DOWNLOADS_PAUSE" text="P_ause Download"/>
+		<item id="ID_DOWNLOADS_CLEAR_INCOMPLETE" text="_Cancel Download"/>
 		<separator/>
 		<item id="ID_DOWNLOADS_SOURCES" text="_Find More Sources"/>
 		<separator/>
@@ -1464,10 +1464,10 @@
 	<menu name="CSearchMonitorWnd">
 		<item id="ID_HITMONITOR_SEARCH" text="_Search for This"/>
 		<separator/>
-    <item id="ID_BROWSE_LAUNCH" text="_Browse User"/>
-    <item id="ID_SECURITY_BAN" text="B_an User"/>
-    <separator/>
-    <item id="ID_SEARCHMONITOR_PAUSE" text="_Pause Display"/>
+		<item id="ID_BROWSE_LAUNCH" text="_Browse User"/>
+		<item id="ID_SECURITY_BAN" text="B_an User"/>
+		<separator/>
+		<item id="ID_SEARCHMONITOR_PAUSE" text="_Pause Display"/>
 		<item id="ID_SEARCHMONITOR_CLEAR" text="_Clear Buffer"/>
 	</menu>
 	<!-- GRAPH/TRAFFIC WINDOW -->
@@ -1584,10 +1584,10 @@
 	<document name="CHomeViewCtrl" leftMargin="16" topMargin="0">
 		<styles>
 			<style name="default">
-				<font face="Verdana" size="12"/>
+				<font size="14"/>
 			</style>
 			<style name="heading">
-				<font face="Trebuchet MS" size="16" weight="800"/>
+				<font size="16" weight="800"/>
 			</style>
 		</styles>
 		<anchor id="Header" width="32" height="172"/>
@@ -1695,7 +1695,7 @@
 	<document name="CHomeDownloadsBox" title="My Downloads" leftMargin="6" topMargin="6">
 		<styles>
 			<style name="default">
-				<font face="Verdana" size="9"/>
+				<font size="10"/>
 			</style>
 		</styles>
 		<para align="center">
@@ -1711,7 +1711,7 @@
 	<document name="CHomeLibraryBox" title="My Library" leftMargin="6" topMargin="6">
 		<styles>
 			<style name="default">
-				<font face="Verdana" size="9"/>
+				<font size="10"/>
 			</style>
 		</styles>
 		<para align="center">
@@ -1744,7 +1744,7 @@
 	<document name="CHomeConnectionBox" title="Connection" leftMargin="6" topMargin="6">
 		<styles>
 			<style name="default">
-				<font face="Verdana" size="9"/>
+				<font size="10"/>
 			</style>
 		</styles>
 		<group id="1">
@@ -1789,7 +1789,7 @@
 	<document name="CHomeUploadsBox" title="Uploads" leftMargin="6" topMargin="6">
 		<styles>
 			<style name="default">
-				<font face="Verdana" size="9"/>
+				<font size="10"/>
 			</style>
 		</styles>
 		<para align="center">
@@ -1805,7 +1805,7 @@
 	<document name="CHomeTorrentsBox" title="Torrents" leftMargin="6" topMargin="6">
 		<styles>
 			<style name="default">
-				<font face="Verdana" size="9"/>
+				<font size="10"/>
 			</style>
 		</styles>
 		<para align="center">
@@ -2046,8 +2046,8 @@
 		<text format="b">This Download is Active!</text>
 		<newline gap="8"/>
 		<text>This download is currently in progress. If it is downloading too slowly,
-		you could try searching the network for more sources with the '</text>
-		<text format="b">Find More Sources</text><text>' command. If the speed does not 
+		you could try searching the network for more sources with the '</text><text
+    format="b">Find More Sources</text><text>' command. If the speed does not 
 		improve it may be due to limited upload speeds of the users you are downloading 
 		from. Download speed usually increases over time.</text>
 	</document>
@@ -2242,8 +2242,8 @@
 		<newline gap="8"/>
 		<text>Folders such as the Windows directory, Program Files, and similar folders
 		do not usually contain files suitable for sharing. Any files of interest would be in
-		sub-folders located</text><text format="i"> inside</text>
-		<text> these folders. Please share those instead.</text>
+		sub-folders located</text><text format="i"> inside</text><text> these folders.
+		Please share those instead.</text>
 		<newline gap="8"/>
 		<text>The Shareaza 'incomplete' folder should also not be shared through the
 		library, since attempting to hash downloads in progress may impact on performance.</text>
@@ -2406,7 +2406,7 @@
 			<part name="_ID_MEDIA_RANDOM.Checked"		rect="350,15,38,7"/>
 			<part name="_ID_MEDIA_REPEAT.Checked"		rect="318,15,33,7"/>
 		</parts>
-		<caption fontFace="Arial" fontSize="11" fontWeight="Normal" colour="000000"/>
+		<caption fontSize="11" fontWeight="Normal" colour="000000"/>
 		<region> 
 			<shape type="rectangle" rect="0,0,271,119"/>
 			<shape type="rectangle" combine="diff"		rect="0,0,249,3"/>

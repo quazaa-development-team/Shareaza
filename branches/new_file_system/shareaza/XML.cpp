@@ -130,11 +130,11 @@ CString CXMLNode::StringToValue(LPCTSTR& pszXML, int nLength)
 
 	while ( *pszXML && pszXML < pszNull )
 	{
-		if ( _istspace( *pszXML ) )
+		if ( _istspace( *pszXML ) && *pszXML != 0xa0 )	// Keep non-breaking space
 		{
 			if ( pszValue != pszOut ) *pszOut++ = ' ';
 			pszXML++;
-			while ( *pszXML && _istspace( *pszXML ) ) pszXML++;
+			while ( *pszXML && _istspace( *pszXML ) && *pszXML != 0xa0 ) pszXML++;
 			if ( ! *pszXML || pszXML >= pszNull ) break;
 		}
 
@@ -328,6 +328,7 @@ void CXMLNode::UniformString(CString& str)
 			{
 				LPTSTR pszTemp = _tcsninc( str, nPos );
 				pszTemp[ 0 ] = ' ';
+				bSpace = TRUE;
 			}
 		}
 		else
