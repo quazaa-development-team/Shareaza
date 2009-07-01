@@ -1070,7 +1070,7 @@ BOOL CSkin::Translate(LPCTSTR pszName, CHeaderCtrl* pCtrl)
 			CString strNew = pszFind;
 			strNew = strNew.SpanExcluding( _T("|") );
 
-			_tcscpy( szColumn, strNew );
+			_tcsncpy( szColumn, strNew, _countof( szColumn ) );
 			pCtrl->SetItem( nItem, &pColumn );
 		}
 	}
@@ -1159,6 +1159,8 @@ BOOL CSkin::Apply(LPCTSTR pszName, CDialog* pDialog, UINT nIconID, CToolTipCtrl*
 
 	for ( CWnd* pWnd = pDialog->GetWindow( GW_CHILD ) ; pWnd ; pWnd = pWnd->GetNextWindow() )
 	{
+		pWnd->SetFont( &CoolInterface.m_fntNormal );
+
 		TCHAR szClass[3] = { 0, 0, 0 };
 		LoadControlTip( strTip, pWnd->GetDlgCtrlID() );
 
@@ -1791,6 +1793,9 @@ BOOL CSkin::LoadFonts(CXMLElement* pBase, const CString& strPath)
 				}
 
 				if ( pFont->m_hObject ) pFont->DeleteObject();
+
+				if ( strFace.IsEmpty() )
+					strFace = Settings.Fonts.DefaultFont;
 
 				if ( strWeight.CompareNoCase( _T("bold") ) == 0 )
 					strWeight = _T("700");
