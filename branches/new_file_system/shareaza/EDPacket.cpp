@@ -885,7 +885,7 @@ ED2K_PACKET_DESC CEDPacket::m_pszTypes[] =
 	{ ED2K_C2C_FILEDESC,			_T("FileDescription") },
 	{ ED2K_C2C_REQUESTSOURCES,		_T("RequestSources") },
 	{ ED2K_C2C_ANSWERSOURCES,		_T("Sources") },
-	{ ED2K_C2C_REQUESTPREVIEW,		_T("RequestPreview") },
+	{ ED2K_C2C_REQUESTPREVIEW,		_T("Request Preview") },
 	{ ED2K_C2C_PREVIEWANWSER,		_T("Preview") },
 
 // eMule Client - Client TCP (64Bit LargeFile support)
