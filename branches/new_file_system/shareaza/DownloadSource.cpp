@@ -65,8 +65,6 @@ void CDownloadSource::Construct(const CDownload* pDownload)
 	GetSystemTime( &pTime );
 
 	m_pDownload		= const_cast< CDownload* >( pDownload );
-	m_pPrev			= NULL;
-	m_pNext			= NULL;
 	m_pTransfer		= NULL;
 	m_bSelected		= FALSE;
 
