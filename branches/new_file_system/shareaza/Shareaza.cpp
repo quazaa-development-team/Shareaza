@@ -434,14 +434,9 @@ BOOL CShareazaApp::InitInstance()
 	if ( Settings.Connection.EnableUPnP && ! Settings.Live.FirstRun )
 	{
 		SplashStep( L"Firewall/Router Setup" );
-		try
-		{
-			m_pUPnPFinder.Attach( new CUPnPFinder );
-			if ( m_pUPnPFinder->AreServicesHealthy() )
-				m_pUPnPFinder->StartDiscovery();
-		}
-		catch ( CUPnPFinder::UPnPError& ) {}
-		catch ( CException* e ) { e->Delete(); }
+		m_pUPnPFinder.Attach( new CUPnPFinder );
+		if ( m_pUPnPFinder->AreServicesHealthy() )
+			m_pUPnPFinder->StartDiscovery();
 	}
 
 	SplashStep( L"GUI" );
@@ -1750,6 +1745,36 @@ BOOL LoadIcon(LPCTSTR szFilename, HICON* phSmallIcon, HICON* phLargeIcon, HICON*
 
 	return ( phLargeIcon && *phLargeIcon ) || ( phSmallIcon && *phSmallIcon ) ||
 		( phHugeIcon && *phHugeIcon );
+}
+
+HICON LoadCLSIDIcon(LPCTSTR szCLSID)
+{
+	CString strPath;
+	HKEY hKey;
+	strPath.Format( _T("CLSID\\%s\\InProcServer32"), szCLSID );
+	if ( RegOpenKeyEx( HKEY_CLASSES_ROOT, strPath, 0, KEY_READ, &hKey ) != ERROR_SUCCESS )
+	{
+		strPath.Format( _T("CLSID\\%s\\LocalServer32"), szCLSID );
+		if ( RegOpenKeyEx( HKEY_CLASSES_ROOT, strPath, 0, KEY_READ, &hKey ) != ERROR_SUCCESS )
+			return NULL;
+	}
+
+	DWORD dwType = REG_SZ, dwSize = MAX_PATH * sizeof( TCHAR );
+	LONG lResult = RegQueryValueEx( hKey, _T(""), NULL, &dwType,
+		(LPBYTE)strPath.GetBuffer( MAX_PATH ), &dwSize );
+	strPath.ReleaseBuffer( dwSize / sizeof(TCHAR) );
+	RegCloseKey( hKey );
+
+	if ( lResult != ERROR_SUCCESS )
+		return NULL;
+
+	strPath.Trim( _T(" \"") );
+
+	HICON hSmallIcon;
+	if ( ! LoadIcon( strPath, &hSmallIcon, NULL, NULL ) )
+		return NULL;
+
+	return hSmallIcon;
 }
 
 int AddIcon(UINT nIcon, CImageList& gdiImageList)
