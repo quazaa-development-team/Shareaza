@@ -44,28 +44,23 @@ static char THIS_FILE[]=__FILE__;
 // CDownloadTransfer construction
 
 CDownloadTransfer::CDownloadTransfer(CDownloadSource* pSource, PROTOCOLID nProtocol)
+	: CTransfer			( nProtocol )
+	, m_pDownload		( pSource->m_pDownload )
+	, m_pDlPrev			( NULL )
+	, m_pDlNext			( NULL )
+	, m_pSource			( pSource )
+	, m_nState			( dtsNull )
+	, m_nQueuePos		( 0 )
+	, m_nQueueLen		( 0 )
+	, m_nBandwidth		( 0 )
+	, m_nDownloaded		( 0 )
+	, m_bWantBackwards	( FALSE )
+	, m_bRecvBackwards	( FALSE )
+	, m_nOffset			( SIZE_UNKNOWN )
+	, m_nLength			( 0 )
+	, m_nPosition		( 0 )
 {
 	ASSUME_LOCK( Transfers.m_pSection );
-
-	m_nProtocol		= nProtocol;
-	m_pDownload		= pSource->m_pDownload;
-	m_pDlPrev		= NULL;
-	m_pDlNext		= NULL;
-	m_pSource		= pSource;
-
-	m_nState		= dtsNull;
-
-	m_nQueuePos		= 0;
-	m_nQueueLen		= 0;
-
-	m_nBandwidth	= 0;
-
-	m_nOffset		= SIZE_UNKNOWN;
-	m_nLength		= 0;
-	m_nPosition		= 0;
-	m_nDownloaded	= 0;
-
-	m_bWantBackwards = m_bRecvBackwards = FALSE;
 
 	m_pDownload->AddTransfer( this );
 }
@@ -93,29 +88,31 @@ void CDownloadTransfer::Close(TRISTATE bKeepSource, DWORD nRetryAfter)
 
 	CTransfer::Close();
 
-	if ( m_pSource != NULL )
+	if ( CDownloadSource* pSource = m_pSource )
 	{
+		m_pSource = NULL;
+
 		switch ( bKeepSource )
 		{
 		case TRI_TRUE:
-			if ( m_pSource->m_bCloseConn && m_pSource->m_nGnutella )
+			if ( pSource->m_bCloseConn && pSource->m_nGnutella )
 			{
-				m_pSource->OnResumeClosed();
+				pSource->OnResumeClosed();
 			}
 			else
 			{
-				m_pSource->OnFailure( TRUE, nRetryAfter );
+				pSource->OnFailure( TRUE, nRetryAfter );
 			}
 			break;
+
 		case TRI_UNKNOWN:
-			m_pSource->OnFailure( FALSE );
+			pSource->OnFailure( FALSE );
 			break;
+
 		case TRI_FALSE:
-			m_pSource->Remove( FALSE, TRUE );
+			pSource->Remove( FALSE, TRUE );
 			break;
 		}
-
-		m_pSource = NULL;
 	}
 
 	ASSERT( m_pDownload != NULL );
@@ -248,12 +245,11 @@ void CDownloadTransfer::SetState(int nState)
 			{
 				// All other sources should be properly sorted
 				if ( ( nState == dtsTorrent ) &&
-					 ( m_pSource->m_pTransfer ) &&
-					 ( m_pSource->m_pTransfer->m_nProtocol == PROTOCOL_BT ) )    // Torrent states
+					 ( m_pSource->GetTransferProtocol() == PROTOCOL_BT ) )    // Torrent states
 				{
 					// Choked torrents after queued, requesting = requesting, uninterested near end
-					CDownloadTransferBT* pBT =
-						static_cast< CDownloadTransferBT* >( m_pSource->m_pTransfer );
+					const CDownloadTransferBT* pBT =
+						static_cast< const CDownloadTransferBT* >( m_pSource->GetTransfer() );
 					if ( ! pBT->m_bInterested )
 						m_pSource->m_nSortOrder = 11;
 					else if ( pBT->m_bChoked )
