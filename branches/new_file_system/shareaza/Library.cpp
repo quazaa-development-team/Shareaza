@@ -232,9 +232,7 @@ bool CLibrary::OnQueryHits(const CQueryHit* pHits)
 	{
 		if ( ! pHit->m_sURL.IsEmpty() )
 		{
-			if ( CLibraryFile* pFile = LibraryMaps.LookupFileByHash( pHit->m_oSHA1,
-				pHit->m_oTiger, pHit->m_oED2K, pHit->m_oBTH, pHit->m_oMD5,
-				pHit->m_nSize, pHit->m_nSize ) )
+			if ( CLibraryFile* pFile = LibraryMaps.LookupFileByHash( pHit ) )
 			{
 				pFile->AddAlternateSources( pHit->m_sURL );
 			}
@@ -247,13 +245,13 @@ bool CLibrary::OnQueryHits(const CQueryHit* pHits)
 //////////////////////////////////////////////////////////////////////
 // CLibrary search
 
-CList< const CLibraryFile* >* CLibrary::Search(CQuerySearch* pSearch, int nMaximum, bool bLocal, bool bAvailableOnly)
+CFileList* CLibrary::Search(CQuerySearch* pSearch, int nMaximum, bool bLocal, bool bAvailableOnly)
 {
 	CSingleLock oLock( &m_pSection );
 
 	if ( !oLock.Lock( 50 ) ) return NULL;
 
-	CList< const CLibraryFile* >* pHits = LibraryMaps.Search( pSearch, nMaximum, bLocal, bAvailableOnly );
+	CFileList* pHits = LibraryMaps.Search( pSearch, nMaximum, bLocal, bAvailableOnly );
 
 	if ( pHits == NULL && pSearch != NULL )
 	{
@@ -647,7 +645,7 @@ STDMETHODIMP CLibrary::XLibrary::get_Files(ILibraryFiles FAR* FAR* ppFiles)
 STDMETHODIMP CLibrary::XLibrary::FindByName(BSTR sName, ILibraryFile FAR* FAR* ppFile)
 {
 	METHOD_PROLOGUE( CLibrary, Library )
-	CLibraryFile* pFile = LibraryMaps.LookupFileByName( CString( sName ) );
+	CLibraryFile* pFile = LibraryMaps.LookupFileByName( CString( sName ), SIZE_UNKNOWN, FALSE, FALSE );
 	*ppFile = pFile ? (ILibraryFile*)pFile->GetInterface( IID_ILibraryFile, TRUE ) : NULL;
 	return pFile ? S_OK : S_FALSE;
 }

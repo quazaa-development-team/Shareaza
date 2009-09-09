@@ -84,6 +84,7 @@ public:
 	virtual CString	GetSearchName() const;
 	bool			IsShared(bool bIgnoreOverride = false) const;
 	void			SetShared(bool bShared, bool bOverride = false);
+	BOOL			CheckFileAttributes(QWORD nSize, BOOL bSharedOnly, BOOL bAvailableOnly) const;
 	inline BOOL		IsSharedOverride() const { return m_bShared != TRI_UNKNOWN; }
 	inline BOOL		IsGhost() const { return m_pFolder == NULL; }
 	inline BOOL		IsAvailable() const { return m_pFolder != NULL; }
@@ -176,6 +177,9 @@ protected:
 	friend class CDeleteFileDlg;
 };
 
+typedef CList< const CLibraryFile* > CFileList;
+typedef CMap< DWORD_PTR, DWORD_PTR, CLibraryFile*, CLibraryFile* > CIndexMap;
+typedef CMap< CString, const CString&, CLibraryFile*, CLibraryFile* > CFileMap;
 
 class CSharedSource
 {
