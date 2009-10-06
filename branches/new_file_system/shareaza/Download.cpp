@@ -486,8 +486,7 @@ void CDownload::OnDownloaded()
 
 	SetMoving( true );
 
-	ASSERT( !IsTasking() );
-	SetTask( new CDownloadTask( this, CDownloadTask::dtaskCopy ) );
+	CDownloadTask::Copy( this );
 
 	SetModified();
 }
@@ -669,7 +668,6 @@ BOOL CDownload::Save(BOOL bFlush)
 		{
 			ar.Abort();
 			pFile.Abort();
-			theApp.Message( MSG_ERROR, _T("Serialize Error: %s"), pException->m_strFileName );
 			pException->Delete();
 			return FALSE;
 		}
@@ -694,7 +692,6 @@ BOOL CDownload::Save(BOOL bFlush)
 	else
 		DeleteFileEx( m_sPath + _T(".sav"), FALSE, FALSE, FALSE );
 
-	ASSERT( bSuccess );
 	return bSuccess;
 }
 
