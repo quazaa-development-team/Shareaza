@@ -700,7 +700,7 @@ void CDownloadsWnd::OnDownloadsClear()
 	{
 		CDownload* pDownload = pList.RemoveHead();
 
-		if ( Downloads.Check( pDownload ) )
+		if ( Downloads.Check( pDownload ) && ! pDownload->IsMoving() )
 		{
 			if ( pDownload->IsPreviewVisible() )
 			{
@@ -721,7 +721,7 @@ void CDownloadsWnd::OnDownloadsClear()
 					break;
 				pLock.Lock();
 
-				if ( Downloads.Check( pDownload ) )
+				if ( Downloads.Check( pDownload ) && ! pDownload->IsMoving() )
 				{
 					dlg.Create( pDownload, bShared );
 					pDownload->Remove();
@@ -780,7 +780,7 @@ void CDownloadsWnd::OnDownloadsClearIncomplete()
 						dlg.Create( pDownload, bShared );
 				}
 
-				if ( Downloads.Check( pDownload ) )
+				if ( Downloads.Check( pDownload ) && ! pDownload->IsMoving() )
 					pDownload->Remove();
 			}
 		}
@@ -919,9 +919,7 @@ void CDownloadsWnd::OnDownloadsRemotePreview()
 							(LPCTSTR)CString( inet_ntoa( pSource->m_pAddress ) ), pSource->m_nPort,
 							(LPCTSTR)pDownload->m_oSHA1.toUrn() );
 					}
-					pDownload->SetTask( new CDownloadTask( pDownload,
-						CDownloadTask::dtaskPreviewRequest,
-						pSource->m_sPreview ) );
+					CDownloadTask::PreviewRequest( pDownload, pSource->m_sPreview );
 					pDownload->m_bWaitingPreview = TRUE;
 					pSource->m_bPreviewRequestSent = TRUE;
 					break;
