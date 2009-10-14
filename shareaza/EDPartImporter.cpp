@@ -178,8 +178,11 @@ BOOL CEDPartImporter::ImportFile(LPCTSTR pszPath, LPCTSTR pszFile)
 	BYTE nMagic;
 	if ( pFile.Read( &nMagic, 1 ) != 1 )
 		return FALSE;
-	if ( nMagic != 0xE0 )
+	if ( nMagic != 0xE0 && nMagic != 0xE1 )
 		return FALSE;
+
+	if ( nMagic == 0xE1 )
+		pFile.Seek( 2, CFile::begin );
 
 	LONG nDate;
 	if ( pFile.Read( &nDate, 4 ) != 4 )
@@ -191,10 +194,6 @@ BOOL CEDPartImporter::ImportFile(LPCTSTR pszPath, LPCTSTR pszFile)
 		return FALSE;
 	oED2K.validate();
 
-	WORD nParts;
-	if ( pFile.Read( &nParts, 2 ) != 2 )
-		return FALSE;
-
 	{
 		CSingleLock pLock( &Transfers.m_pSection, TRUE );
 
@@ -203,6 +202,13 @@ BOOL CEDPartImporter::ImportFile(LPCTSTR pszPath, LPCTSTR pszFile)
 			Message( IDS_ED2K_EPI_ALREADY );
 			return FALSE;
 		}
+	}
+
+	WORD nParts = 0;
+	if ( nMagic == 0xE0 )
+	{
+		if ( pFile.Read( &nParts, 2 ) != 2 )
+			return FALSE;
 	}
 
 	CED2K pED2K;

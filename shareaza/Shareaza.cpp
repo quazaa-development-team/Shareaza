@@ -27,6 +27,7 @@
 #include "CoolInterface.h"
 #include "DDEServer.h"
 #include "DiscoveryServices.h"
+#include "DlgDeleteFile.h"
 #include "DownloadGroups.h"
 #include "Downloads.h"
 #include "EDClients.h"
@@ -2215,6 +2216,58 @@ BOOL CreateDirectory(LPCTSTR szPath)
 	}
 	return CreateDirectory( CString( _T("\\\\?\\") ) + szPath, NULL );
 }
+	
+void DeleteFiles(CStringList& pList)
+{
+	while ( ! pList.IsEmpty() )
+	{
+		CString strFirstPath = pList.GetHead();
+
+		CDeleteFileDlg dlg;
+		dlg.m_bAll = ( pList.GetCount() > 1 );
+
+		{
+			CQuickLock pLibraryLock( Library.m_pSection );
+
+			if ( CLibraryFile* pFile = LibraryMaps.LookupFileByPath( strFirstPath ) )
+			{
+				dlg.m_sName	= pFile->m_sName;
+				dlg.m_sComments = pFile->m_sComments;
+				dlg.m_nRateValue = pFile->m_nRating;
+			}
+			else
+			{
+				dlg.m_sName = PathFindFileName( strFirstPath );
+			}
+		}
+
+		if ( dlg.DoModal() != IDOK )
+			break;
+
+		for ( INT_PTR nProcess = dlg.m_bAll ? pList.GetCount() : 1 ;
+			nProcess > 0 && pList.GetCount() > 0 ; nProcess-- )
+		{
+			CString strPath = pList.RemoveHead();
+
+			{
+				CQuickLock pTransfersLock( Transfers.m_pSection ); // Can clear uploads and downloads
+				CQuickLock pLibraryLock( Library.m_pSection );
+
+				if ( CLibraryFile* pFile = LibraryMaps.LookupFileByPath( strPath ) )
+				{
+					// It's library file
+					dlg.Apply( pFile );
+					pFile->Delete();
+					continue;
+				}
+			}
+
+			// It's wild file
+			BOOL bToRecycleBin = ( ( GetAsyncKeyState( VK_SHIFT ) & 0x8000 ) == 0 );
+			DeleteFileEx( strPath, TRUE, bToRecycleBin, TRUE );
+		}
+	}
+}
 
 BOOL DeleteFileEx(LPCTSTR szFileName, BOOL bShared, BOOL bToRecycleBin, BOOL bEnableDelayed)
 {
@@ -2274,7 +2327,7 @@ void PurgeDeletes()
 {
 	HKEY hKey = NULL;
 	LSTATUS nResult = RegOpenKeyEx( HKEY_CURRENT_USER,
-		_T("Software\\Shareaza\\Shareaza\\Delete"), 0, KEY_ALL_ACCESS, &hKey );
+		_T(REGISTRY_KEY) _T("\\Delete"), 0, KEY_ALL_ACCESS, &hKey );
 	if ( ERROR_SUCCESS == nResult )
 	{
 		CList< CString > pRemove;
