@@ -68,7 +68,7 @@ void CHashProgressBar::Create(CWnd* pParent)
 
 void CHashProgressBar::Run()
 {
-	if ( Settings.Library.HashWindow && LibraryBuilder.GetRemaining() )
+	if ( Settings.Live.HashWindow && LibraryBuilder.GetRemaining() )
 	{
 		m_sCurrent = LibraryBuilder.GetCurrent();
 		int nPos = m_sCurrent.ReverseFind( '\\' );
@@ -209,6 +209,12 @@ void CHashProgressBar::OnPaint()
 
 void CHashProgressBar::OnLButtonDown(UINT /*nFlags*/, CPoint /*point*/)
 {
-	Settings.Library.HashWindow = FALSE;
+	// Hide window for current session only
+	Settings.Live.HashWindow = false;
+
+	// Hide window forever (+Shift)
+	if ( ( GetAsyncKeyState( VK_SHIFT ) & 0x8000 ) )
+		Settings.Library.HashWindow = false;
+
 	ShowWindow( SW_HIDE );
 }

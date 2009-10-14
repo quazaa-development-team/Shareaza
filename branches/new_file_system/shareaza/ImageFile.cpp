@@ -164,6 +164,53 @@ BOOL CImageFile::LoadFromURL(LPCTSTR pszURL)
 	return FALSE;
 }
 
+BOOL CImageFile::LoadFromBitmap(HBITMAP hBitmap, BOOL bScanOnly)
+{
+	BITMAP bmInfo;
+	if ( ! GetObject( hBitmap, sizeof( BITMAP ), &bmInfo ) )
+		return FALSE;
+
+	if ( bmInfo.bmType != 0 || bmInfo.bmPlanes != 1 || ! bmInfo.bmBits ||
+		bmInfo.bmWidth <= 0 || bmInfo.bmHeight <= 0 )
+		// Unsupported format
+		return FALSE;
+
+	m_bScanned = TRUE;
+	m_nComponents = 3;
+	m_nWidth = bmInfo.bmWidth;
+	m_nHeight = bmInfo.bmHeight;
+
+	if ( bScanOnly )
+		return TRUE;
+
+	DWORD line_size = ( m_nWidth * m_nComponents + 3 ) & ~3;
+	m_pImage = new BYTE[ line_size * m_nHeight ];
+	if ( ! m_pImage )
+		// Out of memory
+		return FALSE;
+
+	HDC hDC = GetDC( NULL );
+	BITMAPINFOHEADER bmi = { sizeof( BITMAPINFOHEADER ), bmInfo.bmWidth, - bmInfo.bmHeight, 1, 24, BI_RGB };
+	GetDIBits( hDC, hBitmap, 0, bmInfo.bmHeight, m_pImage, (BITMAPINFO*)&bmi, DIB_RGB_COLORS );
+	ReleaseDC( NULL, hDC );
+
+	// BGR -> RGB
+	LPBYTE dst = m_pImage;
+	for ( LONG j = 0; j < bmInfo.bmHeight; ++j, dst += line_size )
+	{
+		for ( LONG i = 0; i < bmInfo.bmWidth * 3; i += 3 )
+		{
+			BYTE c = dst[i + 0];
+			dst[i + 0] = dst[i + 2];
+			dst[i + 2] = c;
+		}
+	}
+
+	m_bLoaded = TRUE;
+
+	return TRUE;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CImageFile save operations
 
@@ -221,7 +268,7 @@ void CImageFile::Serialize(CArchive& ar)
 		DWORD nCompositeValue = ( m_nFlags << 16 ) | ( m_nComponents );
 		ar << nCompositeValue;
 
-		ar.Write( m_pImage, ( ( m_nWidth * m_nComponents + 3) & ~3 ) * m_nHeight );
+		ar.Write( m_pImage, ( ( m_nWidth * m_nComponents + 3 ) & ~3 ) * m_nHeight );
 	}
 	else
 	{
@@ -238,7 +285,7 @@ void CImageFile::Serialize(CArchive& ar)
 		// Clear high bits for components
 		m_nComponents = nCompositeValue & 0x0000FFFF;
 
-		int nPitch = ( ( m_nWidth * m_nComponents+ 3 ) & ~3 ) * m_nHeight;
+		int nPitch = ( ( m_nWidth * m_nComponents + 3 ) & ~3 ) * m_nHeight;
 
 		m_pImage = new BYTE[ nPitch  ];
 		ReadArchive( ar, m_pImage, nPitch );

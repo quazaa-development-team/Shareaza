@@ -681,10 +681,15 @@ void CLibraryFrame::SetPanel(CPanelCtrl* pPanel)
 	{
 		if ( m_pPanel )
 		{
-			m_pPanel->Update();
-			m_pPanel->ShowWindow( SW_SHOW );
+			if ( m_pPanel->m_hWnd )
+			{
+				m_pPanel->Update();
+				m_pPanel->ShowWindow( SW_SHOW );
+				return;
+			}
 		}
-		return;
+		else
+			return;
 	}
 
 	CPanelCtrl* pOld = m_pPanel;
@@ -697,10 +702,14 @@ void CLibraryFrame::SetPanel(CPanelCtrl* pPanel)
 	if ( m_pPanel )
 		m_pPanel->Update();
 
-	if ( pOld ) pOld->ShowWindow( SW_HIDE );
+	if ( pOld && pOld != m_pPanel )
+		pOld->ShowWindow( SW_HIDE );
+
 	if ( m_pPanel )
 		m_pPanel->ShowWindow( SW_SHOW );
-	if ( pOld ) pOld->DestroyWindow();
+
+	if ( pOld && pOld != m_pPanel )
+		pOld->DestroyWindow();
 }
 
 CMetaPanel*	CLibraryFrame::GetPanelData()
@@ -741,8 +750,8 @@ BOOL CLibraryFrame::Update(BOOL bForce, BOOL bBestView)
 	CSingleLock pLock( &Library.m_pSection );
 	if ( ! pLock.Lock( bForce ? 500 : 50 ) ) return FALSE;
 
-	if ( ! bForce && m_nLibraryCookie == Library.m_nUpdateCookie ) return FALSE;
-	m_nLibraryCookie = Library.m_nUpdateCookie;
+	if ( ! bForce && m_nLibraryCookie == Library.GetCookie() ) return FALSE;
+	m_nLibraryCookie = Library.GetCookie();
 
 	m_bUpdating = TRUE;
 

@@ -605,6 +605,7 @@ public:
 		bool		FirstRun;					// Is this the first time Shareaza is being run?
 		CString		LastDuplicateHash;			// Stores the hash of the file about which the warning was shown
 		bool		MaliciousWarning;			// Is the warning dialog opened?
+		bool		HashWindow;					// Display annoying hashing window (default is Library.HashWindow)
 	} Live;
 
 	struct sExperimental
