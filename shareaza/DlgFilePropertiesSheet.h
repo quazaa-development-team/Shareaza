@@ -35,7 +35,7 @@ public:
 	CLibraryList	m_pList;
 
 	void	Add(CLibraryListItem oObject);
-	void	Add(const CLibraryList* pList);
+	void	Add(CLibraryList* pList);
 
 	virtual INT_PTR DoModal(int nPage = -1);
 

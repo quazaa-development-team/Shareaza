@@ -1,7 +1,7 @@
 ; Input defines: ConfigurationName (Debug or Release), PlatformName (Win32, x64, etc.)
 
 ; Change from "Yes" to "No" on the next line if you don't compile an alpha build
-#define alpha "Yes"
+#define alpha "No"
 
 #if VER < 0x05010700
   #error Inno Setup version 5.1.7 or higher is needed for this script
@@ -100,10 +100,10 @@ Source: "setup\builds\SaveSettings.bat";    DestDir: "{app}"; DestName: "SaveSet
 Source: "setup\builds\RestoreSettings.bat"; DestDir: "{app}"; DestName: "RestoreSettings.bat"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension skipifsourcedoesntexist
 
 ; ZLib
-Source: "zlib\{#PlatformName}\{#ConfigurationName}\zlibwapi.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
+Source: "zlib\{#PlatformName}\Release\zlibwapi.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 
 ; BugTrap
-Source: "BugTrap\{#PlatformName}\{#ConfigurationName}\BugTrap.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
+Source: "BugTrap\{#PlatformName}\Release\BugTrap.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 #if PlatformName == "Win32"
 Source: "BugTrap\dbghelp.dll";     DestDir: "{app}"; DestName: "dbghelp.dll"; Flags: overwritereadonly restartreplace uninsneveruninstall sortfilesbyextension
 #elif PlatformName == "x64"
@@ -114,7 +114,7 @@ Source: "BugTrap\dbghelp-x64.dll"; DestDir: "{app}"; DestName: "dbghelp.dll"; Fl
 Source: "HashLib\{#PlatformName}\{#ConfigurationName}\HashLib.dll"; DestDir: "{app}"; DestName: "HashLib.dll"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 
 ; SQLite
-Source: "sqlite3\{#PlatformName}\{#ConfigurationName}\sqlite3.dll"; DestDir: "{app}"; DestName: "sqlite3.dll"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
+Source: "sqlite3\{#PlatformName}\Release\sqlite3.dll"; DestDir: "{app}"; DestName: "sqlite3.dll"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 
 ; GeoIP
 Source: "GeoIP\{#PlatformName}\{#ConfigurationName}\GeoIP.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
@@ -130,7 +130,7 @@ Source: "plugins\GFLLibraryBuilder\{#PlatformName}\{#ConfigurationName}\GFLLibra
 Source: "plugins\ImageViewer\{#PlatformName}\{#ConfigurationName}\ImageViewer.dll";                 DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension regserver
 Source: "plugins\MediaImageServices\{#PlatformName}\{#ConfigurationName}\MediaImageServices.exe";   DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
 Source: "plugins\MediaLibraryBuilder\{#PlatformName}\{#ConfigurationName}\MediaLibraryBuilder.dll"; DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension regserver
-Source: "plugins\MediaPlayer\{#PlatformName}\{#ConfigurationName}\MediaPlayer.exe";                 DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension
+Source: "plugins\MediaPlayer\{#PlatformName}\{#ConfigurationName}\MediaPlayer.dll";                 DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension regserver
 Source: "plugins\Preview\{#PlatformName}\{#ConfigurationName}\Preview.dll";                         DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension regserver
 Source: "plugins\RARBuilder\{#PlatformName}\{#ConfigurationName}\RARBuilder.dll";                   DestDir: "{app}"; Flags: overwritereadonly replacesameversion restartreplace uninsremovereadonly sortfilesbyextension regserver
 #if PlatformName == "Win32"
@@ -178,8 +178,7 @@ Source: "Skins\ShareazaOS\*"; DestDir: "{app}\Skins\ShareazaOS"; Flags: ignoreve
 ; Thematic skins
 ; Source: "Skins\Halloween\*"; DestDir: "{app}\Skins\Halloween"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension recursesubdirs; Excludes: ".svn"
 ; Source: "Skins\Winter\*";    DestDir: "{app}\Skins\Winter";    Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension recursesubdirs; Excludes: ".svn"
-; Source: "Skins\Valentine\*"; DestDir: "{app}\Skins\Valentine"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension recursesubdirs; Excludes: ".svn"
-Source: "Skins\St. Patrick's Day\*"; DestDir: "{app}\Skins\St. Patrick's Day"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension recursesubdirs; Excludes: ".svn"
+Source: "Skins\Valentine\*";   DestDir: "{app}\Skins\Valentine"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension recursesubdirs; Excludes: ".svn"
 
 ; Templates
 Source: "Templates\*"; DestDir: "{app}\Templates"; Flags: ignoreversion overwritereadonly uninsremovereadonly sortfilesbyextension recursesubdirs; Excludes: ".svn"
@@ -236,7 +235,6 @@ SetupAppTitle=Setup - {#internal_name}
 [Run]
 ; Register EXE servers
 Filename: "{app}\MediaImageServices.exe"; Parameters: "/RegServer"; WorkingDir: "{app}"
-Filename: "{app}\MediaPlayer.exe";        Parameters: "/RegServer"; WorkingDir: "{app}"
 Filename: "{app}\WindowsThumbnail.exe";   Parameters: "/RegServer"; WorkingDir: "{app}"
 
 ; Run the skin installer at end of installation
@@ -248,8 +246,6 @@ Filename: "{app}\Shareaza.exe"; Description: "{cm:LaunchProgram,Shareaza}"; Work
 [UninstallRun]
 ; Unregister EXE servers
 Filename: "{app}\MediaImageServices.exe"; Parameters: "/UnRegServer"; WorkingDir: "{app}"
-Filename: "{app}\MediaPlayer.exe";        Parameters: "/UnRegServer"; WorkingDir: "{app}"
-Filename: "{app}\WindowsThumbnail.exe";   Parameters: "/UnRegServer"; WorkingDir: "{app}"
 
 ; Run the skin installer at start of uninstallation and make sure it only runs once
 Filename: "{app}\skin.exe"; Parameters: "/uninstallsilent"; WorkingDir: "{app}"; StatusMsg: "{cm:run_skinexe}"; RunOnceId: "uninstallskinexe"
@@ -356,8 +352,7 @@ Root: HKCU; Subkey: "Software\Shareaza\Shareaza\Skins"; ValueType: dword; ValueN
 ; Select thematic skin
 Root: HKCU; Subkey: "Software\Shareaza\Shareaza\Skins"; ValueType: dword; ValueName: "Halloween\Halloween.xml"; ValueData: "0"; Flags: deletevalue uninsdeletevalue
 Root: HKCU; Subkey: "Software\Shareaza\Shareaza\Skins"; ValueType: dword; ValueName: "Winter\Winter.xml";       ValueData: "0"; Flags: deletevalue uninsdeletevalue
-Root: HKCU; Subkey: "Software\Shareaza\Shareaza\Skins"; ValueType: dword; ValueName: "Valentine\Valentine.xml"; ValueData: "0"; Flags: deletevalue uninsdeletevalue
-Root: HKCU; Subkey: "Software\Shareaza\Shareaza\Skins"; ValueType: dword; ValueName: "St. Patrick's Day\St. Patrick's Day.xml"; ValueData: "1"; Flags: deletevalue uninsdeletevalue
+Root: HKCU; Subkey: "Software\Shareaza\Shareaza\Skins"; ValueType: dword; ValueName: "Valentine\Valentine.xml"; ValueData: "1"; Flags: deletevalue uninsdeletevalue
 
 ; Disable extensions for plugins which make trouble
 ; Since it is image services plugin we need to add extensions required for the first run
@@ -388,7 +383,6 @@ Type: files; Name: "{app}\*.pdb"
 Type: files; Name: "{app}\zlib*.dll"
 Type: files; Name: "{app}\RazaWebHook.dll"
 Type: files; Name: "{app}\MediaImageServices.dll"
-Type: files; Name: "{app}\MediaPlayer.dll"
 Type: files; Name: "{app}\libgfl*.dll"
 Type: files; Name: "{app}\Skins\skin.exe"
 Type: files; Name: "{app}\Schemas\VendorCache.xsd"

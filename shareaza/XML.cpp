@@ -1,7 +1,7 @@
 //
 // XML.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -29,7 +29,6 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
-#define IsSpace(ch)	((ch) == _T(' ') || (ch) == _T('\t') || (ch) == _T('\r') || (ch) == _T('\n'))
 
 //////////////////////////////////////////////////////////////////////
 // CXMLNode construction
@@ -131,11 +130,11 @@ CString CXMLNode::StringToValue(LPCTSTR& pszXML, int nLength)
 
 	while ( *pszXML && pszXML < pszNull )
 	{
-		if ( IsSpace( *pszXML ) && *pszXML != 0xa0 )	// Keep non-breaking space
+		if ( _istspace( *pszXML ) && *pszXML != 0xa0 )	// Keep non-breaking space
 		{
 			if ( pszValue != pszOut ) *pszOut++ = ' ';
 			pszXML++;
-			while ( *pszXML && IsSpace( *pszXML ) && *pszXML != 0xa0 ) pszXML++;
+			while ( *pszXML && _istspace( *pszXML ) && *pszXML != 0xa0 ) pszXML++;
 			if ( ! *pszXML || pszXML >= pszNull ) break;
 		}
 

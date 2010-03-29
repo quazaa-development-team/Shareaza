@@ -1,7 +1,7 @@
 //
 // CtrlMatch.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -398,10 +398,10 @@ BOOL CMatchCtrl::LoadColumnState()
 	
 	for ( int nColumns = 0 ; m_wndHeader.GetItem( nColumns, &pItem ) ; nColumns++ )
 	{
-		if ( strWidths.GetLength() < 4 || strOrdering.GetLength() < 2 ||
-			_stscanf( strWidths.Left( 4 ), _T("%x"), &pItem.cxy ) != 1 ||
-			_stscanf( strOrdering.Left( 2 ), _T("%x"), &pItem.iOrder ) != 1 )
-			return FALSE;
+		if ( strWidths.GetLength() < 4 || strOrdering.GetLength() < 2 ) return FALSE;
+		
+		_stscanf( strWidths.Left( 4 ), _T("%x"), &pItem.cxy );
+		_stscanf( strOrdering.Left( 2 ), _T("%x"), &pItem.iOrder );
 		
 		strWidths = strWidths.Mid( 4 );
 		strOrdering = strOrdering.Mid( 2 );
@@ -557,8 +557,6 @@ BOOL CMatchCtrl::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 
 void CMatchCtrl::ScrollBy(int nDelta)
 {
-	CSingleLock pLock( &m_pMatches->m_pSection, TRUE );
-
 	int nIndex = GetScrollPos( SB_VERT ) + nDelta;
 	nIndex = max( 0, nIndex );
 	ScrollTo( nIndex );
@@ -566,8 +564,6 @@ void CMatchCtrl::ScrollBy(int nDelta)
 
 void CMatchCtrl::ScrollTo(DWORD nIndex)
 {
-	CSingleLock pLock( &m_pMatches->m_pSection, TRUE );
-
 	DWORD nLimit = m_pMatches->m_nItems;
 	if ( nLimit > (DWORD)m_nPageCount ) nLimit -= m_nPageCount;
 	else nLimit = 0;
@@ -937,9 +933,9 @@ void CMatchCtrl::DrawItem(CDC& dc, CRect& rcRow, CMatchFile* pFile, CQueryHit* p
 					strTemp = ppHit->m_sNick;
 
 					if ( ppHit->GetSources() > 1 )
-						_sntprintf( szBuffer, sizeof( szBuffer ) / sizeof( TCHAR ), _T("%s+%u"), (LPCTSTR)strTemp, ppHit->GetSources() - 1 );
+						_sntprintf( szBuffer, sizeof( szBuffer ) / sizeof( TCHAR ), _T("%s+%u"), strTemp, ppHit->GetSources() - 1 );
 					else
-						_sntprintf( szBuffer, sizeof( szBuffer ) / sizeof( TCHAR ), _T("%s"), (LPCTSTR)strTemp );
+						_sntprintf( szBuffer, sizeof( szBuffer ) / sizeof( TCHAR ), _T("%s"), strTemp );
 					szBuffer[ sizeof( szBuffer ) / sizeof( TCHAR ) - 1 ] = 0;
 				}
 				else if ( ( ppHit->m_nProtocol == PROTOCOL_ED2K ) && ( ppHit->m_bPush == TRI_TRUE ) )
@@ -948,9 +944,9 @@ void CMatchCtrl::DrawItem(CDC& dc, CRect& rcRow, CMatchFile* pFile, CQueryHit* p
 					strTemp.Format( _T("(%s)"), (LPCTSTR)CString( inet_ntoa( (IN_ADDR&)*ppHit->m_oClientID.begin() ) ) );
 
 					if ( ppHit->GetSources() > 1 )
-						_sntprintf( szBuffer, sizeof( szBuffer ) / sizeof( TCHAR ), _T("%s+%u"), (LPCTSTR)strTemp, ppHit->GetSources() - 1 );
+						_sntprintf( szBuffer, sizeof( szBuffer ) / sizeof( TCHAR ), _T("%s+%u"), strTemp, ppHit->GetSources() - 1 );
 					else
-						_sntprintf( szBuffer, sizeof( szBuffer ) / sizeof( TCHAR ), _T("%s"), (LPCTSTR)strTemp );
+						_sntprintf( szBuffer, sizeof( szBuffer ) / sizeof( TCHAR ), _T("%s"), strTemp );
 					szBuffer[ sizeof( szBuffer ) / sizeof( TCHAR ) - 1 ] = 0;
 				}
 				else if ( ppHit->m_pAddress.S_un.S_addr )
@@ -973,7 +969,7 @@ void CMatchCtrl::DrawItem(CDC& dc, CRect& rcRow, CMatchFile* pFile, CQueryHit* p
 					{
 						CString strSource, strText;
 						LoadSourcesString( strSource, pFile->m_nSources );
-						strText.Format( _T("(%u %s)"), pFile->m_nSources, (LPCTSTR)strSource );
+						strText.Format( _T("(%u %s)"), pFile->m_nSources, strSource );
 						_sntprintf( szBuffer, sizeof( szBuffer ) / sizeof( TCHAR ), strText, pFile->m_nSources );
 						szBuffer[ sizeof( szBuffer ) / sizeof( TCHAR ) - 1 ] = 0;
 					}
@@ -989,7 +985,7 @@ void CMatchCtrl::DrawItem(CDC& dc, CRect& rcRow, CMatchFile* pFile, CQueryHit* p
 			{
 				CString strSource, strText;
 				LoadSourcesString( strSource, pFile->m_nSources );
-				strText.Format( _T("(%u %s)"), pFile->m_nSources, (LPCTSTR)strSource );
+				strText.Format( _T("(%u %s)"), pFile->m_nSources, strSource );
 				_sntprintf( szBuffer, sizeof( szBuffer ) / sizeof( TCHAR ), strText, pFile->m_nSources );
 				szBuffer[ sizeof( szBuffer ) / sizeof( TCHAR ) - 1 ] = 0;
 			}
@@ -1027,28 +1023,12 @@ void CMatchCtrl::DrawItem(CDC& dc, CRect& rcRow, CMatchFile* pFile, CQueryHit* p
 				SYSTEMTIME st;
 				if ( pFile->m_pTime.GetAsSystemTime( st ) )
 				{
-					// Caching for slow GetDateFormat/GetTimeFormat functions
-					// using fact that neighbour hits got at same time
-					static TCHAR szBufferCache[ 64 ] = {};
-					static SYSTEMTIME stCache = {};
-					st.wMilliseconds = 0;	// round to seconds
-					if ( memcmp( &stCache, &st, sizeof( SYSTEMTIME ) ) == 0 )
-						// Use cache
-						pszText = szBufferCache;
-					else
-					{
-						// Get new date
-						int nChars = GetDateFormat( LOCALE_USER_DEFAULT, DATE_SHORTDATE,
-							&st, NULL, szBuffer, _countof( szBuffer ) );
-						szBuffer[ nChars - 1 ] = _T(' ');
-						GetTimeFormat( LOCALE_USER_DEFAULT, 0,
-							&st, NULL, szBuffer + nChars, _countof( szBuffer ) );
-						pszText = szBuffer;
-
-						// Save to cache
-						lstrcpy( szBufferCache, szBuffer );
-						memcpy( &stCache, &st, sizeof( SYSTEMTIME ) ); 
-					}
+					int nChars = GetDateFormat( LOCALE_USER_DEFAULT, DATE_SHORTDATE,
+						&st, NULL, szBuffer, _countof( szBuffer ) );
+					szBuffer[ nChars - 1 ] = _T(' ');
+					GetTimeFormat( LOCALE_USER_DEFAULT, 0,
+						&st, NULL, szBuffer + nChars, _countof( szBuffer ) );
+					pszText = szBuffer;
 				}
 			}
 			break;
@@ -1078,22 +1058,13 @@ void CMatchCtrl::DrawItem(CDC& dc, CRect& rcRow, CMatchFile* pFile, CQueryHit* p
 		if ( nText < 0 ) nText = static_cast< int >( _tcslen( pszText ) );
 		int nWidth = 0;
 		int nTrail = 0;
-		const int nColWidth = rcCol.Width() - 4;
-		if ( nColWidth > 4 )
+
+		while ( nText )
 		{
-			while ( nText )
-			{
-				nWidth = dc.GetTextExtent( pszText, nText ).cx + nTrail;
-				if ( nWidth <= nColWidth )
-					break;
-				nTrail = m_nTrailWidth;
-				nText--;
-			}
-		}
-		else
-		{
+			nWidth = dc.GetTextExtent( pszText, nText ).cx + nTrail;
+			if ( nWidth <= rcCol.Width() - 4 ) break;
 			nTrail = m_nTrailWidth;
-			nWidth = nText = 0;
+			nText--;
 		}
 		
 		switch ( pColumn.fmt & HDF_JUSTIFYMASK )

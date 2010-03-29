@@ -1,7 +1,7 @@
 //
 // CtrlLibraryFileView.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -18,6 +18,9 @@
 // along with Shareaza; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
+
+#if !defined(CTRLLIBRARYFILEVIEW_H)
+#define CTRLLIBRARYFILEVIEW_H
 
 #pragma once
 
@@ -37,6 +40,7 @@ public:
 
 // Attributes
 protected:
+	POSITION			m_posSel;
 	BOOL				m_bEditing;
 	BOOL				m_bRequestingService;
 	INT_PTR				m_nCurrentPage;
@@ -45,9 +49,12 @@ protected:
 
 protected:
 	virtual BOOL		CheckAvailable(CLibraryTreeItem* pSel);
-	virtual void		SelectAll() = 0;
+	virtual DWORD_PTR	HitTestIndex(const CPoint& point) const = 0;
 
 protected:
+	void			StartSelectedFileLoop();
+	CLibraryFile*	GetNextSelectedFile();
+	CLibraryFile*	GetSelectedFile();
 	void			CheckDynamicBar();
 	void			ClearServicePages();
 
@@ -60,6 +67,8 @@ protected:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg void OnUpdateLibraryLaunch(CCmdUI* pCmdUI);
 	afx_msg void OnLibraryLaunch();
@@ -126,4 +135,7 @@ protected:
 	afx_msg LRESULT OnServiceDone(WPARAM wParam, LPARAM lParam);
 
 	DECLARE_MESSAGE_MAP()
+
 };
+
+#endif // !defined(CTRLLIBRARYFILEVIEW_H)

@@ -107,8 +107,8 @@ BOOL CLibraryTipCtrl::OnPrepare()
 
 	m_sSize = Settings.SmartVolume( pFile->GetSize() );
 
-	if ( pLibraryFile ) 
-		m_sFolder = pLibraryFile->GetFolder();
+	if ( pLibraryFile && pLibraryFile->m_pFolder ) 
+		m_sFolder = pLibraryFile->m_pFolder->m_sPath;
 	else
 		m_sFolder.Empty(); // Ghost files have no location
 
@@ -138,6 +138,7 @@ BOOL CLibraryTipCtrl::OnPrepare()
 	// Metadata
 
 	CSchemaPtr pSchema = pLibraryFile ? pLibraryFile->m_pSchema : NULL;
+	CString str, sData, sFormat;
 
 	m_pMetadata.Clear();
 
@@ -152,7 +153,7 @@ BOOL CLibraryTipCtrl::OnPrepare()
 
 	if ( pLibraryFile )
 	{
-		CString sData, sFormat = LoadString( IDS_TIP_TODAYTOTAL );
+		CString sFormat = LoadString( IDS_TIP_TODAYTOTAL );
 		sData.Format( sFormat, pLibraryFile->m_nHitsToday, pLibraryFile->m_nHitsTotal );
 		m_pMetadata.Add( LoadString( IDS_TIP_HITS ), sData );
 		sData.Format( sFormat, pLibraryFile->m_nUploadsToday, pLibraryFile->m_nUploadsTotal );

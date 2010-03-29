@@ -45,10 +45,7 @@
 				PreprocessorDefinitions="_DEBUG"
 				AdditionalIncludeDirectories="..\..\shareaza"
 				TargetEnvironment="1"
-				TypeLibraryName="$(IntDir)/$(InputName).tlb"
-				HeaderFileName="$(InputName).h"
 				DLLDataFileName=""
-				InterfaceIdentifierFileName="$(InputName)_i.c"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
@@ -133,10 +130,7 @@
 				PreprocessorDefinitions="_DEBUG"
 				AdditionalIncludeDirectories="..\..\shareaza"
 				TargetEnvironment="3"
-				TypeLibraryName="$(IntDir)/$(InputName).tlb"
-				HeaderFileName="$(InputName).h"
 				DLLDataFileName=""
-				InterfaceIdentifierFileName="$(InputName)_i.c"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
@@ -222,10 +216,7 @@
 				PreprocessorDefinitions="NDEBUG"
 				AdditionalIncludeDirectories="..\..\shareaza"
 				TargetEnvironment="1"
-				TypeLibraryName="$(IntDir)/$(InputName).tlb"
-				HeaderFileName="$(InputName).h"
 				DLLDataFileName=""
-				InterfaceIdentifierFileName="$(InputName)_i.c"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
@@ -315,10 +306,7 @@
 				PreprocessorDefinitions="NDEBUG"
 				AdditionalIncludeDirectories="..\..\shareaza"
 				TargetEnvironment="3"
-				TypeLibraryName="$(IntDir)/$(InputName).tlb"
-				HeaderFileName="$(InputName).h"
 				DLLDataFileName=""
-				InterfaceIdentifierFileName="$(InputName)_i.c"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
@@ -395,10 +383,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\shareaza\Shareaza.idl"
-				>
-			</File>
-			<File
 				RelativePath=".\stdafx.cpp"
 				>
 				<FileConfiguration
@@ -461,6 +445,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Shareaza.h"
+				>
+			</File>
+			<File
 				RelativePath=".\stdafx.h"
 				>
 			</File>
@@ -493,12 +481,7 @@
 		</Filter>
 		<Filter
 			Name="Generated Files"
-			SourceControlFiles="false"
 			>
-			<File
-				RelativePath=".\VirusTotal.h"
-				>
-			</File>
 			<File
 				RelativePath=".\VirusTotal_i.c"
 				>

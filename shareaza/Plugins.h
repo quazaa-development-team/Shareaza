@@ -1,7 +1,7 @@
 //
 // Plugins.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -44,23 +44,14 @@ public:
 	BOOL		LookupCLSID(LPCTSTR pszGroup, LPCTSTR pszKey, CLSID& pCLSID) const;
 	BOOL		LookupEnable(REFCLSID pCLSID, LPCTSTR pszExt = NULL) const;
 	CPlugin*	Find(REFCLSID pCLSID) const;
-	UINT		GetCommandID();
-
-	// IGeneralPlugin mirroring
 	void		OnSkinChanged();
-
-	// ICommandPlugin mirroring
-	void		RegisterCommands();
 	void		InsertCommands();
+	void		RegisterCommands();
+	UINT		GetCommandID();
 	BOOL		OnUpdate(CChildWnd* pActiveWnd, CCmdUI* pCmdUI);
 	BOOL		OnCommand(CChildWnd* pActiveWnd, UINT nCommandID);
-
-	// IExecutePlugin mirroring
 	BOOL		OnExecuteFile(LPCTSTR pszFile, BOOL bUseImageViewer = FALSE);
 	BOOL		OnEnqueueFile(LPCTSTR pszFile);
-
-	// IChatPlugin mirroring
-	BOOL		OnChatMessage(LPCTSTR pszChatID, BOOL bOutgoing, LPCTSTR pszFrom, LPCTSTR pszTo, LPCTSTR pszMessage);
 
 	inline POSITION GetIterator() const
 	{
@@ -85,14 +76,15 @@ public:
 	CPlugin(REFCLSID pCLSID, LPCTSTR pszName);
 	virtual ~CPlugin();
 
-	CLSID						m_pCLSID;
-	CString						m_sName;
-	DWORD						m_nCapabilities;
-	CComPtr< IGeneralPlugin >	m_pPlugin;
-	CComPtr< ICommandPlugin >	m_pCommand;
-	CComPtr< IExecutePlugin >	m_pExecute;
-	CComPtr< IChatPlugin >		m_pChat;
+public:
+	CLSID			m_pCLSID;
+	CString			m_sName;
+	DWORD			m_nCapabilities;
+	IGeneralPlugin*	m_pPlugin;
+	ICommandPlugin*	m_pCommand;
+	IExecutePlugin*	m_pExecute;
 
+public:
 	BOOL		Start();
 	void		Stop();
 	BOOL		StartIfEnabled();

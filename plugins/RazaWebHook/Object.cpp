@@ -1,8 +1,8 @@
 //
 // Object.cpp : Implementation of CRazaWebHook
 //
-// Copyright (c) Shareaza Development Team, 2008-2010.
-// This file is part of SHAREAZA (shareaza.sourceforge.net)
+// Copyright (c) Shareaza Development Team, 2008.
+// This file is part of SHAREAZA (www.shareaza.com)
 //
 // Shareaza is free software; you can redistribute it
 // and/or modify it under the terms of the GNU General Public License
@@ -21,9 +21,6 @@
 
 #include "stdafx.h"
 #include "Object.h"
-
-#define INITGUID
-#include "RazaWebHook_i.c"
 
 // CRazaWebHook
 

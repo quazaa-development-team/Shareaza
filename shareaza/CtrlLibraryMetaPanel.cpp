@@ -75,7 +75,7 @@ CLibraryMetaPanel::~CLibraryMetaPanel()
 /////////////////////////////////////////////////////////////////////////////
 // CLibraryMetaPanel operations
 
-const CLibraryList* CLibraryMetaPanel::GetViewSelection() const
+CLibraryList* CLibraryMetaPanel::GetViewSelection()
 {
 	if ( ! m_hWnd )
 		return NULL;
@@ -93,7 +93,7 @@ void CLibraryMetaPanel::Update()
 	CSingleLock pLock1( &Library.m_pSection, TRUE );
 	CSingleLock pLock2( &m_pSection, TRUE );
 
-	const CLibraryList* pSel = GetViewSelection();
+	CLibraryList* pSel = GetViewSelection();
 	m_nSelected = pSel ? static_cast< int >( pSel->GetCount() ) : 0;
 
 	// Show info for library files only
@@ -113,7 +113,10 @@ void CLibraryMetaPanel::Update()
 		m_nIndex	= pFirst->m_nIndex;
 		m_sName		= pFirst->m_sName;
 		m_sPath		= pFirst->GetPath();
-		m_sFolder	= pFirst->GetFolder();
+		if ( pFirst->m_pFolder != NULL )
+			m_sFolder = pFirst->m_pFolder->m_sPath;
+		else
+			m_sFolder.Empty();
 		m_sSize		= Settings.SmartVolume( pFirst->GetSize() );
 		m_sType		= ShellIcons.GetTypeString( m_sName );
 		m_nIcon32	= ShellIcons.Get( m_sName, 32 );
@@ -127,7 +130,7 @@ void CLibraryMetaPanel::Update()
 		m_sName.Format( strFormat, m_nSelected );
 		QWORD nSize = 0;
 
-		m_sFolder	= pFirst->GetFolder();
+		m_sFolder	= ( pFirst->m_pFolder != NULL ) ? pFirst->m_pFolder->m_sPath : _T("");
 		m_nIcon32	= ShellIcons.Get( pFirst->m_sName, 32 );
 		m_nIcon48	= ShellIcons.Get( pFirst->m_sName, 48 );
 		m_nRating	= 0;
@@ -139,7 +142,7 @@ void CLibraryMetaPanel::Update()
 
 			nSize += pFile->GetSize() / 1024;
 
-			if ( pFile->IsAvailable() && pFile->GetFolder().CompareNoCase( m_sFolder ) )
+			if ( pFile->m_pFolder != NULL && pFile->m_pFolder->m_sPath != m_sFolder )
 			{
 				LoadString( m_sFolder, IDS_LIBPANEL_MULTIPLE_FOLDERS );
 			}
@@ -482,7 +485,7 @@ void CLibraryMetaPanel::OnLButtonUp(UINT nFlags, CPoint point)
 	}
 	else if ( m_nSelected > 0 && m_rcRating.PtInRect( point ) )
 	{
-		const CLibraryList* pList = GetViewSelection();
+		CLibraryList* pList = GetViewSelection();
 
 		if ( pList != NULL && pList->GetCount() > 0 )
 		{

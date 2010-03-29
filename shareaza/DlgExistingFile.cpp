@@ -92,9 +92,9 @@ CExistingFileDlg::Action CExistingFileDlg::CheckExisting(const CShareazaFile* pF
 				pMainWnd->m_pWindows.Open( RUNTIME_CLASS(CLibraryWnd) ) ) )
 			{
 				pLock.Lock();
-				if ( CLibraryFile* pLibFile1 = Library.LookupFile( nIndex ) )
+				if ( CLibraryFile* pLibFile = Library.LookupFile( nIndex ) )
 				{
-					pLibrary->Display( pLibFile1 );
+					pLibrary->Display( pLibFile );
 				}
 				pLock.Unlock();
 			}

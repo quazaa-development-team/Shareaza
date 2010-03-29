@@ -1,7 +1,7 @@
 //
 // Player.cpp : Implementation of CPlayer
 //
-// Copyright (c) Nikolay Raspopov, 2009-2010.
+// Copyright (c) Nikolay Raspopov, 2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -21,12 +21,6 @@
 
 #include "stdafx.h"
 #include "Player.h"
-
-#ifdef _WMP
-
-#define TIME_FACTOR 10000000.	// 100 ns to 1 s
-
-#else
 
 #ifdef _DEBUG
 
@@ -116,7 +110,8 @@ void Dump(IGraphBuilder* pGraph)
 
 // CPlayerWindow
 
-CPlayerWindow::CPlayerWindow()
+CPlayerWindow::CPlayerWindow() :
+	m_hLogo( NULL )
 {
 }
 
@@ -135,6 +130,19 @@ LRESULT CPlayerWindow::OnPaint(UINT /*nMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 	
 	FillRect( hDC, &rc, (HBRUSH)GetStockObject( BLACK_BRUSH ) );
 
+	if ( m_hLogo )
+	{
+		BITMAP bm = {};
+		GetObject( m_hLogo, sizeof( BITMAP ), &bm );
+		HDC hMemDC = CreateCompatibleDC( hDC );
+		HBITMAP hOldDitmap = (HBITMAP)SelectObject( hMemDC, m_hLogo );
+		BitBlt( hDC, ( rc.right - rc.left - bm.bmWidth ) / 2,
+			( rc.bottom - rc.top - bm.bmHeight ) / 2,
+			bm.bmWidth, bm.bmHeight, hMemDC, 0, 0, SRCCOPY );
+		SelectObject( hMemDC, hOldDitmap );
+		DeleteDC( hMemDC );
+	}
+
 	ReleaseDC( hDC );
 
 	ValidateRect( &rc );
@@ -143,22 +151,16 @@ LRESULT CPlayerWindow::OnPaint(UINT /*nMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 	return 0;   
 }
 
-#endif // _WMP
-
 // CPlayer
 
 CPlayer::CPlayer()
-	: m_hwndOwner( NULL )
+	: m_bAudioOnly( FALSE )
+	, m_hwndOwner( NULL )
 	, m_rcWindow()
 	, m_nZoom( smaDefault )
-	, m_dAspect( 1.0 )
-	, m_dVolume( 1.0 )
-	, m_dSpeed( 1.0 )
-	, m_nVisSize( 0 )
-#ifdef _WMP
-#else
-	, m_bAudioOnly( FALSE )
-#endif
+	, m_dAspect( 0.0 )
+	, m_dVolume( 0.0 )
+	, m_dSpeed( 0.0 )
 {
 }
 
@@ -173,7 +175,7 @@ void CPlayer::FinalRelease()
 }
 
 STDMETHODIMP CPlayer::Create(
-	/* [in] */ LONG_PTR hWnd)
+	/* [in] */ HWND hWnd)
 {
 	if ( ! hWnd )
 		return E_INVALIDARG;
@@ -187,40 +189,28 @@ STDMETHODIMP CPlayer::Destroy(void)
 {
 	Close();
 
+	if ( m_wndPlayer.m_hWnd )
+		m_wndPlayer.DestroyWindow();
+
 	return S_OK;
 }
 
 STDMETHODIMP CPlayer::Reposition(
-	/* [in] */ long Left,
-	/* [in] */ long Top,
-	/* [in] */ long Width,
-	/* [in] */ long Height)
+	/* [in] */ RECT *prcWnd)
 {
-	m_rcWindow.left = Left;
-	m_rcWindow.top = Top;
-	m_rcWindow.right = Left + Width;
-	m_rcWindow.bottom = Top + Height;
+	if ( ! prcWnd )
+		return E_POINTER;
 
-	if ( ! m_pPlayer )
-		return S_OK;
-
-#ifdef _WMP
-
-	if ( m_wndPlayer.m_hWnd )
-		m_wndPlayer.SetWindowPos( NULL, &m_rcWindow,
-			SWP_ASYNCWINDOWPOS | SWP_NOZORDER | SWP_NOACTIVATE );
-
-#else
+	m_rcWindow = *prcWnd;
 
 	if ( m_bAudioOnly )
-	{
-		if ( m_wndPlayer.m_hWnd )
-			m_wndPlayer.SetWindowPos( NULL, &m_rcWindow,
-				SWP_ASYNCWINDOWPOS | SWP_NOZORDER | SWP_NOACTIVATE );
-	}
+		m_wndPlayer.SetWindowPos( NULL, &m_rcWindow, SWP_NOZORDER );
 	else
 	{	
-		CComQIPtr< IVideoWindow > pWindow( m_pPlayer );
+		if ( ! m_pGraph )
+			return E_INVALIDARG;
+
+		CComQIPtr< IVideoWindow > pWindow( m_pGraph );
 		if ( ! pWindow )
 			return E_NOINTERFACE;
 
@@ -228,9 +218,15 @@ STDMETHODIMP CPlayer::Reposition(
 			m_rcWindow.right - m_rcWindow.left, m_rcWindow.bottom - m_rcWindow.top );
 	}
 
-#endif
-
 	AdjustVideoPosAndZoom();
+
+	return S_OK;
+}
+
+STDMETHODIMP CPlayer::SetLogoBitmap(
+	/* [in] */ HBITMAP hLogo)
+{
+	m_wndPlayer.m_hLogo = hLogo;
 
 	return S_OK;
 }
@@ -238,41 +234,22 @@ STDMETHODIMP CPlayer::Reposition(
 STDMETHODIMP CPlayer::GetVolume(
 	/* [out] */ DOUBLE *pnVolume)
 {
-	HRESULT hr;
-
 	if ( ! pnVolume )
 		return E_POINTER;
 
 	*pnVolume = m_dVolume;
 
-	if ( ! m_pPlayer )
+	if ( ! m_pGraph )
 		return S_OK;
-
-	long lVolume;
-
-#ifdef _WMP
-
-	CComPtr< IWMPSettings > pSettings;
-	hr = m_pPlayer->get_settings( &pSettings );
-	if ( FAILED( hr ) )
-		return hr;
-
-	hr = pSettings->get_volume( &lVolume );
-	if ( FAILED( hr ) )
-		return hr;
-
-	// 0 ... 100 -> 0.0 ... 1.0 Conversion
-	*pnVolume = lVolume / 100.;
-
-#else
 
 	// TODO: Use IAudioClient under Windows Vista
 
-	CComQIPtr< IBasicAudio > pAudio( m_pPlayer );
+	CComQIPtr< IBasicAudio > pAudio( m_pGraph );
 	if ( ! pAudio )
 		return E_NOINTERFACE;
 
-	hr = pAudio->get_Volume( &lVolume );
+	long lVolume = 0;
+	HRESULT hr = pAudio->get_Volume( &lVolume );
 	if ( FAILED( hr ) )
 		return hr;
 
@@ -282,49 +259,25 @@ STDMETHODIMP CPlayer::GetVolume(
 	else 
 		*pnVolume = ( lVolume + 6000. ) / 6000.;
 
-#endif
-
 	return S_OK;
 }
 
 STDMETHODIMP CPlayer::SetVolume(
-	/* [in] */ DOUBLE dVolume)
+	/* [in] */ DOUBLE nVolume)
 {
-	HRESULT hr;
+	m_dVolume = nVolume;
 
-	m_dVolume = dVolume;
-
-	if ( ! m_pPlayer )
+	if ( ! m_pGraph )
 		return S_OK;
 
 	// TODO: Use IAudioClient under Windows Vista
 
-#ifdef _WMP
-
-	CComPtr< IWMPSettings > pSettings;
-	hr = m_pPlayer->get_settings( &pSettings );
-	if ( FAILED( hr ) )
-		return hr;
-
-	// 0.0 ... 1.0 -> 0 ... 100 Conversion
-	hr = pSettings->put_volume( (long)( dVolume * 100 ) );
-	if ( FAILED( hr ) )
-		return hr;
-
-#else
-
-	CComQIPtr< IBasicAudio > pAudio( m_pPlayer );
+	CComQIPtr< IBasicAudio > pAudio( m_pGraph );
 	if ( ! pAudio )
 		return E_NOINTERFACE;
 
 	// 0.0 ... 1.0 -> -6,000 ... 0 Conversion
-	hr = pAudio->put_Volume( (long)( ( dVolume * 6000. ) - 6000. ) );
-	if ( FAILED( hr ) )
-		return hr;
-
-#endif
-
-	return S_OK;
+	return pAudio->put_Volume( (long)( ( nVolume * 6000. ) - 6000. ) );
 }
 
 STDMETHODIMP CPlayer::GetZoom(
@@ -343,29 +296,8 @@ STDMETHODIMP CPlayer::SetZoom(
 {
 	m_nZoom = nZoom;
 
-	if ( ! m_pPlayer )
-		return S_OK;
-
-#ifdef _WMP
-
-	switch ( nZoom )
-	{
-	case smzDistort:
-	case smzFill:
-		m_pPlayer->put_stretchToFit( VARIANT_TRUE );
-		break;
-
-	case smzOne:
-	case smzDouble:
-		m_pPlayer->put_stretchToFit( VARIANT_FALSE );
-		break;
-	}
-
-#else
-
-	AdjustVideoPosAndZoom();
-
-#endif
+	if ( ! m_bAudioOnly )
+		AdjustVideoPosAndZoom();
 
 	return S_OK;
 }
@@ -386,24 +318,17 @@ STDMETHODIMP CPlayer::SetAspect(
 {
 	m_dAspect = dAspect;
 
-	AdjustVideoPosAndZoom();
+	if ( ! m_bAudioOnly )
+		AdjustVideoPosAndZoom();
 
 	return S_OK;
 }
 
-#ifdef _WMP
-static STDMETHODIMP SafeRenderFile(IWMPPlayer2* pPlayer, BSTR sFilename) throw()
-#else
-static STDMETHODIMP SafeRenderFile(IGraphBuilder* pPlayer, BSTR sFilename) throw()
-#endif
+HRESULT SafeRenderFile(IGraphBuilder* pGraph, BSTR sFilename) throw()
 {
 	__try
 	{
-#ifdef _WMP
-		return pPlayer->put_URL( sFilename );
-#else
-		return pPlayer->RenderFile( sFilename, NULL );
-#endif
+		return pGraph->RenderFile( sFilename, NULL );
 	}
 	__except( EXCEPTION_EXECUTE_HANDLER )
 	{
@@ -414,132 +339,57 @@ static STDMETHODIMP SafeRenderFile(IGraphBuilder* pPlayer, BSTR sFilename) throw
 STDMETHODIMP CPlayer::Open(
 	/* [in] */ BSTR sFilename)
 {
-	HRESULT hr;
-
 	if ( ! sFilename )
 		return E_POINTER;
 
-	if ( m_pPlayer )
+	if ( m_pGraph )
 		return E_INVALIDARG;
 
-#ifdef _WMP
-
-	AtlAxWinInit();
-
-	if ( ! m_wndPlayer.m_hWnd )
-	{
-		if ( ! m_wndPlayer.Create( (HWND)m_hwndOwner, m_rcWindow, NULL,
-			WS_CHILD | WS_DISABLED | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-			WS_EX_CONTROLPARENT | WS_EX_TOPMOST ) )
-			return E_FAIL;
-	}
-
-	CComPtr< IAxWinHostWindow > pHost;
-	hr = m_wndPlayer.QueryHost( &pHost );
+	HRESULT hr = m_pGraph.CoCreateInstance( CLSID_FilterGraph );
 	if ( FAILED( hr ) )
 		return hr;
 
-	hr = pHost->CreateControl( CComBSTR(
-		_T("{6BF52A52-394A-11d3-B153-00C04F79FAA6}") ), m_wndPlayer, 0 );
+	hr = SafeRenderFile( m_pGraph, sFilename );
 	if ( FAILED( hr ) )
 		return hr;
 
-	CComPtr< IWMPPlayer > pPlayer1;
-	hr = m_wndPlayer.QueryControl( &pPlayer1 );
-	if ( FAILED( hr ) )
-		return hr;
-
-	m_pPlayer = pPlayer1;
-	if ( ! m_pPlayer )
-		return E_NOINTERFACE;
-
-	hr = m_pPlayer->put_uiMode( CComBSTR( _T("none") ) );
-	hr = m_pPlayer->put_enableContextMenu( VARIANT_FALSE );
-	hr = m_pPlayer->put_enabled( VARIANT_FALSE );
-	hr = m_pPlayer->put_fullScreen( VARIANT_FALSE );
-
-	CComPtr< IWMPSettings > pSettings;
-	hr = m_pPlayer->get_settings( &pSettings );
-	if ( FAILED( hr ) )
-		return hr;
-
-	hr = pSettings->put_autoStart( VARIANT_FALSE );
-	hr = pSettings->put_balance( 0 );
-	hr = pSettings->put_enableErrorDialogs( VARIANT_FALSE );
-	hr = pSettings->put_invokeURLs( VARIANT_FALSE );
-	hr = pSettings->put_mute( VARIANT_FALSE );
-	hr = pSettings->put_playCount( 1 );
-	hr = pSettings->setMode( CComBSTR( _T("autoRewind") ), VARIANT_FALSE );
-	hr = pSettings->setMode( CComBSTR( _T("loop") ), VARIANT_FALSE );
-	hr = pSettings->setMode( CComBSTR( _T("showFrame") ), VARIANT_TRUE );
-	hr = pSettings->setMode( CComBSTR( _T("shuffle") ), VARIANT_FALSE );
-
-	hr = SafeRenderFile( m_pPlayer, sFilename );
-	if ( FAILED( hr ) )
-		return hr;
-
-	m_wndPlayer.ShowWindow( SW_SHOW );
-
-#else
-
-	hr = m_pPlayer.CoCreateInstance( CLSID_FilterGraph );
-	if ( FAILED( hr ) )
-		return hr;
-
-	hr = SafeRenderFile( m_pPlayer, sFilename );
-	if ( FAILED( hr ) )
-		return hr;
-
-	CComQIPtr< IVideoWindow > pWindow( m_pPlayer );
+	CComQIPtr< IVideoWindow > pWindow( m_pGraph );
 	long lVisible = 0;
 	m_bAudioOnly = ( ! pWindow || pWindow->get_Visible( &lVisible ) == E_NOINTERFACE );
+
+	//Dump( m_pGraph );
 
 	if ( m_bAudioOnly )
 	{
 		if ( ! m_wndPlayer.m_hWnd )
 		{
-			m_wndPlayer.Create( (HWND)m_hwndOwner, m_rcWindow, NULL,
-				WS_CHILD | WS_VISIBLE | WS_DISABLED | WS_CLIPSIBLINGS |
-				WS_CLIPCHILDREN, WS_EX_CONTROLPARENT | WS_EX_TOPMOST );
+			m_wndPlayer.Create( m_hwndOwner, &m_rcWindow, NULL, WS_CHILD | WS_VISIBLE |
+				WS_CLIPSIBLINGS | WS_CLIPCHILDREN );
 		}
 	}
 	else
 	{
 		hr = pWindow->put_WindowStyle( WS_CHILD | WS_VISIBLE |
 			WS_CLIPSIBLINGS | WS_CLIPCHILDREN );
-		hr = pWindow->put_WindowStyleEx( WS_EX_CONTROLPARENT | WS_EX_TOPMOST );
-		hr = pWindow->put_Owner( m_hwndOwner );
-		hr = pWindow->put_MessageDrain( m_hwndOwner );
+		hr = pWindow->put_WindowStyleEx( WS_EX_TOPMOST );
+		hr = pWindow->put_Owner( (OAHWND)m_hwndOwner );
+		hr = pWindow->put_MessageDrain( (OAHWND)m_hwndOwner );
 	}
-
-	Dump( m_pPlayer );
-
-#endif
 
 	return S_OK;
 }
 
 STDMETHODIMP CPlayer::Close(void)
 {
-	if ( ! m_pPlayer )
+	if ( ! m_pGraph )
 		// Already closed
 		return S_OK;
 
 	Stop();
 
-#ifdef _WMP
+	m_pGraph->Abort();
 
-
-#else
-
-	m_pPlayer->Abort();
-
-#endif
-
-	if ( m_wndPlayer.m_hWnd )
-		m_wndPlayer.DestroyWindow();
-
-	m_pPlayer.Release();
+	m_pGraph.Release();
 
 	return S_OK;
 }
@@ -548,34 +398,16 @@ STDMETHODIMP CPlayer::Play(void)
 {
 	HRESULT hr;
 
-	if ( ! m_pPlayer )
+	if ( ! m_pGraph )
 		return E_INVALIDARG;
-
-#ifdef _WMP
-
-	m_wndPlayer.SetWindowPos( NULL, &m_rcWindow,
-		SWP_ASYNCWINDOWPOS | SWP_NOZORDER | SWP_SHOWWINDOW );
-
-	CComPtr< IWMPControls > pControls;
-	hr = m_pPlayer->get_controls( &pControls );
-	if ( FAILED( hr ) )
-		return hr;
-
-	hr = pControls->play();
-	if ( FAILED( hr ) )
-		return hr;
-
-#else
 
 	if ( m_bAudioOnly )
 	{
-		if ( m_wndPlayer.m_hWnd )
-			m_wndPlayer.SetWindowPos( NULL, &m_rcWindow,
-				SWP_ASYNCWINDOWPOS | SWP_NOZORDER | SWP_SHOWWINDOW );
+		m_wndPlayer.SetWindowPos( NULL, &m_rcWindow, SWP_NOZORDER | SWP_SHOWWINDOW );
 	}
 	else
 	{
-		CComQIPtr< IVideoWindow > pWindow( m_pPlayer );
+		CComQIPtr< IVideoWindow > pWindow( m_pGraph );
 		if ( ! pWindow )
 			return E_NOINTERFACE;
 
@@ -583,15 +415,13 @@ STDMETHODIMP CPlayer::Play(void)
 			m_rcWindow.right - m_rcWindow.left, m_rcWindow.bottom - m_rcWindow.top );
 	}
 
-	CComQIPtr< IMediaControl > pControl( m_pPlayer );
+	CComQIPtr< IMediaControl > pControl( m_pGraph );
 	if ( ! pControl )
 		return E_NOINTERFACE;
 		
 	hr = pControl->Run();
 	if ( FAILED( hr ) )
 		return hr;
-
-#endif
 
 	// Restore volume level
 	SetVolume( m_dVolume );
@@ -600,160 +430,78 @@ STDMETHODIMP CPlayer::Play(void)
 	SetSpeed( m_dSpeed );
 
 	// Restore zoom and aspect ratio
-	AdjustVideoPosAndZoom();
+	if ( ! m_bAudioOnly )
+		AdjustVideoPosAndZoom();
 
 	return S_OK;
 }
 
 STDMETHODIMP CPlayer::Pause(void)
 {
-	HRESULT hr;
-
-	if ( ! m_pPlayer )
+	if ( ! m_pGraph )
 		return E_INVALIDARG;
 
-#ifdef _WMP
-
-	CComPtr< IWMPControls > pControls;
-	hr = m_pPlayer->get_controls( &pControls );
-	if ( FAILED( hr ) )
-		return hr;
-
-	hr = pControls->pause();
-	if ( FAILED( hr ) )
-		return hr;
-
-#else
-
-	CComQIPtr< IMediaControl > pControl( m_pPlayer );
+	CComQIPtr< IMediaControl > pControl( m_pGraph );
 	if ( ! pControl )
 		return E_NOINTERFACE;
 
-	hr = pControl->Pause();
-	if ( FAILED( hr ) )
-		return hr;
-
-#endif
-
-	return S_OK;
+	return pControl->Pause();
 }
 
 STDMETHODIMP CPlayer::Stop(void)
 {
-	HRESULT hr;
-	
-	if ( ! m_pPlayer )
+	if ( ! m_pGraph )
 		return E_INVALIDARG;
 
-#ifdef _WMP
-
-	if ( m_wndPlayer.m_hWnd )
-		m_wndPlayer.ShowWindow( SW_HIDE );
-
-	CComPtr< IWMPControls > pControls;
-	hr = m_pPlayer->get_controls( &pControls );
-	if ( FAILED( hr ) )
-		return hr;
-
-	hr = pControls->stop();
-	if ( FAILED( hr ) )
-		return hr;
-
-#else
-
 	if ( m_bAudioOnly )
-	{
-		if ( m_wndPlayer.m_hWnd )
-			m_wndPlayer.ShowWindow( SW_HIDE );
-	}
+		m_wndPlayer.ShowWindow( SW_HIDE );
 	else
 	{
-		CComQIPtr< IVideoWindow > pWindow( m_pPlayer );
+		CComQIPtr< IVideoWindow > pWindow( m_pGraph );
 		if ( ! pWindow )
 			return E_NOINTERFACE;
 
 		pWindow->put_Visible( OAFALSE );
 	}
 
-	CComQIPtr< IMediaControl > pControl( m_pPlayer );
+	CComQIPtr< IMediaControl > pControl( m_pGraph );
 	if ( ! pControl )
 		return E_NOINTERFACE;
 
-	hr = pControl->Stop();
-	if ( FAILED( hr ) )
-		return hr;
-
-#endif
-
-	return S_OK;
+	return pControl->Stop();
 }
 
 STDMETHODIMP CPlayer::GetState(
 	/* [out] */ MediaState *pnState)
 {
-	HRESULT hr;
-
 	if ( ! pnState )
 		return E_POINTER;
 
 	*pnState = smsNull;
 
-	if ( ! m_pPlayer )
+	if ( ! m_pGraph )
 		return S_OK;
 
-#ifdef _WMP
-
-	WMPPlayState state;
-	hr = m_pPlayer->get_playState( &state );
-	if ( FAILED( hr ) )
-		return hr;
-
-	switch ( state )
-	{
-	case wmppsReady:			// Opened
-	case wmppsTransitioning:	// Starting play
-	case wmppsMediaEnded:
-	case wmppsReconnecting:
-  		*pnState = smsOpen;
-		break;
-	case wmppsStopped:
-	case wmppsPlaying:			// Playing
-	case wmppsWaiting:
-	case wmppsScanForward:
-	case wmppsScanReverse:
-	case wmppsBuffering:
-		*pnState = smsPlaying;
-		break;
-	case wmppsPaused:			// Paused
-		*pnState = smsPaused;
-		break;
-	}
-
-#else
-
-	CComQIPtr< IMediaControl > pControl( m_pPlayer );
+	CComQIPtr< IMediaControl > pControl( m_pGraph );
 	if ( ! pControl )
 		return E_NOINTERFACE;
 
-	OAFilterState st;
-	hr = pControl->GetState( 250, &st );
-	if ( FAILED( hr ) )
-		return hr;
-
-	switch ( st )
+	OAFilterState st = State_Stopped;
+	if ( SUCCEEDED( pControl->GetState( 250, &st ) ) )
 	{
-	case State_Stopped:
-		*pnState = smsOpen;
-		break;
-	case State_Paused:
-		*pnState = smsPaused;
-		break;
-	case State_Running:
-		*pnState = smsPlaying;
-		break;
+		switch ( st )
+		{
+		case State_Stopped:
+			*pnState = smsOpen;
+			break;
+		case State_Paused:
+			*pnState = smsPaused;
+			break;
+		case State_Running:
+			*pnState = smsPlaying;
+			break;
+		}
 	}
-
-#endif
 
 	return S_OK;
 }
@@ -761,158 +509,71 @@ STDMETHODIMP CPlayer::GetState(
 STDMETHODIMP CPlayer::GetLength(
 	/* [out] */ LONGLONG *pnLength)
 {
-	HRESULT hr;
-
 	if ( ! pnLength )
 		return E_POINTER;
 
 	*pnLength = 0;
 
-	if ( ! m_pPlayer )
+	if ( ! m_pGraph )
 		return S_OK;
 
-#ifdef _WMP
-
-	CComPtr< IWMPMedia > pMedia;
-	hr = m_pPlayer->get_currentMedia( &pMedia );
-	if ( FAILED( hr ) )
-		return hr;
-
-	double dDuration;
-	hr = pMedia->get_duration( &dDuration );
-	if ( FAILED( hr ) )
-		return hr;
-
-	*pnLength = (LONGLONG)( dDuration * TIME_FACTOR );
-
-#else
-
-	CComQIPtr< IMediaSeeking > pSeek( m_pPlayer );
+	CComQIPtr< IMediaSeeking > pSeek( m_pGraph );
 	if ( ! pSeek )
 		return E_NOINTERFACE;
 
-	hr = pSeek->GetDuration( pnLength );
-	if ( FAILED( hr ) )
-		return hr;
-
-#endif
-
-	return S_OK;
+	return pSeek->GetDuration( pnLength );
 }
 
 STDMETHODIMP CPlayer::GetPosition(
 	/* [out] */ LONGLONG *pnPosition)
 {
-	HRESULT hr;
-
 	if ( ! pnPosition )
 		return E_POINTER;
 
 	*pnPosition = 0;
 
-	if ( ! m_pPlayer )
+	if ( ! m_pGraph )
 		return S_OK;
 
-#ifdef _WMP
-
-	CComPtr< IWMPControls > pControls;
-	hr = m_pPlayer->get_controls( &pControls );
-	if ( FAILED( hr ) )
-		return hr;
-
-	double dPosition;
-	hr = pControls->get_currentPosition( &dPosition );
-	if ( FAILED( hr ) )
-		return hr;
-
-	*pnPosition = (LONGLONG)( dPosition * TIME_FACTOR );
-
-#else
-
-	CComQIPtr< IMediaSeeking > pSeek( m_pPlayer );
+	CComQIPtr< IMediaSeeking > pSeek( m_pGraph );
 	if ( ! pSeek )
 		return E_NOINTERFACE;
 
-	hr = pSeek->GetCurrentPosition( pnPosition );
-	if ( FAILED( hr ) )
-		return hr;
-
-#endif
-
-	return S_OK;
+	return pSeek->GetCurrentPosition( pnPosition );
 }
 
 STDMETHODIMP CPlayer::SetPosition(
 	/* [in] */ LONGLONG nPosition)
 {
-	HRESULT hr;
-
-	if ( ! m_pPlayer )
+	if ( ! m_pGraph )
 		return E_INVALIDARG;
 
-#ifdef _WMP
-
-	CComPtr< IWMPControls > pControls;
-	hr = m_pPlayer->get_controls( &pControls );
-	if ( FAILED( hr ) )
-		return hr;
-
-	double dPosition = (double) nPosition / TIME_FACTOR ;
-	hr = pControls->put_currentPosition( dPosition );
-	if ( FAILED( hr ) )
-		return hr;
-
-#else
-
-	CComQIPtr< IMediaSeeking > pSeek( m_pPlayer );
+	CComQIPtr< IMediaSeeking > pSeek( m_pGraph );
 	if ( ! pSeek )
 		return E_NOINTERFACE;
 
-	hr = pSeek->SetPositions( &nPosition, AM_SEEKING_AbsolutePositioning,
+	return pSeek->SetPositions( &nPosition, AM_SEEKING_AbsolutePositioning,
 		NULL, AM_SEEKING_NoPositioning );
-	if ( FAILED( hr ) )
-		return hr;
-
-#endif
-
-	return S_OK;
 }
 
 STDMETHODIMP CPlayer::GetSpeed(
 	/* [out] */ DOUBLE *pnSpeed)
 {
-	HRESULT hr;
-
 	if ( ! pnSpeed )
 		return E_POINTER;
 
 	*pnSpeed = m_dSpeed;
 
-	if ( ! m_pPlayer )
+	if ( ! m_pGraph )
 		return S_OK;
 
-#ifdef _WMP
-
-	CComPtr< IWMPSettings > pSettings;
-	hr = m_pPlayer->get_settings( &pSettings );
-	if ( FAILED( hr ) )
-		return hr;
-
-	hr = pSettings->get_rate( pnSpeed );
-	if ( FAILED( hr ) )
-		return hr;
-
-#else
-
-	CComQIPtr< IMediaSeeking > pSeek( m_pPlayer );
+	CComQIPtr< IMediaSeeking > pSeek( m_pGraph );
 	if ( ! pSeek )
 		return E_NOINTERFACE;
 
-	hr = pSeek->GetRate( pnSpeed );
+	HRESULT hr = pSeek->GetRate( pnSpeed );
 	if ( FAILED( hr ) )
 		return hr;
-
-#endif
 
 	return S_OK;
 }
@@ -920,37 +581,16 @@ STDMETHODIMP CPlayer::GetSpeed(
 STDMETHODIMP CPlayer::SetSpeed(
 	/* [in] */ DOUBLE nSpeed)
 {
-	HRESULT hr;
-
 	m_dSpeed = nSpeed;
 
-	if ( ! m_pPlayer )
+	if ( ! m_pGraph )
 		return S_OK;
 
-#ifdef _WMP
-
-	CComPtr< IWMPSettings > pSettings;
-	hr = m_pPlayer->get_settings( &pSettings );
-	if ( FAILED( hr ) )
-		return hr;
-
-	hr = pSettings->put_rate( nSpeed );
-	if ( FAILED( hr ) )
-		return hr;
-
-#else
-
-	CComQIPtr< IMediaSeeking > pSeek( m_pPlayer );
+	CComQIPtr< IMediaSeeking > pSeek( m_pGraph );
 	if ( ! pSeek )
 		return E_NOINTERFACE;
 
-	hr = pSeek->SetRate( nSpeed );
-	if ( FAILED( hr ) )
-		return hr;
-
-#endif
-
-	return S_OK;
+	return pSeek->SetRate( nSpeed );
 }
 
 STDMETHODIMP CPlayer::GetPlugin(
@@ -959,17 +599,15 @@ STDMETHODIMP CPlayer::GetPlugin(
 	if ( ! ppPlugin )
 		return E_POINTER;
 
-	*ppPlugin = m_pAudioVisPlugin;
+	*ppPlugin = NULL;
 
-	return S_OK;
+	return E_NOTIMPL;
 }
 
 STDMETHODIMP CPlayer::SetPlugin(
 	/* [in] */ IAudioVisPlugin *pPlugin)
 {
-	m_pAudioVisPlugin = pPlugin;
-
-	return S_OK;
+	return E_NOTIMPL;
 }
 
 STDMETHODIMP CPlayer::GetPluginSize(
@@ -978,87 +616,28 @@ STDMETHODIMP CPlayer::GetPluginSize(
 	if ( ! pnSize )
 		return E_POINTER;
 
-	*pnSize = m_nVisSize;
-
-	return S_OK;
+	return E_NOTIMPL;
 }
 
 STDMETHODIMP CPlayer::SetPluginSize(
 	/* [in] */ LONG nSize)
 {
-	m_nVisSize = nSize;
-
-	return S_OK;
-}
-
-STDMETHODIMP CPlayer::IsWindowVisible(
-	/* [out] */ VARIANT_BOOL* pbVisible )
-{
-	if ( ! pbVisible )
-		return E_POINTER;
-
-#ifdef _WMP
-
-	if ( m_wndPlayer.m_hWnd && m_wndPlayer.IsWindowVisible() )
-		*pbVisible = VARIANT_TRUE;
-	else
-		*pbVisible = VARIANT_FALSE;
-
-#else
-
-	if ( m_bAudioOnly )
-	{
-		if ( m_wndPlayer.m_hWnd && m_wndPlayer.IsWindowVisible() )
-			*pbVisible = VARIANT_TRUE;
-		else
-			*pbVisible = VARIANT_FALSE;
-	}
-	else
-		*pbVisible = VARIANT_TRUE;
-
-#endif
-
-	return S_OK;
+	return E_NOTIMPL;
 }
 
 HRESULT CPlayer::AdjustVideoPosAndZoom()
 {
-	HRESULT hr;
-
-	if ( ! m_pPlayer )
+	if ( ! m_pGraph )
 		return E_INVALIDARG;
 
-	long VideoWidth, VideoHeight;
-
-#ifdef _WMP
-
-	CComPtr< IWMPMedia > pMedia;
-	hr = m_pPlayer->get_currentMedia( &pMedia );
-	if ( FAILED( hr ) )
-		return hr;
-
-	hr = pMedia->get_imageSourceWidth( &VideoWidth );
-	if ( FAILED( hr ) )
-		return hr;
-
-	hr = pMedia->get_imageSourceHeight( &VideoHeight );
-	if ( FAILED( hr ) )
-		return hr;
-
-#else
-
-	if ( m_bAudioOnly )
-		return S_OK;
-
-	CComQIPtr< IBasicVideo > pVideo( m_pPlayer );
+	CComQIPtr< IBasicVideo > pVideo( m_pGraph );
 	if ( ! pVideo )
 		return E_NOINTERFACE;
 
-	hr = pVideo->GetVideoSize( &VideoWidth, &VideoHeight );
+	long VideoWidth, VideoHeight;
+	HRESULT hr = pVideo->GetVideoSize( &VideoWidth, &VideoHeight );
 	if ( FAILED( hr ) )
 		return hr;
-
-#endif
 
 	long WindowWidth = m_rcWindow.right - m_rcWindow.left;
 	long WindowHeight = m_rcWindow.bottom - m_rcWindow.top;
@@ -1114,17 +693,9 @@ HRESULT CPlayer::AdjustVideoPosAndZoom()
 		tr.right = tr.left + VideoWidth;
 	}
 
-#ifdef _WMP
-
-	// TODO: ???
-
-#else
-
 	hr = pVideo->SetDestinationPosition( tr.left, tr.top, tr.Width(), tr.Height() );
 	if ( FAILED( hr ) )
 		return hr;
-
-#endif
 
 	return S_OK;
 }

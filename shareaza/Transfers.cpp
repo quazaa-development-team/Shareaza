@@ -1,7 +1,7 @@
 //
 // Transfers.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -193,7 +193,9 @@ void CTransfers::OnCheckExit()
 
 	if ( Settings.Live.AutoClose && GetActiveCount() == 0 )
 	{
-		Settings.Live.AutoClose = false;
-		PostMainWndMessage( WM_CLOSE );
+		if ( PostMainWndMessage( WM_CLOSE ) )
+		{
+			Settings.Live.AutoClose = FALSE;
+		}
 	}
 }

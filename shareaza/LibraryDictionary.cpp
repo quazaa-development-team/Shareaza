@@ -1,7 +1,7 @@
 //
 // LibraryDictionary.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -121,45 +121,44 @@ void CLibraryDictionary::ProcessWord(
 	const CLibraryFile& oFile, const CString& strWord, bool bAdd,
 	bool bCanUpload)
 {
-	ASSUME_LOCK( Library.m_pSection );
-
-	CFileList* pList = NULL;
-	if ( m_oWordMap.Lookup( strWord, pList ) )
+	if ( CWordMap::CPair* pPair = m_oWordMap.PLookup( strWord ) )
 	{
-		if ( POSITION pos = pList->Find( &oFile ) )
+		CFileList* pList = pPair->value.m_pList;
+		if ( bAdd )
 		{
-			if ( ! bAdd )
+			pPair->value.m_nCount ++;
+			if ( pList->GetTail() != &oFile )
 			{
-				pList->RemoveAt( pos );
-				if ( pList->IsEmpty() )
-				{
-					delete pList;
-
-					VERIFY( m_oWordMap.RemoveKey( strWord ) );
-
-					if ( bCanUpload && m_bValid )
-						Invalidate();
-				}
+				pList->AddTail( &oFile );
+				if ( bCanUpload && m_bValid )
+					m_pTable->AddExactString( strWord );
 			}
 		}
 		else
 		{
-			if ( bAdd )
+			POSITION pos = pList->Find( &oFile );
+			if ( pos )
 			{
-				pList->AddTail( &oFile );
+				pList->RemoveAt( pos );
 
-				if ( bCanUpload && m_bValid )
-					m_pTable->AddExactString( strWord );
+				if ( pList->IsEmpty() )
+				{
+					m_oWordMap.RemoveKey( strWord );
+					delete pList;
+
+					if ( bCanUpload )
+						Invalidate();
+				}
 			}
 		}
 	}
 	else if ( bAdd )
 	{
-		pList = new CFileList;
-		if ( pList )
+		CWord oWord( new CFileList );
+		if ( oWord.m_pList )
 		{
-			pList->AddTail( &oFile );
-			m_oWordMap.SetAt( strWord, pList );
+			oWord.m_pList->AddTail( &oFile );
+			m_oWordMap.SetAt( strWord, oWord );
 
 			if ( bCanUpload && m_bValid )
 				m_pTable->AddExactString( strWord );
@@ -194,16 +193,16 @@ void CLibraryDictionary::BuildHashTable()
 	for ( POSITION pos = m_oWordMap.GetStartPosition() ; pos ; )
 	{
 		CString strWord;
-		CFileList* pList = NULL;
-		m_oWordMap.GetNextAssoc( pos, strWord, pList );
+		CWord oWord;
+		m_oWordMap.GetNextAssoc( pos, strWord, oWord );
 
 		//TRACE( _T("[LD] Word \"%hs\" found %d time(s) in %d file(s)\n"), (LPCSTR)CT2A( strWord ), oWord.m_nCount, oWord.m_pList->GetCount() );
-		for ( POSITION pos = pList->GetHeadPosition() ; pos ; )
+		for ( POSITION pos = oWord.m_pList->GetHeadPosition() ; pos ; )
 		{
-			const CLibraryFile* pFile = pList->GetNext( pos );
+			const CLibraryFile& oFile = *oWord.m_pList->GetNext( pos );
 
 			// Check if the file can be uploaded
-			if ( pFile->IsShared() )
+			if ( oFile.IsShared() )
 			{
 				// Add the keyword to the table
 				m_pTable->AddExactString( strWord );
@@ -215,11 +214,11 @@ void CLibraryDictionary::BuildHashTable()
 	// Add sha1/ed2k hashes to hash table
 	for ( POSITION pos = LibraryMaps.GetFileIterator() ; pos ; )
 	{
-		const CLibraryFile* pFile = LibraryMaps.GetNextFile( pos );
+		const CLibraryFile& oFile = *LibraryMaps.GetNextFile( pos );
 
 		// Check if the file can be uploaded
-		if ( pFile->IsShared() )
-			m_pTable->AddHashes( *pFile );
+		if ( oFile.IsShared() )
+			m_pTable->AddHashes( oFile );
 	}
 
 	m_bValid = true;
@@ -259,9 +258,9 @@ void CLibraryDictionary::Clear()
 	for ( POSITION pos = m_oWordMap.GetStartPosition() ; pos ; )
 	{
 		CString strWord;
-		CFileList* pList = NULL;
-		m_oWordMap.GetNextAssoc( pos, strWord, pList );
-		delete pList;
+		CWord oWord;
+		m_oWordMap.GetNextAssoc( pos, strWord, oWord );
+		delete oWord.m_pList;
 	}
 	m_oWordMap.RemoveAll();
 
@@ -303,17 +302,17 @@ CFileList* CLibraryDictionary::Search(
 			continue;
 
 		CString strWord( pWordEntry->first, static_cast< int >( pWordEntry->second ) );
-		CFileList* pList = NULL;
-		if ( m_oWordMap.Lookup( strWord, pList ) )
+		CWord oWord;
+		if ( m_oWordMap.Lookup( strWord, oWord ) )
 		{
-			for ( POSITION pos = pList->GetHeadPosition() ; pos ; )
+			for ( POSITION pos = oWord.m_pList->GetHeadPosition() ; pos ; )
 			{
-				const CLibraryFile* pFile = pList->GetNext( pos );
+				const CLibraryFile* pFile = oWord.m_pList->GetNext( pos );
 
-				if ( bAvailableOnly && ! pFile->IsAvailable() )
+				if ( bAvailableOnly && pFile->IsGhost() )
 					continue;
 
-				if ( ! bLocal && ! pFile->IsShared() )
+				if ( !bLocal && !pFile->IsShared() )
 					continue;
 
 				if ( pFile->m_nSearchCookie == m_nSearchCookie )

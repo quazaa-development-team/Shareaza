@@ -1,7 +1,7 @@
 //
 // PageProfileIdentity.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -209,15 +209,13 @@ void CIdentityProfilePage::GetGenderTranslations(CString& pMale, CString& pFemal
 
 	CXMLElement* pXML = Skin.GetDocument( _T("CBrowseHostProfile.1") );
 
-	for ( POSITION posGroup = pXML->GetElementIterator() ; posGroup && ! bCollected ; )
+	for ( POSITION pos = pXML->GetElementIterator() ; pos && ! bCollected ; )
 	{
-		CXMLElement* pGroups = pXML->GetNextElement( posGroup );
-
+		CXMLElement* pGroups = pXML->GetNextElement( pos );
 		if ( pGroups->IsNamed( _T("group") ) && pGroups->GetAttributeValue( _T("id") ) == "3" ) {
-			for ( POSITION posText = pGroups->GetElementIterator() ; posText && ! bCollected ; )
+			for ( POSITION pos = pGroups->GetElementIterator() ; pos && ! bCollected ; )
 			{
-				CXMLElement* pText = pGroups->GetNextElement( posText );
-
+				CXMLElement* pText = pGroups->GetNextElement( pos );
 				if ( pText->IsNamed( _T("text") ) )
 				{
 					CString strTemp;

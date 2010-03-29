@@ -68,7 +68,6 @@
 #include "WndHitMonitor.h"
 #include "WndSecurity.h"
 #include "WndSearch.h"
-#include "WndScheduler.h"
 #include "WndBrowseHost.h"
 #include "WndHome.h"
 #include "WndIRC.h"
@@ -91,7 +90,6 @@
 #include "DlgPromote.h"
 #include "DlgCloseMode.h"
 #include "DlgTorrentSeed.h"
-#include "DlgScheduleTask.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -184,7 +182,6 @@ BEGIN_MESSAGE_MAP(CMainWnd, CMDIFrameWnd)
 	ON_COMMAND(ID_HELP_UPDATE, OnHelpUpdate)
 	ON_COMMAND(ID_HELP_ROUTER, OnHelpRouter)
 	ON_COMMAND(ID_HELP_SECURITY, OnHelpSecurity)
-	//ON_COMMAND(ID_HELP_SCHEDULER, OnHelpScheduler)
 	ON_COMMAND(ID_HELP_CODEC, OnHelpCodec)
 	ON_COMMAND(ID_HELP_TORRENT, OnHelpTorrent)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_TRAFFIC, OnUpdateViewTraffic)
@@ -270,8 +267,6 @@ BEGIN_MESSAGE_MAP(CMainWnd, CMDIFrameWnd)
 	ON_COMMAND(ID_MEDIA_PLAY, OnMediaCommand)
 	ON_COMMAND(ID_MEDIA_ADD, OnMediaCommand)
 	ON_COMMAND(ID_MEDIA_ADD_FOLDER, OnMediaCommand)
-	ON_UPDATE_COMMAND_UI(ID_VIEW_SCHEDULER, OnUpdateViewScheduler)
-	ON_COMMAND(ID_VIEW_SCHEDULER, OnViewScheduler)
 	ON_COMMAND(ID_HELP, OnHelpFaq)
 	ON_COMMAND(ID_HELP_TEST, OnHelpConnectiontest)
 	ON_UPDATE_COMMAND_UI_RANGE(ID_SHELL_MENU_MIN, ID_SHELL_MENU_MAX, OnUpdateShell)
@@ -286,7 +281,6 @@ END_MESSAGE_MAP()
 CMainWnd::CMainWnd() :
 	m_bTrayHide ( FALSE ),
 	m_bTrayIcon ( FALSE ),
-	m_bTrayUpdate( TRUE ),
 	m_bTimer ( FALSE ),
 	m_pSkin ( NULL ),
 	m_pURLDialog ( NULL ),
@@ -294,9 +288,7 @@ CMainWnd::CMainWnd() :
 	m_nAlpha ( 255 )
 {
 	ZeroMemory( &m_pTray, sizeof( NOTIFYICONDATA ) );
-	m_pTray.cbSize				= sizeof( NOTIFYICONDATA );
-	m_pTray.uCallbackMessage	= WM_TRAY;
-	m_pTray.uVersion			= NOTIFYICON_VERSION; // NOTIFYICON_VERSION_4;
+	m_pTray.cbSize = sizeof( NOTIFYICONDATA );
 
 	theApp.m_pMainWnd = this;
 
@@ -509,7 +501,6 @@ int CMainWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		PostMessage( WM_COMMAND, ID_HELP_PROMOTE );
 	}
 
-	Scheduler.CheckSchedule();	//Now we are sure main window is valid
 	// If it is the first run we will connect only in the QuickStart Wizard
 	// If Scheduler is enabled let it decide when to connect
 	if ( Settings.Connection.AutoConnect && !Settings.Live.FirstRun
@@ -521,6 +512,10 @@ int CMainWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	Settings.Live.LoadWindowState = TRUE;
 
 	// Go
+
+	m_bTrayHide	= FALSE;
+	m_bTrayIcon	= FALSE;
+	m_bTimer	= FALSE;
 
 	SetTimer( 1, 1000, NULL );
 
@@ -795,8 +790,6 @@ void CMainWnd::OnTimer(UINT_PTR nIDEvent)
 	CMDIFrameWnd::OnTimer( nIDEvent );
 
 	DWORD tNow = static_cast< DWORD >( time( NULL ) );
-	static DWORD tLast60SecInterval = 0;
-	static DWORD tLast5SecInterval = 0;
 
 	// Delayed close
 	if ( nIDEvent == 2 )
@@ -837,12 +830,13 @@ void CMainWnd::OnTimer(UINT_PTR nIDEvent)
 		// Delete existing tray icon (if any), windows can't create a new icon with same uID
 		Shell_NotifyIcon( NIM_DELETE, &m_pTray );
 
-		m_pTray.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+		m_pTray.uID					= 0;
+		m_pTray.uFlags				= NIF_ICON | NIF_MESSAGE | NIF_TIP;
+		m_pTray.uCallbackMessage	= WM_TRAY;
+		m_pTray.uVersion			= NOTIFYICON_VERSION_4;
 		_tcsncpy( m_pTray.szTip, Settings.SmartAgent(), _countof( m_pTray.szTip ) );
 
-		m_bTrayUpdate = TRUE;
 		m_bTrayIcon = Shell_NotifyIcon( NIM_ADD, &m_pTray );
-		Shell_NotifyIcon( NIM_SETVERSION, &m_pTray );
 	}
 	else if ( m_bTrayIcon && ! bNeedTrayIcon )
 	{
@@ -855,29 +849,34 @@ void CMainWnd::OnTimer(UINT_PTR nIDEvent)
 	if ( m_wndMenuBar.IsWindowVisible() == FALSE )
 		ShowControlBar( &m_wndMenuBar, TRUE, FALSE );
 
+	// Scheduler
+
+	if ( Settings.Scheduler.Enable ) Schedule.Update();
+
+	// Network / disk space / directory checks
+
+	LocalSystemChecks();
+
 	// Update messages
+
 	UpdateMessages();
 
-	if ( tNow - tLast5SecInterval > 5 )
+	// Periodic saves
+
+	static DWORD tLastSave = static_cast< DWORD >( time( NULL ) );
+	if ( tNow - tLastSave > 60 )
 	{
-		tLast5SecInterval = tNow;
+		tLastSave = tNow;
+		SaveState();
+	}
 
-		// Periodic cleanup
+	// Periodic cleanup
+
+	static DWORD tLastPurge = static_cast< DWORD >( time( NULL ) );
+	if ( tNow - tLastPurge > 5 )
+	{
+		tLastPurge = tNow;
 		PurgeDeletes();
-
-		// Scheduler
-		Scheduler.CheckSchedule();
-		
-		if ( tNow - tLast60SecInterval > 60 )
-		{
-			tLast60SecInterval = tNow;
-
-			// Periodic saves
-			SaveState();
-
-			// Network / disk space / directory checks
-			LocalSystemChecks();
-		}
 	}
 }
 
@@ -928,64 +927,53 @@ void CMainWnd::OpenFromTray(int nShowCmd)
 
 LRESULT CMainWnd::OnTray(WPARAM /*wParam*/, LPARAM lParam)
 {
-	switch ( LOWORD( lParam ) )
+	if ( LOWORD(lParam) == WM_LBUTTONDBLCLK )
 	{
-	case WM_MOUSEMOVE:
-		m_bTrayUpdate = TRUE;
-		break;
-
-	case WM_LBUTTONDBLCLK:
 		if ( m_bTrayHide )
 			OpenFromTray();
 		else
 			CloseToTray();
-		break;
+	}
+	else if ( LOWORD(lParam) == WM_RBUTTONDOWN )
+	{
+		UINT nFlags = TPM_RIGHTBUTTON;
+		CPoint pt;
+		CRect rc;
 
-	case WM_RBUTTONDOWN:
-		OpenTrayMenu();
-		break;
+		GetCursorPos( &pt );
+		SystemParametersInfo( SPI_GETWORKAREA, 0, &rc, 0 );
+
+		nFlags |= TPM_CENTERALIGN;
+
+		if ( pt.y > GetSystemMetrics( SM_CYSCREEN ) / 2 )
+		{
+			pt.y = rc.bottom;
+			nFlags |= TPM_TOPALIGN;
+		}
+		else
+		{
+			pt.y = rc.top;
+			nFlags |= TPM_BOTTOMALIGN;
+		}
+
+		SetForegroundWindow();
+
+		CMenu* pMenu = Skin.GetMenu( _T("CMainWnd.Tray") );
+		if ( pMenu == NULL ) return 0;
+
+		MENUITEMINFO pInfo;
+		pInfo.cbSize	= sizeof(pInfo);
+		pInfo.fMask		= MIIM_STATE;
+		GetMenuItemInfo( pMenu->GetSafeHmenu(), ID_TRAY_OPEN, FALSE, &pInfo );
+		pInfo.fState	|= MFS_DEFAULT;
+		SetMenuItemInfo( pMenu->GetSafeHmenu(), ID_TRAY_OPEN, FALSE, &pInfo );
+
+		pMenu->TrackPopupMenu( nFlags, pt.x, pt.y, this, NULL );
+
+		PostMessage( WM_NULL );
 	}
 
 	return 0;
-}
-
-void CMainWnd::OpenTrayMenu()
-{
-	CPoint pt;
-	CRect rc;
-
-	GetCursorPos( &pt );
-	SystemParametersInfo( SPI_GETWORKAREA, 0, &rc, 0 );
-
-	UINT nFlags = TPM_CENTERALIGN | TPM_RIGHTBUTTON;
-
-	if ( pt.y > GetSystemMetrics( SM_CYSCREEN ) / 2 )
-	{
-		nFlags |= TPM_TOPALIGN;
-	}
-	else
-	{
-		nFlags |= TPM_BOTTOMALIGN;
-	}
-
-	SetForegroundWindow();
-
-	CMenu* pMenu = Skin.GetMenu( _T("CMainWnd.Tray") );
-	if ( pMenu == NULL )
-		return;
-
-	MENUITEMINFO pInfo = {};
-	pInfo.cbSize	= sizeof(pInfo);
-	pInfo.fMask		= MIIM_STATE;
-	GetMenuItemInfo( pMenu->GetSafeHmenu(), ID_TRAY_OPEN, FALSE, &pInfo );
-	pInfo.fState	|= MFS_DEFAULT;
-	SetMenuItemInfo( pMenu->GetSafeHmenu(), ID_TRAY_OPEN, FALSE, &pInfo );
-
-	pMenu->TrackPopupMenu( nFlags, pt.x, pt.y, this, NULL );
-
-	PostMessage( WM_NULL );
-
-	Shell_NotifyIcon( NIM_SETFOCUS, &m_pTray );
 }
 
 void CMainWnd::OnTrayOpen()
@@ -1372,225 +1360,236 @@ void CMainWnd::GetMessageString(UINT nID, CString& rMessage) const
 
 void CMainWnd::UpdateMessages()
 {
-	// StatusBar
-	{
-		CString strMessage;
+	CString strFormat, strMessage, strOld;
 
+	if ( Network.IsWellConnected() )
+	{	//If you have neighbours, you are connected
 		QWORD nLocalVolume;
 		LibraryMaps.GetStatistics( NULL, &nLocalVolume );
 
-		if ( Network.IsWellConnected() )
-		{
-			// If you have neighbours, you are connected
-			if ( Settings.General.GUIMode == GUI_BASIC )
-			{
-				// In the basic GUI, don't bother with mode details or neighbour count.
-				strMessage.Format( LoadString( IDS_STATUS_BAR_CONNECTED_SIMPLE ),
-					Settings.SmartVolume( nLocalVolume, KiloBytes ) );
-			}
-			else
-			{
-				// Display node type and number of neighbours
-				strMessage.Format( LoadString( Neighbours.IsG2Hub() ?
-					( Neighbours.IsG1Ultrapeer() ? IDS_STATUS_BAR_CONNECTED_HUB_UP : IDS_STATUS_BAR_CONNECTED_HUB ) :
-					( Neighbours.IsG1Ultrapeer() ? IDS_STATUS_BAR_CONNECTED_UP : IDS_STATUS_BAR_CONNECTED ) ),
-					Neighbours.GetStableCount(), Settings.SmartVolume( nLocalVolume, KiloBytes ) );
-			}
-		}
-		else if ( Network.IsConnected() )
-		{
-			// If G1, G2, eDonkey are disabled and only BitTorrent is enabled say connected
-			if( ! Settings.Gnutella1.EnableToday &&
-				! Settings.Gnutella2.EnableToday &&
-				! Settings.eDonkey.EnableToday )
-			{
-				strMessage.Format( LoadString( IDS_STATUS_BAR_CONNECTED_SIMPLE ),
-					Settings.SmartVolume( nLocalVolume, KiloBytes ) );
-			}
-			else
-				// Trying to connect
-				LoadString( strMessage, IDS_STATUS_BAR_CONNECTING );
+		if ( Settings.General.GUIMode == GUI_BASIC )
+		{	//In the basic GUI, don't bother with mode details or neighbour count.
+			strMessage.Format( IDS_STATUS_BAR_CONNECTED_SIMPLE, Settings.SmartVolume( nLocalVolume, KiloBytes ) );
 		}
 		else
-			// Idle
-			LoadString( strMessage, IDS_STATUS_BAR_DISCONNECTED );
-
-		if ( Settings.VersionCheck.Quote.GetLength() )
-		{
-			strMessage += _T("  ");
-			strMessage += Settings.VersionCheck.Quote;
+		{	//Display node type and number of neighbours
+			if (  Neighbours.IsG2Hub() )
+			{
+				if (  Neighbours.IsG1Ultrapeer() )
+					LoadString( strFormat, IDS_STATUS_BAR_CONNECTED_HUB_UP );
+				else
+					LoadString( strFormat, IDS_STATUS_BAR_CONNECTED_HUB );
+			}
+			else
+			{
+				if (  Neighbours.IsG1Ultrapeer() )
+					LoadString( strFormat, IDS_STATUS_BAR_CONNECTED_UP );
+				else
+					LoadString( strFormat, IDS_STATUS_BAR_CONNECTED );
+			}
+			strMessage.Format( strFormat, Neighbours.GetStableCount(), Settings.SmartVolume( nLocalVolume, KiloBytes ) );
 		}
-
-		if ( m_nIDLastMessage == AFX_IDS_IDLEMESSAGE )
+	}
+	else if ( Network.IsConnected() )
+	{	// If G1, G2, eDonkey are disabled and only BitTorrent is enabled say connected
+		if( !Settings.Gnutella1.EnableToday && !Settings.Gnutella2.EnableToday && !Settings.eDonkey.EnableToday )
 		{
-			CString strOld;
-			m_wndStatusBar.GetWindowText( strOld );
-			if ( strOld != strMessage )
-				m_wndStatusBar.SetWindowText( strMessage );
+			LoadString( strFormat, IDS_STATUS_BAR_CONNECTED_SIMPLE );
 		}
-
-		m_sMsgStatus = strMessage;
+		else	//Trying to connect
+			LoadString( strMessage, IDS_STATUS_BAR_CONNECTING );
+	}
+	else
+	{	//Idle
+		LoadString( strMessage, IDS_STATUS_BAR_DISCONNECTED );
 	}
 
-	// StatusBar pane 1
+	if ( Settings.VersionCheck.Quote.GetLength() )
 	{
-		CString strStatusbar;
-		strStatusbar.Format( LoadString( IDS_STATUS_BAR_BANDWIDTH ),
-			Settings.SmartSpeed( CGraphItem::GetValue( GRC_TOTAL_BANDWIDTH_IN ), bits ),
-			Settings.SmartSpeed( CGraphItem::GetValue( GRC_TOTAL_BANDWIDTH_OUT ), bits ),
-			CGraphItem::GetValue( GRC_DOWNLOADS_TRANSFERS ),
-			CGraphItem::GetValue( GRC_UPLOADS_TRANSFERS ) );
-
-		CString strOld;
-		m_wndStatusBar.GetPaneText( 1, strOld );
-		if ( strOld != strStatusbar )
-			m_wndStatusBar.SetPaneText( 1, strStatusbar );
+		strMessage += _T("  ");
+		strMessage += Settings.VersionCheck.Quote;
 	}
 
-	// Tray
-	if ( m_bTrayIcon && m_bTrayUpdate )
+	if ( m_nIDLastMessage == AFX_IDS_IDLEMESSAGE )
 	{
-		m_bTrayUpdate = FALSE;
+		m_wndStatusBar.GetWindowText( strOld );
+		if ( strOld != strMessage ) m_wndStatusBar.SetWindowText( strMessage );
+	}
 
-		CString strTip;
-		strTip.Format( LoadString( IDS_TRAY_TIP ),
+	m_sMsgStatus = strMessage;
+
+	strMessage.Format( IDS_STATUS_BAR_BANDWIDTH,
+		Settings.SmartSpeed( CGraphItem::GetValue( GRC_TOTAL_BANDWIDTH_IN ), bits ),
+		Settings.SmartSpeed( CGraphItem::GetValue( GRC_TOTAL_BANDWIDTH_OUT ), bits ),
+		CGraphItem::GetValue( GRC_DOWNLOADS_TRANSFERS ),
+		CGraphItem::GetValue( GRC_UPLOADS_TRANSFERS ) );
+
+	m_wndStatusBar.GetPaneText( 1, strOld );
+	if ( strOld != strMessage ) m_wndStatusBar.SetPaneText( 1, strMessage );
+
+	if ( m_bTrayIcon )
+	{
+		strMessage.Format( IDS_TRAY_TIP,
 			CGraphItem::GetValue( GRC_GNUTELLA_CONNECTIONS ),
 			Settings.SmartSpeed( CGraphItem::GetValue( GRC_TOTAL_BANDWIDTH_IN ), bits ),
 			Settings.SmartSpeed( CGraphItem::GetValue( GRC_TOTAL_BANDWIDTH_OUT ), bits ),
 			CGraphItem::GetValue( GRC_DOWNLOADS_TRANSFERS ),
 			CGraphItem::GetValue( GRC_UPLOADS_TRANSFERS ) );
 
-		if ( strTip != m_pTray.szTip )
+		if ( strMessage != m_pTray.szTip )
 		{
 			m_pTray.uFlags = NIF_TIP;
-			_tcsncpy( m_pTray.szTip, strTip, _countof( m_pTray.szTip ) );
+			_tcsncpy( m_pTray.szTip, strMessage, _countof( m_pTray.szTip ) );
 			m_bTrayIcon = Shell_NotifyIcon( NIM_MODIFY, &m_pTray );
 		}
 	}
+
+	LoadString( strMessage, IDR_MAINFRAME );
+
+	if ( Settings.Live.AutoClose )
+	{
+		LoadString( strOld, IDS_CLOSING_AFTER );
+		strMessage += strOld;
+	}
+
+	if ( _tcsistr( strMessage, _T(CLIENT_NAME) ) == NULL )
+	{
+		strMessage = _T(CLIENT_NAME) _T(" ") + strMessage;
+	}
+
+	GetWindowText( strOld );
+	if ( strOld != strMessage ) SetWindowText( strMessage );
 }
 
 // This function runs some basic checks that everything is okay- disks, directories, local network is
 // up, etc.
 void CMainWnd::LocalSystemChecks()
 {
+	static DWORD tLastCheck = 0;			// Time the checks were last run
 	static DWORD nConnectionFailCount = 0;	// Counter for times a connection problem has been detected
+	DWORD tTicks = GetTickCount();			// Current time
 
-
-	// Check disk space
-	if ( Settings.Live.DiskSpaceStop == FALSE )
+	if ( tTicks - tLastCheck > 1 * 60 * 1000 )  // Run once every minute
 	{
-		if ( ! Downloads.IsSpaceAvailable( (QWORD)Settings.General.DiskSpaceStop * 1024 * 1024 ) )
+		tLastCheck = tTicks;
+
+		// Check disk space
+		if ( Settings.Live.DiskSpaceStop == FALSE )
 		{
-			CSingleLock pLock( &Transfers.m_pSection );
-			if ( pLock.Lock( 250 ) )
+			if ( ! Downloads.IsSpaceAvailable( (QWORD)Settings.General.DiskSpaceStop * 1024 * 1024 ) )
 			{
-				Settings.Live.DiskSpaceStop = TRUE;
-				Downloads.PauseAll();
+				CSingleLock pLock( &Transfers.m_pSection );
+				if ( pLock.Lock( 250 ) )
+				{
+					Settings.Live.DiskSpaceStop = TRUE;
+					Downloads.PauseAll();
+				}
+
 			}
-
 		}
-	}
-	if ( Settings.Live.DiskSpaceWarning == FALSE )
-	{
-		if ( ! Downloads.IsSpaceAvailable( (QWORD)Settings.General.DiskSpaceWarning * 1024 * 1024 ) )
+		if ( Settings.Live.DiskSpaceWarning == FALSE )
 		{
-			Settings.Live.DiskSpaceWarning = TRUE;
-			PostMessage( WM_COMMAND, ID_HELP_DISKSPACE );
+			if ( ! Downloads.IsSpaceAvailable( (QWORD)Settings.General.DiskSpaceWarning * 1024 * 1024 ) )
+			{
+				Settings.Live.DiskSpaceWarning = TRUE;
+				PostMessage( WM_COMMAND, ID_HELP_DISKSPACE );
+			}
 		}
-	}
 
 
-	// Check disk/directory exists and isn't read-only
-	if ( Settings.Live.DiskWriteWarning == FALSE )
-	{
-		DWORD nCompleteAttributes, nIncompleteAttributes;
-		nCompleteAttributes = GetFileAttributes( Settings.Downloads.CompletePath );
-		nIncompleteAttributes = GetFileAttributes( Settings.Downloads.IncompletePath );
-
-		if ( ( nCompleteAttributes == INVALID_FILE_ATTRIBUTES ) ||  ( nIncompleteAttributes == INVALID_FILE_ATTRIBUTES ) ||
-			!( nCompleteAttributes & FILE_ATTRIBUTE_DIRECTORY ) || !( nIncompleteAttributes & FILE_ATTRIBUTE_DIRECTORY ) )
+		// Check disk/directory exists and isn't read-only
+		if ( Settings.Live.DiskWriteWarning == FALSE )
 		{
-			Settings.Live.DiskWriteWarning = TRUE;
-			PostMessage( WM_COMMAND, ID_HELP_DISKWRITEFAIL );
-		}
-		else
-		{
-/*
-// Note: These checks fail on some machines. WinXP goofyness?
-			// Extra NT/Win2000/XP permission checks
-			if ( ( _taccess( Settings.Downloads.IncompletePath, 06 ) != 0 ) ||
-				 ( _taccess( Settings.Downloads.CompletePath, 06 ) != 0 ) )
+			DWORD nCompleteAttributes, nIncompleteAttributes;
+			nCompleteAttributes = GetFileAttributes( Settings.Downloads.CompletePath );
+			nIncompleteAttributes = GetFileAttributes( Settings.Downloads.IncompletePath );
+
+			if ( ( nCompleteAttributes == INVALID_FILE_ATTRIBUTES ) ||  ( nIncompleteAttributes == INVALID_FILE_ATTRIBUTES ) ||
+				!( nCompleteAttributes & FILE_ATTRIBUTE_DIRECTORY ) || !( nIncompleteAttributes & FILE_ATTRIBUTE_DIRECTORY ) )
 			{
 				Settings.Live.DiskWriteWarning = TRUE;
 				PostMessage( WM_COMMAND, ID_HELP_DISKWRITEFAIL );
 			}
-*/
-		}
-	}
-
-
-	// Check network connection state
-	if ( Settings.Connection.DetectConnectionLoss )
-	{
-		if ( Network.IsConnected() )
-		{
-			if ( Network.IsAvailable() || Network.IsWellConnected() )
+			else
 			{
-				// Internet is available
-				nConnectionFailCount = 0;
+/*
+// Note: These checks fail on some machines. WinXP goofyness?
+				// Extra NT/Win2000/XP permission checks
+				if ( ( _taccess( Settings.Downloads.IncompletePath, 06 ) != 0 ) ||
+					 ( _taccess( Settings.Downloads.CompletePath, 06 ) != 0 ) )
+				{
+					Settings.Live.DiskWriteWarning = TRUE;
+					PostMessage( WM_COMMAND, ID_HELP_DISKWRITEFAIL );
+				}
+*/
+			}
+		}
+
+
+		// Check network connection state
+		if ( Settings.Connection.DetectConnectionLoss )
+		{
+			if ( Network.IsConnected() )
+			{
+				if ( Network.IsAvailable() || Network.IsWellConnected() )
+				{
+					// Internet is available
+					nConnectionFailCount = 0;
+				}
+				else
+				{
+					// Internet may have failed
+					nConnectionFailCount++;
+					// Give it at least two failures before assuming it's bad
+					if ( nConnectionFailCount > 1 )
+					{
+						if ( Settings.Connection.DetectConnectionReset )
+							theApp.Message( MSG_ERROR, _T("Internet disconnection detected- shutting down network") );
+						else
+							PostMessage( WM_COMMAND, ID_HELP_CONNECTIONFAIL );
+
+						PostMessage( WM_COMMAND, ID_NETWORK_DISCONNECT );
+					}
+				}
 			}
 			else
 			{
-				// Internet may have failed
-				nConnectionFailCount++;
-				// Give it at least two failures before assuming it's bad
-				if ( nConnectionFailCount > 1 )
+				// We are not currently connected. Check if we disconnected because of failure and want to re-connect.
+				if ( ( nConnectionFailCount > 0 ) && ( Settings.Connection.DetectConnectionReset ) )
 				{
-					if ( Settings.Connection.DetectConnectionReset )
-						theApp.Message( MSG_ERROR, _T("Internet disconnection detected- shutting down network") );
-					else
-						PostMessage( WM_COMMAND, ID_HELP_CONNECTIONFAIL );
-
-					PostMessage( WM_COMMAND, ID_NETWORK_DISCONNECT );
+					// See if we can reconnect
+					if ( Network.IsAvailable() )
+					{
+						nConnectionFailCount = 0;
+						PostMessage( WM_COMMAND, ID_NETWORK_CONNECT );
+						theApp.Message( MSG_ERROR, _T("Internet reconnect detected- restarting network") );
+					}
 				}
 			}
 		}
-		else
+
+		// Check we have donkey servers
+		if ( Settings.Live.DefaultED2KServersLoaded == FALSE )
 		{
-			// We are not currently connected. Check if we disconnected because of failure and want to re-connect.
-			if ( ( nConnectionFailCount > 0 ) && ( Settings.Connection.DetectConnectionReset ) )
-			{
-				// See if we can reconnect
-				if ( Network.IsAvailable() )
-				{
-					nConnectionFailCount = 0;
-					PostMessage( WM_COMMAND, ID_NETWORK_CONNECT );
-					theApp.Message( MSG_ERROR, _T("Internet reconnect detected- restarting network") );
-				}
-			}
+			Settings.Live.DefaultED2KServersLoaded  = TRUE;
+			HostCache.CheckMinimumED2KServers();
 		}
+
+		if ( ( Settings.Live.DonkeyServerWarning == FALSE ) && ( Settings.eDonkey.EnableToday ) )
+		{
+			Settings.Live.DonkeyServerWarning = TRUE;
+			if ( ( ! Settings.eDonkey.MetAutoQuery ) && ( HostCache.eDonkey.CountHosts(TRUE) < 1 ) )
+				PostMessage( WM_COMMAND, ID_HELP_DONKEYSERVERS );
+		}
+
+		// Check for duplicates if LibraryBuilder finished hashing during startup
+		// Happens when Library*.dat files are not saved and Shareaza crashed
+		// In this case all files are re-added and we can find malicious duplicates
+		if ( !Settings.Live.LastDuplicateHash.IsEmpty() &&
+			 !Settings.Live.MaliciousWarning )
+			Library.CheckDuplicates( Settings.Live.LastDuplicateHash );
 	}
 
-	// Check we have donkey servers
-	if ( Settings.Live.DefaultED2KServersLoaded == FALSE )
-	{
-		Settings.Live.DefaultED2KServersLoaded  = TRUE;
-		HostCache.CheckMinimumED2KServers();
-	}
-
-	if ( ( Settings.Live.DonkeyServerWarning == FALSE ) && ( Settings.eDonkey.EnableToday ) )
-	{
-		Settings.Live.DonkeyServerWarning = TRUE;
-		if ( ( ! Settings.eDonkey.MetAutoQuery ) && ( HostCache.eDonkey.CountHosts(TRUE) < 1 ) )
-			PostMessage( WM_COMMAND, ID_HELP_DONKEYSERVERS );
-	}
-
-	// Check for duplicates if LibraryBuilder finished hashing during startup
-	// Happens when Library*.dat files are not saved and Shareaza crashed
-	// In this case all files are re-added and we can find malicious duplicates
-	if ( !Settings.Live.LastDuplicateHash.IsEmpty() &&
-		 !Settings.Live.MaliciousWarning )
-		Library.CheckDuplicates( Settings.Live.LastDuplicateHash );
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1791,19 +1790,23 @@ void CMainWnd::OnNetworkED2K()
 
 void CMainWnd::OnUpdateNetworkAutoClose(CCmdUI* pCmdUI)
 {
-	pCmdUI->Enable( Settings.Live.AutoClose || Transfers.GetActiveCount() > 0 );
-	pCmdUI->SetCheck( Settings.Live.AutoClose );
+	pCmdUI->Enable( Settings.Connection.RequireForTransfers &&
+					( Settings.Live.AutoClose || ( Transfers.GetActiveCount() > 0 ) )
+				  );
+	pCmdUI->SetCheck( Settings.Connection.RequireForTransfers && Settings.Live.AutoClose );
 }
 
 void CMainWnd::OnNetworkAutoClose()
 {
 	if ( Settings.Live.AutoClose )
 	{
-		Settings.Live.AutoClose = false;
+		Settings.Live.AutoClose = FALSE;
 	}
 	else
 	{
+		Network.Disconnect();
 		Settings.Live.AutoClose = ( Transfers.GetActiveCount() > 0 );
+
 		if ( Settings.Live.AutoClose )
 		{
 			if ( ! m_bTrayHide ) CloseToTray();
@@ -1813,11 +1816,6 @@ void CMainWnd::OnNetworkAutoClose()
 			PostMessage( WM_CLOSE );
 		}
 	}
-
-	CString strCaption = LoadString( IDR_MAINFRAME );
-	if ( Settings.Live.AutoClose )
-		strCaption += LoadString( IDS_CLOSING_AFTER );
-	SetWindowText( strCaption );
 }
 
 void CMainWnd::OnNetworkExit()
@@ -2034,17 +2032,6 @@ void CMainWnd::OnUpdateViewSecurity(CCmdUI* pCmdUI)
 void CMainWnd::OnViewSecurity()
 {
 	m_pWindows.Open( RUNTIME_CLASS(CSecurityWnd), TRUE );
-	OpenFromTray();
-}
-
-void CMainWnd::OnUpdateViewScheduler(CCmdUI* pCmdUI) 
-{
-	pCmdUI->SetCheck( m_pWindows.Find( RUNTIME_CLASS(CSchedulerWnd) ) != NULL );
-}
-
-void CMainWnd::OnViewScheduler()
-{
-	m_pWindows.Open( RUNTIME_CLASS(CSchedulerWnd), TRUE );
 	OpenFromTray();
 }
 
@@ -2637,9 +2624,7 @@ void CMainWnd::OnHelpFaq()
 void CMainWnd::OnHelpConnectiontest()
 {
 	CString strWebSite;
-	strWebSite.Format( _T("%shelp/test/?port=%d&lang=%s&Version=%s"),
-		WEB_SITE_T, Settings.Connection.InPort,
-		(LPCTSTR)Settings.General.Language, (LPCTSTR)theApp.m_sVersion );
+	strWebSite.Format( _T("%shelp/test/?port=%d&lang=%s&Version=%s"), WEB_SITE_T, Settings.Connection.InPort, Settings.General.Language, theApp.m_sVersion );
 	ShellExecute( GetSafeHwnd(), _T("open"), strWebSite,
 		NULL, NULL, SW_SHOWNORMAL );
 }
@@ -2683,14 +2668,6 @@ void CMainWnd::OnHelpSecurity()
 	ShellExecute( GetSafeHwnd(), _T("open"), strWebSite + _T("help/?security"),
 		NULL, NULL, SW_SHOWNORMAL );
 }
-
-//void CMainWnd::OnHelpScheduler()
-//{
-//	const CString strWebSite(WEB_SITE_T);
-//
-//	ShellExecute( GetSafeHwnd(), _T("open"), strWebSite + _T("help/?scheduler"),
-//		NULL, NULL, SW_SHOWNORMAL );
-//}
 
 void CMainWnd::OnHelpCodec()
 {

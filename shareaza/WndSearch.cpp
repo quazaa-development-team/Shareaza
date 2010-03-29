@@ -1,7 +1,7 @@
 //
 // WndSearch.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -182,8 +182,6 @@ void CSearchWnd::OnDestroy()
 	}
 
 	SaveState( _T("CSearchWnd") );
-
-	OnSearchStop();
 
 	CBaseMatchWnd::OnDestroy();
 }
@@ -662,7 +660,7 @@ CQuerySearchPtr CSearchWnd::GetLastSearch() const
 
 void CSearchWnd::ExecuteSearch()
 {
-	CQuickLock pLock( m_pMatches->m_pSection );
+	CSingleLock pLock( &m_pMatches->m_pSection );
 
 	CSearchPtr pManaged;
 	if ( ! empty() )
@@ -714,7 +712,7 @@ void CSearchWnd::ExecuteSearch()
 
 void CSearchWnd::UpdateMessages()
 {
-	CQuickLock pLock( m_pMatches->m_pSection );
+	CSingleLock pLock( &m_pMatches->m_pSection );
 
 	CSearchPtr pManaged;
 	if ( ! empty() )
@@ -918,7 +916,14 @@ void CSearchWnd::OnTimer(UINT_PTR nIDEvent)
 			m_bSetFocus = FALSE;
 		}
 
-		UpdateMessages();
+		if ( pManaged )
+		{
+			if ( m_nCacheHubs   != pManaged->m_nHubs ||
+				 m_nCacheLeaves != pManaged->m_nLeaves )
+			{
+				UpdateMessages();
+			}
+		}
 	}
 
 	// Unlock if we were locked
@@ -932,8 +937,7 @@ void CSearchWnd::OnTimer(UINT_PTR nIDEvent)
 
 void CSearchWnd::OnSelChangeMatches()
 {
-	CQuickLock pLock( m_pMatches->m_pSection );
-
+	CSingleLock pLock( &m_pMatches->m_pSection, TRUE );
 	m_wndDetails.SetFile( m_pMatches->GetSelectedFile( TRUE ) );
 }
 

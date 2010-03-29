@@ -1,7 +1,7 @@
 //
 // UploadQueues.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -50,11 +50,11 @@ public:
 	CUploadQueue*	SelectQueue(PROTOCOLID nProtocol, CDownload const * const pFile);
 	CUploadQueue*	SelectQueue(PROTOCOLID nProtocol, LPCTSTR pszName, QWORD nSize, DWORD nFileState, LPCTSTR pszShareTags = NULL);
 
-	DWORD	GetTotalBandwidthPoints(BOOL ActiveOnly = FALSE);
-//	DWORD	GetQueueCapacity();
-//	DWORD	GetQueuedCount();
-//	DWORD	GetQueueRemaining();
-//	DWORD	GetTransferCount();
+	int		GetTotalBandwidthPoints( BOOL ActiveOnly = FALSE );
+	int		GetQueueCapacity();
+	INT_PTR	GetQueuedCount();
+	INT_PTR	GetQueueRemaining();
+	INT_PTR	GetTransferCount();
 	BOOL	IsTransferAvailable();
 	DWORD	GetMinimumDonkeyBandwidth();
 	DWORD	GetCurrentDonkeyBandwidth();
@@ -85,7 +85,7 @@ public:
 		return m_pList.GetCount();
 	}
 
-	inline bool Check(CUploadQueue* pQueue) const
+	inline BOOL Check(CUploadQueue* pQueue) const
 	{
 		CQuickLock oLock( m_pSection );
 		if ( pQueue == NULL ) return FALSE;

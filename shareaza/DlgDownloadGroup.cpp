@@ -206,6 +206,7 @@ void CDownloadGroupDlg::OnOK()
 		{
 			if ( LibraryFolders.IsSubFolderShared( m_sFolder ) )
 			{
+				CString strFormat, strMessage;
 				LoadString( strFormat, IDS_LIBRARY_SUBFOLDER_IN_LIBRARY );
 				strMessage.Format( strFormat, (LPCTSTR)m_sFolder );
 

@@ -1,7 +1,7 @@
 //
 // WndPacket.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -92,7 +92,6 @@ CPacketWnd::CPacketWnd(CChildWnd* pOwner)
 
 CPacketWnd::~CPacketWnd()
 {
-	theApp.m_pPacketWnd = NULL;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -144,15 +143,11 @@ int CPacketWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	SetTimer( 2, 500, NULL );
 
-	theApp.m_pPacketWnd = this;
-
 	return 0;
 }
 
 void CPacketWnd::OnDestroy() 
 {
-	theApp.m_pPacketWnd = NULL;
-
 	KillTimer( 2 );
 
 	CSingleLock pLock( &m_pSection, TRUE );

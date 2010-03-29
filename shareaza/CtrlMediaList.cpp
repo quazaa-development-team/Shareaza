@@ -1,7 +1,7 @@
 //
 // CtrlMediaList.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -43,6 +43,7 @@ static char THIS_FILE[] = __FILE__;
 IMPLEMENT_DYNAMIC(CMediaListCtrl, CListCtrl)
 
 BEGIN_MESSAGE_MAP(CMediaListCtrl, CListCtrl)
+	//{{AFX_MSG_MAP(CMediaListCtrl)
 	ON_WM_CREATE()
 	ON_WM_SIZE()
 	ON_WM_CONTEXTMENU()
@@ -79,6 +80,7 @@ BEGIN_MESSAGE_MAP(CMediaListCtrl, CListCtrl)
 	ON_COMMAND(ID_MEDIA_ADD_FOLDER, OnMediaAddFolder)
 	ON_UPDATE_COMMAND_UI(ID_MEDIA_EXPORT_COLLECTION, OnUpdateMediaCollection)
 	ON_COMMAND(ID_MEDIA_EXPORT_COLLECTION, OnMediaCollection)
+	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 #define STATE_CURRENT	(1<<12)
@@ -190,27 +192,29 @@ void CMediaListCtrl::Remove(LPCTSTR pszFile)
 
 BOOL CMediaListCtrl::LoadTextList(LPCTSTR pszFile)
 {
-	CString strPath = pszFile;
+	CString strPath, strItem;
+	CFile pFile;
+	
+	strPath = pszFile;
 	strPath = strPath.Left( strPath.ReverseFind( '\\' ) + 1 );
 	
-	CFile pFile;
-	if ( ! pFile.Open( pszFile, CFile::modeRead ) )
-		return FALSE;
+	if ( ! pFile.Open( pszFile, CFile::modeRead ) ) return FALSE;
 	
 	CBuffer pBuffer;
 	pBuffer.EnsureBuffer( (DWORD)pFile.GetLength() );
-	pBuffer.m_nLength =
-		(DWORD)pFile.Read( pBuffer.m_pBuffer, (DWORD)pFile.GetLength() );
-
-	CString strItem;
+	pBuffer.m_nLength = (DWORD)pFile.GetLength();
+	pFile.Read( pBuffer.m_pBuffer, pBuffer.m_nLength );
+	pFile.Close();
+	
 	while ( pBuffer.ReadLine( strItem ) )
 	{
-		strItem.Trim();
+		strItem.TrimLeft();
+		strItem.TrimRight();
 
 		if ( strItem.GetLength() && strItem.GetAt( 0 ) != '#' )
 		{
-			if ( strItem.Find( '\\' ) != 0 && strItem.Find( ':' ) != 1 )
-				// Relative path
+			if ( strItem.Find( '\\' ) != 0 &&
+				 strItem.Find( ':' ) != 1 )
 				strItem = strPath + strItem;
 
 			if ( GetFileAttributes( strItem ) != 0xFFFFFFFF )
@@ -218,34 +222,6 @@ BOOL CMediaListCtrl::LoadTextList(LPCTSTR pszFile)
 		}
 	}
 	
-	return TRUE;
-}
-
-BOOL CMediaListCtrl::SaveTextList(LPCTSTR pszFile)
-{
-	CString strPath = pszFile;
-	strPath = strPath.Left( strPath.ReverseFind( '\\' ) + 1 );
-
-	CString strFile;
-	for ( int nItem = 0 ; nItem < GetItemCount() ; nItem++ )
-	{
-		CString strItem = GetItemText( nItem, 1 );
-
-		if ( _tcsnicmp( strPath, strItem, strPath.GetLength() ) == 0 )
-			// Relative path
-			strItem = strItem.Mid( strPath.GetLength() );
-
-		strFile += strItem + _T("\r\n");
-	}
-
-	CFile pFile;
-	if ( ! pFile.Open( pszFile, CFile::modeWrite | CFile::modeCreate ) )
-		return FALSE;
-
-	CT2CA strFileA( (LPCTSTR)strFile );
-
-	pFile.Write( strFileA, static_cast< UINT >( strlen( strFileA ) ) );
-
 	return TRUE;
 }
 
@@ -765,7 +741,28 @@ void CMediaListCtrl::OnMediaSave()
 
 	if ( dlg.DoModal() != IDOK ) return;
 
-	SaveTextList( dlg.GetPathName() );
+	CString strFile, strPath;
+	CFile pFile;
+
+	strPath = dlg.GetPathName();
+	strPath = strPath.Left( strPath.ReverseFind( '\\' ) + 1 );
+
+	for ( int nItem = 0 ; nItem < GetItemCount() ; nItem++ )
+	{
+		CString strItem = GetItemText( nItem, 1 );
+		
+		if ( _tcsnicmp( strPath, strItem, strPath.GetLength() ) == 0 )
+			strItem = strItem.Mid( strPath.GetLength() );
+
+		strFile += strItem + _T("\r\n");
+	}
+
+	if ( ! pFile.Open( dlg.GetPathName(), CFile::modeWrite|CFile::modeCreate ) ) return;
+
+	CT2CA pszFile( (LPCTSTR)strFile );
+	
+	pFile.Write( pszFile, static_cast< UINT >( strlen(pszFile) ) );
+	pFile.Close();
 }
 
 void CMediaListCtrl::OnUpdateMediaPrevious(CCmdUI* pCmdUI) 

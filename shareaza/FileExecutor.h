@@ -45,7 +45,4 @@ protected:
 
 	// Is file a video, audio or image file?
 	static void DetectFileType(LPCTSTR pszFile, LPCTSTR szType, bool& bVideo, bool& bAudio, bool& bImage);
-
-	//Extracts players form settings
-	static int FillServices(CString sServicePaths[]);
 };

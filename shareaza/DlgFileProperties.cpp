@@ -109,6 +109,7 @@ BOOL CFilePropertiesDlg::OnInitDialog()
 
 	if ( ! Settings.LoadWindow( _T("CFilePropertiesDlg"), this ) )
 	{
+		CRect rc;
 		GetWindowRect( &rc );
 		rc.bottom++;
 		MoveWindow( &rc );
@@ -132,7 +133,7 @@ void CFilePropertiesDlg::Update()
 	}
 
 	m_sName = pFile->m_sName;
-	m_sPath = pFile->GetFolder();
+	if ( pFile->IsAvailable() ) m_sPath = pFile->m_pFolder->m_sPath;
 	m_sSize = Settings.SmartVolume( pFile->GetSize() );
 	m_sIndex.Format( _T("# %lu"), pFile->m_nIndex );
 

@@ -1,7 +1,7 @@
 //
 // SchemaCache.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -60,7 +60,7 @@ public:
 	{
 		if ( ! pszURI || ! *pszURI ) return NULL;
 		CString strURI( pszURI );
-		strURI.MakeLower();
+		ToLower( strURI );
 
 		CSchemaPtr pSchema = NULL;
 		return ( m_pURIs.Lookup( strURI, pSchema ) ) ? pSchema : NULL;
@@ -70,7 +70,7 @@ public:
 	{
 		if ( ! pszName || ! *pszName ) return NULL;
 		CString strName( pszName );
-		strName.MakeLower();
+		ToLower( strName );
 
 		CSchemaPtr pSchema = NULL;
 

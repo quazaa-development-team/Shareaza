@@ -911,7 +911,7 @@ void CHomeLibraryBox::OnLButtonUp(UINT nFlags, CPoint point)
 		CSingleLock oLock( &Library.m_pSection, TRUE );
 		if ( CLibraryFile* pFile = Library.LookupFile( pItem->m_nIndex ) )
 		{
-			if ( pFile->IsAvailable() )
+			if ( pFile->m_pFolder )
 			{
 				CString strPath = pFile->GetPath();
 				oLock.Unlock();

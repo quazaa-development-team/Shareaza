@@ -1,7 +1,7 @@
 //
 // CoolMenu.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -79,8 +79,6 @@ BOOL CCoolMenu::IsModernVersion()
 
 void CCoolMenu::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 {
-	HRESULT hr;
-
 	if ( bSysMenu )
 		return;
 
@@ -96,7 +94,7 @@ void CCoolMenu::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 			{
 				// Its shell menu
 				CString strHelp;
-				hr = m_pContextMenu2->GetCommandString( mii.wID - ID_SHELL_MENU_MIN,
+				HRESULT hr = m_pContextMenu2->GetCommandString( mii.wID - ID_SHELL_MENU_MIN,
 					GCS_HELPTEXTW, NULL, (LPSTR)strHelp.GetBuffer( 256 ), 256 );
 				strHelp.ReleaseBuffer();
 				if ( SUCCEEDED( hr ) )
@@ -111,7 +109,7 @@ void CCoolMenu::OnInitMenuPopup(CMenu* pPopupMenu, UINT nIndex, BOOL bSysMenu)
 			if ( mii.wID >= ID_SHELL_MENU_MIN && mii.wID <= ID_SHELL_MENU_MAX )
 			{
 				// Its shell menu
-				hr = m_pContextMenu2->HandleMenuMsg( WM_INITMENUPOPUP,
+				m_pContextMenu2->HandleMenuMsg( WM_INITMENUPOPUP,
 					(WPARAM)pPopupMenu->GetSafeHmenu(),
 					(LPARAM)MAKELONG( nIndex, TRUE ) );
 				return;
@@ -620,30 +618,18 @@ void CCoolMenu::RegisterEdge(int nLeft, int nTop, int nLength)
 	m_nEdgeSize	= nLength;
 }
 
-static HRESULT SafeQueryContextMenu(IContextMenu* pContextMenu, HMENU hmenu, UINT indexMenu, UINT idCmdFirst, UINT idCmdLast, UINT uFlags) throw()
-{
-	__try
-	{
-		return pContextMenu->QueryContextMenu( hmenu, indexMenu, idCmdFirst, idCmdLast, uFlags );
-	}
-	__except( EXCEPTION_EXECUTE_HANDLER )
-	{
-		return E_UNEXPECTED;
-	}
-}
-
-void CCoolMenu::DoExplorerMenu(HWND hwnd, const CStringList& oFiles, POINT point,
+UINT_PTR CCoolMenu::DoExplorerMenu(HWND hwnd, const CStringList& oFiles, POINT point,
 	HMENU hMenu, HMENU hSubMenu, UINT nFlags)
 {
-	HRESULT hr;
-
+	UINT_PTR nCmd = 0;
 	CComPtr< IContextMenu > pContextMenu1;
 	CShellList oItemIDListList( oFiles );
 	if ( oItemIDListList.GetMenu( hwnd, (void**)&pContextMenu1 ) )
 	{
+		HRESULT hr;
 		{
 			CWaitCursor wc;
-			hr = SafeQueryContextMenu( pContextMenu1, hSubMenu, 0,
+			hr = pContextMenu1->QueryContextMenu( hSubMenu, 0,
 				ID_SHELL_MENU_MIN, ID_SHELL_MENU_MAX, CMF_NORMAL | CMF_EXPLORE );
 		}
 		if ( SUCCEEDED( hr ) )
@@ -652,7 +638,7 @@ void CCoolMenu::DoExplorerMenu(HWND hwnd, const CStringList& oFiles, POINT point
 			hr = pContextMenu1.QueryInterface( &m_pContextMenu3 );
 
 			::SetForegroundWindow( hwnd );
-			UINT_PTR nCmd = ::TrackPopupMenu( hMenu, TPM_RETURNCMD | nFlags,
+			nCmd = ::TrackPopupMenu( hMenu, TPM_RETURNCMD | nFlags,
 				point.x, point.y, 0, hwnd, NULL );
 			::PostMessage( hwnd, WM_NULL, 0, 0 );
 
@@ -661,14 +647,13 @@ void CCoolMenu::DoExplorerMenu(HWND hwnd, const CStringList& oFiles, POINT point
 			{
 				CMINVOKECOMMANDINFOEX ici = {};
 				ici.cbSize = sizeof( CMINVOKECOMMANDINFOEX );
-				ici.fMask = CMIC_MASK_ASYNCOK | CMIC_MASK_NOZONECHECKS | CMIC_MASK_FLAG_LOG_USAGE;
 				ici.hwnd = hwnd;
 				ici.lpVerb = reinterpret_cast< LPCSTR >( nCmd - ID_SHELL_MENU_MIN );
 				ici.lpVerbW = reinterpret_cast< LPCWSTR >( nCmd - ID_SHELL_MENU_MIN );
 				ici.nShow = SW_SHOWNORMAL;
 				pContextMenu1->InvokeCommand( (CMINVOKECOMMANDINFO*)&ici );
 			}
-			else
+			else if ( ( TPM_RETURNCMD & nFlags ) == 0 )
 			{
 				// Emulate normal message handling
 				::PostMessage( hwnd, WM_COMMAND, nCmd, 0 );
@@ -684,6 +669,8 @@ void CCoolMenu::DoExplorerMenu(HWND hwnd, const CStringList& oFiles, POINT point
 		// TODO: Find why sometimes raza crashes inside Windows Shell SetSite() function
 		SafeRelease( pContextMenuCache );
 	}
+
+	return nCmd;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -721,14 +708,7 @@ LRESULT CALLBACK CCoolMenu::MsgHook(int nCode, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 
-	__try
-	{
-		return CallNextHookEx( CCoolMenu::m_hMsgHook, nCode, wParam, lParam );
-	}
-	__except( EXCEPTION_EXECUTE_HANDLER )
-	{
-		return 0;
-	}
+	return CallNextHookEx( CCoolMenu::m_hMsgHook, nCode, wParam, lParam );
 }
 
 LRESULT CALLBACK CCoolMenu::MenuProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

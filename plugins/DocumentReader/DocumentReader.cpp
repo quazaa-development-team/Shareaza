@@ -3,7 +3,7 @@
 //
 //	Created by:		Rolandas Rudomanskis
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -21,7 +21,9 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
+#pragma once
 #include "stdafx.h"
+#include "Globals.h"
 #include "resource.h"
 #include "DocumentReader.h"
 
@@ -38,11 +40,17 @@ PFN_STGOPENSTGEX  v_pfnStgOpenStorageEx; // StgOpenStorageEx (Win2K/XP only)
 class CDocumentReaderModule : public CAtlDllModuleT< CDocumentReaderModule >
 {
 public :
+	CDocumentReaderModule();
 	DECLARE_LIBID(LIBID_DocumentReaderLib)
 	DECLARE_REGISTRY_APPID_RESOURCEID(IDR_DOCUMENTREADER, "{BEC42E3F-4B6B-49A3-A099-EB3D6752AA02}")
+	HRESULT DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv);
 };
 
 CDocumentReaderModule _AtlModule;
+
+CDocumentReaderModule::CDocumentReaderModule()
+{
+}
 
 // DLL Entry Point
 extern "C" BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
@@ -50,6 +58,7 @@ extern "C" BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpRes
 	switch ( dwReason )
 	{
 	case DLL_PROCESS_ATTACH:
+		ODS(_T("DllMain - Attach\n"));
 		v_hModule = hInstance; v_cLocks = 0;
         v_hPrivateHeap = HeapCreate(0, 0x1000, 0);
         v_fRunningOnNT = ( ( GetVersion() & 0x80000000 ) != 0x80000000 );
@@ -60,6 +69,7 @@ extern "C" BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpRes
 		break;
 
 	case DLL_PROCESS_DETACH:
+		ODS(_T("DllMain - Detach\n"));
         if ( v_hPrivateHeap ) HeapDestroy( v_hPrivateHeap );
         DeleteCriticalSection( &v_csSynch );
 		break;
@@ -68,16 +78,13 @@ extern "C" BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpRes
     return _AtlModule.DllMain( dwReason, lpReserved ); 
 }
 
+// Used to determine whether the DLL can be unloaded by OLE
 STDAPI DllCanUnloadNow(void)
 {
-    return _AtlModule.DllCanUnloadNow();
+    return ( _AtlModule.GetLockCount() == 0 ) ? S_OK : S_FALSE;
 }
 
-STDAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv)
-{
-    return _AtlModule.DllGetClassObject( rclsid, riid, ppv );
-}
-
+// DllRegisterServer - Adds entries to the system registry
 STDAPI DllRegisterServer(void)
 {
 	LPWSTR  pwszModule;
@@ -86,16 +93,47 @@ STDAPI DllRegisterServer(void)
 	if (!FGetModuleFileName( v_hModule, &pwszModule) )
 		return E_UNEXPECTED;
 
-    return _AtlModule.DllRegisterServer();
+    // registers object, typelib and all interfaces in typelib
+    HRESULT hr = _AtlModule.DllRegisterServer();
+
+	return hr;
 }
 
+// DllUnregisterServer - Removes entries from the system registry
 STDAPI DllUnregisterServer(void)
 {
 	LPWSTR  pwszModule;
-
+	HRESULT hr;
 	//If we can't find the path to the DLL, we can't unregister...
 	if ( !FGetModuleFileName( v_hModule, &pwszModule) )
 		return E_UNEXPECTED;
 
-	return _AtlModule.DllUnregisterServer();
+	hr = _AtlModule.DllUnregisterServer();
+	return hr;
+}
+HRESULT CDocumentReaderModule::DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID* ppv)
+{
+	ODS(_T("CDocumentReaderModule::DllGetClassObject\n"));
+	HRESULT hr;
+
+	CDocumentClassFactory* pcf;
+
+	CHECK_NULL_RETURN(ppv, E_POINTER);
+	*ppv = NULL;
+
+ // The only components we can create
+	if ( rclsid != CLSID_DocReader )
+		return CLASS_E_CLASSNOTAVAILABLE;
+
+ // Create the needed class factory...
+	pcf = new CDocumentClassFactory();
+	CHECK_NULL_RETURN( pcf, E_OUTOFMEMORY );
+
+ // Get requested interface.
+	if ( SUCCEEDED(hr = pcf->QueryInterface(rclsid, ppv)) )
+        { pcf->LockServer(TRUE); }
+    else
+        { *ppv = NULL; delete pcf; }
+
+	return hr;
 }

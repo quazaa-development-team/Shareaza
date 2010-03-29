@@ -44,7 +44,6 @@
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="_DEBUG"
 				AdditionalIncludeDirectories="..\..\shareaza"
-				TypeLibraryName="$(IntDir)/$(InputName).tlb"
 				HeaderFileName="$(InputName).h"
 				DLLDataFileName=""
 				InterfaceIdentifierFileName="$(InputName)_i.c"
@@ -138,7 +137,6 @@
 				PreprocessorDefinitions="_DEBUG"
 				AdditionalIncludeDirectories="..\..\shareaza"
 				TargetEnvironment="3"
-				TypeLibraryName="$(IntDir)/$(InputName).tlb"
 				HeaderFileName="$(InputName).h"
 				DLLDataFileName=""
 				InterfaceIdentifierFileName="$(InputName)_i.c"
@@ -230,7 +228,6 @@
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="NDEBUG"
 				AdditionalIncludeDirectories="..\..\shareaza"
-				TypeLibraryName="$(IntDir)/$(InputName).tlb"
 				HeaderFileName="$(InputName).h"
 				DLLDataFileName=""
 				InterfaceIdentifierFileName="$(InputName)_i.c"
@@ -330,7 +327,6 @@
 				PreprocessorDefinitions="NDEBUG"
 				AdditionalIncludeDirectories="..\..\shareaza"
 				TargetEnvironment="3"
-				TypeLibraryName="$(IntDir)/$(InputName).tlb"
 				HeaderFileName="$(InputName).h"
 				DLLDataFileName=""
 				InterfaceIdentifierFileName="$(InputName)_i.c"
@@ -468,7 +464,9 @@
 					>
 					<Tool
 						Name="VCMIDLTool"
+						TypeLibraryName="$(IntDir)/ShareazaOM.tlb"
 						OutputDirectory=""
+						HeaderFileName="ShareazaOM.h"
 					/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -476,7 +474,9 @@
 					>
 					<Tool
 						Name="VCMIDLTool"
+						TypeLibraryName="$(IntDir)/ShareazaOM.tlb"
 						OutputDirectory=""
+						HeaderFileName="ShareazaOM.h"
 					/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -484,7 +484,9 @@
 					>
 					<Tool
 						Name="VCMIDLTool"
+						TypeLibraryName="$(IntDir)/ShareazaOM.tlb"
 						OutputDirectory=""
+						HeaderFileName="ShareazaOM.h"
 					/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -492,7 +494,9 @@
 					>
 					<Tool
 						Name="VCMIDLTool"
+						TypeLibraryName="$(IntDir)/ShareazaOM.tlb"
 						OutputDirectory=""
+						HeaderFileName="ShareazaOM.h"
 					/>
 				</FileConfiguration>
 			</File>
@@ -543,7 +547,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\RARBuilder.h"
+				>
+			</File>
+			<File
 				RelativePath=".\resource.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Shareaza.h"
 				>
 			</File>
 			<File
@@ -579,12 +591,7 @@
 		</Filter>
 		<Filter
 			Name="Generated Files"
-			SourceControlFiles="false"
 			>
-			<File
-				RelativePath=".\RARBuilder.h"
-				>
-			</File>
 			<File
 				RelativePath=".\RARBuilder_i.c"
 				>

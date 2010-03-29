@@ -1,7 +1,7 @@
 //
 // CoolMenu.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -33,10 +33,13 @@ struct __declspec(uuid("bcfce0a0-ec17-11d0-8d10-00a0c90f2719")) IContextMenu3;
 
 class CCoolMenu
 {
+// Construction
 public:
 	CCoolMenu();
 	virtual ~CCoolMenu();
 
+// Operations
+public:
 	void		Clear();
 	BOOL		AddMenu(CMenu* pMenu, BOOL bChild = FALSE);
 	BOOL		ReplaceMenuText(CMenu* pMenu, int nPosition, MENUITEMINFO FAR* mii, LPCTSTR pszText);
@@ -45,7 +48,7 @@ public:
 	void		OnMeasureItem(LPMEASUREITEMSTRUCT lpMeasureItemStruct);
 	void		OnDrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct);
 	LRESULT		OnMenuChar(UINT nChar, UINT nFlags, CMenu* pMenu);
-	void		DoExplorerMenu(HWND hwnd, const CStringList& oFiles, POINT point, HMENU hMenu, HMENU hSubMenu, UINT nFlags);
+	UINT_PTR	DoExplorerMenu(HWND hwnd, const CStringList& oFiles, POINT point, HMENU hMenu, HMENU hSubMenu, UINT nFlags);
 
 protected:
 	CComPtr< IContextMenu >		m_pContextMenuCache;

@@ -1,7 +1,7 @@
 //
 // CtrlDownloads.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -242,10 +242,10 @@ BOOL CDownloadsCtrl::LoadColumnState()
 
 	for ( int nColumns = 0 ; m_wndHeader.GetItem( nColumns, &pItem ) ; nColumns++ )
 	{
-		if ( strWidths.GetLength() < 4 || strOrdering.GetLength() < 2 ||
-			_stscanf( strWidths.Left( 4 ), _T("%x"), &pItem.cxy ) != 1 ||
-			_stscanf( strOrdering.Left( 2 ), _T("%x"), &pItem.iOrder ) != 1 )
-			return FALSE;
+		if ( strWidths.GetLength() < 4 || strOrdering.GetLength() < 2 ) return FALSE;
+
+		_stscanf( strWidths.Left( 4 ), _T("%x"), &pItem.cxy );
+		_stscanf( strOrdering.Left( 2 ), _T("%x"), &pItem.iOrder );
 
 		strWidths = strWidths.Mid( 4 );
 		strOrdering = strOrdering.Mid( 2 );
@@ -415,12 +415,13 @@ void CDownloadsCtrl::SelectAll(CDownload* /*pDownload*/, CDownloadSource* /*pSou
 		CDownload* pDownload = Downloads.GetNext( pos );
 
 		// If a download is selected, select all downloads
-		if ( pDownload->m_bSelected )
+		if ( pDownload != NULL && pDownload->m_bSelected )
 		{
 			for ( POSITION pos2 = Downloads.GetIterator() ; pos2 != NULL ; )
 			{
-				if ( CDownload* pSelectedDownload = Downloads.GetNext( pos2 ) )
-					pSelectedDownload->m_bSelected = TRUE;
+				CDownload* pDownload = Downloads.GetNext( pos2 );
+
+				if ( pDownload != NULL ) pDownload->m_bSelected = TRUE;
 			}
 
 			bSelected = TRUE;
@@ -1007,6 +1008,9 @@ void CDownloadsCtrl::PaintDownload(CDC& dc, const CRect& rcRow, CDownload* pDown
 
 	pColumn.mask = HDI_FORMAT | HDI_LPARAM;
 
+	/*int nTransfers		= pDownload->GetTransferCount();*/
+	int nSources		= pDownload->GetEffectiveSourceCount();
+	int nTotalSources	= pDownload->GetSourceCount();
 	int nRating			= pDownload->GetReviewAverage();
 
 	if ( ( nRating == 0 ) && ( pDownload->GetReviewCount() > 0 ) )
@@ -1139,17 +1143,33 @@ void CDownloadsCtrl::PaintDownload(CDC& dc, const CRect& rcRow, CDownload* pDown
 			if ( m_bShowSearching && pDownload->IsSearching() )
 				LoadString( strText, IDS_STATUS_SEARCHING );
 			else
-				strText = pDownload->GetDownloadStatus();
+				strText = GetDownloadStatus( pDownload );
 			break;
 
 		case DOWNLOAD_COLUMN_CLIENT:
-			strText = pDownload->GetDownloadSources();
+			if ( pDownload->IsCompleted() )
+			{
+				if ( pDownload->m_bVerify == TRI_TRUE )
+					LoadString( strText, IDS_STATUS_VERIFIED );
+				else if ( pDownload->m_bVerify == TRI_FALSE )
+					LoadString( strText, IDS_STATUS_UNVERIFIED );
+			}
+			else if ( nTotalSources == 0 )
+				LoadString( strText, IDS_STATUS_NOSOURCES );
+			else if ( nSources == nTotalSources )
+			{
+				LoadSourcesString( strSource,  nSources );
+				strText.Format( _T("(%i %s)"), nSources, strSource );
+			}
+			else
+			{
+				LoadSourcesString( strSource,  nTotalSources, true );
+				strText.Format( _T("(%i/%i %s)"), nSources, nTotalSources, strSource );
+			}
 			break;
-
 		case DOWNLOAD_COLUMN_DOWNLOADED:
 			strText = Settings.SmartVolume( pDownload->GetVolumeComplete() );
 			break;
-
 		case DOWNLOAD_COLUMN_PERCENTAGE:
 			if ( ( pDownload->m_nSize < SIZE_UNKNOWN ) && ( pDownload->m_nSize > 0 ) )
 			{
@@ -1278,7 +1298,7 @@ void CDownloadsCtrl::PaintSource(CDC& dc, const CRect& rcRow, CDownload* pDownlo
 			{
 				strText.Format( _T("%lu@%s:%u"),
 					pSource->m_pAddress.S_un.S_addr,
-					(LPCTSTR)CString( inet_ntoa( pSource->m_pServerAddress ) ),
+					CString( inet_ntoa( pSource->m_pServerAddress ) ),
 					pSource->m_nServerPort );
 			}
 
@@ -1286,7 +1306,7 @@ void CDownloadsCtrl::PaintSource(CDC& dc, const CRect& rcRow, CDownload* pDownlo
 			else if ( ! pSource->IsIdle() )
 			{
 				strText.Format( _T("%s:%u"),
-					(LPCTSTR)pSource->GetAddress(),
+					pSource->GetAddress(),
 					ntohs( pSource->GetPort() ) );
 			}
 
@@ -1294,7 +1314,7 @@ void CDownloadsCtrl::PaintSource(CDC& dc, const CRect& rcRow, CDownload* pDownlo
 			else
 			{
 				strText.Format( _T("%s:%u"),
-					(LPCTSTR)CString( inet_ntoa( pSource->m_pAddress ) ),
+					CString( inet_ntoa( pSource->m_pAddress ) ),
 					pSource->m_nPort );
 			}
 
@@ -1567,6 +1587,80 @@ void CDownloadsCtrl::OnChangeHeader(NMHDR* /*pNotifyStruct*/, LRESULT* /*pResult
 	Update();
 }
 
+CString CDownloadsCtrl::GetDownloadStatus(CDownload *pDownload)
+{
+	CString strText;
+	int nSources = pDownload->GetEffectiveSourceCount();
+
+	if ( pDownload->IsCompleted() )
+		if ( pDownload->IsSeeding() )
+		{
+			if ( pDownload->m_bTorrentTrackerError )
+				LoadString( strText, IDS_STATUS_TRACKERDOWN );
+			else
+				LoadString( strText, IDS_STATUS_SEEDING );
+		}
+		else
+			LoadString( strText, IDS_STATUS_COMPLETED );
+	else if ( pDownload->IsPaused() )
+	{
+		if ( pDownload->GetFileError() != ERROR_SUCCESS )
+			if ( pDownload->IsMoving() )
+				LoadString( strText, IDS_STATUS_CANTMOVE );
+			else
+				LoadString( strText, IDS_STATUS_FILEERROR );
+		else
+			LoadString( strText, IDS_STATUS_PAUSED );
+	}
+	else if ( pDownload->IsMoving() )
+		LoadString( strText, IDS_STATUS_MOVING );
+	else if ( pDownload->IsStarted() && pDownload->GetProgress() == 100.0f )
+		LoadString( strText, IDS_STATUS_VERIFYING );
+	else if ( pDownload->IsDownloading() )
+	{
+		DWORD nTime = pDownload->GetTimeRemaining();
+	
+		if ( nTime == 0xFFFFFFFF )
+			LoadString( strText, IDS_STATUS_ACTIVE );
+		else
+		{
+			if ( nTime > 86400 )
+				strText.Format( _T("%i:%.2i:%.2i:%.2i"), nTime / 86400, ( nTime / 3600 ) % 24, ( nTime / 60 ) % 60, nTime % 60 );
+			else
+				strText.Format( _T("%i:%.2i:%.2i"), nTime / 3600, ( nTime / 60 ) % 60, nTime % 60 );
+		}
+	}
+	else if ( ! pDownload->IsTrying() )
+		LoadString( strText, IDS_STATUS_QUEUED );
+	else if ( pDownload->IsDownloading() )
+		LoadString( strText, IDS_STATUS_DOWNLOADING );
+	else if ( nSources > 0 )
+		LoadString( strText, IDS_STATUS_PENDING );
+	else if ( pDownload->IsTorrent() )
+	{
+		if ( pDownload->GetTaskType() == dtaskAllocate )
+			LoadString( strText, IDS_STATUS_CREATING );
+		else if ( pDownload->m_bTorrentTrackerError )
+			LoadString( strText, IDS_STATUS_TRACKERDOWN );
+		else
+			LoadString( strText, IDS_STATUS_TORRENT );
+	}
+	else
+		LoadString( strText, IDS_STATUS_QUEUED );
+
+	return strText;
+}
+
+int CDownloadsCtrl::GetClientStatus(CDownload *pDownload)
+{
+	int nSources = pDownload->GetEffectiveSourceCount();
+			
+	if ( pDownload->IsCompleted() )
+		return -1;
+	else
+		return nSources;
+}
+
 void CDownloadsCtrl::BubbleSortDownloads(int nColumn)  // BinaryInsertionSortDownloads(int nColumn)
 {
 
@@ -1616,13 +1710,13 @@ void CDownloadsCtrl::BubbleSortDownloads(int nColumn)  // BinaryInsertionSortDow
 							bRlBk = FALSE;
 						break;
 					case DOWNLOAD_COLUMN_STATUS:
-						if ( x->GetDownloadStatus().CompareNoCase( y->GetDownloadStatus() ) < 0 )
+						if ( GetDownloadStatus( x ).CompareNoCase(GetDownloadStatus(y)) < 0 )
 							bOK = TRUE;
 						else
 							bRlBk = FALSE;
 						break;
 					case DOWNLOAD_COLUMN_CLIENT:
-						if ( x->GetClientStatus() < y->GetClientStatus() )
+						if ( GetClientStatus( x ) < GetClientStatus(y) )
 							bOK = TRUE;
 						else
 							bRlBk = FALSE;
@@ -1670,13 +1764,13 @@ void CDownloadsCtrl::BubbleSortDownloads(int nColumn)  // BinaryInsertionSortDow
 							bRlBk = FALSE;
 						break;
 					case DOWNLOAD_COLUMN_STATUS:
-						if ( x->GetDownloadStatus().CompareNoCase( y->GetDownloadStatus() ) > 0 )
+						if ( GetDownloadStatus(x).CompareNoCase( GetDownloadStatus(y) ) > 0 )
 							bOK = TRUE;
 						else
 							bRlBk = FALSE;
 						break;
 					case DOWNLOAD_COLUMN_CLIENT:
-						if ( x->GetClientStatus() > y->GetClientStatus() )
+						if ( GetClientStatus(x) > GetClientStatus(y) )
 							bOK = TRUE;
 						else
 							bRlBk = FALSE;
@@ -1879,9 +1973,9 @@ void CDownloadsCtrl::OnLButtonDown(UINT nFlags, CPoint point)
 				{
 					for ( POSITION posSource = pDownload->GetIterator(); posSource ; )
 					{
-						CDownloadSource* pDownloadSource = pDownload->GetNext( posSource );
+						CDownloadSource* pSource = pDownload->GetNext( posSource );
 
-						pDownloadSource->m_bSelected = FALSE;
+						pSource->m_bSelected = FALSE;
 					}
 				}
 				
@@ -1957,9 +2051,9 @@ void CDownloadsCtrl::OnLButtonDblClk(UINT nFlags, CPoint point)
 				{
 					for ( POSITION posSource = pDownload->GetIterator(); posSource ; )
 					{
-						CDownloadSource* pDownloadSource = pDownload->GetNext( posSource );
+						CDownloadSource* pSource = pDownload->GetNext( posSource );
 
-						pDownloadSource->m_bSelected = FALSE;
+						pSource->m_bSelected = FALSE;
 					}
 				}
 				

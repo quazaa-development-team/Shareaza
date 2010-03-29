@@ -282,6 +282,8 @@ BOOL CFragmentedFile::Open(const CShareazaFile& oSHFile, BOOL bWrite)
 		}
 	}
 
+	ASSERT( lstrcmpi( PathFindExtension( strSource ), _T(".sd") ) != 0 );
+
 	if ( ! Open( strSource, 0, oSHFile.m_nSize, bWrite, oSHFile.m_sName ) )
 	{
 		CString strMessage;

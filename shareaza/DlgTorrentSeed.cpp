@@ -297,14 +297,12 @@ BOOL CTorrentSeedDlg::CreateDownload()
 		}
 		else
 		{
-			if ( CDownload* pDownload = Downloads.Add( CShareazaURL( new CBTInfo( m_pInfo ) ) ) )
+			CDownload* pDownload = Downloads.Add( CShareazaURL( new CBTInfo( m_pInfo ) ) );
+			if ( pDownload && pDownload->SeedTorrent( m_sMessage ) )
 			{
-				if ( pDownload->SeedTorrent( m_sMessage ) )
-				{
-					return TRUE;
-				}
-				pDownload->Remove();
+				return TRUE;
 			}
+			pDownload->Remove();
 		}
 	}
 

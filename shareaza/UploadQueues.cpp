@@ -1,7 +1,7 @@
 //
 // UploadQueues.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -239,10 +239,10 @@ CUploadQueue* CUploadQueues::SelectQueue(PROTOCOLID nProtocol, LPCTSTR pszName, 
 //////////////////////////////////////////////////////////////////////
 // CUploadQueues counting
 
-DWORD CUploadQueues::GetTotalBandwidthPoints( BOOL ActiveOnly )
+int CUploadQueues::GetTotalBandwidthPoints( BOOL ActiveOnly )
 {
 	CQuickLock oLock( m_pSection );
-	DWORD nCount = 0;
+	int nCount = 0;
 	CUploadQueue *pQptr;
 
 	for ( POSITION pos = GetIterator() ; pos ; )
@@ -267,10 +267,10 @@ DWORD CUploadQueues::GetTotalBandwidthPoints( BOOL ActiveOnly )
 	return nCount;
 }
 
-/*DWORD CUploadQueues::GetQueueCapacity()
+int CUploadQueues::GetQueueCapacity()
 {
 	CQuickLock oLock( m_pSection );
-	DWORD nCount = 0;
+	int nCount = 0;
 
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
@@ -278,12 +278,12 @@ DWORD CUploadQueues::GetTotalBandwidthPoints( BOOL ActiveOnly )
 	}
 
 	return nCount;
-}*/
+}
 
-/*DWORD CUploadQueues::GetQueuedCount()
+INT_PTR CUploadQueues::GetQueuedCount()
 {
 	CQuickLock oLock( m_pSection );
-	DWORD nCount = 0;
+	INT_PTR nCount = 0;
 
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
@@ -291,12 +291,12 @@ DWORD CUploadQueues::GetTotalBandwidthPoints( BOOL ActiveOnly )
 	}
 
 	return nCount;
-}*/
+}
 
-/*DWORD CUploadQueues::GetQueueRemaining()
+INT_PTR CUploadQueues::GetQueueRemaining()
 {
 	CQuickLock oLock( m_pSection );
-	DWORD nCount = 0;
+	INT_PTR nCount = 0;
 
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
@@ -304,12 +304,12 @@ DWORD CUploadQueues::GetTotalBandwidthPoints( BOOL ActiveOnly )
 	}
 
 	return nCount;
-}*/
+}
 
-/*DWORD CUploadQueues::GetTransferCount()
+INT_PTR CUploadQueues::GetTransferCount()
 {
 	CQuickLock oLock( m_pSection );
-	DWORD nCount = 0;
+	INT_PTR nCount = 0;
 
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
@@ -317,7 +317,7 @@ DWORD CUploadQueues::GetTotalBandwidthPoints( BOOL ActiveOnly )
 	}
 
 	return nCount;
-}*/
+}
 
 BOOL CUploadQueues::IsTransferAvailable()
 {
@@ -385,7 +385,7 @@ BOOL CUploadQueues::CanUpload(PROTOCOLID nProtocol, CLibraryFile const * const p
 	if ( pFile->m_nSize == 0 ) return FALSE;
 
 	// Detect Ghosts
-	if ( ! pFile->IsAvailable() ) return FALSE;
+	if ( pFile->IsGhost() ) return FALSE;
 
 	// G1 and G2 both use HTTP transfers, Sharaza doesn't consider them different.
 	if ( ( nProtocol == PROTOCOL_G1 ) || ( nProtocol == PROTOCOL_G2 ) )
@@ -400,7 +400,7 @@ BOOL CUploadQueues::CanUpload(PROTOCOLID nProtocol, CLibraryFile const * const p
 
 		if ( pQueue->CanAccept(	nProtocol, pFile->m_sName, pFile->m_nSize, CUploadQueue::ulqLibrary, pFile->m_sShareTags ) )
 		{	// If this queue will accept this file
-			if ( ! bCanQueue || ! pQueue->IsFull() )
+			if ( ( ! bCanQueue ) || ( pQueue->GetQueueRemaining() > 0 ) )
 			{	// And we don't care if there is space now, or the queue isn't full)
 				return TRUE; // Then this file can be uploaded
 			}

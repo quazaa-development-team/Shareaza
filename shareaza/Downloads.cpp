@@ -1124,7 +1124,7 @@ bool CDownloads::OnQueryHits(const CQueryHit* pHits)
 	for ( POSITION pos = GetIterator() ; pos ; )
 	{
 		CDownload* pDownload = GetNext( pos );
-		if ( ! pDownload->IsCompleted() && ! pDownload->IsMoving() )
+		if ( !pDownload->IsMoving() )
 			pDownload->OnQueryHits( pHits );
 	}
 

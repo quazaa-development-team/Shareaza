@@ -598,7 +598,7 @@ namespace
 		}
 	};
 
-	template< int round > __forceinline void tigerRound(uint64& a, uint64& b, uint64& c, const uint64* x)
+	template< int round > inline void tigerRound(uint64& a, uint64& b, uint64& c, const uint64* x)
 	{
 		static const uint32 mul = ( round / 8 ) * 2 + 5;
 		c ^= x[ round % 8 ];
@@ -613,7 +613,7 @@ namespace
 		b *= mul;
 	}
 
-	__forceinline void keySchedule(uint64* x)
+	inline void keySchedule(uint64* x)
 	{
 		x[ 0 ] -= x[ 7 ] ^ 0xA5A5A5A5A5A5A5A5;
 		x[ 1 ] ^= x[ 0 ];

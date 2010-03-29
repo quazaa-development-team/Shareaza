@@ -1,7 +1,7 @@
 //
 // BTClient.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -51,8 +51,8 @@ protected:
 	BOOL					m_bOnline;
 	BOOL					m_bClosing;
 	DWORD					m_tLastKeepAlive;
-	QWORD					m_nUtMetadataID;
-	QWORD					m_nUtMetadataSize;
+	DWORD					m_dUtMetadataID;
+	DWORD					m_dUtMetadataSize;
 
 // Operations
 public:

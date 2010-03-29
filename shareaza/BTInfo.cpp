@@ -60,8 +60,6 @@ CBTInfo::CBTInfo()
 ,	m_nStartDownloads	( dtAlways )
 ,	m_bEncodingError	( false )
 ,	m_nTestByte			( 0ul )
-,	m_nInfoSize			( 0ul )
-,	m_nInfoStart		( 0ul )
 {
 }
 
@@ -79,8 +77,6 @@ CBTInfo::CBTInfo(const CBTInfo& oSource)
 ,	m_nStartDownloads	( dtAlways )
 ,	m_bEncodingError	( false )
 ,	m_nTestByte			( 0ul )
-,	m_nInfoSize			( 0ul )
-,	m_nInfoStart		( 0ul )
 {
 	*this = oSource;
 }
@@ -233,21 +229,19 @@ CBTInfo& CBTInfo::operator=(const CBTInfo& oSource)
 
 	m_pSource.Clear();
 	m_pSource.Add( oSource.m_pSource.m_pBuffer, oSource.m_pSource.m_nLength );
-	m_nInfoSize			= oSource.m_nInfoSize;
-	m_nInfoStart		= oSource.m_nInfoStart;
+
 	return *this;
 }
 
 //////////////////////////////////////////////////////////////////////
 // CBTInfo serialize
 
-#define BTINFO_SER_VERSION 11
+#define BTINFO_SER_VERSION 10
 // History:
 // 7 - redesigned tracker list (ryo-oh-ki)
 // 8 - removed m_nFilePriority (ryo-oh-ki)
 // 9 - added m_sName (ryo-oh-ki)
 // 10 - added m_pSource (ivan386)
-// 11 - added m_nInfoStart and m_nInfoSize (ivan386)
 
 void CBTInfo::Serialize(CArchive& ar)
 {
@@ -293,12 +287,10 @@ void CBTInfo::Serialize(CArchive& ar)
 			m_oTrackers[ nTracker ].Serialize( ar, nVersion );
 		}
 
-		if ( m_pSource.m_nLength && m_nInfoSize )
+		if ( m_pSource.m_nLength && CheckInfoData( &m_pSource ) )
 		{
 			ar << m_pSource.m_nLength;
 			ar.Write( m_pSource.m_pBuffer, m_pSource.m_nLength );
-			ar << m_nInfoStart;
-			ar << m_nInfoSize;
 		}
 		else
 			ar << (DWORD)0;
@@ -410,15 +402,7 @@ void CBTInfo::Serialize(CArchive& ar)
 				m_pSource.EnsureBuffer( nLength );
 				ar.Read( m_pSource.m_pBuffer, nLength );
 				m_pSource.m_nLength = nLength;
-				if ( nVersion >= 11 )
-				{
-					ar >> m_nInfoStart;
-					ar >> m_nInfoSize;
-				}
-				else
-				{
-					VERIFY( CheckInfoData() );
-				}
+				VERIFY( CheckInfoData( &m_pSource ) );
 			}		
 		}
 
@@ -539,42 +523,56 @@ BOOL CBTInfo::SaveTorrentFile(const CString& sFolder)
 }
 
 #define MAX_PIECE_SIZE (16 * 1024)
-BOOL CBTInfo::LoadInfoPiece(DWORD nPieceSize, DWORD nInfoSize, DWORD nInfoPiece, BYTE *pPacketBuffer, DWORD nPacketLength)
+BOOL CBTInfo::LoadInfoPiece(DWORD nInfoSize, DWORD nInfoPiece, BYTE *pPacketBuffer, DWORD nPacketLength)
 {
-	ASSERT( nPieceSize <= MAX_PIECE_SIZE );
-	if ( nPieceSize > MAX_PIECE_SIZE ) 
-		return FALSE;
-
 	if ( m_pSource.m_nLength == 0 && nInfoPiece == 0 )
 	{
-		CBENode oRoot;
+		m_pSource.Add( "d", 1 );
 		if ( GetTrackerCount() > 0 )
 		{
-			oRoot.Add("announce")->SetString(GetTrackerAddress());
+			CString sAddress = GetTrackerAddress();
+			if ( sAddress.GetLength() > 0 )
+			{
+				sAddress.Format( _T("8:announce%d:%s" ), sAddress.GetLength(), sAddress );
+				CStringA sAnnounce = UTF8Encode( sAddress );
+				m_pSource.Add( sAnnounce.GetBuffer(), sAnnounce.GetLength() );
+				sAnnounce.ReleaseBuffer();
+			}
 
 			if ( GetTrackerCount() > 1 )
 			{
-				CBENode* pList = oRoot.Add("announce-list")->Add();
+				m_pSource.Add( "13:announce-listll", 18 );
 				for ( int i = 0; i < GetTrackerCount(); i++ )
 				{
-					pList->Add()->SetString(GetTrackerAddress( i ));
+					CString sAddress = GetTrackerAddress( i );
+					if ( sAddress.GetLength() > 0 )
+					{
+						sAddress.Format( _T("%d:%s"), sAddress.GetLength(), sAddress );
+						CStringA sAnnounce = UTF8Encode( sAddress );
+						m_pSource.Add( sAnnounce.GetBuffer(), sAnnounce.GetLength() );
+						sAnnounce.ReleaseBuffer();
+					}
 				}
+				m_pSource.Add( "ee", 2 );
 			}
 
 		}
-		oRoot.Add("info")->SetInt(0);
-		oRoot.Encode(&m_pSource);
-		m_pSource.m_nLength -= 4;
+		m_pSource.Add( "4:info", 6 );
+		m_nInfoSize = nInfoSize;
 		m_nInfoStart = m_pSource.m_nLength;
 	}
 
+	ASSERT( m_nInfoSize == nInfoSize );
+
 	QWORD nPieceStart = nInfoPiece * MAX_PIECE_SIZE;
+	QWORD nPieceSize = m_nInfoSize - nPieceStart;
+	if ( nPieceSize > MAX_PIECE_SIZE ) nPieceSize = MAX_PIECE_SIZE;
 
 	if ( nPieceStart == ( m_pSource.m_nLength - m_nInfoStart ) && nPacketLength > nPieceSize )
 	{
 		m_pSource.Add( &pPacketBuffer[ nPacketLength - nPieceSize ], nPieceSize );
 
-		if ( m_pSource.m_nLength - m_nInfoStart == nInfoSize )
+		if ( m_pSource.m_nLength - m_nInfoStart == m_nInfoSize )
 		{
 			m_pSource.Add( "e", 1 );
 			return LoadTorrentBuffer( &m_pSource );
@@ -587,7 +585,7 @@ int CBTInfo::NextInfoPiece()
 {
 	if( m_pSource.m_nLength == 0 )
 		return 0; 
-	else if( ( m_pSource.m_nLength - m_nInfoStart ) > 0 && ! m_nInfoSize )
+	else if( m_nInfoSize > ( m_pSource.m_nLength - m_nInfoStart ) )
 	{
 		return ( m_pSource.m_nLength - m_nInfoStart ) / MAX_PIECE_SIZE;
 	}
@@ -613,36 +611,156 @@ DWORD CBTInfo::GetInfoSize()
 	return m_nInfoSize;
 }
 
-BOOL CBTInfo::CheckInfoData()
+BOOL CBTInfo::CheckInfoData(const CBuffer* pSource)
 {
-	ASSERT( m_pSource.m_nLength );
+	ASSERT( pSource && pSource->m_nLength );
 
-	if ( ! m_pSource.m_nLength ) return FALSE;
+	const DWORD nBlock = pSource->m_nLength;
+	const BYTE* pBuffer = pSource->m_pBuffer;
 
-	auto_ptr< CBENode > pNode ( CBENode::Decode( &m_pSource ) );
-	if ( ! pNode.get() )
-		return FALSE;
-
-	CBENode* pRoot = pNode.get();
-	CBENode* pInfo = pRoot->GetNode( "info" );
-
-	if ( pInfo && pInfo->m_nSize &&
-		 pInfo->m_nPosition + pInfo->m_nSize < m_pSource.m_nLength )
+	BOOL bValidTorrent = TRUE;
+	int nDetectInfo = 0;	// 0 - Nothing to do,  1 - DetectStart, 2 - DetectEnd, 3 - Info found
+	char* sInfo = "info";
+	DWORD nSkip = 0;		//Skip string value
+	DWORD nInfoStart = 0;	//Start point of info in Block
+	DWORD nInfoLen = 0;		//Len of info in Block
+	void* pDigitsBuff = NULL;
+	DWORD nDigitsBuff = 0;
+	int nLevel = 0;			//Tree level. For Info must be 1 on start and 2 before end.
+	int nDigitsStart = -1;	//Start of len digits for String
+	
+	if ( bValidTorrent )
 	{
-		Hashes::BtHash oBTH;
-		CSHA pBTH;
-		pBTH.Add( &m_pSource.m_pBuffer[pInfo->m_nPosition], pInfo->m_nSize );
-		pBTH.Finish();
-		pBTH.GetHash( &oBTH[0] );
-		
-		if ( oBTH == m_oBTH )
+		nInfoStart = 0;
+		nInfoLen = nBlock;
+		for ( DWORD i = 0; i < nBlock; i++ )
 		{
-			m_nInfoStart = pInfo->m_nPosition;
-			m_nInfoSize	 = pInfo->m_nSize;
-			return TRUE;
+			if ( nSkip > 0 )
+			{
+				if ( nDetectInfo == 1 && nSkip <= 4 && nLevel == 1 )
+				{
+					if ( (((char*)pBuffer)[ i ] ) == sInfo [ 4 - nSkip ] )
+					{
+						if ( nSkip == 1 )
+						{
+							nInfoStart = i + 1;
+							nInfoLen = nBlock - nInfoStart;
+							nDetectInfo = 2;
+							if ( nInfoLen == 0 ) break;
+						}
+					}
+					else
+					{
+						nDetectInfo = 0;
+					}
+					--nSkip;
+					continue;
+				}
+				else if ( ( nBlock - i ) > nSkip )
+				{
+					i += nSkip;
+					nSkip = 0;
+				}
+				else
+				{
+					nSkip -= ( nBlock - i );
+					break;
+				}
+			}
+			
+			if ( ((char*)pBuffer)[i] == 'd' ||
+				 ((char*)pBuffer)[i] == 'l' ||
+				 ((char*)pBuffer)[i] == 'i' )
+			{
+				nLevel += 1;
+			}
+			else if ( ((char*)pBuffer)[i] == 'e' )
+			{
+				if ( nDetectInfo == 2 && nLevel == 2 )
+				{
+					nInfoLen = i - nInfoStart + 1;
+					nDetectInfo = 3;
+				}
+				nDigitsStart = -1;
+				nLevel -= 1;
+
+				if (nLevel == 0) break; //end of main dictionary
+			}
+			else if ( (((char*)pBuffer)[i]) >= '0' && (((char*)pBuffer)[i]) <= '9' )
+			{
+				if ( nDigitsStart == -1 )
+					nDigitsStart = i;
+			}
+			else if ( ((char*)pBuffer)[i] == ':' )
+			{
+				if ( nDigitsStart >= 0 )
+				{
+					/*if ( nDigitsBuff > 0 && nDigitsStart == 0 && pDigitsBuff )
+					{
+						DWORD nDigitsBuff2 = nDigitsBuff + i + 1;
+						BYTE* pDigitsBuff2 = (BYTE*) malloc( nDigitsBuff2 );
+						memcpy( pDigitsBuff2, pDigitsBuff, nDigitsBuff );
+						memcpy( pDigitsBuff2 + nDigitsBuff, pBuffer, i + 1 );
+						free( pDigitsBuff );
+						pDigitsBuff = pDigitsBuff2;
+						nDigitsBuff = nDigitsBuff2;
+					}
+					else
+					{*/
+						nDigitsBuff = (i-nDigitsStart)+1;
+						pDigitsBuff = malloc(nDigitsBuff);
+						memcpy( pDigitsBuff,((BYTE*) pBuffer)+nDigitsStart, nDigitsBuff);
+					//}
+					((BYTE*) pDigitsBuff)[nDigitsBuff-1]=0;
+					if ( sscanf( (LPCSTR)pDigitsBuff, "%i", &nSkip ) != 1 )
+						bValidTorrent = FALSE;
+					if ( nDetectInfo==0 && nLevel==1 && nSkip == 4 )
+						nDetectInfo = 1;
+					free( pDigitsBuff );
+					nDigitsBuff = 0;
+					nDigitsStart = -1;
+				}
+			}
+			else
+			{
+				bValidTorrent = FALSE;
+			}
 		}
 	}
-	return FALSE;
+	
+	/*if ( bValidTorrent && nDigitsStart >= 0 )
+	{
+		DWORD nDigitsBuff = nBlock-nDigitsStart;
+		BYTE* pDigitsBuff = (BYTE*)malloc( nDigitsBuff );
+		memcpy( pDigitsBuff, ((BYTE*)pBuffer) + nDigitsStart, nDigitsBuff );
+		nDigitsStart = 0;
+	}*/
+
+	Hashes::BtHash oBTH;
+
+	if ( bValidTorrent && nDetectInfo == 3 )
+	{
+		CSHA pBTH;
+		pBTH.Add( &pBuffer[nInfoStart], nInfoLen );
+		pBTH.Finish();
+		pBTH.GetHash( &oBTH[0] );
+		bValidTorrent = oBTH.validate();
+	}
+	else
+		bValidTorrent = FALSE;
+
+	if ( bValidTorrent && m_oBTH )
+	{
+		bValidTorrent = ( oBTH == m_oBTH );
+	}
+
+	if ( bValidTorrent && pSource == &m_pSource )
+	{
+		m_nInfoStart = nInfoStart;
+		m_nInfoSize  = nInfoLen;
+	}
+
+	return bValidTorrent;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -650,6 +768,9 @@ BOOL CBTInfo::CheckInfoData()
 
 BOOL CBTInfo::LoadTorrentBuffer(const CBuffer* pBuffer)
 {
+	if ( ! CheckInfoData( pBuffer ) )
+		return FALSE;
+
 	auto_ptr< CBENode > pNode ( CBENode::Decode( pBuffer ) );
 	if ( ! pNode.get() )
 		return FALSE;
@@ -1195,23 +1316,6 @@ BOOL CBTInfo::LoadTorrentTree(const CBENode* pRoot)
 	if ( ! CheckFiles() ) return FALSE;
 
 	pInfo->GetBth( m_oBTH );
-
-	if ( m_pSource.m_nLength > 0 
-		 && pInfo->m_nSize 
-		 && pInfo->m_nPosition + pInfo->m_nSize < m_pSource.m_nLength )
-	{
-		Hashes::BtHash oBTH;
-		CSHA pBTH;
-		pBTH.Add( &m_pSource.m_pBuffer[pInfo->m_nPosition], pInfo->m_nSize );
-		pBTH.Finish();
-		pBTH.GetHash( &oBTH[0] );
-		
-		if ( oBTH == m_oBTH )
-		{
-			m_nInfoStart = pInfo->m_nPosition;
-			m_nInfoSize	 = pInfo->m_nSize;
-		}
-	}
 
 	return TRUE;
 }

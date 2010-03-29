@@ -1,7 +1,7 @@
 //
 // FileExecutor.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -170,29 +170,6 @@ void CFileExecutor::DetectFileType(LPCTSTR pszFile, LPCTSTR szType, bool& bVideo
 	}
 }
 
-int CFileExecutor::FillServices(CString sServicePaths[])
-{
-	int nCount = 0;
-	int nSelected = 3;
-
-	for(string_set::const_reverse_iterator i = Settings.MediaPlayer.ServicePath.rbegin() ;i != Settings.MediaPlayer.ServicePath.rend(); ++i)
-	{
-		
-		sServicePaths[nCount] = *i;
-
-		int nAstrix= sServicePaths[nCount].ReverseFind( '*' );
-		
-		if(nAstrix == sServicePaths[nCount].GetLength()-1)	//Has astrix at the end so Is Selected player
-		{
-			nSelected = nCount;
-		}
-
-		sServicePaths[nCount].Remove('*');
-		nCount++;
-	}
-	return nSelected;
-}
-
 TRISTATE CFileExecutor::IsSafeExecute(LPCTSTR szExt, LPCTSTR szFile)
 {
 	BOOL bSafe = ! szExt || ! *szExt ||
@@ -226,9 +203,6 @@ TRISTATE CFileExecutor::IsSafeExecute(LPCTSTR szExt, LPCTSTR szFile)
 
 BOOL CFileExecutor::Execute(LPCTSTR pszFile, BOOL bSkipSecurityCheck, LPCTSTR pszExt)
 {
-	CString sServicePaths[3];
-	int nSelServiceIndex = FillServices(sServicePaths);
-
 	CWaitCursor pCursor;
 
 	CString strType;
@@ -284,7 +258,7 @@ BOOL CFileExecutor::Execute(LPCTSTR pszFile, BOOL bSkipSecurityCheck, LPCTSTR ps
 
 	// Handle video and audio files by external player
 	if ( ! bShiftKey && ( bVideo || bAudio ) &&
-		 nSelServiceIndex < 3 )
+		! Settings.MediaPlayer.ServicePath.IsEmpty() )
 	{
 		// Prepare file path for execution
 		TCHAR pszShortPath[ MAX_PATH ];
@@ -295,7 +269,7 @@ BOOL CFileExecutor::Execute(LPCTSTR pszFile, BOOL bSkipSecurityCheck, LPCTSTR ps
 		}
 
 		HINSTANCE hResult = ShellExecute( AfxGetMainWnd()->GetSafeHwnd(), _T("open"),
-			sServicePaths[nSelServiceIndex],
+			Settings.MediaPlayer.ServicePath,
 			CString( _T('\"') ) + pszFile + CString( _T('\"') ), NULL, SW_SHOWNORMAL );
 		if ( hResult > (HINSTANCE)32 )
 			return TRUE;
@@ -323,9 +297,6 @@ BOOL CFileExecutor::Execute(LPCTSTR pszFile, BOOL bSkipSecurityCheck, LPCTSTR ps
 
 BOOL CFileExecutor::Enqueue(LPCTSTR pszFile, BOOL /*bSkipSecurityCheck*/, LPCTSTR pszExt)
 {
-	CString sServicePaths[3];
-	int nSelServiceIndex = FillServices(sServicePaths);
-	
 	CWaitCursor pCursor;
 
 	// Handle all by plugins
@@ -382,13 +353,13 @@ BOOL CFileExecutor::Enqueue(LPCTSTR pszFile, BOOL /*bSkipSecurityCheck*/, LPCTST
 
 	// Handle video and audio files by external player
 	if ( ! bShiftKey && ( bVideo || bAudio ) &&
-		  nSelServiceIndex < 3 )
+		 ! Settings.MediaPlayer.ServicePath.IsEmpty() )
 	{
 		// Try Shell "enqueue" verb
 		CString strCommand, strParam;
 		DWORD nBufferSize = MAX_PATH;
 		HRESULT hr = AssocQueryString( ASSOCF_OPEN_BYEXENAME, ASSOCSTR_COMMAND,
-			sServicePaths[nSelServiceIndex], _T("enqueue"),
+			Settings.MediaPlayer.ServicePath, _T("enqueue"),
 			strCommand.GetBuffer( MAX_PATH ), &nBufferSize );
 		strCommand.ReleaseBuffer();
 		int nPos = PathGetArgsIndex( strCommand );
@@ -412,7 +383,7 @@ BOOL CFileExecutor::Enqueue(LPCTSTR pszFile, BOOL /*bSkipSecurityCheck*/, LPCTST
 		}
 
 		// Try to create "enqueue" verb from default verb for known players
-		CString strExecutable = PathFindFileName( sServicePaths[nSelServiceIndex] );
+		CString strExecutable = PathFindFileName( Settings.MediaPlayer.ServicePath );
 		for ( int i = 0; KnownPlayers[ i ].szPlayer; ++i )
 		{
 			if ( strExecutable.CompareNoCase( KnownPlayers[ i ].szPlayer ) == 0 )
@@ -424,7 +395,7 @@ BOOL CFileExecutor::Enqueue(LPCTSTR pszFile, BOOL /*bSkipSecurityCheck*/, LPCTST
 		if ( ! strParam.IsEmpty() )
 		{
 			HINSTANCE hResult = ShellExecute( AfxGetMainWnd()->GetSafeHwnd(), NULL,
-				sServicePaths[nSelServiceIndex], strParam, NULL, SW_SHOWNORMAL );
+				Settings.MediaPlayer.ServicePath, strParam, NULL, SW_SHOWNORMAL );
 			if ( hResult > (HINSTANCE)32 )
 				return TRUE;
 		}
@@ -461,7 +432,7 @@ BOOL CFileExecutor::Enqueue(LPCTSTR pszFile, BOOL /*bSkipSecurityCheck*/, LPCTST
 		}
 		if ( ! strParam.IsEmpty() )
 		{
-			hResult = ShellExecute( AfxGetMainWnd()->GetSafeHwnd(), NULL,
+			HINSTANCE hResult = ShellExecute( AfxGetMainWnd()->GetSafeHwnd(), NULL,
 				strCommand, strParam, NULL, SW_SHOWNORMAL );
 			if ( hResult > (HINSTANCE)32 )
 				return TRUE;

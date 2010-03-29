@@ -22,7 +22,7 @@
 #pragma once
 
 #include "resource.h"
-#include "Preview.h"
+#include "Preview_i.h"
 
 
 #define REGISTRY_PATH	_T("Software\\Shareaza\\Shareaza Preview Plugin")

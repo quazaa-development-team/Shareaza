@@ -1,7 +1,7 @@
 //
 // SchemaMember.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2007.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -190,7 +190,8 @@ void CSchemaMember::SetValueTo(CXMLElement* pBase, LPCTSTR pszValue)
 	}
 	else if ( m_bElement && pszValue != NULL && _tcslen( pszValue ) > 0 )
 	{
-		pBase->AddElement( m_sName )->SetValue( pszValue );
+		CXMLElement* pElement = pBase->AddElement( m_sName );
+		pElement->SetValue( pszValue );
 	}
 	
 	if ( CXMLAttribute* pAttribute = pBase->GetAttribute( m_sName ) )

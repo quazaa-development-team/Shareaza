@@ -1,7 +1,7 @@
 //
 // SearchManager.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -57,34 +57,24 @@ CSearchManager::~CSearchManager()
 //////////////////////////////////////////////////////////////////////
 // CSearchManager add and remove
 
-bool CSearchManager::Add(CManagedSearch* pSearch)
+void CSearchManager::Add(CManagedSearch* pSearch)
 {
 	ASSUME_LOCK( m_pSection );
 
 	POSITION pos = m_pList.Find( pSearch );
-	if ( pos )
-		// Already started
-		return false;
-
-	pSearch->ComAddRef( NULL );
-	m_pList.AddHead( pSearch );
-
-	return true;
+	ASSERT( pos == NULL );
+	if ( pos == NULL )
+		m_pList.AddHead( pSearch );
 }
 
-bool CSearchManager::Remove(CManagedSearch* pSearch)
+void CSearchManager::Remove(CManagedSearch* pSearch)
 {
 	ASSUME_LOCK( m_pSection );
 
 	POSITION pos = m_pList.Find( pSearch );
-	if ( ! pos )
-		// Already stopped
-		return false;
-
-	m_pList.RemoveAt( pos );
-	pSearch->ComRelease( NULL );
-
-	return true;
+	ASSERT( pos != NULL );
+	if ( pos != NULL )
+		m_pList.RemoveAt( pos );
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -118,6 +108,9 @@ void CSearchManager::OnRun()
 	// Don't run if we aren't connected
 	if ( ! Network.IsWellConnected() ) return;
 
+	if ( Settings.Gnutella2.EnableToday )
+		HostCache.Gnutella2.PruneByQueryAck();
+
 	CSingleLock pLock( &m_pSection );
 	if ( ! pLock.Lock( 100 ) )
 		return;
@@ -135,7 +128,7 @@ void CSearchManager::OnRun()
 		for ( POSITION pos = m_pList.GetHeadPosition(); pos ; )
 		{
 			POSITION posCur = pos;
-			CManagedSearch* pSearch = m_pList.GetNext( pos );
+			CSearchPtr pSearch = m_pList.GetNext( pos );
 
 			if ( pSearch->Execute( m_nPriorityClass ) )
 			{

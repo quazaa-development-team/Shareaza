@@ -1,7 +1,7 @@
 //
 // CtrlLibraryView.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -46,20 +46,18 @@ BEGIN_MESSAGE_MAP(CLibraryView, CWnd)
 	ON_WM_MOUSEWHEEL()
 	ON_WM_CREATE()
 	ON_WM_DESTROY()
-	ON_WM_LBUTTONDOWN()
-	ON_WM_RBUTTONDOWN()
-	ON_WM_KEYDOWN()
 END_MESSAGE_MAP()
+
 
 /////////////////////////////////////////////////////////////////////////////
 // CLibraryView construction
 
 CLibraryView::CLibraryView()
-	: m_nCommandID	( ID_LIBRARY_VIEW )
-	, m_pszToolBar	( NULL )
-	, m_bAvailable	( FALSE )
-	, m_bGhostFolder( FALSE )
 {
+	m_nCommandID	= ID_LIBRARY_VIEW;
+	m_pszToolBar	= NULL;
+	m_bAvailable	= FALSE;
+	m_bGhostFolder	= FALSE;
 }
 
 CLibraryView::~CLibraryView()
@@ -270,29 +268,6 @@ INT_PTR CLibraryView::GetSelectedCount() const
 	return m_pSelection.GetCount();
 }
 
-POSITION CLibraryView::StartSelectedFileLoop() const
-{
-	return m_pSelection.GetHeadPosition();
-}
-
-CLibraryFile* CLibraryView::GetNextSelectedFile(POSITION& posSel, BOOL bSharedOnly, BOOL bAvailableOnly) const
-{
-	while ( posSel )
-	{
-		DWORD_PTR nIndex = m_pSelection.GetNext( posSel );
-		if ( CLibraryFile* pFile = Library.LookupFile( nIndex, bSharedOnly, bAvailableOnly ) )
-			return pFile;
-	}
-
-	return NULL;
-}
-
-CLibraryFile* CLibraryView::GetSelectedFile()
-{
-	if ( m_pSelection.GetCount() == 0 ) return NULL;
-	return Library.LookupFile( m_pSelection.GetHead() );
-}
-
 int CLibraryView::OnCreate(LPCREATESTRUCT lpCreateStruct) 
 {
 	if ( CWnd::OnCreate( lpCreateStruct ) == -1 ) return -1;
@@ -309,38 +284,6 @@ void CLibraryView::OnDestroy()
 	DISABLE_DROP()
 
 	CWnd::OnDestroy();
-}
-
-void CLibraryView::OnLButtonDown(UINT nFlags, CPoint point)
-{
-	GetToolTip()->Hide();
-
-	CWnd::OnLButtonDown( nFlags, point );
-}
-
-void CLibraryView::OnRButtonDown(UINT nFlags, CPoint point)
-{
-	GetToolTip()->Hide();
-
-	CWnd::OnRButtonDown( nFlags, point );
-}
-
-void CLibraryView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
-{
-	GetToolTip()->Hide();
-
-	BOOL bShift = ( GetAsyncKeyState( VK_SHIFT ) & 0x8000 ) == 0x8000;
-	BOOL bControl = ( GetAsyncKeyState( VK_CONTROL ) & 0x8000 ) == 0x8000;
-
-	switch ( nChar )
-	{
-	case 'A':
-	case 'a':
-		if ( bControl && ! bShift ) SelectAll();
-		return;
-	}
-
-	CWnd::OnKeyDown( nChar, nRepCnt, nFlags );
 }
 
 void CLibraryView::StartDragging(const CPoint& ptMouse)
@@ -374,8 +317,6 @@ IMPLEMENT_DROP(CLibraryView,CWnd)
 
 BOOL CLibraryView::OnDrop(IDataObject* pDataObj, DWORD grfKeyState, POINT ptScreen, DWORD* pdwEffect, BOOL bDrop)
 {
-	CQuickLock oLock( Library.m_pSection );
-
 	if ( ! pDataObj )
 	{
 		m_oDropItem.Type = CLibraryListItem::Empty;
@@ -400,6 +341,8 @@ BOOL CLibraryView::OnDrop(IDataObject* pDataObj, DWORD grfKeyState, POINT ptScre
 	{
 		oHit = GetFolder();
 	}
+
+	CQuickLock oLock( Library.m_pSection );
 
 	switch ( oHit.Type )
 	{

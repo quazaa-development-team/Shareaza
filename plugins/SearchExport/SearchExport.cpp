@@ -1,7 +1,7 @@
 // SearchExport.cpp : Implementation of DLL Exports.
 
 #include "stdafx.h"
-#include "SearchExport.h"
+#include "SearchExport_h.h"
 
 class CSearchExportModule : public CAtlDllModuleT< CSearchExportModule >
 {

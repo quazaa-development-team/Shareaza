@@ -252,7 +252,7 @@ void CFileCopyDlg::OnRun()
 			if ( pFile != NULL && pFile->IsAvailable() )
 			{
 				strName		= pFile->m_sName;
-				strPath		= pFile->GetFolder();
+				strPath		= pFile->m_pFolder->m_sPath;
 				pSchema		= pFile->m_pSchema;
 				pMetadata	= pFile->m_pMetadata ? pFile->m_pMetadata->Clone() : NULL;
 				bMetadataAuto = pFile->m_bMetadataAuto;

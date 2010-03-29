@@ -85,6 +85,7 @@ public:
 	}
 	Ever, Today, Last, Current;
 
+	DWORD	m_tUpdate;
 	DWORD	m_tSeconds;
 
 // Operations

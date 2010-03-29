@@ -2478,9 +2478,6 @@
 	<tip id="ID_MEDIA_STOP" message="Stop playing the media file." tip="Stop"/>
 	<tip id="ID_MEDIA_VIS" message="Select an audio visualisation plugin..."/>
 	<tip id="ID_MEDIA_ZOOM" message="Adjust video zoom and aspect ratio settings."/>
-	<tip id="IDC_MEDIA_POSITION" value="Seek to a position in the media file." tip="Seek"/>
-	<tip id="IDC_MEDIA_SPEED" value="Adjust the speed of the media file." tip="Speed"/>
-	<tip id="IDC_MEDIA_VOLUME" value="Adjust the audio volume." tip="Volume"/>
 	<tip id="ID_MONITOR_CLOSE" message="Close the monitor window."/>
 	<tip id="ID_NEIGHBOURS_CHAT" message="Open a chat session with the selected user."/>
 	<tip id="ID_NEIGHBOURS_COPY" message="Copy a URI to access the selected host."/>
@@ -3002,6 +2999,7 @@
 	<string id="16402" value="Shareaza received a collection file:\n\n&quot;%s&quot;\n\nThis file does not appear to be a valid collection file."/>
 	<string id="16403" value="Shareaza has added the collection file &quot;%s&quot; to your library."/>
 	<string id="16404" value="Shareaza was unable to install the collection file &quot;%s&quot; by copying it to the folder &quot;%s&quot;."/>
+	<string id="16405" value="Would you like to download this file?\n\n&quot;%s&quot;\n\nChoose Cancel to stop any further prompts."/>
 	<string id="16406" value="Would you like to download all files in this collection?\n\nChoose Cancel to stop any further prompts."/>
 	<string id="16407" value="Would you like to prevent this collection from prompting you to download anything else?"/>
 	<string id="16408" value="Copy &amp;URI"/>

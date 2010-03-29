@@ -94,6 +94,7 @@ BOOL CFolderPropertiesDlg::OnInitDialog()
 
 	if ( ! Settings.LoadWindow( _T("CFolderPropertiesDlg"), this ) )
 	{
+		CRect rc;
 		GetWindowRect( &rc );
 		rc.bottom++;
 		MoveWindow( &rc );

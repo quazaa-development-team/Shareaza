@@ -1,7 +1,7 @@
 //
 // BENode.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -36,8 +36,6 @@ public:
 	int			m_nType;
 	LPVOID		m_pValue;
 	QWORD		m_nValue;
-	QWORD		m_nPosition;
-	QWORD		m_nSize;
 
 	enum { beNull, beString, beInt, beList, beDict };
 
@@ -52,9 +50,9 @@ public:
 	CString		GetStringFromSubNode(int nItem, UINT nEncoding, bool& pEncodingError) const;
 	void		Encode(CBuffer* pBuffer) const;
 public:
-	static CBENode*	Decode(const CBuffer* pBuffer, DWORD *pnReaden = NULL );
+	static CBENode*	Decode(const CBuffer* pBuffer);
 private:
-	void		Decode(LPBYTE& pInput, DWORD& nInput, DWORD nSize);
+	void		Decode(LPBYTE& pInput, DWORD& nInput);
 	static int	DecodeLen(LPBYTE& pInput, DWORD& nInput);
 
 

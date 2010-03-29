@@ -1,7 +1,7 @@
 //
 // BENode.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -40,8 +40,6 @@ CBENode::CBENode()
 	m_nType		= beNull;
 	m_pValue	= NULL;
 	m_nValue	= 0;
-	m_nPosition	= 0;
-	m_nSize		= 0;
 }
 
 CBENode::~CBENode()
@@ -424,7 +422,7 @@ const CString CBENode::Encode() const
 //////////////////////////////////////////////////////////////////////
 // CBENode decoding
 
-CBENode* CBENode::Decode(const CBuffer* pBuffer, DWORD *pnReaden)
+CBENode* CBENode::Decode(const CBuffer* pBuffer)
 {
 	ASSERT( pBuffer != NULL );
 
@@ -442,11 +440,7 @@ CBENode* CBENode::Decode(const CBuffer* pBuffer, DWORD *pnReaden)
 			INC( 2 );
 		}
 
-		pNode->Decode( pInput, nInput, nInput );
-
-		if ( pnReaden )
-			*pnReaden = pBuffer->m_nLength - nInput;
-
+		pNode->Decode( pInput, nInput );
 		return pNode.release();
 	}
 	catch ( CException* pException )
@@ -456,15 +450,13 @@ CBENode* CBENode::Decode(const CBuffer* pBuffer, DWORD *pnReaden)
 	}
 }
 
-void CBENode::Decode(LPBYTE& pInput, DWORD& nInput, DWORD nSize)
+void CBENode::Decode(LPBYTE& pInput, DWORD& nInput)
 {
 	ASSERT( m_nType == beNull );
 	ASSERT( pInput != NULL );
 
 	if ( nInput < 1 )
 		AfxThrowUserException();
-
-	m_nPosition = nSize - nInput;
 
 	if ( *pInput == 'i' )
 	{
@@ -500,7 +492,7 @@ void CBENode::Decode(LPBYTE& pInput, DWORD& nInput, DWORD nSize)
 				AfxThrowUserException();
 			if ( *pInput == 'e' )
 				break;
-			Add()->Decode( pInput, nInput, nSize );
+			Add()->Decode( pInput, nInput );
 		}
 
 		INC( 1 );
@@ -523,7 +515,7 @@ void CBENode::Decode(LPBYTE& pInput, DWORD& nInput, DWORD nSize)
 			{
 				LPBYTE pKey = pInput;
 				INC( nLen );
-				Add( pKey, nLen )->Decode( pInput, nInput, nSize );
+				Add( pKey, nLen )->Decode( pInput, nInput );
 			}
 		}
 
@@ -543,8 +535,6 @@ void CBENode::Decode(LPBYTE& pInput, DWORD& nInput, DWORD nSize)
 	{
 		AfxThrowUserException();
 	}
-
-	m_nSize = nSize - nInput - m_nPosition;
 }
 
 int CBENode::DecodeLen(LPBYTE& pInput, DWORD& nInput)

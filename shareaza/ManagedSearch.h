@@ -1,7 +1,7 @@
 //
 // ManagedSearch.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -96,6 +96,7 @@ public:
 
 protected:
 	int				m_nPriority;
+	BOOL			m_bStarted;					// Search started (and managed by SearchManager)
 	BOOL			m_bActive;
 	DWORD			m_tLastG2;					// Time a G2 hub was last searched
 	DWORD			m_nEDServers;				// Number of EDonkey servers searched

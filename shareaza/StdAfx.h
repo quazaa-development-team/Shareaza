@@ -1,7 +1,7 @@
 //
 // StdAfx.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -27,7 +27,7 @@
 #pragma once
 
 #ifndef RELEASE_BUILD
-#define RELEASE_BUILD 0 // Set "1" for release and "0" for alpha, beta, etc. daily builds
+#define RELEASE_BUILD 1 // Set "1" for release and "0" for alpha, beta, etc. daily builds
 #endif
 
 //
@@ -249,16 +249,6 @@ template<> AFX_INLINE UINT AFXAPI HashKey(CString key)
 template<> AFX_INLINE UINT AFXAPI HashKey(DWORD_PTR key)
 {
 	return static_cast< UINT >( key >> 4 );
-}
-
-template<> AFX_INLINE BOOL AFXAPI CompareElements(const IN_ADDR* pElement1, const IN_ADDR* pElement2)
-{
-	return pElement1->s_addr == pElement2->s_addr;
-}
-
-template<> AFX_INLINE UINT AFXAPI HashKey(const IN_ADDR& key)
-{
-	return key.s_addr;
 }
 
 #include "Hashes.hpp"

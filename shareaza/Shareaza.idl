@@ -160,21 +160,6 @@ library Shareaza
 	};
 
 	//
-	// Chat Plugin
-	//
-
-	[ uuid(8065EF37-F0EA-4898-BBBD-D37798DE83CB), oleautomation ]
-	interface IChatPlugin : stdole.IUnknown
-	{
-		HRESULT OnChatMessage(
-			[in] BSTR sChatID,				// Unique conversation ID (for example "ip:port" for Gnutella/eMule chat)
-			[in] VARIANT_BOOL bOutgoing,	// VARIANT_TRUE - message sent by us, VARIANT_FALSE - message received from remote host
-			[in] BSTR sFrom,				// if bOutgoing == VARIANT_TRUE then it's our nick else it's remote user nick
-			[in] BSTR sTo,					// if bOutgoing == VARIANT_TRUE then it's remote user nick else it's our nick
-			[in] BSTR sMessage );			// Message text
-	};
-
-	//
 	// Window Plugin
 	//
 
@@ -295,10 +280,10 @@ library Shareaza
 	[ uuid(59978299-C8AC-4818-83F4-C382BB611D5C), oleautomation, pointer_default(unique) ]
 	interface IMediaPlayer : stdole.IUnknown
 	{
-		HRESULT Create( [in] LONG_PTR hWnd );
+		HRESULT Create( [in] HWND hWnd );
 		HRESULT Destroy();
-		HRESULT Reposition( [in] long Left, [in] long Top, [in] long Width, [in] long Height );
-		HRESULT IsWindowVisible( [out] VARIANT_BOOL* pbVisible );
+		HRESULT Reposition( [in] RECT* prcWnd );
+		HRESULT SetLogoBitmap( [in] HBITMAP hLogo );
 
 		HRESULT GetVolume( [out] DOUBLE* pnVolume );
 		HRESULT SetVolume( [in] DOUBLE nVolume );

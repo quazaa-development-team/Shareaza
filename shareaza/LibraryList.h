@@ -75,7 +75,7 @@ public:
 		return m_List.IsEmpty();
 	}
 
-	inline const CLibraryListItem& GetHead()const 
+	inline CLibraryListItem& GetHead()
 	{
 		return m_List.GetHead();
 	}
@@ -151,7 +151,7 @@ public:
 	}
 
 	CLibraryFile*	GetNextFile(POSITION& pos);
-	INT_PTR			Merge(const CLibraryList* pList);
+	INT_PTR			Merge(CLibraryList* pList);
 
 // Automation
 public:

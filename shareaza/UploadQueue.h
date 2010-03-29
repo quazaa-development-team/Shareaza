@@ -1,7 +1,7 @@
 //
 // UploadQueue.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2008.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -19,6 +19,9 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 
+#if !defined(AFX_UPLOADQUEUE_H__2C8AAF1A_A452_4275_B5D5_06ED2F46BAA8__INCLUDED_)
+#define AFX_UPLOADQUEUE_H__2C8AAF1A_A452_4275_B5D5_06ED2F46BAA8__INCLUDED_
+
 #pragma once
 
 class CUploadTransfer;
@@ -33,8 +36,8 @@ public:
 
 // Attributes
 protected:
-	CList< CUploadTransfer* >	m_pActive;
-	CArray< CUploadTransfer* >	m_pQueued;
+	CList< CUploadTransfer* > m_pActive;
+	CArray< CUploadTransfer* > m_pQueued;
 public:
 	int			m_nIndex;
 	CString		m_sName;
@@ -46,10 +49,10 @@ public:
 	CString		m_sShareTag;
 	CString		m_sNameMatch;
 public:
-	DWORD		m_nCapacity;
-	DWORD		m_nMinTransfers;
-	DWORD		m_nMaxTransfers;
-	DWORD		m_nBandwidthPoints;
+	int			m_nCapacity;
+	int			m_nMinTransfers;
+	int			m_nMaxTransfers;
+	int			m_nBandwidthPoints;
 	BOOL		m_bRotate;
 	DWORD		m_nRotateTime;
 	DWORD		m_nRotateChunk;
@@ -72,8 +75,8 @@ public:
 	BOOL		StealPosition(CUploadTransfer* pTarget, CUploadTransfer* pSource);
 	BOOL		Start(CUploadTransfer* pUpload, BOOL bPeek = FALSE);
 public:
-	DWORD		GetBandwidthPoints(DWORD nTransfers = (DWORD)-1) const;
-	DWORD		GetBandwidthLimit(DWORD nTransfers = (DWORD)-1) const;
+	INT_PTR		GetBandwidthPoints(INT_PTR nTransfers = -1) const;
+	DWORD		GetBandwidthLimit(INT_PTR nTransfers = -1) const;
 	DWORD		GetAvailableBandwidth() const;
 	DWORD		GetPredictedBandwidth() const;
 	void		SpreadBandwidth();
@@ -83,49 +86,40 @@ protected:
 
 // Utilities
 public:
-	inline DWORD GetTransferCount(BOOL bMax = FALSE) const
+	inline INT_PTR GetTransferCount(BOOL bMax = FALSE) const
 	{
-		const DWORD nActive = (DWORD)m_pActive.GetCount();
-		return bMax ? max( nActive, m_nMinTransfers ) : nActive;
+		INT_PTR nActive = m_pActive.GetCount();
+		return bMax ?  max( nActive, m_nMinTransfers ) : nActive;
 	}
 
-	inline DWORD GetActiveCount() const
+	inline DWORD GetQueueCapacity() const
 	{
-		return (DWORD)m_pActive.GetCount();
-	}
-
-	inline POSITION GetActiveIterator() const
-	{
-		return m_pActive.GetHeadPosition();
-	}
-
-	inline CUploadTransfer* GetNextActive(POSITION& nPos) const
-	{
-		return m_pActive.GetNext( nPos );
-	}
-
-	inline CUploadTransfer* GetQueuedAt(INT_PTR nPos) const
-	{
-		return m_pQueued.GetAt( nPos );
+		return m_nCapacity;
 	}
 
 	inline DWORD GetQueuedCount() const
 	{
-		return (DWORD)m_pQueued.GetCount();
+		return (DWORD)m_pQueued.GetSize();
 	}
 
-	inline bool IsFull() const
+	inline INT_PTR GetQueueRemaining() const
 	{
-		return m_nCapacity <= GetQueuedCount();
+		return GetQueueCapacity() - GetQueuedCount();
 	}
 
-	inline bool IsActive(CUploadTransfer* const pUpload) const
+	inline BOOL IsActive(CUploadTransfer* pUpload) const
 	{
-		return m_pActive.Find( pUpload ) != NULL;
+		ASSERT( pUpload != NULL );
+		return ( m_pActive.Find( pUpload ) != NULL );
 	}
 
 	inline DWORD GetMeasuredSpeed() const
 	{
 		return m_nMeasured;
 	}
+
+	friend class CUploadsCtrl;
+	friend class CUploadsWnd;
 };
+
+#endif // !defined(AFX_UPLOADQUEUE_H__2C8AAF1A_A452_4275_B5D5_06ED2F46BAA8__INCLUDED_)

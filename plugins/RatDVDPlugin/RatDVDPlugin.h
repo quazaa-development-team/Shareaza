@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include "RatDVDReader.h"
+#include "RatDVDReader_h.h"
 
 // CRatDVDPlugin
 

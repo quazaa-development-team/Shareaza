@@ -782,7 +782,7 @@ bool CLibraryBuilder::DetectVirtualID3v2(HANDLE hFile, QWORD& nOffset, QWORD& nL
 
 bool CLibraryBuilder::DetectVirtualAPEHeader(HANDLE hFile, QWORD& nOffset, QWORD& nLength)
 {
-	APE_HEADER pHeader = {};
+	APE_HEADER pHeader = { 0 };
 	DWORD nRead;
 
 	LONG nPosLow	= (LONG)( ( nOffset ) & 0xFFFFFFFF );
@@ -801,13 +801,13 @@ bool CLibraryBuilder::DetectVirtualAPEHeader(HANDLE hFile, QWORD& nOffset, QWORD
 	DWORD nTagSize = 0;
 	if ( pHeader.nVersion >= APE2_VERSION )
 	{
-		APE_HEADER_NEW pNewHeader = {};
+		APE_HEADER_NEW pHeader;
 		SetFilePointer( hFile, nPosLow, &nPosHigh, FILE_BEGIN );
-		if ( !ReadFile( hFile, &pNewHeader, sizeof(pNewHeader), &nRead, NULL ) )
+		if ( !ReadFile( hFile, &pHeader, sizeof(pHeader), &nRead, NULL ) )
 			return false;
-		if ( nRead != sizeof(pNewHeader) )
+		if ( nRead != sizeof(pHeader) )
 			return false;
-		nTagSize = pNewHeader.nHeaderBytes + sizeof(pNewHeader);
+		nTagSize = pHeader.nHeaderBytes + sizeof(pHeader);
 	}
 	else
 		nTagSize = pHeader.nHeaderBytes + sizeof(pHeader);
@@ -998,7 +998,7 @@ bool CLibraryBuilder::DetectVirtualLAME(HANDLE hFile, QWORD& nOffset, QWORD& nLe
 	char szTrail = '\0';
 
 	// Strip off silence and incomplete frames from the end (hackish way)
-	for ( ; nFrameSize > 0 ; ) 
+	for ( ; nFrameSize > sizeof(DWORD) ; ) 
 	{
 		nNewOffset.LowPart = (LONG)( ( nOffset + nLength - nFrameSize ) & 0xFFFFFFFF );
 		nNewOffset.HighPart = (LONG)( ( nOffset + nLength - nFrameSize ) >> 32 );
@@ -1038,8 +1038,7 @@ bool CLibraryBuilder::DetectVirtualLAME(HANDLE hFile, QWORD& nOffset, QWORD& nLe
 		
 		int nLen = sizeof( pFrame );
 		ZeroMemory( &pFrame, nLen );
-		if ( ! ReadFile( hFile, &pFrame, min( nLen, nFrameSize - nVbrHeaderOffset ), &nRead, NULL ) )
-			break;
+		ReadFile( hFile, &pFrame, min( nLen, nFrameSize - nVbrHeaderOffset ), &nRead, NULL );
 
 		nLen--;
 		char* pszChars = (char*)&pFrame;

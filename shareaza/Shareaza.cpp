@@ -1,7 +1,7 @@
 //
 // Shareaza.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -67,7 +67,6 @@
 
 #include "WndMain.h"
 #include "WndMedia.h"
-#include "WndPacket.h"
 #include "WndSystem.h"
 
 #include "revision.h"		// to update build time
@@ -180,7 +179,6 @@ CShareazaApp::CShareazaApp() :
 ,	m_nLastInput			( 0ul )
 ,	m_hHookKbd				( NULL )
 ,	m_hHookMouse			( NULL )
-,	m_pPacketWnd			( NULL )
 
 ,	m_hCryptProv			( NULL )
 
@@ -347,10 +345,10 @@ BOOL CShareazaApp::InitInstance()
 	COleDateTimeSpan tTimeOut( 7, 0, 0, 0);			// Daily builds
 	if ( ( tCompileTime + tTimeOut )  < tCurrent )
 	{
-		if ( AfxMessageBox(
-			L"This is a pre-release version of Shareaza, and the beta testing period has ended.  "
-			L"Please download the full, official release from " WEB_SITE_T L".", MB_ICONQUESTION|MB_OK ) != IDOK )
-			return FALSE;
+		AfxMessageBox(
+		L"This is a pre-release version of Shareaza, and the beta testing period has ended.  "
+		L"Please download the full, official release from " WEB_SITE_T L".", MB_ICONQUESTION|MB_OK );
+		//return FALSE;
 	}
 
 	// Alpha warning. Remember to remove this section for final releases and public betas.
@@ -411,7 +409,7 @@ BOOL CShareazaApp::InitInstance()
 	SplashStep( L"Discovery Services" );
 		DiscoveryServices.Load();
 	SplashStep( L"Scheduler" );
-		Scheduler.Load();
+		Schedule.Load();
 	SplashStep( L"Rich Documents" );
 		Emoticons.Load();
 		Flags.Load();
@@ -910,9 +908,17 @@ void CShareazaApp::InitResources()
 	if ( GlobalMemoryStatusEx( &pMemory ) )
 		m_nPhysicalMemory = pMemory.ullTotalPhys;
 
-	SYSTEM_INFO gSysInfo;
-	GetSystemInfo(&gSysInfo);
-	m_nLogicalProcessors = gSysInfo.dwNumberOfProcessors;
+	long nResult = ERROR_SUCCESS;
+	CString strProcKey;
+	while ( nResult == ERROR_SUCCESS )
+	{
+		HKEY hKey;
+		// These keyes are populated during startup, so it's safe to check them
+		strProcKey.Format( L"Hardware\\Description\\System\\CentralProcessor\\%i", ++m_nLogicalProcessors );
+		if ( RegOpenKeyEx( HKEY_LOCAL_MACHINE, strProcKey, 0, KEY_QUERY_VALUE, &hKey ) != ERROR_SUCCESS )
+			break;
+		RegCloseKey( hKey );
+	}
 
 	CryptAcquireContext( &m_hCryptProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT );
 
@@ -1096,21 +1102,8 @@ void CShareazaApp::Message(WORD nType, LPCTSTR pszFormat, ...)
 
 void CShareazaApp::PrintMessage(WORD nType, const CString& strLog)
 {
-	/*if ( Settings.General.DebugLog )
-	{
-		// Default: "%APPDATA%\Shareaza\Shareaza.txt"
-		if ( INT_PTR nFile = BT_OpenLogFile( NULL, BTLF_STREAM ) )
-		{
-			if ( Settings.General.MaxDebugLogSize )
-				VERIFY( BT_SetLogSizeInBytes( nFile, Settings.General.MaxDebugLogSize ) );
-			VERIFY( BT_SetLogLevel( nFile, BTLL_VERBOSE ) );
-			VERIFY( BT_SetLogFlags( nFile, BTLF_SHOWLOGLEVEL |
-				( Settings.General.ShowTimestamp ? BTLF_SHOWTIMESTAMP : 0 ) ) );
-			VERIFY( BT_AppLogEntry( nFile,
-				(BUGTRAP_LOGLEVEL)( nType & MSG_SEVERITY_MASK + 1 ), strLog ) );
-			VERIFY( BT_CloseLogFile( nFile ) );
-		}
-	}*/
+	if ( Settings.General.DebugLog )
+		LogMessage( strLog );
 
 	CQuickLock pLock( m_csMessage );
 
@@ -1119,9 +1112,11 @@ void CShareazaApp::PrintMessage(WORD nType, const CString& strLog)
 		delete m_oMessages.RemoveHead();
 
 	m_oMessages.AddTail( new CLogMessage( nType, strLog ) );
+}
 
-	if ( ! Settings.General.DebugLog )
-		return;
+void CShareazaApp::LogMessage(const CString& strLog)
+{
+	CQuickLock pLock( m_csMessage );
 
 	CFile pFile;
 	if ( pFile.Open( Settings.General.UserPath + _T("\\Data\\Shareaza.log"), CFile::modeReadWrite ) )
@@ -1296,7 +1291,7 @@ BOOL CShareazaApp::InternalURI(LPCTSTR pszURI)
 		CSingleLock oLock( &Library.m_pSection, TRUE );
 		if ( CLibraryFile* pFile = Library.LookupFile( nIndex ) )
 		{
-			if ( pFile->IsAvailable() )
+			if ( pFile->m_pFolder )
 			{
 				CString strPath = pFile->GetPath();
 				oLock.Unlock();
@@ -2960,4 +2955,3 @@ CString& CLowerCaseTable::operator()(CString& strSource) const
 
 	return strSource;
 }
-

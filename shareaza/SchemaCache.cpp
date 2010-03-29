@@ -1,7 +1,7 @@
 //
 // SchemaCache.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -83,12 +83,12 @@ int CSchemaCache::Load()
 		if ( pSchema && pSchema->Load( strPath ) )
 		{
 			CString strURI( pSchema->GetURI() );
-			strURI.MakeLower();
+			ToLower( strURI );
 
 			m_pURIs.SetAt( strURI, pSchema );
 			
 			CString strName( pSchema->m_sSingular );
-			strName.MakeLower();
+			ToLower( strName );
 
 			m_pNames.SetAt( strName, pSchema );
 		}

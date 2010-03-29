@@ -74,7 +74,7 @@ BOOL CFolderTipCtrl::OnPrepare()
 	if ( nTotal )
 		m_sPercentage.Format( _T("%.2f%% %s"),
 			100.0 * ( m_pLibraryFolder->m_nVolume >> 10 ) / nTotal,
-			(LPCTSTR)LoadString( IDS_TIP_LIBRARY_PERCENT ) );
+			LoadString( IDS_TIP_LIBRARY_PERCENT ) );
 	else
 		m_sPercentage.Empty();
 

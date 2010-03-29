@@ -1,7 +1,7 @@
 //
 // CtrlLibraryTreeView.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -935,8 +935,8 @@ CLibraryTreeItem* CLibraryTreeView::HitTest(CRect& rcClient, CPoint& pt, CLibrar
 
 		for ( CLibraryTreeItem::iterator pChild = pItem->begin(); pChild != pItem->end(); ++pChild )
 		{
-			if ( CLibraryTreeItem* pHitItem = HitTest( rcClient, pt, &*pChild, point, pRect ) )
-				return pHitItem;
+			CLibraryTreeItem* pItem = HitTest( rcClient, pt, &*pChild, point, pRect );
+			if ( pItem ) return pItem;
 			if ( pt.y >= rcClient.bottom + ITEM_HEIGHT ) break;
 		}
 
@@ -1619,7 +1619,7 @@ void CLibraryTreeView::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 			}
 		}
 		Skin.TrackPopupMenu( _T("CLibraryTree.Physical"), point,
-			ID_LIBRARY_EXPLORE, oFiles );
+			ID_LIBRARY_EXPLORE, 0, oFiles );
 	}
 }
 
@@ -1807,9 +1807,7 @@ void CLibraryTreeView::OnUpdateLibraryFolderEnqueue(CCmdUI* pCmdUI)
 
 	for ( CLibraryTreeItem* pItem = m_pSelFirst ; pItem ; pItem = pItem->m_pSelNext )
 	{
-		if ( LibraryFolders.CheckAlbum( pItem->m_pVirtual ) &&
-			 pItem->m_pVirtual->GetFileCount() > 0 &&
-			 ! CheckURI( pItem->m_pVirtual->m_sSchemaURI, CSchema::uriGhostFolder ) )
+		if ( LibraryFolders.CheckAlbum( pItem->m_pVirtual ) && pItem->m_pVirtual->GetFileCount() > 0 )
 		{
 			pCmdUI->Enable( TRUE );
 			return;

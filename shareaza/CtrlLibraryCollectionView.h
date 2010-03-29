@@ -48,7 +48,6 @@ protected:
 	
 // Operations
 public:
-	virtual void	SelectAll() {}
 	virtual BOOL	CheckAvailable(CLibraryTreeItem* pSel);
 	virtual void	Update();
 protected:

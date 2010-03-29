@@ -26,22 +26,20 @@
 
 class CMediaFrame : public CWnd
 {
-	DECLARE_DYNAMIC(CMediaFrame)
-
+// Construction
 public:
 	CMediaFrame();
 	virtual ~CMediaFrame();
 
-	static CMediaFrame* g_pMediaFrame;
+	DECLARE_DYNAMIC(CMediaFrame)
 
-	virtual BOOL Create(CWnd* pParentWnd);
-	virtual BOOL OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo);
-	virtual BOOL PreTranslateMessage(MSG* pMsg);
-
+// Operations
+public:
 	void	OnSkinChange();
 	void	OnUpdateCmdUI();
 	BOOL	PlayFile(LPCTSTR pszFile);
 	BOOL	EnqueueFile(LPCTSTR pszFile);
+	BOOL	IsPlaying();
 	void	OnFileDelete(LPCTSTR pszFile);
 	float	GetPosition();
 	float	GetVolume();
@@ -52,28 +50,34 @@ public:
 	BOOL	PaintStatusMicro(CDC& dc, CRect& rcBar);
 	void	UpdateScreenSaverStatus(BOOL bWindowActive);
 
-	CString	GetNowPlaying() const
-	{
-		return m_sNowPlaying;
-	}
+	CString	GetNowPlaying();
 
-	inline IMediaPlayer* GetPlayer() const
-	{
-		return m_pPlayer;
-	}
-
-	inline MediaState GetState() const
-	{
-		return m_pPlayer != NULL ? m_nState : smsNull;
-	}
-
-	inline BOOL CMediaFrame::IsPlaying() const
-	{
-		return m_pPlayer != NULL && m_nState == smsPlaying;
-	}
+	inline IMediaPlayer* GetPlayer() { return m_pPlayer; }
+	inline MediaState GetState() { return m_pPlayer != NULL ? m_nState : smsNull; }
 
 protected:
-	CComPtr< IMediaPlayer >	m_pPlayer;
+	void	SetFullScreen(BOOL bFullScreen);
+	void	PaintSplash(CDC& dc, CRect& rcBar);
+	void	PaintListHeader(CDC& dc, CRect& rcBar);
+	void	PaintStatus(CDC& dc, CRect& rcBar);
+	BOOL	DoSizeList();
+	BOOL	Prepare();
+	BOOL	PrepareVis();
+	BOOL	OpenFile(LPCTSTR pszFile);
+	void	Cleanup();
+	void	ZoomTo(MediaZoom nZoom);
+	void	AspectTo(double nAspect);
+	void	UpdateState();
+	void	DisableScreenSaver();
+	void	EnableScreenSaver();
+	HRESULT PluginPlay(BSTR bsFileName);
+
+private:
+	void UpdateNowPlaying(BOOL bEmpty = FALSE);
+
+// Attributes
+protected:
+	IMediaPlayer*	m_pPlayer;
 	MediaState		m_nState;
 	LONGLONG		m_nLength;
 	LONGLONG		m_nPosition;
@@ -107,7 +111,6 @@ protected:
 
 	CRect			m_rcVideo;
 	CRect			m_rcStatus;
-	VARIANT_BOOL	m_bNoLogo;		// VARIANT_TRUE - don't paint logo and window background
 	CBitmap			m_bmLogo;
 	CImageList		m_pIcons;
 	CFont			m_pFontDefault;
@@ -119,26 +122,22 @@ protected:
 	UINT			m_nPowerSchemeId, m_nScreenSaverTime;
 	GLOBAL_POWER_POLICY m_CurrentGP;	// Current Global Power Policy
 	POWER_POLICY	m_CurrentPP;		// Current Power Policy
+
+public:
+	static CMediaFrame* g_pMediaFrame;
+
+private:
 	CString			m_sNowPlaying;
 
-	void	SetFullScreen(BOOL bFullScreen);
-	void	PaintSplash(CDC& dc, CRect& rcBar);
-	void	PaintListHeader(CDC& dc, CRect& rcBar);
-	void	PaintStatus(CDC& dc, CRect& rcBar);
-	BOOL	DoSizeList();
-	BOOL	Prepare();
-	BOOL	PrepareVis();
-	BOOL	OpenFile(LPCTSTR pszFile);
-	void	Cleanup(BOOL bUnexpected = FALSE);
-	void	ZoomTo(MediaZoom nZoom);
-	void	AspectTo(double nAspect);
-	BOOL	UpdateState();
-	void	DisableScreenSaver();
-	void	EnableScreenSaver();
-	HRESULT PluginPlay(BSTR bsFileName);
-	void	UpdateNowPlaying(BOOL bEmpty = FALSE);
-	void	ReportError();
+// Overrides
+public:
+	virtual BOOL Create(CWnd* pParentWnd);
+	virtual BOOL OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo);
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
+// Implementation
+protected:
+	DECLARE_MESSAGE_MAP()
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnDestroy();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
@@ -149,6 +148,7 @@ protected:
 	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnClose();
+
 	afx_msg void OnUpdateMediaClose(CCmdUI* pCmdUI);
 	afx_msg void OnMediaClose();
 	afx_msg void OnUpdateMediaPlay(CCmdUI* pCmdUI);
@@ -187,11 +187,13 @@ protected:
 	afx_msg void OnMediaStatus();
 	afx_msg void OnUpdateMediaMute(CCmdUI* pCmdUI);
 	afx_msg void OnMediaMute();
+
 	afx_msg void OnNewCurrent(NMHDR* pNotify, LRESULT* pResult);
 	afx_msg LRESULT OnMediaKey(WPARAM wParam, LPARAM lParam);
 
-	DECLARE_MESSAGE_MAP()
 };
+
+//{{AFX_INSERT_LOCATION}}
 
 #define IDC_MEDIA_PLAYLIST	120
 

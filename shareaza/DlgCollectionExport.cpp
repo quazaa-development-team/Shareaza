@@ -425,7 +425,7 @@ void CCollectionExportDlg::OnOK()
 					strMap = strMap.Mid( nPosVert + 1 ); // remove first entry
 					nPosVert = strMap.Find('|');
 					strReplaceID = strMap.Left( nPosVert ); // replacement ID from XML
-					str.Format( _T("$%s$"), (LPCTSTR)strReplaceID );
+					str.Format( _T("$%s$"), strReplaceID );
 					strMap = strMap.Mid( nPosVert + 1 );
 					nControlID = _ttoi( (LPCTSTR)strControlID );
 
@@ -523,13 +523,13 @@ void CCollectionExportDlg::OnOK()
 				}
 
 				// output to file
-				CFile pNewFile;
-				if ( pNewFile.Open( strNewFilePath , CFile::modeWrite|CFile::modeCreate ) )
+				CFile pFile;
+				if ( pFile.Open( strNewFilePath , CFile::modeWrite|CFile::modeCreate ) )
 				{
 					CStringA strSourceUTF8 = UTF8Encode( strSource );
 
-					pNewFile.Write( (LPCSTR)strSourceUTF8, strSourceUTF8.GetLength() );
-					pNewFile.Close();
+					pFile.Write( (LPCSTR)strSourceUTF8, strSourceUTF8.GetLength() );
+					pFile.Close();
 
 					// clean-up;
 					strSource.Empty();

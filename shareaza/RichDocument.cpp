@@ -1,7 +1,7 @@
 //
 // RichDocument.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -255,12 +255,9 @@ BOOL CRichDocument::LoadXML(CXMLElement* pBase, CMap< CString, const CString&, C
 		LoadXMLColour( pBase, _T("crHeading"), &m_crHeading );
 		
 		strTemp = pBase->GetAttributeValue( _T("leftMargin") );
-		if ( strTemp.GetLength() && _stscanf( strTemp, _T("%i"), &m_szMargin.cx ) != 1 )
-			theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, _T("Bad [leftMargin] attribute in [document] element"), pBase->ToString() );
-
+		if ( strTemp.GetLength() ) _stscanf( strTemp, _T("%i"), &m_szMargin.cx );
 		strTemp = pBase->GetAttributeValue( _T("topMargin") );
-		if ( strTemp.GetLength() && _stscanf( strTemp, _T("%i"), &m_szMargin.cy ) != 1 )
-			theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, _T("Bad [topMargin] attribute in [document] element"), pBase->ToString() );
+		if ( strTemp.GetLength() ) _stscanf( strTemp, _T("%i"), &m_szMargin.cy );
 	}
 	
 	for ( POSITION pos = pBase->GetElementIterator() ; pos ; )
@@ -324,8 +321,7 @@ BOOL CRichDocument::LoadXML(CXMLElement* pBase, CMap< CString, const CString&, C
 			
 			if ( pXML->GetElementCount() )
 			{
-				if ( ! LoadXML( pXML, pMap, nGroup ) )
-					return FALSE;
+				if ( ! LoadXML( pXML, pMap, nGroup ) ) return FALSE;
 				if ( pElement->m_sText.CompareNoCase( _T("left") ) )
 				{
 					Add( new CRichElement( retAlign, _T("left") ) );
@@ -338,22 +334,16 @@ BOOL CRichDocument::LoadXML(CXMLElement* pBase, CMap< CString, const CString&, C
 		{
 			int nSubGroup = 0;
 			if ( _stscanf( pXML->GetAttributeValue( _T("id") ), _T("%i"), &nSubGroup ) != 1 )
-			{
-				theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, _T("Bad [id] attribute in [group] element"), pXML->ToString() );
 				return FALSE;
-			}
-			if ( ! LoadXML( pXML, pMap, nSubGroup ) )
-				return FALSE;
+			if ( ! LoadXML( pXML, pMap, nSubGroup ) ) return FALSE;
 			continue;
 		}
 		else if ( pXML->IsNamed( _T("styles") ) )
 		{
-			if ( ! LoadXMLStyles( pXML ) )
-				return FALSE;
+			if ( ! LoadXMLStyles( pXML ) ) return FALSE;
 		}
 		else
 		{
-			theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, _T("Unknown element in [document] element"), pXML->ToString() );
 			return FALSE;
 		}
 		
@@ -364,8 +354,7 @@ BOOL CRichDocument::LoadXML(CXMLElement* pBase, CMap< CString, const CString&, C
 		
 		pElement->m_nGroup = nGroup;
 		strTemp = pXML->GetAttributeValue( _T("group") );
-		if ( strTemp.GetLength() && _stscanf( strTemp, _T("%i"), &pElement->m_nGroup ) != 1 )
-			theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, _T("Bad [group] attribute in [document] element"), pXML->ToString() );
+		if ( strTemp.GetLength() ) _stscanf( strTemp, _T("%i"), &pElement->m_nGroup );
 		
 		strTemp = pXML->GetAttributeValue( _T("format") );
 		ToLower( strTemp );
@@ -472,14 +461,11 @@ BOOL CRichDocument::LoadXMLStyles(CXMLElement* pParent)
 				{
 					lf.lfHeight = - lf.lfHeight;
 				}
-				else
-					theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, _T("Bad [size] attribute in [font] element"), pFont->ToString() );
 			}
 			CString strWeight = pFont->GetAttributeValue( _T("weight") );
 			if ( ! strWeight.IsEmpty() )
 			{
-				if ( _stscanf( strWeight, _T("%i"), &lf.lfWeight ) != 1 )
-					theApp.Message( MSG_ERROR, IDS_SKIN_ERROR, _T("Bad [size] attribute in [font] element"), pFont->ToString() );
+				_stscanf( strWeight, _T("%i"), &lf.lfWeight );
 			}
 		}
 		

@@ -1,7 +1,7 @@
 //
 // Player.h : Declaration of the CPlayer
 //
-// Copyright (c) Nikolay Raspopov, 2009-2010.
+// Copyright (c) Nikolay Raspopov, 2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -21,9 +21,7 @@
 
 #pragma once
 
-#include "MediaPlayer.h"
-
-#ifndef _WMP
+#include "MediaPlayer_h.h"
 
 // CPlayerWindow
 
@@ -32,6 +30,8 @@ class CPlayerWindow :
 {
 public:
 	CPlayerWindow();
+
+	HBITMAP	m_hLogo;
 
 	BEGIN_MSG_MAP(CPlayerWindow)
 		MESSAGE_HANDLER(WM_PAINT,OnPaint)
@@ -42,25 +42,23 @@ public:
 	LRESULT OnPaint(UINT nMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled);
 };
 
-#endif // _WMP
-
 // CPlayer
 
 class ATL_NO_VTABLE CPlayer :
-	public CComObjectRootEx< CComMultiThreadModel >,
-	public CComCoClass< CPlayer, &CLSID_MediaPlayer >,
+	public CComObjectRootEx<CComMultiThreadModel>,
+	public CComCoClass<CPlayer, &CLSID_MediaPlayer>,
 	public IMediaPlayer
 {
 public:
 	CPlayer();
 
-	DECLARE_REGISTRY_RESOURCEID(IDR_PLAYER)
+DECLARE_REGISTRY_RESOURCEID(IDR_PLAYER)
 
-	BEGIN_COM_MAP(CPlayer)
-		COM_INTERFACE_ENTRY(IMediaPlayer)
-	END_COM_MAP()
+BEGIN_COM_MAP(CPlayer)
+	COM_INTERFACE_ENTRY(IMediaPlayer)
+END_COM_MAP()
 
-	DECLARE_PROTECT_FINAL_CONSTRUCT()
+DECLARE_PROTECT_FINAL_CONSTRUCT()
 
 	HRESULT FinalConstruct();
 	void FinalRelease();
@@ -69,33 +67,25 @@ protected:
 	// Adjusts video position and zoom according to aspect ratio, zoom level and zoom type
 	HRESULT AdjustVideoPosAndZoom(void);
 
-#ifdef _WMP
-	CAxWindow					m_wndPlayer;		// ActiveX host window class
-	CComQIPtr< IWMPPlayer2 >	m_pPlayer;			// Pointer to IWMPPlayer interface
-#else
-	CComPtr< IGraphBuilder >	m_pPlayer;
-	BOOLEAN						m_bAudioOnly;
-	CPlayerWindow				m_wndPlayer;
-#endif
-	OAHWND						m_hwndOwner;
-	RECT						m_rcWindow;
-	MediaZoom					m_nZoom;			// Last set zoom
-	DOUBLE						m_dAspect;			// Last set aspect ratio
-	DOUBLE						m_dVolume;			// Last set volume level
-	DOUBLE						m_dSpeed;			// Last set speed
-	LONG						m_nVisSize;			// (not used)
-	CComPtr< IAudioVisPlugin >	m_pAudioVisPlugin;	// (not used)
+	BOOLEAN				m_bAudioOnly;
+	HWND				m_hwndOwner;
+	CPlayerWindow		m_wndPlayer;
+	RECT				m_rcWindow;
+	CComPtr< IGraphBuilder >	m_pGraph;
+	MediaZoom			m_nZoom;	// Last set zoom
+	DOUBLE				m_dAspect;	// Last set aspect ratio
+	DOUBLE				m_dVolume;	// Last set volume level
+	DOUBLE				m_dSpeed;	// Last set speed
 
 // IMediaPlayer
 public:
 	STDMETHOD(Create)(
-		/* [in] */ LONG_PTR hWnd);
+		/* [in] */ HWND hWnd);
 	STDMETHOD(Destroy)(void);
 	STDMETHOD(Reposition)(
-		/* [in] */ long Left,
-		/* [in] */ long Top,
-		/* [in] */ long Width,
-		/* [in] */ long Height);
+		/* [in] */ RECT *prcWnd);
+	STDMETHOD(SetLogoBitmap)(
+		/* [in] */ HBITMAP hLogo);
 	STDMETHOD(GetVolume)(
 		/* [out] */ DOUBLE *pnVolume);
 	STDMETHOD(SetVolume)(
@@ -134,8 +124,6 @@ public:
 		/* [out] */ LONG *pnSize);
 	STDMETHOD(SetPluginSize)(
 		/* [in] */ LONG nSize);
-	STDMETHOD(IsWindowVisible)(
-		/* [out] */ VARIANT_BOOL* pbVisible );
 };
 
 OBJECT_ENTRY_AUTO(__uuidof(MediaPlayer), CPlayer)

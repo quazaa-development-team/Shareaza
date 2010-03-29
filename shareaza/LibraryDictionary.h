@@ -1,7 +1,7 @@
 //
 // LibraryDictionary.h
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -43,7 +43,15 @@ public:
 	void					Serialize(CArchive& ar, int nVersion);
 
 private:
-	typedef CMap< CString, const CString&, CFileList*, CFileList*& > CWordMap;
+	class CWord
+	{
+	public:
+		CWord(CFileList* pList = NULL) : m_pList( pList ), m_nCount( 1 ) {}
+		CWord(const CWord& oWord) : m_pList( oWord.m_pList ), m_nCount( oWord.m_nCount ) {}
+		CFileList*	m_pList;
+		DWORD			m_nCount;
+	};
+	typedef CMap< CString, const CString&, CWord, CWord& > CWordMap;
 
 	CWordMap			m_oWordMap;
 	CQueryHashTable*	m_pTable;

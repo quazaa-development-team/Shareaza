@@ -44,7 +44,6 @@
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="_DEBUG"
 				AdditionalIncludeDirectories="..\..\shareaza"
-				TypeLibraryName="$(IntDir)/$(InputName).tlb"
 				HeaderFileName="$(InputName).h"
 				DLLDataFileName=""
 				InterfaceIdentifierFileName="$(InputName)_i.c"
@@ -106,7 +105,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				Description="Performing registration"
-				CommandLine="if exist &quot;..\..\zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; goto zlib1&#x0D;&#x0A;copy &quot;..\..\zlib\$(PlatformName)\Release\zlibwapi.dll&quot; &quot;$(TargetDir)&quot; /b /y&#x0D;&#x0A;goto zlib2&#x0D;&#x0A;:zlib1&#x0D;&#x0A;copy &quot;..\..\zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; &quot;$(TargetDir)&quot; /b /y&#x0D;&#x0A;:zlib2&#x0D;&#x0A;regsvr32 /s /c &quot;$(TargetPath)&quot;&#x0D;&#x0A;"
+				CommandLine="if exist &quot;..\..\zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; goto zlib1&#x0D;&#x0A;copy &quot;..\..\zlib\$(PlatformName)\Release\zlibwapi.dll&quot; &quot;$(TargetDir)&quot; /b /y&#x0D;&#x0A;goto zlib2&#x0D;&#x0A;:zlib1&#x0D;&#x0A;copy &quot;..\..\zlib\$(PlatformName)\Release\zlibwapi.dll&quot; &quot;$(TargetDir)&quot; /b /y&#x0D;&#x0A;:zlib2&#x0D;&#x0A;regsvr32 /s /c &quot;$(TargetPath)&quot;&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -135,7 +134,6 @@
 				PreprocessorDefinitions="_DEBUG"
 				AdditionalIncludeDirectories="..\..\shareaza"
 				TargetEnvironment="3"
-				TypeLibraryName="$(IntDir)/$(InputName).tlb"
 				HeaderFileName="$(InputName).h"
 				DLLDataFileName=""
 				InterfaceIdentifierFileName="$(InputName)_i.c"
@@ -195,7 +193,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				Description="Performing registration"
-				CommandLine="if exist &quot;..\..\zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; goto zlib1&#x0D;&#x0A;copy &quot;..\..\zlib\$(PlatformName)\Release\zlibwapi.dll&quot; &quot;$(TargetDir)&quot; /b /y&#x0D;&#x0A;goto zlib2&#x0D;&#x0A;:zlib1&#x0D;&#x0A;copy &quot;..\..\zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; &quot;$(TargetDir)&quot; /b /y&#x0D;&#x0A;:zlib2&#x0D;&#x0A;regsvr32 /s /c &quot;$(TargetPath)&quot;&#x0D;&#x0A;"
+				CommandLine="if exist &quot;..\..\zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; goto zlib1&#x0D;&#x0A;copy &quot;..\..\zlib\$(PlatformName)\Release\zlibwapi.dll&quot; &quot;$(TargetDir)&quot; /b /y&#x0D;&#x0A;goto zlib2&#x0D;&#x0A;:zlib1&#x0D;&#x0A;copy &quot;..\..\zlib\$(PlatformName)\Release\zlibwapi.dll&quot; &quot;$(TargetDir)&quot; /b /y&#x0D;&#x0A;:zlib2&#x0D;&#x0A;regsvr32 /s /c &quot;$(TargetPath)&quot;&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -224,7 +222,6 @@
 				Name="VCMIDLTool"
 				PreprocessorDefinitions="NDEBUG"
 				AdditionalIncludeDirectories="..\..\shareaza"
-				TypeLibraryName="$(IntDir)/$(InputName).tlb"
 				HeaderFileName="$(InputName).h"
 				DLLDataFileName=""
 				InterfaceIdentifierFileName="$(InputName)_i.c"
@@ -294,7 +291,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				Description="Performing registration"
-				CommandLine="if exist &quot;..\..\zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; goto zlib1&#x0D;&#x0A;copy &quot;..\..\zlib\$(PlatformName)\Release\zlibwapi.dll&quot; &quot;$(TargetDir)&quot; /b /y&#x0D;&#x0A;goto zlib2&#x0D;&#x0A;:zlib1&#x0D;&#x0A;copy &quot;..\..\zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; &quot;$(TargetDir)&quot; /b /y&#x0D;&#x0A;:zlib2&#x0D;&#x0A;regsvr32 /s /c &quot;$(TargetPath)&quot;&#x0D;&#x0A;"
+				CommandLine="if exist &quot;..\..\zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; goto zlib1&#x0D;&#x0A;copy &quot;..\..\zlib\$(PlatformName)\Release\zlibwapi.dll&quot; &quot;$(TargetDir)&quot; /b /y&#x0D;&#x0A;goto zlib2&#x0D;&#x0A;:zlib1&#x0D;&#x0A;copy &quot;..\..\zlib\$(PlatformName)\Release\zlibwapi.dll&quot; &quot;$(TargetDir)&quot; /b /y&#x0D;&#x0A;:zlib2&#x0D;&#x0A;regsvr32 /s /c &quot;$(TargetPath)&quot;&#x0D;&#x0A;"
 			/>
 		</Configuration>
 		<Configuration
@@ -324,7 +321,6 @@
 				PreprocessorDefinitions="NDEBUG"
 				AdditionalIncludeDirectories="..\..\shareaza"
 				TargetEnvironment="3"
-				TypeLibraryName="$(IntDir)/$(InputName).tlb"
 				HeaderFileName="$(InputName).h"
 				DLLDataFileName=""
 				InterfaceIdentifierFileName="$(InputName)_i.c"
@@ -394,7 +390,7 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				Description="Performing registration"
-				CommandLine="if exist &quot;..\..\zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; goto zlib1&#x0D;&#x0A;copy &quot;..\..\zlib\$(PlatformName)\Release\zlibwapi.dll&quot; &quot;$(TargetDir)&quot; /b /y&#x0D;&#x0A;goto zlib2&#x0D;&#x0A;:zlib1&#x0D;&#x0A;copy &quot;..\..\zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; &quot;$(TargetDir)&quot; /b /y&#x0D;&#x0A;:zlib2&#x0D;&#x0A;regsvr32 /s /c &quot;$(TargetPath)&quot;&#x0D;&#x0A;"
+				CommandLine="if exist &quot;..\..\zlib\$(PlatformName)\$(ConfigurationName)\zlibwapi.dll&quot; goto zlib1&#x0D;&#x0A;copy &quot;..\..\zlib\$(PlatformName)\Release\zlibwapi.dll&quot; &quot;$(TargetDir)&quot; /b /y&#x0D;&#x0A;goto zlib2&#x0D;&#x0A;:zlib1&#x0D;&#x0A;copy &quot;..\..\zlib\$(PlatformName)\Release\zlibwapi.dll&quot; &quot;$(TargetDir)&quot; /b /y&#x0D;&#x0A;:zlib2&#x0D;&#x0A;regsvr32 /s /c &quot;$(TargetPath)&quot;&#x0D;&#x0A;"
 			/>
 		</Configuration>
 	</Configurations>
@@ -406,6 +402,10 @@
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
+			<File
+				RelativePath=".\ClassFactory.cpp"
+				>
+			</File>
 			<File
 				RelativePath=".\CoreUtils.cpp"
 				>
@@ -433,6 +433,42 @@
 			<File
 				RelativePath="..\..\shareaza\Shareaza.idl"
 				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCMIDLTool"
+						TypeLibraryName="$(IntDir)/ShareazaOM.tlb"
+						HeaderFileName="ShareazaOM.h"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|x64"
+					>
+					<Tool
+						Name="VCMIDLTool"
+						TypeLibraryName="$(IntDir)/ShareazaOM.tlb"
+						HeaderFileName="ShareazaOM.h"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCMIDLTool"
+						TypeLibraryName="$(IntDir)/ShareazaOM.tlb"
+						HeaderFileName="ShareazaOM.h"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|x64"
+					>
+					<Tool
+						Name="VCMIDLTool"
+						TypeLibraryName="$(IntDir)/ShareazaOM.tlb"
+						HeaderFileName="ShareazaOM.h"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\stdafx.cpp"
@@ -517,12 +553,7 @@
 		</Filter>
 		<Filter
 			Name="Generated Files"
-			SourceControlFiles="false"
 			>
-			<File
-				RelativePath=".\DocumentReader.h"
-				>
-			</File>
 			<File
 				RelativePath=".\DocumentReader_i.c"
 				>

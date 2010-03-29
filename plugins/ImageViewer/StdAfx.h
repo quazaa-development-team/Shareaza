@@ -22,7 +22,9 @@
 #pragma warning( push, 0 )
 
 #include "resource.h"
+
 #include <atlbase.h>
+extern CComModule _Module;
 #include <atlcom.h>
 #include <atlwin.h>
 

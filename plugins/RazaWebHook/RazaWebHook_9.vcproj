@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9,00"
-	Name="RazaWebHook64"
-	ProjectGUID="{3001CCC3-3996-410c-A5C5-4D04D3A8A4AB}"
-	RootNamespace="RazaWebHook64"
+	Name="RazaWebHook"
+	ProjectGUID="{7030A905-13CF-40FF-A7CC-9FBA3B6EDF92}"
+	RootNamespace="RazaWebHook"
 	Keyword="AtlProj"
 	TargetFrameworkVersion="196613"
 	>
@@ -45,16 +45,14 @@
 				PreprocessorDefinitions="_DEBUG"
 				TargetEnvironment="1"
 				GenerateStublessProxies="true"
-				TypeLibraryName="$(IntDir)\RazaWebHook.tlb"
-				HeaderFileName="$(IntDir)\RazaWebHook_i.h"
+				HeaderFileName="RazaWebHook_i.h"
 				DLLDataFileName=""
-				InterfaceIdentifierFileName="$(IntDir)\RazaWebHook_i.c"
+				InterfaceIdentifierFileName="RazaWebHook_i.c"
 				ProxyFileName=""
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="$(IntDir)"
 				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;_USRDLL"
 				ExceptionHandling="0"
 				BasicRuntimeChecks="3"
@@ -79,9 +77,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				RegisterOutput="true"
 				IgnoreImportLibrary="true"
-				OutputFile="$(OutDir)\$(ProjectName).dll"
-				ModuleDefinitionFile="RazaWebHook.def"
+				OutputFile="$(OutDir)\$(ProjectName)32.dll"
+				ModuleDefinitionFile=".\RazaWebHook.def"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="1"
@@ -134,16 +133,14 @@
 				PreprocessorDefinitions="_DEBUG"
 				TargetEnvironment="3"
 				GenerateStublessProxies="true"
-				TypeLibraryName="$(IntDir)\RazaWebHook.tlb"
-				HeaderFileName="$(IntDir)\RazaWebHook_i.h"
+				HeaderFileName="RazaWebHook_i.h"
 				DLLDataFileName=""
-				InterfaceIdentifierFileName="$(IntDir)\RazaWebHook_i.c"
+				InterfaceIdentifierFileName="RazaWebHook_i.c"
 				ProxyFileName=""
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="$(IntDir)"
 				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG;_USRDLL"
 				ExceptionHandling="0"
 				BasicRuntimeChecks="3"
@@ -167,9 +164,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				RegisterOutput="true"
 				IgnoreImportLibrary="true"
-				OutputFile="$(OutDir)\$(ProjectName).dll"
-				ModuleDefinitionFile="RazaWebHook.def"
+				OutputFile="$(OutDir)\$(ProjectName)64.dll"
+				ModuleDefinitionFile=".\RazaWebHook.def"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="17"
@@ -223,10 +221,9 @@
 				PreprocessorDefinitions="NDEBUG"
 				TargetEnvironment="1"
 				GenerateStublessProxies="true"
-				TypeLibraryName="$(IntDir)\RazaWebHook.tlb"
-				HeaderFileName="$(IntDir)\RazaWebHook_i.h"
+				HeaderFileName="RazaWebHook_i.h"
 				DLLDataFileName=""
-				InterfaceIdentifierFileName="$(IntDir)\RazaWebHook_i.c"
+				InterfaceIdentifierFileName="RazaWebHook_i.c"
 				ProxyFileName=""
 			/>
 			<Tool
@@ -236,7 +233,6 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="2"
 				OmitFramePointers="true"
-				AdditionalIncludeDirectories="$(IntDir)"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL"
 				ExceptionHandling="0"
 				RuntimeLibrary="0"
@@ -258,10 +254,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				RegisterOutput="true"
 				IgnoreImportLibrary="true"
-				OutputFile="$(OutDir)\$(ProjectName).dll"
+				OutputFile="$(OutDir)\$(ProjectName)32.dll"
 				LinkIncremental="1"
-				ModuleDefinitionFile="RazaWebHook.def"
+				ModuleDefinitionFile=".\RazaWebHook.def"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
@@ -317,10 +314,9 @@
 				PreprocessorDefinitions="NDEBUG"
 				TargetEnvironment="3"
 				GenerateStublessProxies="true"
-				TypeLibraryName="$(IntDir)\RazaWebHook.tlb"
-				HeaderFileName="$(IntDir)\RazaWebHook_i.h"
+				HeaderFileName="RazaWebHook_i.h"
 				DLLDataFileName=""
-				InterfaceIdentifierFileName="$(IntDir)\RazaWebHook_i.c"
+				InterfaceIdentifierFileName="RazaWebHook_i.c"
 				ProxyFileName=""
 			/>
 			<Tool
@@ -330,7 +326,6 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
-				AdditionalIncludeDirectories="$(IntDir)"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;_USRDLL"
 				ExceptionHandling="0"
 				RuntimeLibrary="0"
@@ -352,10 +347,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				RegisterOutput="true"
 				IgnoreImportLibrary="true"
-				OutputFile="$(OutDir)\$(ProjectName).dll"
+				OutputFile="$(OutDir)\$(ProjectName)64.dll"
 				LinkIncremental="1"
-				ModuleDefinitionFile="RazaWebHook.def"
+				ModuleDefinitionFile=".\RazaWebHook.def"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
@@ -487,6 +483,55 @@
 			</File>
 			<File
 				RelativePath=".\RazaWebHook.rgs"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Generated Files"
+			SourceControlFiles="false"
+			>
+			<File
+				RelativePath=".\RazaWebHook_i.c"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+						CompileAsManaged="0"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+						CompileAsManaged="0"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+						CompileAsManaged="0"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|x64"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+						CompileAsManaged="0"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\RazaWebHook_i.h"
 				>
 			</File>
 		</Filter>

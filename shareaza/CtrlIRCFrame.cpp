@@ -1,7 +1,7 @@
 //
 // CtrlIRCFrame.cpp
 //
-// Copyright (c) Shareaza Development Team, 2002-2010.
+// Copyright (c) Shareaza Development Team, 2002-2009.
 // This file is part of SHAREAZA (shareaza.sourceforge.net)
 //
 // Shareaza is free software; you can redistribute it
@@ -33,7 +33,6 @@
 #include "WndMain.h"
 #include "DlgIrcInput.h"
 #include "GProfile.h"
-#include "Plugins.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -985,9 +984,6 @@ void CIRCFrame::OnLocalText(LPCTSTR pszText)
 			else strSend = strMessage;
 		
 			strSend = "PRIVMSG " + strTabTitle + " :" + strSend;
-
-			// Notify chat plugins about new local message
-			Plugins.OnChatMessage( strTabTitle, TRUE, m_sNickname, strTabTitle, pszText );
 		}
 	}
 	
@@ -1475,9 +1471,6 @@ void CIRCFrame::ActivateMessageByID(CIRCNewMessage& oNewMessage, int nMessageTyp
 			}
 
 			oNewMessage.Add( strSender + GetStringAfterParsedItem( 7 ), m_pWords.GetAt( 0 ), ID_COLOR_TEXT );
-		
-			// Notify chat plugins about new remote message
-			Plugins.OnChatMessage( GetTabText( nTab ), FALSE, m_pWords.GetAt( 0 ), m_sNickname, strText );
 			return;
 		}
 		case ID_MESSAGE_USER_AWAY:
@@ -1552,11 +1545,7 @@ void CIRCFrame::ActivateMessageByID(CIRCNewMessage& oNewMessage, int nMessageTyp
 			if ( m_nTab != m_wndTab.GetCurSel() )
 				m_wndTab.SetTabColor( m_nTab, Settings.IRC.Colors[ ID_COLOR_NEWMSG ] );
 			CString strSender = _T("<") + m_pWords.GetAt( 0 ) + _T("> ");
-			CString strText = GetStringAfterParsedItem( 7 );
-			oNewMessage.Add( strSender + strText, m_pWords.GetAt( 6 ), ID_COLOR_TEXT );
-			
-			// Notify chat plugins about new remote message
-			Plugins.OnChatMessage( GetTabText( m_nTab ), FALSE, m_pWords.GetAt( 0 ), m_sNickname, strText );
+			oNewMessage.Add( strSender + GetStringAfterParsedItem( 7 ), m_pWords.GetAt( 6 ), ID_COLOR_TEXT );
 			return;
 		}
 		case ID_MESSAGE_CHANNEL_ME:
@@ -1618,8 +1607,8 @@ void CIRCFrame::ActivateMessageByID(CIRCNewMessage& oNewMessage, int nMessageTyp
 				nTZBias = tzi.Bias;
 			CString strReply;
 			strReply.Format( _T("/NOTICE %s :\x01TIME %s %+.2d%.2d\x01"),
-				(LPCTSTR)m_pWords.GetAt( 0 ),
-				(LPCTSTR)time.Format( _T("%Y-%m-%d %H:%M:%S") ),
+				m_pWords.GetAt( 0 ),
+				time.Format( _T("%Y-%m-%d %H:%M:%S") ),
 				- nTZBias / 60, nTZBias % 60 );
 			OnLocalText( strReply );
 			oNewMessage.Add( _T("* ") + m_pWords.GetAt( 0 ) + _T(" just TIMEed you."), m_sStatus, ID_COLOR_SERVERMSG );
@@ -1629,9 +1618,7 @@ void CIRCFrame::ActivateMessageByID(CIRCNewMessage& oNewMessage, int nMessageTyp
 		{
 			CString strReply;
 			strReply.Format( _T("/NOTICE %s :\x01VERSION %s:%s:Microsoft Windows %u.%u\x01"),
-				(LPCTSTR)m_pWords.GetAt( 0 ), _T(CLIENT_NAME),
-				(LPCTSTR)theApp.m_sVersionLong,
-				theApp.m_nWindowsVersion, theApp.m_nWindowsVersionMinor );
+				m_pWords.GetAt( 0 ), _T(CLIENT_NAME), theApp.m_sVersionLong, theApp.m_nWindowsVersion, theApp.m_nWindowsVersionMinor );
 			OnLocalText( strReply );
 			oNewMessage.Add( _T("* ") + m_pWords.GetAt( 0 ) + _T(" just VERSIONed you."), m_sStatus, ID_COLOR_SERVERMSG );
 			return;
@@ -2599,17 +2586,17 @@ void CIRCTabCtrl::DrawTabItem(HDC dc, int nItem, const RECT& rcItem, UINT flags)
 	BOOL bSel = flags & paintSelected;
 
 	RECT rc = rcItem;
-	rc.bottom -= ( bSel ? 1 : 2 );
+	rc.bottom -= bSel ? 1 : 2;
 	rc.left += 6;	// Text & icon.
-	rc.top += 2 + ( bSel ? 1 : 3 );
+	rc.top += 2 + bSel ? 1 : 3;
 
 	int oldMode = SetBkMode( dc, TRANSPARENT );
 	HIMAGELIST imageList = (HIMAGELIST)TabCtrl_GetImageList( m_hWnd );
 	if ( imageList && item.iImage >= 0 )
 	{
 		ImageList_Draw( imageList, item.iImage, dc,
-			rc.left + ( bSel ? 2 : 0 ),
-			rc.top + ( bSel ? 0 : -2 ), ILD_TRANSPARENT );
+			rc.left + bSel ? 2 : 0,
+			rc.top + bSel ? 0 : -2, ILD_TRANSPARENT );
 		rc.left += 19;
 	}
 	else

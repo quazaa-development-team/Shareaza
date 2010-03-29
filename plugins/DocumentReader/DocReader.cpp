@@ -42,7 +42,6 @@ LPCWSTR	CDocReader::ooImpressExt	= L".odp.otp.sxi.sti";
 
 // CDocReader
 CDocReader::CDocReader()
-	: m_pDocProps( NULL )
 {
 	ODS(_T("CDocReader::CDocReader\n"));
 }
@@ -54,18 +53,25 @@ CDocReader::~CDocReader()
 	delete m_pDocProps;
 }
 
+void CDocReader::Initialize(BOOL bOnlyThumb)
+{
+	HRESULT hr;
+
+ // Create a new instance of the control
+	m_pDocProps = new CDocumentProperties( bOnlyThumb );
+
+ // Initialize the object
+	if ( FAILED(hr = m_pDocProps->InitializeNewInstance()) )
+		delete m_pDocProps; // cleanup the object
+}
+
 // ILibraryBuilderPlugin Methods
 
 STDMETHODIMP CDocReader::Process(HANDLE hFile, BSTR sFile, ISXMLElement* pXML)
 {
 	ODS(_T("CDocReader::Process\n"));
-
 	EnterCritical();
 	DllAddRef();
-	
-	// Create a new instance of the control
-	delete m_pDocProps;
-	m_pDocProps = new CDocumentProperties( FALSE );
 
 	HRESULT hr = E_FAIL;
 	LPCWSTR pszExt = _wcslwr( wcsrchr( sFile, '.') );
@@ -824,10 +830,6 @@ STDMETHODIMP CDocReader::LoadFromFile(BSTR sFile, IMAGESERVICEDATA* pParams, SAF
 
 	EnterCritical();
 	DllAddRef();
-
-	// Create a new instance of the control
-	delete m_pDocProps;
-	m_pDocProps = new CDocumentProperties( TRUE );
 	
 	HRESULT hr = E_FAIL;
 
@@ -873,11 +875,11 @@ STDMETHODIMP CDocReader::GetMSThumbnail(BSTR bsFile, IMAGESERVICEDATA* pParams, 
 
 	// Retrieve thumbnail data in safearray if any
 	VariantInit( &va );
-	hr = m_pDocProps->m_pSummProps->get_Thumbnail( &va );
-	hr = m_pDocProps->Close( VARIANT_FALSE );
+	m_pDocProps->m_pSummProps->get_Thumbnail( &va );
+	m_pDocProps->Close( VARIANT_FALSE );
 
 	// Check if we have it
-	if ( va.vt == VT_EMPTY ) return E_FAIL;
+	if ( va.vt == VT_EMPTY ) return S_FALSE;
 	if ( ! ( va.vt & VT_ARRAY ) ) return E_UNEXPECTED;
 
 	BYTE* pclp = NULL;
@@ -1216,7 +1218,7 @@ STDMETHODIMP CDocReader::GetOOThumbnail(BSTR bsFile, IMAGESERVICEDATA* pParams, 
 			hr = E_FAIL;
 	}
 	else
-		hr = E_FAIL;
+		hr = S_FALSE;
 
 	unzClose( pFile );
 
@@ -1537,17 +1539,17 @@ LPWSTR CDocReader::GetSchema(BSTR sFile, LPCWSTR pszExt)
 }
 
 CDocReader::CDocumentProperties::CDocumentProperties(BOOL bOnlyThumb)
-	: m_bstrFileName	( NULL )
-	, m_cFilePartIdx	( 0 )
-    , m_pStorage		( NULL )
-    , m_pPropSetStg		( NULL )
-    , m_dwFlags			( dsoOptionDefault )
-	, m_fReadOnly		( FALSE )
-    , m_wCodePage		( 0 )
-    , m_pSummProps		( NULL )
-	, m_bOnlyThumb		( bOnlyThumb )
 {
 	ODS(_T("CDocReader::CDocumentProperties::CDocumentProperties()\n"));
+	m_bstrFileName   = NULL;
+	m_cFilePartIdx   = 0;
+    m_pStorage       = NULL;
+    m_pPropSetStg    = NULL;
+    m_dwFlags        = dsoOptionDefault;
+	m_fReadOnly		 = FALSE;
+    m_wCodePage      = 0;
+    m_pSummProps     = NULL;
+	m_bOnlyThumb	 = bOnlyThumb;
 }
 
 CDocReader::CDocumentProperties::~CDocumentProperties(void)
