@@ -1,0 +1,19 @@
+//
+// SHAREAZA.RC2 - resources Microsoft Visual C++ does not edit directly
+//
+
+#ifdef APSTUDIO_INVOKED
+	#error this file is not editable by Microsoft Visual C++
+#endif //APSTUDIO_INVOKED
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// GZIP
+//
+
+IDR_HTML_STYLE          GZIP                    "Res\\style.css.gz"
+IDR_HTML_ABOUT          GZIP                    "Res\\About.htm.gz"
+IDR_HTML_BROWSER        GZIP                    "Res\\Browser.htm.gz"
+IDR_XML_DEFINITIONS     GZIP                    "Res\\Definitions.xml.gz"
+IDR_XML_DEFAULT         GZIP                    "Res\\Default.xml.gz"
+IDR_XML_SCHEMA_MAPS     GZIP                    "Res\\SchemaMappings.xml.gz"
