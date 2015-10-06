@@ -1,0 +1,14 @@
+HKCR
+{
+	NoRemove AppID
+	{
+		'%APPID%' = s 'GFL Library Builder'
+		{
+			val DllSurrogate = s ''
+		}
+		'GFLLibraryBuilder.DLL'
+		{
+			val AppID = s '%APPID%'
+		}
+	}
+}
