@@ -42,6 +42,7 @@ protected:
 	static BOOL	LookupUniversalPlugins(service_list& oList);
 
 	static BOOL	LoadFromFileHelper(IImageServicePlugin* pService, CImageFile* pFile, LPCTSTR szFilename, BOOL bScanOnly, BOOL bPartialOk);
+	static BOOL	PostLoad(CImageFile* pFile, const IMAGESERVICEDATA* pParams, SAFEARRAY* pArray);
 	static SAFEARRAY* ImageToArray(CImageFile* pFile);
 
 // IImageServicePlugin
