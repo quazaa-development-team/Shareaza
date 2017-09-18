@@ -1,0 +1,100 @@
+HKCR
+{
+	ForceRemove Shareaza.DocReader.1 = s 'Document Metadata Reader and Thumbnailer'
+	{
+		CLSID = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+	}
+	ForceRemove Shareaza.DocReader = s 'Document Metadata Reader and Thumbnailer'
+	{
+		CLSID = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+		CurVer = s 'Shareaza.DocReader.1'
+	}
+	NoRemove CLSID
+	{
+		ForceRemove {E9F51B1E-DB0F-4EEE-9B36-46151994C715} = s 'Document Metadata Reader and Thumbnailer'
+		{
+			ProgID = s 'Shareaza.DocReader.1'
+			VersionIndependentProgID = s 'Shareaza.DocReader'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Both'
+			}
+			val AppID = s '%APPID%'
+			'TypeLib' = s '{607C3F69-850D-4413-A81A-CF1C849BF387}'
+		}
+	}
+}
+HKCU
+{
+	NoRemove Software
+	{
+		NoRemove Shareaza
+		{
+			NoRemove Shareaza
+			{
+				NoRemove Plugins
+				{
+					NoRemove ImageService
+					{
+						val '.doc' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.dot' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.xls' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.xlt' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.xla' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.ppt' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.pot' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.ppa' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.mpp' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.mpt' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.vsd' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.vst' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.odt' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.ott' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.ods' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.ots' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.odp' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.otp' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.sxw' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.stw' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.sxi' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.sti' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.sxc' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.stc' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+					}
+					NoRemove LibraryBuilder
+					{
+						val '.doc' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.docx' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.dot' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.xls' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.xlsx' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.xlt' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.xltx' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.xla' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.ppt' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.pptx' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.pot' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.potx' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.ppa' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.mpp' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.mpt' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.vsd' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.vst' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.odt' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.ott' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.ods' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.ots' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.odp' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.otp' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.sxw' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.stw' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.sxi' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.sti' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.sxc' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+						val '.stc' = s '{E9F51B1E-DB0F-4EEE-9B36-46151994C715}'
+					}
+				}
+			}
+		}
+	}
+}
