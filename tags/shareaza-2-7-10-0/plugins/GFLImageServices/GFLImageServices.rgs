@@ -1,0 +1,14 @@
+HKCR
+{
+	NoRemove AppID
+	{
+		'%APPID%' = s 'GFL Image Services'
+		{
+			val DllSurrogate = s ''
+		}
+		'GFLImageServices.DLL'
+		{
+			val AppID = s '%APPID%'
+		}
+	}
+}
